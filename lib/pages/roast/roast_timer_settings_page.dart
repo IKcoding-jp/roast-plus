@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/roast_timer_settings_firestore_service.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 class RoastTimerSettingsPage extends StatefulWidget {
   const RoastTimerSettingsPage({super.key});
@@ -69,7 +71,9 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Colors.white,
+                  color:
+                      Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                      Colors.white,
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(

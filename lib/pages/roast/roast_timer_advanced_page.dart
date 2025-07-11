@@ -4,6 +4,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:bysnapp/pages/roast/roast_timer_settings_page.dart';
 import 'package:bysnapp/pages/roast/roast_record_page.dart';
 import 'package:bysnapp/pages/roast/roast_advisor_page.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 class RoastTimerAdvancedPage extends StatefulWidget {
   final Duration? initialDuration;
@@ -268,54 +270,65 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'HannariMincho',
-                ),
-              ),
-              SizedBox(height: 40),
-              Stack(
-                alignment: Alignment.center,
+          child: Card(
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            color: Provider.of<ThemeSettings>(context).backgroundColor2 ?? Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: 200,
-                    height: 200,
-                    child: CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 10,
-                      color: Colors.green,
-                    ),
-                  ),
                   Text(
-                    _formatTime(_remainingSeconds),
+                    title,
                     style: TextStyle(
-                      fontSize: 36,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'HannariMincho',
                     ),
                   ),
+                  SizedBox(height: 40),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 200,
+                        height: 200,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 10,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        _formatTime(_remainingSeconds),
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'HannariMincho',
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 40),
+                  if (!_isPreheating && !_isRoasting)
+                    ElevatedButton(onPressed: _startPreheating, child: Text('予熱開始'))
+                  else
+                    ElevatedButton(onPressed: _stopTimer, child: Text('停止')),
+                  SizedBox(height: 20),
+                  TextButton(
+                    onPressed: _totalSeconds == 0 ? null : _skipTime,
+                    child: Text(
+                      '⏩ スキップ',
+                      style: TextStyle(color: Color(0xFF795548), fontSize: 14),
+                    ),
+                  ),
                 ],
               ),
-              SizedBox(height: 40),
-              if (!_isPreheating && !_isRoasting)
-                ElevatedButton(onPressed: _startPreheating, child: Text('予熱開始'))
-              else
-                ElevatedButton(onPressed: _stopTimer, child: Text('停止')),
-              SizedBox(height: 20),
-              TextButton(
-                onPressed: _totalSeconds == 0 ? null : _skipTime,
-                child: Text(
-                  '⏩ スキップ',
-                  style: TextStyle(color: Color(0xFF795548), fontSize: 14),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
