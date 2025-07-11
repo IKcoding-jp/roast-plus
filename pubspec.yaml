@@ -1,0 +1,44 @@
+name: bysnapp
+description: "焙煎ログ+"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  intl: ^0.19.0
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.5.3
+  google_fonts: ^6.1.0
+  audioplayers: ^5.2.1
+  fl_chart: ^0.66.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/launcher_icon/icon.png
+    - assets/sounds/alarm.mp3
+    - assets/fonts/
+  fonts:
+    - family: YDWaosagi
+      fonts:
+        - asset: assets/fonts/YDWaosagi.otf
+    - family: HannariMincho
+      fonts:
+        - asset: assets/fonts/HannariMincho-Regular.otf
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/launcher_icon/icon.png"
