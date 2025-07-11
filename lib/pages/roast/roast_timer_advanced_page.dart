@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bysnapp/pages/roast/roast_timer_settings_page.dart';
 import 'package:bysnapp/pages/roast/roast_record_page.dart';
 import 'package:bysnapp/pages/roast/roast_advisor_page.dart';
-import 'package:bysnapp/pages/roast/roast_timer_page.dart';
-import 'package:bysnapp/main.dart';
-import 'package:bysnapp/pages/roast/roast_timer_settings_page.dart';
 
 class RoastTimerAdvancedPage extends StatefulWidget {
   final Duration? initialDuration;

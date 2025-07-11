@@ -6,18 +6,19 @@ import 'package:intl/intl.dart';
 import 'package:bysnapp/pages/members/member_edit_page.dart';
 import 'package:bysnapp/pages/labels/label_edit_page.dart';
 import 'package:bysnapp/pages/history/assignment_history_page.dart';
-import 'package:bysnapp/main.dart';
 import 'dart:math';
-import 'package:bysnapp/settings/app_settings_page.dart';
+import '../../services/assignment_firestore_service.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 class AssignmentBoard extends StatefulWidget {
   const AssignmentBoard({super.key});
 
   @override
-  State<AssignmentBoard> createState() => _AssignmentBoardState();
+  State<AssignmentBoard> createState() => AssignmentBoardState();
 }
 
-class _AssignmentBoardState extends State<AssignmentBoard> {
+class AssignmentBoardState extends State<AssignmentBoard> {
   late SharedPreferences prefs;
   bool _isLoading = true;
 
@@ -31,6 +32,35 @@ class _AssignmentBoardState extends State<AssignmentBoard> {
   bool isShuffling = false;
   bool isAssignedToday = false;
   Timer? shuffleTimer;
+
+  // Firestore同期用setter
+  void setAssignmentMembersFromFirestore(Map<String, dynamic> members) {
+    setState(() {
+      aOriginal = List<String>.from(members['aMembers'] ?? []);
+      bOriginal = List<String>.from(members['bMembers'] ?? []);
+      // ラベルはnullや空リストなら上書きしない
+      if (members['leftLabels'] != null &&
+          (members['leftLabels'] as List).isNotEmpty) {
+        leftLabels = List<String>.from(members['leftLabels']);
+      }
+      if (members['rightLabels'] != null &&
+          (members['rightLabels'] as List).isNotEmpty) {
+        rightLabels = List<String>.from(members['rightLabels']);
+      }
+      aMembers = List<String>.from(members['aMembers'] ?? []);
+      bMembers = List<String>.from(members['bMembers'] ?? []);
+    });
+  }
+
+  void setAssignmentHistoryFromFirestore(List<String> history) {
+    setState(() {
+      if (history.length == leftLabels.length) {
+        aMembers = history.map((e) => e.split('-')[0]).toList();
+        bMembers = history.map((e) => e.split('-')[1]).toList();
+        isAssignedToday = true;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -148,6 +178,11 @@ class _AssignmentBoardState extends State<AssignmentBoard> {
         if (!(isWeekend && !devMode)) {
           await prefs.setString('assignedDate', today);
           await prefs.setStringList('assignment_$today', finalPairs);
+          // Firestoreにも保存
+          await AssignmentFirestoreService.saveAssignmentHistory(
+            dateKey: today,
+            assignments: finalPairs,
+          );
         }
 
         setState(() {
@@ -174,7 +209,8 @@ class _AssignmentBoardState extends State<AssignmentBoard> {
       context,
       MaterialPageRoute(builder: (_) => MemberEditPage()),
     );
-    await _loadState();
+    _resetToday(); // 担当決定状態をリセット
+    await _loadState(); // 状態を再読み込み
   }
 
   Future<void> _navigateToLabelEdit() async {
@@ -182,6 +218,7 @@ class _AssignmentBoardState extends State<AssignmentBoard> {
       context,
       MaterialPageRoute(builder: (_) => LabelEditPage()),
     );
+    await _loadState();
   }
 
   void _goToHistory() {
@@ -248,63 +285,70 @@ class _AssignmentBoardState extends State<AssignmentBoard> {
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 20),
-              if (leftLabels.isEmpty || aMembers.isEmpty || bMembers.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Text(
-                    'ラベルとメンバーを追加してください',
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.redAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              else
-                Container(
-                  padding: EdgeInsets.all(16),
-                  margin: EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    border: Border.all(color: Colors.black26),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            SizedBox(width: 80),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  'A班',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  ),
+              Container(
+                padding: EdgeInsets.all(16),
+                margin: EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color:
+                      Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                      Colors.grey[100],
+                  border: Border.all(color: Colors.black26),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SizedBox(width: 80),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'A班',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
                                 ),
                               ),
                             ),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  'B班',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'B班',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
                                 ),
                               ),
                             ),
-                            SizedBox(width: 80),
-                          ],
-                        ),
+                          ),
+                          SizedBox(width: 80),
+                        ],
                       ),
-                      ...List.generate(count, (i) {
+                    ),
+                    // ラベルもメンバーも空の場合のみ赤字で表示
+                    if (leftLabels.isEmpty &&
+                        aMembers.isEmpty &&
+                        bMembers.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24.0),
+                        child: Center(
+                          child: Text(
+                            'メンバーとラベルを追加してください',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      // 柔軟な行数で表示（ラベル数分のみ）
+                      ...List.generate(leftLabels.length, (i) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: Row(
@@ -313,7 +357,7 @@ class _AssignmentBoardState extends State<AssignmentBoard> {
                               SizedBox(
                                 width: 80,
                                 child: Text(
-                                  leftLabels[i],
+                                  i < leftLabels.length ? leftLabels[i] : '',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
@@ -321,15 +365,23 @@ class _AssignmentBoardState extends State<AssignmentBoard> {
                                 ),
                               ),
                               MemberCard(
-                                name: i < aMembers.length ? aMembers[i] : '',
+                                name:
+                                    i < aMembers.length &&
+                                        aMembers[i].isNotEmpty
+                                    ? aMembers[i]
+                                    : '未設定',
                               ),
                               MemberCard(
-                                name: i < bMembers.length ? bMembers[i] : '',
+                                name:
+                                    i < bMembers.length &&
+                                        bMembers[i].isNotEmpty
+                                    ? bMembers[i]
+                                    : '未設定',
                               ),
                               SizedBox(
                                 width: 80,
                                 child: Text(
-                                  rightLabels[i],
+                                  i < rightLabels.length ? rightLabels[i] : '',
                                   textAlign: TextAlign.right,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
@@ -341,9 +393,9 @@ class _AssignmentBoardState extends State<AssignmentBoard> {
                           ),
                         );
                       }),
-                    ],
-                  ),
+                  ],
                 ),
+              ),
               SizedBox(height: 32),
               ElevatedButton(
                 onPressed: isButtonDisabled ? null : _shuffleAssignments,
@@ -370,8 +422,12 @@ class MemberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayName = name.isEmpty ? '未設定' : name;
-    final cardColor = name.isEmpty ? Colors.grey[300] : Colors.green[200];
-    final textColor = name.isEmpty ? Colors.grey[600] : Colors.black;
+    final isUnset = displayName == '未設定';
+    final cardColor = isUnset
+        ? (Provider.of<ThemeSettings>(context).backgroundColor2 ??
+              Colors.grey[300])
+        : Colors.green[200];
+    final textColor = isUnset ? Colors.grey[600] : Colors.black;
 
     return Container(
       width: 100,

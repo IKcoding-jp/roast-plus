@@ -43,7 +43,10 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('ドリップパック履歴')),
+      appBar: AppBar(
+        title: Text('ドリップパック履歴'),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+      ),
       body: _records.isEmpty
           ? Center(child: Text('記録がありません'))
           : ListView.builder(

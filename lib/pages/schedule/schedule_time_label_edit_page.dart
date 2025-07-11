@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import 'package:bysnapp/main.dart';
+import '../../services/todayschedule_firestore_service.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 class ScheduleTimeLabelEditPage extends StatefulWidget {
   final List<String> labels;
@@ -131,12 +131,15 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(Icons.access_time, color: Color(0xFF795548)),
+            Icon(
+              Icons.access_time,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
             SizedBox(width: 8),
             Text(
               '時間ラベル編集',
               style: TextStyle(
-                color: Color(0xFF2C1D17),
+                color: Theme.of(context).colorScheme.onPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -145,35 +148,36 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.save),
-            onPressed: () {
+            onPressed: () async {
               widget.onLabelsChanged(_labels);
+              try {
+                await ScheduleFirestoreService.saveTimeLabels(_labels);
+              } catch (_) {}
               Navigator.pop(context);
             },
           ),
         ],
-        backgroundColor: Color(0xFFFFF8E1),
+        backgroundColor: Provider.of<ThemeSettings>(context).appBarColor,
         elevation: 0,
-        iconTheme: IconThemeData(color: Color(0xFF795548)),
+        iconTheme: IconThemeData(
+          color: Theme.of(context).colorScheme.onPrimary,
+        ),
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF8E1), Color(0xFFFFF8E1)],
-          ),
-        ),
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: SingleChildScrollView(
           padding: EdgeInsets.all(16),
           child: Column(
             children: [
               // 入力カード
               Card(
-                elevation: 8,
+                elevation: 6,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                color: Color(0xFFFFF8E1),
+                color:
+                    Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                    Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Row(
@@ -182,18 +186,39 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                         child: TextField(
                           controller: _hourController,
                           keyboardType: TextInputType.number,
+                          style: TextStyle(fontSize: 16),
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Icons.access_time,
                               color: Color(0xFF795548),
                             ),
                             labelText: '時',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
                             ),
-                            counterText: '', // ← 追加
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: Color(0xFF795548),
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            counterText: '',
                           ),
                           maxLength: 2,
                         ),
@@ -211,14 +236,35 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                         child: TextField(
                           controller: _minuteController,
                           keyboardType: TextInputType.number,
+                          style: TextStyle(fontSize: 16),
                           decoration: InputDecoration(
                             labelText: '分',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
                             ),
-                            counterText: '', // ← 追加
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                color: Color(0xFF795548),
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            counterText: '',
                           ),
                           maxLength: 2,
                         ),
@@ -229,14 +275,29 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                         icon: Icon(Icons.add, size: 20),
                         label: Text(
                           '追加',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF795548),
-                          foregroundColor: Colors.white,
+                          backgroundColor:
+                              Theme.of(context)
+                                  .elevatedButtonTheme
+                                  .style
+                                  ?.backgroundColor
+                                  ?.resolve({}) ??
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context)
+                                  .elevatedButtonTheme
+                                  .style
+                                  ?.foregroundColor
+                                  ?.resolve({}) ??
+                              Colors.white,
                           padding: EdgeInsets.symmetric(
-                            vertical: 15,
-                            horizontal: 16,
+                            vertical: 14,
+                            horizontal: 20,
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -255,17 +316,19 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                 physics: NeverScrollableScrollPhysics(),
                 itemCount: _labels.length,
                 itemBuilder: (context, i) => Card(
-                  elevation: 8,
+                  elevation: 4,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Color(0xFFFFF8E1),
-                  margin: EdgeInsets.only(bottom: 16),
+                  color:
+                      Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                      Colors.white,
+                  margin: EdgeInsets.only(bottom: 14),
                   child: ListTile(
                     leading: Container(
                       padding: EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Color(0xFF795548).withOpacity(0.2),
+                        color: Color(0xFF795548).withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(Icons.access_time, color: Color(0xFF795548)),

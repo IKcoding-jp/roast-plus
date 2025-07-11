@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:bysnapp/pages/drip/DripPackRecordListPage.dart';
+import '../../services/drip_counter_firestore_service.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 class DripCounterPage extends StatefulWidget {
   const DripCounterPage({super.key});
 
   @override
-  State<DripCounterPage> createState() => _DripCounterPageState();
+  State<DripCounterPage> createState() => DripCounterPageState();
 }
 
-class _DripCounterPageState extends State<DripCounterPage>
+class DripCounterPageState extends State<DripCounterPage>
     with SingleTickerProviderStateMixin {
   final TextEditingController _beanController = TextEditingController();
   int _counter = 0;
@@ -18,6 +21,14 @@ class _DripCounterPageState extends State<DripCounterPage>
   String? _selectedRoast;
   // Stateに追加
   Color _counterColor = Colors.black;
+
+  // Firestore同期用 記録リスト
+  List<Map<String, dynamic>> _records = [];
+  void setDripRecordsFromFirestore(List<Map<String, dynamic>> records) {
+    setState(() {
+      _records = List<Map<String, dynamic>>.from(records);
+    });
+  }
 
   @override
   void initState() {
@@ -43,16 +54,16 @@ class _DripCounterPageState extends State<DripCounterPage>
     final theme = Theme.of(context);
     // 共通の枠デザイン
     final cardShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-      side: BorderSide(color: Color(0xFF795548), width: 2),
+      borderRadius: BorderRadius.circular(16),
     );
-    final cardElevation = 8.0;
-    final cardColor = Color(0xFFFFF8E1);
+    final cardElevation = 6.0;
+    final cardColor =
+        Provider.of<ThemeSettings>(context).backgroundColor2 ?? Colors.white;
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E1),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('ドリップパックカウンター'),
-        backgroundColor: const Color(0xFF2C1D17),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         actions: [
           IconButton(
@@ -84,43 +95,45 @@ class _DripCounterPageState extends State<DripCounterPage>
                       shape: cardShape,
                       elevation: cardElevation,
                       color: cardColor,
-                      child: Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '$_counter',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 120,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.black,
-                                letterSpacing: 2,
-                                fontFamily: 'Arial',
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.white,
-                                    blurRadius: 4,
-                                    offset: Offset(1, 1),
-                                  ),
-                                ],
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '$_counter',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 120,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.black,
+                                  letterSpacing: 2,
+                                  fontFamily: 'Arial',
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.white,
+                                      blurRadius: 4,
+                                      offset: Offset(1, 1),
+                                    ),
+                                  ],
+                                ),
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '袋',
+                            style: TextStyle(
+                              fontSize: 22,
+                              color: Color(0xFF795548),
+                              fontWeight: FontWeight.bold,
                             ),
-                            // const SizedBox(width: 8),
-                            // const Text(
-                            //   '袋',
-                            //   style: TextStyle(
-                            //     fontSize: 32,
-                            //     color: Color(0xFF4E342E),
-                            //     fontWeight: FontWeight.bold,
-                            //     letterSpacing: 2,
-                            //   ),
-                            // ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -183,7 +196,7 @@ class _DripCounterPageState extends State<DripCounterPage>
                                     controller: _beanController,
                                     icon: Icons.coffee,
                                     hint: '例: グアテマラ',
-                                    fontSize: 17, // 一回り小さく
+                                    fontSize: 17,
                                     iconSize: 22,
                                     labelFontSize: 16,
                                     contentPadding: const EdgeInsets.symmetric(
@@ -223,8 +236,20 @@ class _DripCounterPageState extends State<DripCounterPage>
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF795548),
-                                  foregroundColor: Colors.white,
+                                  backgroundColor:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.backgroundColor
+                                          ?.resolve({}) ??
+                                      Theme.of(context).colorScheme.primary,
+                                  foregroundColor:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.foregroundColor
+                                          ?.resolve({}) ??
+                                      Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
@@ -248,14 +273,19 @@ class _DripCounterPageState extends State<DripCounterPage>
   }
 
   Widget _buildCountButton(int value, {double fontSize = 22}) {
-    final isPlus = value > 0;
-    final Color plusColor = Color(0xFF8D6E63);
-    final Color minusColor = Color(0xFF4E342E);
     return ElevatedButton(
       onPressed: () => _addToCounter(value),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isPlus ? plusColor : minusColor,
-        foregroundColor: Colors.white,
+        backgroundColor:
+            Theme.of(
+              context,
+            ).elevatedButtonTheme.style?.backgroundColor?.resolve({}) ??
+            Theme.of(context).colorScheme.primary,
+        foregroundColor:
+            Theme.of(
+              context,
+            ).elevatedButtonTheme.style?.foregroundColor?.resolve({}) ??
+            Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         elevation: 6,
         padding: EdgeInsets.zero,
@@ -265,7 +295,7 @@ class _DripCounterPageState extends State<DripCounterPage>
           letterSpacing: 1.5,
         ),
       ),
-      child: Text(isPlus ? '+$value' : '$value'),
+      child: Text(value > 0 ? '+$value' : '$value'),
     );
   }
 
@@ -305,9 +335,9 @@ class _DripCounterPageState extends State<DripCounterPage>
           controller: controller,
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFFF3EDE7),
+            fillColor: Colors.grey.shade50,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
             ),
             contentPadding: contentPadding,
@@ -375,9 +405,9 @@ class _DripCounterPageState extends State<DripCounterPage>
           },
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFFF3EDE7),
+            fillColor: Colors.grey.shade50,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
             ),
             contentPadding: contentPadding,
@@ -401,13 +431,23 @@ class _DripCounterPageState extends State<DripCounterPage>
     if (saved != null) {
       records = List<Map<String, dynamic>>.from(json.decode(saved));
     }
+    final now = DateTime.now();
     records.insert(0, {
       'bean': bean,
       'roast': roast,
       'count': count,
-      'timestamp': DateTime.now().toIso8601String(),
+      'timestamp': now.toIso8601String(),
     });
     await prefs.setString('dripPackRecords', json.encode(records));
+    // Firestoreにも保存
+    try {
+      await DripCounterFirestoreService.addDripPackRecord(
+        bean: bean,
+        roast: roast,
+        count: count,
+        timestamp: now,
+      );
+    } catch (_) {}
     setState(() {
       _counter = 0;
       _selectedRoast = null;

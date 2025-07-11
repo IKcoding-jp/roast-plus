@@ -5,8 +5,9 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:bysnapp/main.dart';
 import 'package:bysnapp/pages/roast/roast_timer_settings_page.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 enum RoastMode { idle, preheating, roasting, inputManualTime, inputRecommended }
 
@@ -289,42 +290,33 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       return Scaffold(
         appBar: AppBar(title: Text('焙煎時間入力')),
         body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFFFF8E1), Color(0xFFFFF8E1)],
-            ),
-          ),
+          color: Theme.of(context).scaffoldBackgroundColor,
           child: Center(
             child: SingleChildScrollView(
               child: Card(
-                elevation: 8,
+                elevation: 6,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                color: Color(0xFFFFF8E1),
+                color: Colors.white,
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         '焙煎時間を入力してください',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2C1D17),
                         ),
                       ),
-                      SizedBox(height: 24),
+                      SizedBox(height: 20),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Color(0xFF795548).withOpacity(0.3),
-                          ),
+                          color: Color(0xFFF3EDE7),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: TextField(
                           controller: _manualMinuteController,
@@ -337,13 +329,13 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                             labelText: '分数を入力',
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
+                              horizontal: 14,
+                              vertical: 12,
                             ),
                           ),
                         ),
                       ),
-                      SizedBox(height: 32),
+                      SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -359,14 +351,26 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           label: Text(
                             '手動で焙煎スタート',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF795548),
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 15),
+                            backgroundColor:
+                                Theme.of(context)
+                                    .elevatedButtonTheme
+                                    .style
+                                    ?.backgroundColor
+                                    ?.resolve({}) ??
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor:
+                                Theme.of(context)
+                                    .elevatedButtonTheme
+                                    .style
+                                    ?.foregroundColor
+                                    ?.resolve({}) ??
+                                Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 13),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -374,7 +378,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -387,16 +391,14 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           label: Text(
                             'おすすめ焙煎時間を自動で設定する',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(
-                              0xFFFF8225,
-                            ), // オレンジ色（#FF8225）
+                            backgroundColor: Color(0xFFFF8225),
                             foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 15),
+                            padding: EdgeInsets.symmetric(vertical: 13),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -404,7 +406,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
@@ -418,9 +420,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Color(0xFF795548),
                             side: BorderSide(color: Color(0xFF795548)),
-                            padding: EdgeInsets.symmetric(vertical: 15),
+                            padding: EdgeInsets.symmetric(vertical: 13),
                             textStyle: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
                             shape: RoundedRectangleBorder(
@@ -444,13 +446,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       return Scaffold(
         appBar: AppBar(title: Text('おすすめ焙煎入力')),
         body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFFFF8E1), Color(0xFFFFF8E1)],
-            ),
-          ),
+          color: Theme.of(context).scaffoldBackgroundColor,
           child: Center(
             child: SingleChildScrollView(
               child: Card(
@@ -458,7 +454,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-                color: Color(0xFFFFF8E1),
+                color: Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -701,28 +697,25 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                       SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton.icon(
+                        child: OutlinedButton.icon(
                           onPressed: () {
                             setState(() {
                               _mode = RoastMode.inputManualTime;
                             });
                           },
-                          icon: Icon(Icons.arrow_back, size: 20),
-                          label: Text(
-                            '戻る',
-                            style: TextStyle(
+                          icon: Icon(Icons.arrow_back),
+                          label: Text('戻る'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Color(0xFF795548),
+                            side: BorderSide(color: Color(0xFF795548)),
+                            padding: EdgeInsets.symmetric(vertical: 15),
+                            textStyle: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF8D6E63),
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 15),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            elevation: 4,
                           ),
                         ),
                       ),
@@ -763,13 +756,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF8E1), Color(0xFFFFF8E1)],
-          ),
-        ),
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -777,43 +764,45 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Card(
-                  elevation: 8,
+                  elevation: 6,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Color(0xFFFFF8E1),
+                  color:
+                      Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                      Colors.white,
                   child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: const EdgeInsets.all(20.0),
                     child: Column(
                       children: [
                         Text(
                           title,
                           style: TextStyle(
-                            fontSize: 32,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF2C1D17),
                           ),
                         ),
-                        SizedBox(height: 32),
+                        SizedBox(height: 28),
                         Stack(
                           alignment: Alignment.center,
                           children: [
                             SizedBox(
-                              width: 220,
-                              height: 220,
+                              width: 240, // ←大きく
+                              height: 240, // ←大きく
                               child: CircularProgressIndicator(
                                 value: progress,
-                                strokeWidth: 12,
+                                strokeWidth: 13, // ←太く
                                 color: Color(0xFF795548),
                                 backgroundColor: Color(
                                   0xFF795548,
-                                ).withOpacity(0.2),
+                                ).withOpacity(0.18),
                               ),
                             ),
                             Text(
                               _formatTime(_remainingSeconds),
                               style: TextStyle(
-                                fontSize: 56,
+                                fontSize: 60, // ←大きく
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 2,
                                 color: Color(0xFF2C1D17),
@@ -821,7 +810,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                             ),
                           ],
                         ),
-                        SizedBox(height: 32),
+                        SizedBox(height: 24),
                         if (_mode == RoastMode.idle)
                           SizedBox(
                             width: double.infinity,
@@ -836,8 +825,20 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF795548),
-                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    Theme.of(context)
+                                        .elevatedButtonTheme
+                                        .style
+                                        ?.backgroundColor
+                                        ?.resolve({}) ??
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor:
+                                    Theme.of(context)
+                                        .elevatedButtonTheme
+                                        .style
+                                        ?.foregroundColor
+                                        ?.resolve({}) ??
+                                    Colors.white,
                                 padding: EdgeInsets.symmetric(vertical: 15),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -860,8 +861,20 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF795548),
-                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    Theme.of(context)
+                                        .elevatedButtonTheme
+                                        .style
+                                        ?.backgroundColor
+                                        ?.resolve({}) ??
+                                    Theme.of(context).colorScheme.primary,
+                                foregroundColor:
+                                    Theme.of(context)
+                                        .elevatedButtonTheme
+                                        .style
+                                        ?.foregroundColor
+                                        ?.resolve({}) ??
+                                    Colors.white,
                                 padding: EdgeInsets.symmetric(vertical: 15),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:bysnapp/models/roast_record.dart';
+import 'package:bysnapp/services/roast_record_firestore_service.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 class RoastRecordPage extends StatefulWidget {
   const RoastRecordPage({super.key});
@@ -34,13 +38,14 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     required Function(String?) onRoastLevelChanged,
   }) {
     final isA = title.contains('A台');
-    final cardColor = isA ? Color(0xFFFFF8E1) : Color(0xFFFFF8E1);
-    final accentColor = isA ? Color(0xFF795548) : Color(0xFF795548);
-    final iconColor = isA ? Color(0xFF795548) : Color(0xFF795548);
+    final cardColor =
+        Provider.of<ThemeSettings>(context).backgroundColor2 ?? Colors.white;
+    final accentColor = Color(0xFF795548);
+    final iconColor = Color(0xFF795548);
 
     return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: cardColor,
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -50,26 +55,13 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             // タイトル部分
             Row(
               children: [
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: accentColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    isA
-                        ? Icons.local_fire_department
-                        : Icons.local_fire_department,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                SizedBox(width: 12),
+                Icon(Icons.local_fire_department, color: accentColor, size: 24),
+                SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: accentColor,
                     ),
@@ -77,7 +69,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 18),
 
             // 1. 豆の種類
             _buildInputField(
@@ -87,14 +79,14 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
               icon: Icons.coffee,
               iconColor: iconColor,
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 14),
 
             // 2. 重さ
             _buildWeightDropdown(
               controller: weightController,
               iconColor: iconColor,
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 14),
 
             // 3. 煎り度
             Row(
@@ -102,7 +94,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.2),
+                    color: iconColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -111,12 +103,12 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                     size: 20,
                   ),
                 ),
-                SizedBox(width: 12),
+                SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     '煎り度',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: accentColor,
                     ),
@@ -124,19 +116,19 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 6),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: accentColor.withOpacity(0.3)),
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade300),
               ),
               child: DropdownButtonFormField<String>(
                 value: roastLevel,
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
+                    horizontal: 14,
                     vertical: 12,
                   ),
                   hintText: '煎り度を選択',
@@ -147,7 +139,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 onChanged: onRoastLevelChanged,
               ),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 14),
 
             // 4. 焙煎時間
             Row(
@@ -155,17 +147,17 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.2),
+                    color: iconColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(Icons.timer, color: iconColor, size: 20),
                 ),
-                SizedBox(width: 12),
+                SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     '焙煎時間',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: accentColor,
                     ),
@@ -173,7 +165,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
@@ -183,16 +175,16 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                     iconColor: iconColor,
                   ),
                 ),
-                SizedBox(width: 16),
+                SizedBox(width: 12),
                 Text(
                   ':',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: accentColor,
                   ),
                 ),
-                SizedBox(width: 16),
+                SizedBox(width: 12),
                 Expanded(
                   child: _buildTimeInputField(
                     controller: secController,
@@ -202,7 +194,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 14),
           ],
         ),
       ),
@@ -225,17 +217,17 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.2),
+                color: iconColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: iconColor, size: 20),
             ),
-            SizedBox(width: 12),
+            SizedBox(width: 10),
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: iconColor,
                 ),
@@ -243,12 +235,12 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             ),
           ],
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: iconColor.withOpacity(0.3)),
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
           ),
           child: TextField(
             controller: controller,
@@ -256,7 +248,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             decoration: InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
+                horizontal: 14,
                 vertical: 12,
               ),
               hintText: hint,
@@ -275,9 +267,9 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: iconColor.withOpacity(0.3)),
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: TextField(
         controller: controller,
@@ -285,7 +277,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
         textAlign: TextAlign.center,
         decoration: InputDecoration(
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           hintText: label,
           hintStyle: TextStyle(color: Colors.grey[400]),
         ),
@@ -305,17 +297,17 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.2),
+                color: iconColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.scale, color: iconColor, size: 20),
             ),
-            SizedBox(width: 12),
+            SizedBox(width: 10),
             Expanded(
               child: Text(
                 '重さ（g）',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: iconColor,
                 ),
@@ -323,19 +315,19 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             ),
           ],
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: iconColor.withOpacity(0.3)),
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
           ),
           child: DropdownButtonFormField<String>(
             value: controller.text.isEmpty ? null : controller.text,
             decoration: InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
+                horizontal: 14,
                 vertical: 12,
               ),
               hintText: '重さを選択',
@@ -357,35 +349,36 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
   }
 
   void _saveBothRoasts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final now = DateTime.now().toIso8601String();
-    List<Map<String, String>> newRecords = [];
+    final now = DateTime.now();
+    List<RoastRecord> newRecords = [];
 
     if (_beanAController.text.isNotEmpty &&
         _weightAController.text.isNotEmpty) {
-      final aData = {
-        'bean': _beanAController.text.trim(),
-        'weight': _weightAController.text.trim(),
-        'time':
+      final aRecord = RoastRecord(
+        id: '', // Firestoreで自動生成
+        bean: _beanAController.text.trim(),
+        weight: int.tryParse(_weightAController.text.trim()) ?? 0,
+        roast: _roastLevelA,
+        time:
             '${_minuteAController.text.padLeft(2, '0')}:${_secondAController.text.padLeft(2, '0')}',
-        'roast': _roastLevelA,
-        'side': 'A台',
-        'timestamp': now,
-      };
-      newRecords.add(aData);
+        memo: '',
+        timestamp: now,
+      );
+      newRecords.add(aRecord);
     }
     if (_beanBController.text.isNotEmpty &&
         _weightBController.text.isNotEmpty) {
-      final bData = {
-        'bean': _beanBController.text.trim(),
-        'weight': _weightBController.text.trim(),
-        'time':
+      final bRecord = RoastRecord(
+        id: '', // Firestoreで自動生成
+        bean: _beanBController.text.trim(),
+        weight: int.tryParse(_weightBController.text.trim()) ?? 0,
+        roast: _roastLevelB,
+        time:
             '${_minuteBController.text.padLeft(2, '0')}:${_secondBController.text.padLeft(2, '0')}',
-        'roast': _roastLevelB,
-        'side': 'B台',
-        'timestamp': now,
-      };
-      newRecords.add(bData);
+        memo: '',
+        timestamp: now,
+      );
+      newRecords.add(bRecord);
     }
     if (newRecords.isEmpty) {
       ScaffoldMessenger.of(
@@ -394,28 +387,32 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
       return;
     }
 
-    final saved = prefs.getString('roastRecords');
-    List<dynamic> recordList = saved != null ? json.decode(saved) : [];
-    recordList.addAll(newRecords);
-    prefs.setString('roastRecords', json.encode(recordList));
+    try {
+      for (final record in newRecords) {
+        await RoastRecordFirestoreService.addRecord(record);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${newRecords.length}件の記録を保存しました')),
+      );
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('${newRecords.length}件の記録を保存しました')));
+      _beanAController.clear();
+      _weightAController.clear();
+      _minuteAController.clear();
+      _secondAController.clear();
+      _roastLevelA = '中深煎り';
 
-    _beanAController.clear();
-    _weightAController.clear();
-    _minuteAController.clear();
-    _secondAController.clear();
-    _roastLevelA = '中深煎り';
+      _beanBController.clear();
+      _weightBController.clear();
+      _minuteBController.clear();
+      _secondBController.clear();
+      _roastLevelB = '中深煎り';
 
-    _beanBController.clear();
-    _weightBController.clear();
-    _minuteBController.clear();
-    _secondBController.clear();
-    _roastLevelB = '中深煎り';
-
-    setState(() {});
+      setState(() {});
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+    }
   }
 
   @override
@@ -431,13 +428,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
         ),
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF8E1), Color(0xFFFFF8E1)],
-          ),
-        ),
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: SingleChildScrollView(
           padding: EdgeInsets.all(16),
           child: Column(
@@ -481,8 +472,20 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF795548),
-                    foregroundColor: Colors.white,
+                    backgroundColor:
+                        Theme.of(context)
+                            .elevatedButtonTheme
+                            .style
+                            ?.backgroundColor
+                            ?.resolve({}) ??
+                        Theme.of(context).colorScheme.primary,
+                    foregroundColor:
+                        Theme.of(context)
+                            .elevatedButtonTheme
+                            .style
+                            ?.foregroundColor
+                            ?.resolve({}) ??
+                        Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

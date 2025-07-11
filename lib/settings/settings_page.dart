@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../models/theme_settings.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback onReset;
@@ -36,31 +38,112 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('設定')),
-      body: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: AppBar(
+        title: Text('設定'),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+      ),
+      body: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: ListView(
+          padding: EdgeInsets.all(16),
           children: [
-            ElevatedButton.icon(
-              icon: Icon(Icons.refresh),
-              label: Text('今日の担当リセット'),
-              onPressed: () {
-                widget.onReset();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('リセットしました')));
-                Navigator.pop(context);
-              },
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              color:
+                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                  Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.refresh, color: Color(0xFF795548)),
+                        SizedBox(width: 8),
+                        Text(
+                          '担当リセット',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF795548),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.refresh),
+                        label: Text('今日の担当リセット'),
+                        onPressed: () {
+                          widget.onReset();
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text('リセットしました')));
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context)
+                                  .elevatedButtonTheme
+                                  .style
+                                  ?.backgroundColor
+                                  ?.resolve({}) ??
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context)
+                                  .elevatedButtonTheme
+                                  .style
+                                  ?.foregroundColor
+                                  ?.resolve({}) ??
+                              Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            SizedBox(height: 30),
-            Divider(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('開発者モード（土日でもシャッフル）', style: TextStyle(fontSize: 16)),
-                Switch(value: developerMode, onChanged: _toggleDevMode),
-              ],
+            SizedBox(height: 16),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              color:
+                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                  Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.developer_mode, color: Color(0xFF795548)),
+                        SizedBox(width: 8),
+                        Text(
+                          '開発者モード（土日でもシャッフル）',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF795548),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Switch(value: developerMode, onChanged: _toggleDevMode),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

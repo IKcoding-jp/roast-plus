@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "781258244482",
+    "project_id": "bysnlogapp",
+    "storage_bucket": "bysnlogapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:781258244482:android:b57356442acd063ad58f9b",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "781258244482-gi2b0a3fugo1hhuhn2ntcl35ss17kmdd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.flutter_application_1",
+            "certificate_hash": "33b446e0ecc4ae2bd47ae5a3b8d58710d2194183"
+          }
+        },
+        {
+          "client_id": "781258244482-jhjdntb4lp4c3trci52feguj5oj5s40e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcKAdqrCS9p7l7sTVxKQUUsEUu97eE_1M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "781258244482-jhjdntb4lp4c3trci52feguj5oj5s40e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

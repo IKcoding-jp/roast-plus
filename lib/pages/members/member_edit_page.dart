@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
+import '../../services/assignment_firestore_service.dart';
 
 class MemberEditPage extends StatefulWidget {
   const MemberEditPage({super.key});
@@ -37,6 +41,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
     // ラベルも保存
     prefs.setStringList('leftLabels', leftLabels);
     prefs.setStringList('rightLabels', rightLabels);
+    // Firestoreにも保存
+    AssignmentFirestoreService.saveAssignmentMembers(
+      aMembers: aMembers,
+      bMembers: bMembers,
+      leftLabels: leftLabels,
+      rightLabels: rightLabels,
+    );
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('メンバー保存しました')));
@@ -130,6 +141,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
           icon: Icon(Icons.add),
           label: Text('追加'),
           onPressed: () => _addMember(isAGroup),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.primary,
+          ),
         ),
         SizedBox(height: 20),
       ],
@@ -142,13 +156,106 @@ class _MemberEditPageState extends State<MemberEditPage> {
       appBar: AppBar(
         title: Text('メンバー編集'),
         actions: [IconButton(icon: Icon(Icons.save), onPressed: _saveMembers)],
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16),
+      body: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: ListView(
+          padding: EdgeInsets.all(16),
           children: [
-            _buildList('A班', aMembers, true),
-            _buildList('B班', bMembers, false),
+            _buildMemberCard('A班', aMembers, true),
+            SizedBox(height: 16),
+            _buildMemberCard('B班', bMembers, false),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMemberCard(String title, List<String> list, bool isAGroup) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color:
+          Provider.of<ThemeSettings>(context).backgroundColor2 ?? Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.group, color: Color(0xFF795548)),
+                SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF795548),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            ...List.generate(list.length, (i) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: list[i],
+                        decoration: InputDecoration(
+                          labelText: '名前',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: Icon(Icons.person_outline),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        onChanged: (v) => _updateMember(i, v, isAGroup),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteMember(i, isAGroup),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: Icon(Icons.add),
+                label: Text('追加'),
+                onPressed: () => _addMember(isAGroup),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context)
+                          .elevatedButtonTheme
+                          .style
+                          ?.backgroundColor
+                          ?.resolve({}) ??
+                      Theme.of(context).colorScheme.primary,
+                  foregroundColor:
+                      Theme.of(context)
+                          .elevatedButtonTheme
+                          .style
+                          ?.foregroundColor
+                          ?.resolve({}) ??
+                      Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
           ],
         ),
       ),

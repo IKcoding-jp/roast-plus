@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 class LabelEditPage extends StatefulWidget {
   const LabelEditPage({super.key});
@@ -78,40 +80,118 @@ class _LabelEditPageState extends State<LabelEditPage> {
       appBar: AppBar(
         title: Text('担当ラベル編集'),
         actions: [IconButton(icon: Icon(Icons.save), onPressed: _saveLabels)],
+        backgroundColor: Provider.of<ThemeSettings>(context).appBarColor,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16),
+      body: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: ListView(
+          padding: EdgeInsets.all(16),
           children: [
-            ...List.generate(leftLabels.length, (i) {
-              return Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: leftLabels[i],
-                      decoration: InputDecoration(labelText: '左ラベル'),
-                      onChanged: (v) => leftLabels[i] = v,
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              color:
+                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                  Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.label, color: Color(0xFF795548)),
+                        SizedBox(width: 8),
+                        Text(
+                          '担当ラベル一覧',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF795548),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: rightLabels[i],
-                      decoration: InputDecoration(labelText: '右ラベル'),
-                      onChanged: (v) => rightLabels[i] = v,
+                    SizedBox(height: 12),
+                    ...List.generate(leftLabels.length, (i) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: leftLabels[i],
+                                decoration: InputDecoration(
+                                  labelText: '左ラベル',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  prefixIcon: Icon(Icons.label_outline),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                                onChanged: (v) => leftLabels[i] = v,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: rightLabels[i],
+                                decoration: InputDecoration(
+                                  labelText: '右ラベル',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  prefixIcon: Icon(Icons.label_outline),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                                onChanged: (v) => rightLabels[i] = v,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteLabel(i),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.add),
+                        label: Text('ラベルを追加'),
+                        onPressed: _addLabel,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context)
+                                  .elevatedButtonTheme
+                                  .style
+                                  ?.backgroundColor
+                                  ?.resolve({}) ??
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context)
+                                  .elevatedButtonTheme
+                                  .style
+                                  ?.foregroundColor
+                                  ?.resolve({}) ??
+                              Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () => _deleteLabel(i),
-                  ),
-                ],
-              );
-            }),
-            TextButton.icon(
-              icon: Icon(Icons.add),
-              label: Text('ラベルを追加'),
-              onPressed: _addLabel,
+                  ],
+                ),
+              ),
             ),
           ],
         ),

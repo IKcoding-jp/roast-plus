@@ -4,19 +4,23 @@ import 'dart:convert';
 import 'package:bysnapp/main.dart';
 import 'package:bysnapp/pages/labels/label_edit_page.dart';
 import 'package:bysnapp/pages/home/AssignmentBoard.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 import '../roast/roast_scheduler_tab.dart' show RoastSchedulerTab;
 import '../schedule/schedule_time_label_edit_page.dart';
 import 'package:bysnapp/models/roast_break_time.dart';
+import '../../services/schedule_firestore_service.dart';
+import '../../services/roast_break_time_firestore_service.dart';
 
 class TodoListPage extends StatefulWidget {
   const TodoListPage({super.key});
 
   @override
-  State<TodoListPage> createState() => _TodoListPageState();
+  State<TodoListPage> createState() => TodoListPageState();
 }
 
-class _TodoListPageState extends State<TodoListPage>
+class TodoListPageState extends State<TodoListPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<TodoItem> _todos = [];
@@ -93,7 +97,7 @@ class _TodoListPageState extends State<TodoListPage>
                               },
                               child: InputDecorator(
                                 decoration: InputDecoration(labelText: '開始'),
-                                child: Text('${b.start.format(context)}'),
+                                child: Text(b.start.format(context)),
                               ),
                             ),
                           ),
@@ -116,7 +120,7 @@ class _TodoListPageState extends State<TodoListPage>
                               },
                               child: InputDecorator(
                                 decoration: InputDecoration(labelText: '終了'),
-                                child: Text('${b.end.format(context)}'),
+                                child: Text(b.end.format(context)),
                               ),
                             ),
                           ),
@@ -168,6 +172,12 @@ class _TodoListPageState extends State<TodoListPage>
                         .map((b) => b.toJson())
                         .toList();
                     prefs.setString('roastBreakTimes', json.encode(jsonList));
+                    // Firestoreにも保存
+                    try {
+                      await RoastBreakTimeFirestoreService.saveBreakTimes(
+                        _roastBreakTimes,
+                      );
+                    } catch (_) {}
                     Navigator.pop(context);
                   },
                 ),
@@ -250,9 +260,7 @@ class _TodoListPageState extends State<TodoListPage>
           onLabelsChanged: (newLabels) {
             setState(() {
               _scheduleLabels = List.from(newLabels);
-              _scheduleContents.removeWhere(
-                (k, v) => !_scheduleLabels.contains(k),
-              );
+              // _scheduleContents からは値を消さずに残す（ラベルが復活したときに内容も復活するため）
               _initScheduleControllers();
             });
             _saveSchedules();
@@ -273,6 +281,13 @@ class _TodoListPageState extends State<TodoListPage>
         'todaySchedule_contents',
         json.encode(_scheduleContents),
       );
+      // Firestoreにも自動保存
+      try {
+        await ScheduleFirestoreService.saveTodayTodoSchedule(
+          labels: _scheduleLabels,
+          contents: _scheduleContents,
+        );
+      } catch (_) {}
     } catch (_) {}
   }
 
@@ -313,6 +328,14 @@ class _TodoListPageState extends State<TodoListPage>
   Future<void> _saveTodos() async {
     final saved = _todos.map((e) => e.toStorageString()).toList();
     await prefs.setStringList(_storageKey, saved);
+    // Firestoreにも自動保存
+    try {
+      await ScheduleFirestoreService.saveTodayTodoList(
+        todos: _todos
+            .map((e) => {'title': e.title, 'isDone': e.isDone, 'time': e.time})
+            .toList(),
+      );
+    } catch (_) {}
     // ソート設定は固定のため保存不要
   }
 
@@ -466,6 +489,34 @@ class _TodoListPageState extends State<TodoListPage>
     );
   }
 
+  // Firestore同期用setter
+  void setTodosFromFirestore(List<Map<String, dynamic>> todos) {
+    setState(() {
+      _todos = todos.map(TodoItem.fromMap).toList();
+    });
+  }
+
+  void setScheduleFromFirestore(Map<String, dynamic> schedule) {
+    setState(() {
+      _scheduleLabels = List<String>.from(schedule['labels'] ?? []);
+      _scheduleContents = Map<String, String>.from(schedule['contents'] ?? {});
+      _initScheduleControllers();
+    });
+  }
+
+  void setTimeLabelsFromFirestore(List<String> labels) {
+    setState(() {
+      _scheduleLabels = labels;
+      _initScheduleControllers();
+    });
+  }
+
+  void setRoastBreakTimesFromFirestore(List<RoastBreakTime> breaks) {
+    setState(() {
+      _roastBreakTimes = List<RoastBreakTime>.from(breaks);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -474,7 +525,7 @@ class _TodoListPageState extends State<TodoListPage>
         appBar: AppBar(
           title: Row(
             children: [
-              Icon(Icons.check_circle_outline, color: Colors.white),
+              Icon(Icons.local_fire_department, color: Colors.white),
               SizedBox(width: 8),
               Text('スケジュール管理'),
             ],
@@ -493,8 +544,8 @@ class _TodoListPageState extends State<TodoListPage>
                   indicatorPadding: EdgeInsets.zero,
                   tabs: [
                     Tab(text: '本日のスケジュール'),
-                    Tab(text: 'TODOリスト'),
                     Tab(text: 'ローストスケジュール'),
+                    Tab(text: 'TODOリスト'),
                   ],
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.grey,
@@ -515,6 +566,14 @@ class _TodoListPageState extends State<TodoListPage>
                     onPressed: _openLabelEdit,
                   );
                 } else if (tabIndex == 1) {
+                  // ローストスケジュール: 休憩時間設定
+                  return IconButton(
+                    icon: Icon(Icons.event_available),
+                    tooltip: '休憩時間を設定',
+                    onPressed: _openRoastSettings,
+                  );
+                } else if (tabIndex == 2) {
+                  // TODOリスト: すべて削除
                   return Row(
                     children: [
                       IconButton(
@@ -523,12 +582,6 @@ class _TodoListPageState extends State<TodoListPage>
                         onPressed: _clearTodos,
                       ),
                     ],
-                  );
-                } else if (tabIndex == 2) {
-                  return IconButton(
-                    icon: Icon(Icons.event_available),
-                    tooltip: '休憩時間を設定',
-                    onPressed: _openRoastSettings,
                   );
                 }
                 return SizedBox.shrink();
@@ -544,53 +597,48 @@ class _TodoListPageState extends State<TodoListPage>
               padding: EdgeInsets.all(16),
               child: SingleChildScrollView(
                 child: Card(
-                  elevation: 8,
+                  elevation: 6,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Color(0xFFFFF8E1),
+                  color:
+                      Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                      Colors.white,
                   child: Padding(
-                    padding: EdgeInsets.all(16),
+                    padding: EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Container(
-                              padding: EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF795548),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.schedule,
-                                color: Colors.white,
-                                size: 18,
-                              ),
+                            Icon(
+                              Icons.schedule,
+                              color: Color(0xFF795548),
+                              size: 24,
                             ),
-                            SizedBox(width: 10),
+                            SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 '本日のスケジュール',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2C1D17),
+                                  color: Color(0xFF795548),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 12),
+                        SizedBox(height: 16),
                         ..._scheduleLabels.map(
                           (label) => Padding(
-                            padding: EdgeInsets.only(bottom: 8),
+                            padding: EdgeInsets.only(bottom: 12),
                             child: Row(
                               children: [
                                 Container(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
+                                    horizontal: 10,
+                                    vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
                                     color: Color(0xFF795548).withOpacity(0.1),
@@ -619,6 +667,34 @@ class _TodoListPageState extends State<TodoListPage>
                                       _saveSchedules();
                                     },
                                     maxLines: null,
+                                    style: TextStyle(fontSize: 15),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.grey.shade50,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: Colors.grey.shade300,
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: Colors.grey.shade300,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: BorderSide(
+                                          color: Color(0xFF795548),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -631,6 +707,8 @@ class _TodoListPageState extends State<TodoListPage>
                 ),
               ),
             ),
+            // --- ローストスケジュールタブ ---
+            RoastSchedulerTab(breakTimes: _roastBreakTimes),
             // --- TODOリストタブ ---
             Padding(
               padding: EdgeInsets.all(16),
@@ -638,39 +716,32 @@ class _TodoListPageState extends State<TodoListPage>
                 children: [
                   // 入力部分
                   Card(
-                    elevation: 8,
+                    elevation: 6,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    color: Color(0xFFFFF8E1),
+                    color:
+                        Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                        Colors.white,
                     child: Padding(
-                      padding: EdgeInsets.all(16),
+                      padding: EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFF795548),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  Icons.add_task,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
+                              Icon(
+                                Icons.add_task,
+                                color: Color(0xFF795548),
+                                size: 24,
                               ),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  '新しいタスクを追加',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2C1D17),
-                                  ),
+                              SizedBox(width: 8),
+                              Text(
+                                '新しいタスクを追加',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF795548),
                                 ),
                               ),
                             ],
@@ -681,10 +752,10 @@ class _TodoListPageState extends State<TodoListPage>
                               Expanded(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: Color(0xFF795548).withOpacity(0.3),
+                                      color: Colors.grey.shade300,
                                     ),
                                   ),
                                   child: TextField(
@@ -706,40 +777,66 @@ class _TodoListPageState extends State<TodoListPage>
                               SizedBox(width: 12),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Color(0xFF795548),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.backgroundColor
+                                          ?.resolve({}) ??
+                                      Theme.of(context).colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
                                   icon: Icon(
                                     Icons.access_time,
-                                    color: Colors.white,
+                                    color:
+                                        Theme.of(context)
+                                            .elevatedButtonTheme
+                                            .style
+                                            ?.foregroundColor
+                                            ?.resolve({}) ??
+                                        Colors.white,
                                     size: 20,
                                   ),
                                   onPressed: _pickTime,
                                   tooltip: '時刻を設定',
+                                  padding: EdgeInsets.all(12),
                                 ),
                               ),
                               SizedBox(width: 8),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Color(0xFF795548),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.backgroundColor
+                                          ?.resolve({}) ??
+                                      Theme.of(context).colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
                                   icon: Icon(
                                     Icons.add,
-                                    color: Colors.white,
+                                    color:
+                                        Theme.of(context)
+                                            .elevatedButtonTheme
+                                            .style
+                                            ?.foregroundColor
+                                            ?.resolve({}) ??
+                                        Colors.white,
                                     size: 20,
                                   ),
                                   onPressed: _addTodo,
                                   tooltip: '追加',
+                                  padding: EdgeInsets.all(12),
                                 ),
                               ),
                             ],
                           ),
                           if (_selectedTime != null)
                             Padding(
-                              padding: EdgeInsets.only(top: 8),
+                              padding: EdgeInsets.only(top: 12),
                               child: Row(
                                 children: [
                                   Icon(
@@ -772,11 +869,15 @@ class _TodoListPageState extends State<TodoListPage>
                             child: SizedBox(
                               width: double.infinity,
                               child: Card(
-                                elevation: 8,
+                                elevation: 6,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                                color: Color(0xFFFFF8E1),
+                                color:
+                                    Provider.of<ThemeSettings>(
+                                      context,
+                                    ).backgroundColor2 ??
+                                    Colors.white,
                                 child: Padding(
                                   padding: const EdgeInsets.all(40),
                                   child: Column(
@@ -815,11 +916,15 @@ class _TodoListPageState extends State<TodoListPage>
                             itemBuilder: (_, i) {
                               final item = _todos[i];
                               return Card(
-                                elevation: 6,
+                                elevation: 4,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                color: Color(0xFFFFF8E1),
+                                color:
+                                    Provider.of<ThemeSettings>(
+                                      context,
+                                    ).backgroundColor2 ??
+                                    Colors.white,
                                 margin: EdgeInsets.only(bottom: 12),
                                 child: ListTile(
                                   contentPadding: EdgeInsets.all(16),
@@ -891,6 +996,7 @@ class _TodoListPageState extends State<TodoListPage>
                                         size: 20,
                                       ),
                                       onPressed: () => _deleteTodo(i),
+                                      padding: EdgeInsets.all(8),
                                     ),
                                   ),
                                   onTap: () => _editTodo(i),
@@ -902,8 +1008,6 @@ class _TodoListPageState extends State<TodoListPage>
                 ],
               ),
             ),
-            // --- ローストスケジュール作成タブ ---
-            RoastSchedulerTab(breakTimes: _roastBreakTimes),
           ],
         ),
       ),
@@ -926,6 +1030,14 @@ class TodoItem {
       title: parts[0],
       isDone: parts.length > 1 && parts[1] == 'true',
       time: parts.length > 2 ? parts[2] : '',
+    );
+  }
+
+  static TodoItem fromMap(Map<String, dynamic> map) {
+    return TodoItem(
+      title: map['title'] as String,
+      isDone: map['isDone'] as bool,
+      time: map['time'] as String,
     );
   }
 }

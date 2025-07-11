@@ -41,14 +41,15 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('ドリップパック記録一覧'),
-        backgroundColor: Color(0xFF795548),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       ),
-      backgroundColor: Color(0xFFFFF8E1),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : _records.isEmpty
           ? Center(child: Text('記録がありません'))
           : ListView.builder(
+              padding: EdgeInsets.all(16),
               itemCount: _records.length,
               itemBuilder: (context, index) {
                 final record = _records[index];
@@ -59,17 +60,61 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                   'yyyy/MM/dd HH:mm',
                 ).format(date);
                 return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: Color(0xFF795548), width: 1),
                   ),
-                  color: Color(0xFFFFF8E1),
-                  child: ListTile(
-                    leading: Icon(Icons.coffee, color: Color(0xFF795548)),
-                    title: Text('${record['bean']}（${record['roast']}）'),
-                    subtitle: Text(
-                      '数: ${record['count']}   日時: $formattedDate',
+                  color: Colors.white,
+                  margin: EdgeInsets.symmetric(vertical: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.coffee, color: Color(0xFF795548), size: 32),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${record['bean']}（${record['roast']}）',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 17,
+                                  color: Color(0xFF795548),
+                                ),
+                              ),
+                              SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.shopping_bag,
+                                    size: 18,
+                                    color: Color(0xFF795548),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '数: ${record['count']}',
+                                    style: TextStyle(fontSize: 15),
+                                  ),
+                                  SizedBox(width: 16),
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 18,
+                                    color: Color(0xFF795548),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '日時: $formattedDate',
+                                    style: TextStyle(fontSize: 15),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
