@@ -298,7 +298,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                color: Colors.white,
+                color:
+                    Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                    Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
@@ -454,7 +456,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-                color: Colors.white,
+                color:
+                    Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                    Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
