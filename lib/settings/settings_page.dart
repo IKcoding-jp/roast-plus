@@ -62,14 +62,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.refresh, color: Color(0xFF795548)),
+                        Icon(
+                          Icons.refresh,
+                          color: Provider.of<ThemeSettings>(context).iconColor,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           '担当リセット',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF795548),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
                           ),
                         ),
                       ],
@@ -129,13 +134,18 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.developer_mode, color: Color(0xFF795548)),
+                        Icon(
+                          Icons.developer_mode,
+                          color: Provider.of<ThemeSettings>(context).iconColor,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           '開発者モード（土日でもシャッフル）',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Color(0xFF795548),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
                           ),
                         ),
                       ],

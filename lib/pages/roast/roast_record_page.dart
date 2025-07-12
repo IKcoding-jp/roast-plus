@@ -40,8 +40,8 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     final isA = title.contains('A台');
     final cardColor =
         Provider.of<ThemeSettings>(context).backgroundColor2 ?? Colors.white;
-    final accentColor = Color(0xFF795548);
-    final iconColor = Color(0xFF795548);
+    final accentColor = Provider.of<ThemeSettings>(context).fontColor1;
+    final iconColor = Provider.of<ThemeSettings>(context).iconColor;
 
     return Card(
       elevation: 6,
@@ -55,7 +55,14 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             // タイトル部分
             Row(
               children: [
-                Icon(Icons.local_fire_department, color: accentColor, size: 24),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.coffee_maker, color: iconColor, size: 24),
+                ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -421,7 +428,10 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(Icons.edit_note, color: Colors.brown[600]),
+            Icon(
+              Icons.edit_note,
+              color: Provider.of<ThemeSettings>(context).iconColor,
+            ),
             SizedBox(width: 8),
             Text('焙煎記録入力'),
           ],

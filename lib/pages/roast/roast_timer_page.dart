@@ -326,7 +326,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Icons.timer,
-                              color: Color(0xFF795548),
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).iconColor,
                             ),
                             labelText: '分数を入力',
                             border: InputBorder.none,
@@ -420,8 +422,14 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           icon: Icon(Icons.arrow_back),
                           label: Text('最初の画面に戻る'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Color(0xFF795548),
-                            side: BorderSide(color: Color(0xFF795548)),
+                            foregroundColor: Provider.of<ThemeSettings>(
+                              context,
+                            ).buttonColor,
+                            side: BorderSide(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).buttonColor,
+                            ),
                             padding: EdgeInsets.symmetric(vertical: 13),
                             textStyle: TextStyle(
                               fontSize: 15,
@@ -469,24 +477,30 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2C1D17),
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                         ),
                       ),
                       SizedBox(height: 24),
                       // 豆の種類プルダウン
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Color(0xFF795548).withOpacity(0.3),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).buttonColor.withOpacity(0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Icons.coffee,
-                              color: Color(0xFF795548),
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).buttonColor,
                             ),
                             labelText: '豆の種類',
                             border: InputBorder.none,
@@ -516,17 +530,23 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                       // 重さプルダウン
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Color(0xFF795548).withOpacity(0.3),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).buttonColor.withOpacity(0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Icons.scale,
-                              color: Color(0xFF795548),
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).buttonColor,
                             ),
                             labelText: '豆の重さ(g)',
                             border: InputBorder.none,
@@ -558,14 +578,18 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Color(0xFF795548).withOpacity(0.3),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).buttonColor.withOpacity(0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Icons.local_fire_department,
-                              color: Color(0xFF795548),
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).buttonColor,
                             ),
                             labelText: '煎り度',
                             border: InputBorder.none,
@@ -710,8 +734,14 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           icon: Icon(Icons.arrow_back),
                           label: Text('戻る'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Color(0xFF795548),
-                            side: BorderSide(color: Color(0xFF795548)),
+                            foregroundColor: Provider.of<ThemeSettings>(
+                              context,
+                            ).buttonColor,
+                            side: BorderSide(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).buttonColor,
+                            ),
                             padding: EdgeInsets.symmetric(vertical: 15),
                             textStyle: TextStyle(
                               fontSize: 16,
@@ -784,7 +814,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF2C1D17),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
                           ),
                         ),
                         SizedBox(height: 28),
@@ -797,10 +829,12 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                               child: CircularProgressIndicator(
                                 value: progress,
                                 strokeWidth: 13, // ←太く
-                                color: Color(0xFF795548),
-                                backgroundColor: Color(
-                                  0xFF795548,
-                                ).withOpacity(0.18),
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).timerCircleColor,
+                                backgroundColor: Provider.of<ThemeSettings>(
+                                  context,
+                                ).timerCircleColor.withOpacity(0.18),
                               ),
                             ),
                             Text(
@@ -809,7 +843,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 fontSize: 60, // ←大きく
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 2,
-                                color: Color(0xFF2C1D17),
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
                               ),
                             ),
                           ],
@@ -820,7 +856,6 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: _startPreheating,
-                              icon: Icon(Icons.local_fire_department, size: 20),
                               label: Text(
                                 '予熱開始',
                                 style: TextStyle(
@@ -896,7 +931,10 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                   onPressed: _totalSeconds == 0 ? null : _skipTime,
                   child: Text(
                     '⏩ スキップ',
-                    style: TextStyle(color: Color(0xFF795548), fontSize: 14),
+                    style: TextStyle(
+                      color: Provider.of<ThemeSettings>(context).fontColor1,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ],

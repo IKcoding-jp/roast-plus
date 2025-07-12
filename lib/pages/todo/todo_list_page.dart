@@ -9,6 +9,7 @@ import '../../models/theme_settings.dart';
 
 import '../roast/roast_scheduler_tab.dart' show RoastSchedulerTab;
 import '../schedule/schedule_time_label_edit_page.dart';
+import '../roast/roast_break_time_edit_page.dart';
 import 'package:bysnapp/models/roast_break_time.dart';
 import '../../services/schedule_firestore_service.dart';
 import '../../services/roast_break_time_firestore_service.dart';
@@ -61,131 +62,21 @@ class TodoListPageState extends State<TodoListPage>
   List<RoastBreakTime> _roastBreakTimes = [];
 
   Future<void> _openRoastSettings() async {
-    List<RoastBreakTime> tempBreaks = List.from(_roastBreakTimes);
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text('休憩時間を設定'),
-              content: SizedBox(
-                width: 320,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ...tempBreaks.asMap().entries.map((entry) {
-                      int i = entry.key;
-                      RoastBreakTime b = entry.value;
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () async {
-                                final picked = await showTimePicker(
-                                  context: context,
-                                  initialTime: b.start,
-                                );
-                                if (picked != null) {
-                                  setState(() {
-                                    tempBreaks[i] = RoastBreakTime(
-                                      start: picked,
-                                      end: b.end,
-                                    );
-                                  });
-                                }
-                              },
-                              child: InputDecorator(
-                                decoration: InputDecoration(labelText: '開始'),
-                                child: Text(b.start.format(context)),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () async {
-                                final picked = await showTimePicker(
-                                  context: context,
-                                  initialTime: b.end,
-                                );
-                                if (picked != null) {
-                                  setState(() {
-                                    tempBreaks[i] = RoastBreakTime(
-                                      start: b.start,
-                                      end: picked,
-                                    );
-                                  });
-                                }
-                              },
-                              child: InputDecorator(
-                                decoration: InputDecoration(labelText: '終了'),
-                                child: Text(b.end.format(context)),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              setState(() {
-                                tempBreaks.removeAt(i);
-                              });
-                            },
-                          ),
-                        ],
-                      );
-                    }),
-                    SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        icon: Icon(Icons.add),
-                        label: Text('休憩時間を追加'),
-                        onPressed: () {
-                          setState(() {
-                            tempBreaks.add(
-                              RoastBreakTime(
-                                start: TimeOfDay(hour: 12, minute: 0),
-                                end: TimeOfDay(hour: 12, minute: 30),
-                              ),
-                            );
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  child: Text('キャンセル'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                ElevatedButton(
-                  child: Text('保存'),
-                  onPressed: () async {
-                    setState(() {
-                      _roastBreakTimes = List.from(tempBreaks);
-                    });
-                    final prefs = await SharedPreferences.getInstance();
-                    final jsonList = _roastBreakTimes
-                        .map((b) => b.toJson())
-                        .toList();
-                    prefs.setString('roastBreakTimes', json.encode(jsonList));
-                    // Firestoreにも保存
-                    try {
-                      await RoastBreakTimeFirestoreService.saveBreakTimes(
-                        _roastBreakTimes,
-                      );
-                    } catch (_) {}
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            );
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RoastBreakTimeEditPage(
+          breakTimes: _roastBreakTimes,
+          onBreakTimesChanged: (newBreakTimes) async {
+            setState(() {
+              _roastBreakTimes = newBreakTimes;
+            });
+            final prefs = await SharedPreferences.getInstance();
+            final jsonList = _roastBreakTimes.map((b) => b.toJson()).toList();
+            prefs.setString('roastBreakTimes', json.encode(jsonList));
           },
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -525,32 +416,60 @@ class TodoListPageState extends State<TodoListPage>
         appBar: AppBar(
           title: Row(
             children: [
-              Icon(Icons.local_fire_department, color: Colors.white),
+              Icon(
+                Icons.local_fire_department,
+                color: Provider.of<ThemeSettings>(context).iconColor,
+              ),
               SizedBox(width: 8),
               Text('スケジュール管理'),
             ],
           ),
           bottom: PreferredSize(
             preferredSize: Size.fromHeight(kToolbarHeight),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Transform.translate(
-                offset: Offset(-26, 0), // 必要に応じて微調整
-                child: TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  labelPadding: EdgeInsets.only(left: 0, right: 24),
-                  padding: EdgeInsets.zero,
-                  indicatorPadding: EdgeInsets.zero,
-                  tabs: [
-                    Tab(text: '本日のスケジュール'),
-                    Tab(text: 'ローストスケジュール'),
-                    Tab(text: 'TODOリスト'),
-                  ],
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: Color(0xFF795548),
+            child: Container(
+              decoration: BoxDecoration(
+                color:
+                    Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                    Colors.white,
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey.shade300, width: 1),
                 ),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: false,
+                labelPadding: EdgeInsets.symmetric(horizontal: 8),
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                indicatorPadding: EdgeInsets.symmetric(horizontal: 4),
+                tabs: [
+                  Tab(
+                    child: Text(
+                      '本日のスケジュール',
+                      style: TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Tab(
+                    child: Text(
+                      'ローストスケジュール',
+                      style: TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Tab(
+                    child: Text(
+                      'TODOリスト',
+                      style: TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+                labelColor: Provider.of<ThemeSettings>(context).fontColor1,
+                unselectedLabelColor: Provider.of<ThemeSettings>(
+                  context,
+                ).fontColor1.withOpacity(0.7),
+                indicatorColor: Provider.of<ThemeSettings>(context).buttonColor,
+                indicatorWeight: 2,
               ),
             ),
           ),
@@ -613,7 +532,9 @@ class TodoListPageState extends State<TodoListPage>
                           children: [
                             Icon(
                               Icons.schedule,
-                              color: Color(0xFF795548),
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).iconColor,
                               size: 24,
                             ),
                             SizedBox(width: 8),
@@ -623,7 +544,9 @@ class TodoListPageState extends State<TodoListPage>
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF795548),
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
                                 ),
                               ),
                             ),
@@ -641,7 +564,9 @@ class TodoListPageState extends State<TodoListPage>
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Color(0xFF795548).withOpacity(0.1),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).buttonColor.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -649,7 +574,9 @@ class TodoListPageState extends State<TodoListPage>
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF795548),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
                                     ),
                                   ),
                                 ),
@@ -670,7 +597,9 @@ class TodoListPageState extends State<TodoListPage>
                                     style: TextStyle(fontSize: 15),
                                     decoration: InputDecoration(
                                       filled: true,
-                                      fillColor: Colors.grey.shade50,
+                                      fillColor: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).inputBackgroundColor,
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(10),
                                         borderSide: BorderSide(
@@ -686,7 +615,9 @@ class TodoListPageState extends State<TodoListPage>
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(10),
                                         borderSide: BorderSide(
-                                          color: Color(0xFF795548),
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).buttonColor,
                                           width: 2,
                                         ),
                                       ),
@@ -732,7 +663,9 @@ class TodoListPageState extends State<TodoListPage>
                             children: [
                               Icon(
                                 Icons.add_task,
-                                color: Color(0xFF795548),
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).iconColor,
                                 size: 24,
                               ),
                               SizedBox(width: 8),
@@ -741,7 +674,9 @@ class TodoListPageState extends State<TodoListPage>
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF795548),
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
                                 ),
                               ),
                             ],
@@ -752,7 +687,9 @@ class TodoListPageState extends State<TodoListPage>
                               Expanded(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).inputBackgroundColor,
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                       color: Colors.grey.shade300,
@@ -842,14 +779,18 @@ class TodoListPageState extends State<TodoListPage>
                                   Icon(
                                     Icons.access_time,
                                     size: 16,
-                                    color: Color(0xFF795548),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
                                   ),
                                   SizedBox(width: 8),
                                   Text(
                                     '選択した時刻: ${_selectedTime!.format(context)}',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Color(0xFF795548),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -886,7 +827,9 @@ class TodoListPageState extends State<TodoListPage>
                                       Icon(
                                         Icons.checklist,
                                         size: 64,
-                                        color: Color(0xFF795548),
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).iconColor,
                                       ),
                                       SizedBox(height: 16),
                                       Text(
@@ -894,14 +837,18 @@ class TodoListPageState extends State<TodoListPage>
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2C1D17),
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontColor1,
                                         ),
                                       ),
                                       SizedBox(height: 8),
                                       Text(
                                         '新しいタスクを追加してください',
                                         style: TextStyle(
-                                          color: Colors.grey[600],
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontColor1.withOpacity(0.7),
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
@@ -946,7 +893,9 @@ class TodoListPageState extends State<TodoListPage>
                                             : Icons.radio_button_unchecked,
                                         color: item.isDone
                                             ? Color(0xFF4CAF50)
-                                            : Color(0xFF795548),
+                                            : Provider.of<ThemeSettings>(
+                                                context,
+                                              ).iconColor,
                                         size: 24,
                                       ),
                                     ),
@@ -956,7 +905,9 @@ class TodoListPageState extends State<TodoListPage>
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2C1D17),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
                                       decoration: item.isDone
                                           ? TextDecoration.lineThrough
                                           : TextDecoration.none,
@@ -970,14 +921,22 @@ class TodoListPageState extends State<TodoListPage>
                                               Icon(
                                                 Icons.access_time,
                                                 size: 16,
-                                                color: Color(0xFF795548),
+                                                color:
+                                                    Provider.of<ThemeSettings>(
+                                                      context,
+                                                    ).iconColor,
                                               ),
                                               SizedBox(width: 4),
                                               Text(
                                                 '予定時刻: ${item.time}',
                                                 style: TextStyle(
                                                   fontSize: 14,
-                                                  color: Color(0xFF795548),
+                                                  color:
+                                                      Provider.of<
+                                                            ThemeSettings
+                                                          >(context)
+                                                          .fontColor1
+                                                          .withOpacity(0.7),
                                                 ),
                                               ),
                                             ],

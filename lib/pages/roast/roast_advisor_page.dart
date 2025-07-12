@@ -36,12 +36,15 @@ class RoastAdvisorPage extends StatelessWidget {
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(Icons.analytics, color: Colors.white),
+            Icon(
+              Icons.analytics,
+              color: Provider.of<ThemeSettings>(context).iconColor,
+            ),
             SizedBox(width: 8),
             Text('焙煎分析'),
           ],
         ),
-        backgroundColor: appbarColor,
+        backgroundColor: Provider.of<ThemeSettings>(context).appBarColor,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -100,23 +103,27 @@ class RoastAdvisorPage extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: brown,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).iconColor.withOpacity(0.12), // テーマのアイコン色を薄く反映
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.analytics,
-                          color: Colors.white,
+                          color: Provider.of<ThemeSettings>(context).iconColor,
                           size: 24,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           '豆の種類ごとに平均焙煎時間を表示',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: brown,
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
                           ),
                         ),
                       ),
@@ -151,7 +158,11 @@ class RoastAdvisorPage extends StatelessWidget {
                             ),
                             child: Text(
                               '$weight g',
-                              style: TextStyle(color: brown),
+                              style: TextStyle(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
+                              ),
                             ),
                           ),
                           Padding(
@@ -159,7 +170,14 @@ class RoastAdvisorPage extends StatelessWidget {
                               vertical: 8,
                               horizontal: 4,
                             ),
-                            child: Text(roast, style: TextStyle(color: brown)),
+                            child: Text(
+                              roast,
+                              style: TextStyle(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
+                              ),
+                            ),
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(
@@ -170,7 +188,9 @@ class RoastAdvisorPage extends StatelessWidget {
                               times.isNotEmpty ? _formatSeconds(avgSec) : '-',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: brown,
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
                               ),
                             ),
                           ),
@@ -181,7 +201,11 @@ class RoastAdvisorPage extends StatelessWidget {
                             ),
                             child: Text(
                               '${entry.value.length}',
-                              style: TextStyle(color: brown),
+                              style: TextStyle(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
+                              ),
                             ),
                           ),
                         ],
@@ -206,14 +230,31 @@ class RoastAdvisorPage extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.coffee, color: brown, size: 24),
+                                Container(
+                                  padding: EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.coffee,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
+                                    size: 20,
+                                  ),
+                                ),
                                 const SizedBox(width: 10),
                                 Text(
                                   bean,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: brown,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
                                   ),
                                 ),
                               ],

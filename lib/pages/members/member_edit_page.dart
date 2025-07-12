@@ -119,7 +119,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
       children: [
         Text(
           title,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Provider.of<ThemeSettings>(context).fontColor1,
+          ),
         ),
         ...List.generate(list.length, (i) {
           return Row(
@@ -127,6 +131,22 @@ class _MemberEditPageState extends State<MemberEditPage> {
               Expanded(
                 child: TextFormField(
                   initialValue: list[i],
+                  style: TextStyle(
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: '名前',
+                    labelStyle: TextStyle(
+                      color: Provider.of<ThemeSettings>(context).fontColor1,
+                    ),
+                    filled: true,
+                    fillColor: Provider.of<ThemeSettings>(
+                      context,
+                    ).inputBackgroundColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   onChanged: (v) => _updateMember(i, v, isAGroup),
                 ),
               ),
@@ -142,7 +162,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
           label: Text('追加'),
           onPressed: () => _addMember(isAGroup),
           style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Provider.of<ThemeSettings>(context).fontColor1,
           ),
         ),
         SizedBox(height: 20),
@@ -185,14 +205,17 @@ class _MemberEditPageState extends State<MemberEditPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.group, color: Color(0xFF795548)),
+                Icon(
+                  Icons.group,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                ),
                 SizedBox(width: 8),
                 Text(
                   title,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF795548),
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
                   ),
                 ),
               ],
@@ -206,14 +229,29 @@ class _MemberEditPageState extends State<MemberEditPage> {
                     Expanded(
                       child: TextFormField(
                         initialValue: list[i],
+                        style: TextStyle(
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
+                        ),
                         decoration: InputDecoration(
                           labelText: '名前',
+                          labelStyle: TextStyle(
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          prefixIcon: Icon(Icons.person_outline),
+                          prefixIcon: Icon(
+                            Icons.person_outline,
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).iconColor,
+                          ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                         ),
                         onChanged: (v) => _updateMember(i, v, isAGroup),
                       ),

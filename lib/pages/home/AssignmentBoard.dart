@@ -263,16 +263,43 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(Icons.group, color: Colors.white),
+            Icon(
+              Icons.group,
+              color: Provider.of<ThemeSettings>(context).iconColor,
+            ),
             SizedBox(width: 8),
             Text('今日の担当表'),
           ],
         ),
         actions: [
-          IconButton(icon: Icon(Icons.group), onPressed: _navigateToMemberEdit),
-          IconButton(icon: Icon(Icons.label), onPressed: _navigateToLabelEdit),
-          IconButton(icon: Icon(Icons.history), onPressed: _goToHistory),
-          IconButton(icon: Icon(Icons.settings), onPressed: _goToSettings),
+          IconButton(
+            icon: Icon(
+              Icons.group,
+              color: Provider.of<ThemeSettings>(context).iconColor,
+            ),
+            onPressed: _navigateToMemberEdit,
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.label,
+              color: Provider.of<ThemeSettings>(context).iconColor,
+            ),
+            onPressed: _navigateToLabelEdit,
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.history,
+              color: Provider.of<ThemeSettings>(context).iconColor,
+            ),
+            onPressed: _goToHistory,
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.settings,
+              color: Provider.of<ThemeSettings>(context).iconColor,
+            ),
+            onPressed: _goToSettings,
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -282,7 +309,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
               SizedBox(height: 20),
               Text(
                 _formatDate(),
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
               ),
               SizedBox(height: 20),
               Container(
@@ -310,6 +341,9 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 20,
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
                                 ),
                               ),
                             ),
@@ -321,6 +355,9 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 20,
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
                                 ),
                               ),
                             ),
@@ -361,6 +398,9 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
                                   ),
                                 ),
                               ),
@@ -386,6 +426,9 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
                                   ),
                                 ),
                               ),
@@ -426,7 +469,7 @@ class MemberCard extends StatelessWidget {
     final cardColor = isUnset
         ? (Provider.of<ThemeSettings>(context).backgroundColor2 ??
               Colors.grey[300])
-        : Colors.green[200];
+        : Provider.of<ThemeSettings>(context).memberBackgroundColor;
     final textColor = isUnset ? Colors.grey[600] : Colors.black;
 
     return Container(

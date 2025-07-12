@@ -139,7 +139,10 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
           appBar: AppBar(
             title: Row(
               children: [
-                Icon(Icons.list, color: Color(0xFF795548)),
+                Icon(
+                  Icons.list,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                ),
                 SizedBox(width: 8),
                 Text('焙煎記録一覧'),
               ],
@@ -184,7 +187,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                             children: [
                               Icon(
                                 Icons.search,
-                                color: Color(0xFF795548),
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).iconColor,
                                 size: 24,
                               ),
                               SizedBox(width: 10),
@@ -194,7 +199,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF795548),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
                                   ),
                                 ),
                               ),
@@ -202,7 +209,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                 _filterExpanded
                                     ? Icons.expand_less
                                     : Icons.expand_more,
-                                color: Color(0xFF795548),
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).iconColor,
                               ),
                             ],
                           ),
@@ -221,7 +230,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                 hintText: 'キーワード検索',
                                 prefixIcon: Icon(
                                   Icons.search,
-                                  color: Color(0xFF795548),
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).iconColor,
                                 ),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(
@@ -283,7 +294,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                               Text(
                                 '~',
                                 style: TextStyle(
-                                  color: Color(0xFF795548),
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -324,8 +337,12 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                 });
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF795548),
-                                foregroundColor: Colors.white,
+                                backgroundColor: Provider.of<ThemeSettings>(
+                                  context,
+                                ).buttonColor,
+                                foregroundColor: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor2,
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 12,
@@ -365,7 +382,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                   Icon(
                                     Icons.list,
                                     size: 64,
-                                    color: Color(0xFF795548),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
                                   ),
                                   SizedBox(height: 16),
                                   Text(
@@ -373,7 +392,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2C1D17),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
                                     ),
                                   ),
                                   SizedBox(height: 8),
@@ -407,7 +428,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                   Icon(
                                     Icons.search_off,
                                     size: 64,
-                                    color: Color(0xFF795548),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
                                   ),
                                   SizedBox(height: 16),
                                   Text(
@@ -415,7 +438,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2C1D17),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
                                     ),
                                   ),
                                   SizedBox(height: 8),
@@ -443,7 +468,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 color: selected
-                                    ? Color(0xFF795548).withOpacity(0.08)
+                                    ? Provider.of<ThemeSettings>(
+                                        context,
+                                      ).buttonColor.withOpacity(0.08)
                                     : Provider.of<ThemeSettings>(
                                             context,
                                           ).backgroundColor2 ??
@@ -453,14 +480,16 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                   leading: Container(
                                     padding: EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Color(
-                                        0xFF795548,
-                                      ).withOpacity(0.12),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).iconColor.withOpacity(0.12),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(
                                       Icons.coffee,
-                                      color: Color(0xFF795548),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).iconColor,
                                       size: 24,
                                     ),
                                   ),
@@ -469,7 +498,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
-                                      color: Color(0xFF2C1D17),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
                                     ),
                                   ),
                                   subtitle: Column(
@@ -482,7 +513,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                           Icon(
                                             Icons.timer,
                                             size: 16,
-                                            color: Color(0xFF795548),
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).iconColor,
                                           ),
                                           SizedBox(width: 4),
                                           Text('焙煎時間: ${record.time}'),
@@ -494,7 +527,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                           Icon(
                                             Icons.local_fire_department,
                                             size: 16,
-                                            color: Color(0xFF795548),
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).iconColor,
                                           ),
                                           SizedBox(width: 4),
                                           Text('煎り度: ${record.roast}'),
@@ -506,7 +541,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                           Icon(
                                             Icons.calendar_today,
                                             size: 16,
-                                            color: Color(0xFF795548),
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).iconColor,
                                           ),
                                           SizedBox(width: 4),
                                           Text(
@@ -520,7 +557,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                       ? IconButton(
                                           icon: Icon(
                                             Icons.delete,
-                                            color: Color(0xFF795548),
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).iconColor,
                                           ),
                                           onPressed: () =>
                                               _deleteRecords([index]),
@@ -531,7 +570,10 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                           value: selected,
                                           onChanged: (val) =>
                                               _toggleSelection(index),
-                                          activeColor: Color(0xFF795548),
+                                          activeColor:
+                                              Provider.of<ThemeSettings>(
+                                                context,
+                                              ).buttonColor,
                                         ),
                                 ),
                               ),

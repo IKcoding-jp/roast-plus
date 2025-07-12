@@ -275,7 +275,9 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),
-            color: Provider.of<ThemeSettings>(context).backgroundColor2 ?? Colors.white,
+            color:
+                Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                Colors.white,
             child: Padding(
               padding: const EdgeInsets.all(32.0),
               child: Column(
@@ -300,7 +302,9 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
                         child: CircularProgressIndicator(
                           value: progress,
                           strokeWidth: 10,
-                          color: Colors.green,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).timerCircleColor,
                         ),
                       ),
                       Text(
@@ -315,7 +319,10 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
                   ),
                   SizedBox(height: 40),
                   if (!_isPreheating && !_isRoasting)
-                    ElevatedButton(onPressed: _startPreheating, child: Text('予熱開始'))
+                    ElevatedButton(
+                      onPressed: _startPreheating,
+                      child: Text('予熱開始'),
+                    )
                   else
                     ElevatedButton(onPressed: _stopTimer, child: Text('停止')),
                   SizedBox(height: 20),

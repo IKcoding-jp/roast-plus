@@ -107,10 +107,12 @@ class DripCounterPageState extends State<DripCounterPage>
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 120,
                                   fontWeight: FontWeight.w900,
-                                  color: Colors.black,
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
                                   letterSpacing: 2,
                                   fontFamily: 'Arial',
                                   shadows: [
@@ -129,7 +131,9 @@ class DripCounterPageState extends State<DripCounterPage>
                             '袋',
                             style: TextStyle(
                               fontSize: 22,
-                              color: Color(0xFF795548),
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -317,14 +321,18 @@ class DripCounterPageState extends State<DripCounterPage>
       children: [
         Row(
           children: [
-            Icon(icon, color: Color(0xFF795548), size: iconSize),
+            Icon(
+              icon,
+              color: Provider.of<ThemeSettings>(context).iconColor,
+              size: iconSize,
+            ),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: labelFontSize,
-                color: Color(0xFF795548),
+                color: Provider.of<ThemeSettings>(context).fontColor1,
                 letterSpacing: 1.1,
               ),
             ),
@@ -335,7 +343,7 @@ class DripCounterPageState extends State<DripCounterPage>
           controller: controller,
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.grey.shade50,
+            fillColor: Provider.of<ThemeSettings>(context).inputBackgroundColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
@@ -344,7 +352,10 @@ class DripCounterPageState extends State<DripCounterPage>
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey, fontSize: fontSize),
           ),
-          style: TextStyle(fontSize: fontSize),
+          style: TextStyle(
+            fontSize: fontSize,
+            color: Provider.of<ThemeSettings>(context).fontColor1,
+          ),
         ),
       ],
     );
@@ -366,7 +377,7 @@ class DripCounterPageState extends State<DripCounterPage>
           children: [
             Icon(
               Icons.local_fire_department,
-              color: Color(0xFF795548),
+              color: Provider.of<ThemeSettings>(context).iconColor,
               size: iconSize,
             ),
             const SizedBox(width: 6),
@@ -375,7 +386,7 @@ class DripCounterPageState extends State<DripCounterPage>
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: labelFontSize,
-                color: Color(0xFF795548),
+                color: Provider.of<ThemeSettings>(context).fontColor1,
                 letterSpacing: 1.1,
               ),
             ),
@@ -392,7 +403,7 @@ class DripCounterPageState extends State<DripCounterPage>
                     level,
                     style: TextStyle(
                       fontSize: fontSize,
-                      color: Color(0xFF795548),
+                      color: Provider.of<ThemeSettings>(context).fontColor1,
                     ),
                   ),
                 ),
@@ -405,16 +416,38 @@ class DripCounterPageState extends State<DripCounterPage>
           },
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.grey.shade50,
+            fillColor: Provider.of<ThemeSettings>(context).inputBackgroundColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
             ),
             contentPadding: contentPadding,
             hintText: '煎り度を選択',
-            hintStyle: TextStyle(color: Color(0xFF795548), fontSize: fontSize),
+            hintStyle: TextStyle(
+              color: Provider.of<ThemeSettings>(context).fontColor1,
+              fontSize: fontSize,
+            ),
           ),
-          style: TextStyle(fontSize: fontSize, color: Color(0xFF795548)),
+          style: TextStyle(
+            fontSize: fontSize,
+            color: Provider.of<ThemeSettings>(context).fontColor1,
+          ),
+          dropdownColor: Provider.of<ThemeSettings>(context).backgroundColor2,
+          icon: Icon(
+            Icons.arrow_drop_down,
+            color: Provider.of<ThemeSettings>(context).iconColor,
+          ),
+          selectedItemBuilder: (BuildContext context) {
+            return _roastLevels.map<Widget>((String item) {
+              return Text(
+                item,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              );
+            }).toList();
+          },
         ),
       ],
     );

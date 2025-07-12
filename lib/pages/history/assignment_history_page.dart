@@ -43,7 +43,12 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('担当編集 ($dateKey)'),
+        title: Text(
+          '担当編集 ($dateKey)',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).fontColor1,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(controllers.length, (i) {
@@ -51,14 +56,27 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                 '${leftLabels[i]}${rightLabels[i].isNotEmpty ? '・${rightLabels[i]}' : ''}';
             return TextFormField(
               controller: controllers[i],
-              decoration: InputDecoration(labelText: label),
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).fontColor1,
+              ),
+              decoration: InputDecoration(
+                labelText: label,
+                labelStyle: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              ),
             );
           }),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('キャンセル'),
+            child: Text(
+              'キャンセル',
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).fontColor1,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -72,7 +90,12 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
               Navigator.pop(context);
               setState(() {});
             },
-            child: Text('保存'),
+            child: Text(
+              '保存',
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).fontColor2,
+              ),
+            ),
           ),
         ],
       ),
@@ -83,16 +106,36 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('削除の確認'),
-        content: Text('この日の担当を削除してもよろしいですか？\n($dateKey)'),
+        title: Text(
+          '削除の確認',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).fontColor1,
+          ),
+        ),
+        content: Text(
+          'この日の担当を削除してもよろしいですか？\n($dateKey)',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).fontColor1,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('キャンセル'),
+            child: Text(
+              'キャンセル',
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).fontColor1,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('削除'),
+            child: Text(
+              '削除',
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).fontColor2,
+              ),
+            ),
           ),
         ],
       ),
@@ -143,7 +186,10 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, color: Color(0xFF795548)),
+                      Icon(
+                        Icons.calendar_today,
+                        color: Provider.of<ThemeSettings>(context).iconColor,
+                      ),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -151,12 +197,17 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF795548),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.edit, color: Color(0xFF795548)),
+                        icon: Icon(
+                          Icons.edit,
+                          color: Provider.of<ThemeSettings>(context).iconColor,
+                        ),
                         tooltip: '編集',
                         onPressed: () => _editAssignment(dayKey, data),
                       ),
@@ -185,7 +236,14 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       ),
       body: items.isEmpty
-          ? Center(child: Text('履歴がまだありません'))
+          ? Center(
+              child: Text(
+                '履歴がまだありません',
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              ),
+            )
           : Container(
               color: Theme.of(context).scaffoldBackgroundColor,
               child: ListView(padding: EdgeInsets.all(16), children: items),
@@ -198,20 +256,27 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Icon(Icons.label_outline, size: 18, color: Color(0xFF795548)),
+          Icon(
+            Icons.label_outline,
+            size: 18,
+            color: Provider.of<ThemeSettings>(context).iconColor,
+          ),
           SizedBox(width: 6),
           Text(
             '$label：',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Color(0xFF795548),
+              color: Provider.of<ThemeSettings>(context).fontColor1,
             ),
           ),
           SizedBox(width: 4),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(fontSize: 15),
+              style: TextStyle(
+                fontSize: 15,
+                color: Provider.of<ThemeSettings>(context).fontColor1,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),

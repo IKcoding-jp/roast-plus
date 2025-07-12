@@ -68,24 +68,52 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('時間ラベルを編集'),
+        title: Text(
+          '時間ラベルを編集',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).fontColor1,
+          ),
+        ),
         content: Row(
           children: [
             Expanded(
               child: TextField(
                 controller: _hourController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: '時', counterText: ''),
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+                decoration: InputDecoration(
+                  labelText: '時',
+                  labelStyle: TextStyle(
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                  ),
+                  counterText: '',
+                ),
               ),
             ),
             SizedBox(width: 8),
-            Text(':'),
+            Text(
+              ':',
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).fontColor1,
+              ),
+            ),
             SizedBox(width: 8),
             Expanded(
               child: TextField(
                 controller: _minuteController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: '分', counterText: ''),
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+                decoration: InputDecoration(
+                  labelText: '分',
+                  labelStyle: TextStyle(
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                  ),
+                  counterText: '',
+                ),
               ),
             ),
           ],
@@ -93,7 +121,12 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('キャンセル'),
+            child: Text(
+              'キャンセル',
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).fontColor1,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -111,7 +144,12 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
               }
               Navigator.pop(context);
             },
-            child: Text('保存'),
+            child: Text(
+              '保存',
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).fontColor2,
+              ),
+            ),
           ),
         ],
       ),
@@ -133,7 +171,7 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
           children: [
             Icon(
               Icons.access_time,
-              color: Theme.of(context).colorScheme.onPrimary,
+              color: Provider.of<ThemeSettings>(context).iconColor,
             ),
             SizedBox(width: 8),
             Text(
@@ -186,15 +224,29 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                         child: TextField(
                           controller: _hourController,
                           keyboardType: TextInputType.number,
-                          style: TextStyle(fontSize: 16),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
+                          ),
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Icons.access_time,
-                              color: Color(0xFF795548),
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).iconColor,
                             ),
                             labelText: '時',
+                            labelStyle: TextStyle(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1,
+                            ),
                             filled: true,
-                            fillColor: Colors.grey.shade50,
+                            fillColor: Provider.of<ThemeSettings>(
+                              context,
+                            ).inputBackgroundColor,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
@@ -210,7 +262,9 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                color: Color(0xFF795548),
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).buttonColor,
                                 width: 2,
                               ),
                             ),
@@ -229,6 +283,7 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                         ),
                       ),
                       SizedBox(width: 8),
@@ -236,11 +291,23 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                         child: TextField(
                           controller: _minuteController,
                           keyboardType: TextInputType.number,
-                          style: TextStyle(fontSize: 16),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
+                          ),
                           decoration: InputDecoration(
                             labelText: '分',
+                            labelStyle: TextStyle(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1,
+                            ),
                             filled: true,
-                            fillColor: Colors.grey.shade50,
+                            fillColor: Provider.of<ThemeSettings>(
+                              context,
+                            ).inputBackgroundColor,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
@@ -256,7 +323,9 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                color: Color(0xFF795548),
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).buttonColor,
                                 width: 2,
                               ),
                             ),
@@ -328,24 +397,34 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                     leading: Container(
                       padding: EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Color(0xFF795548).withOpacity(0.12),
+                        color: Provider.of<ThemeSettings>(
+                          context,
+                        ).iconColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.access_time, color: Color(0xFF795548)),
+                      child: Icon(
+                        Icons.access_time,
+                        color: Provider.of<ThemeSettings>(context).iconColor,
+                      ),
                     ),
                     title: Text(
                       _labels[i],
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: Color(0xFF2C1D17),
+                        color: Provider.of<ThemeSettings>(context).fontColor1,
                       ),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: Icon(Icons.edit, color: Color(0xFF795548)),
+                          icon: Icon(
+                            Icons.edit,
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).iconColor,
+                          ),
                           onPressed: () => _editLabel(i),
                         ),
                         IconButton(

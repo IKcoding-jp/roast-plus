@@ -26,21 +26,29 @@ class WorkAssignmentApp extends StatelessWidget {
         primaryColor: themeSettings.appBarColor,
         appBarTheme: AppBarTheme(
           backgroundColor: themeSettings.appBarColor,
-          foregroundColor: Colors.white,
+          foregroundColor: themeSettings.appBarTextColor,
+          iconTheme: IconThemeData(color: themeSettings.iconColor),
+          titleTextStyle: TextStyle(
+            color: themeSettings.appBarTextColor,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: themeSettings.appBarColor,
-          selectedItemColor: Color(0xFFFF8225),
-          unselectedItemColor: Colors.white70,
+          backgroundColor: themeSettings.bottomNavigationColor,
+          selectedItemColor: themeSettings.bottomNavigationTextColor,
+          unselectedItemColor: themeSettings.bottomNavigationTextColor
+              .withOpacity(0.7),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: themeSettings.buttonColor,
-            foregroundColor: Colors.white,
+            foregroundColor: themeSettings.fontColor2,
             textStyle: TextStyle(
               fontSize: 18,
               fontFamily: 'HannariMincho',
               fontWeight: FontWeight.bold,
+              color: themeSettings.fontColor2,
             ),
             padding: EdgeInsets.symmetric(horizontal: 32, vertical: 18),
             shape: RoundedRectangleBorder(
@@ -49,7 +57,15 @@ class WorkAssignmentApp extends StatelessWidget {
             elevation: 6,
           ),
         ),
-        textTheme: TextTheme(bodyMedium: TextStyle(color: Color(0xFF2C1D17))),
+        textTheme: TextTheme(
+          bodyMedium: TextStyle(color: themeSettings.fontColor1),
+          bodyLarge: TextStyle(color: themeSettings.fontColor1),
+          bodySmall: TextStyle(color: themeSettings.fontColor1),
+          titleLarge: TextStyle(color: themeSettings.fontColor1),
+          titleMedium: TextStyle(color: themeSettings.fontColor1),
+          titleSmall: TextStyle(color: themeSettings.fontColor1),
+        ),
+        iconTheme: IconThemeData(color: themeSettings.iconColor),
         drawerTheme: DrawerThemeData(
           backgroundColor: themeSettings.backgroundColor,
         ),
@@ -162,15 +178,27 @@ class _PasscodeInputScreenState extends State<PasscodeInputScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            color: Colors.white,
+            color:
+                Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                Colors.white,
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.lock_outline, size: 64, color: Color(0xFF795548)),
+                  Icon(
+                    Icons.lock_outline,
+                    size: 64,
+                    color: Provider.of<ThemeSettings>(context).iconColor,
+                  ),
                   SizedBox(height: 24),
-                  Text('パスコードを入力してください', style: TextStyle(fontSize: 18)),
+                  Text(
+                    'パスコードを入力してください',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Provider.of<ThemeSettings>(context).fontColor1,
+                    ),
+                  ),
                   SizedBox(height: 16),
                   TextField(
                     controller: _controller,
@@ -181,6 +209,8 @@ class _PasscodeInputScreenState extends State<PasscodeInputScreen> {
                       labelText: 'パスコード',
                       border: OutlineInputBorder(),
                       errorText: _error,
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
                     onSubmitted: (_) => _check(),
                     enabled: !_checking,
@@ -251,7 +281,19 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Row(children: [SizedBox(width: 8), Text('焙煎ログ+')])),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            SizedBox(width: 8),
+            Text(
+              '焙煎ログ+',
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).appBarTextColor,
+              ),
+            ),
+          ],
+        ),
+      ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero, // ← これで余白防止
@@ -262,13 +304,24 @@ class _MainScaffoldState extends State<MainScaffold> {
               ),
               child: Text(
                 'メニュー',
-                style: TextStyle(fontSize: 24, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 24,
+                  color: Provider.of<ThemeSettings>(context).appBarTextColor,
+                ),
               ),
             ),
 
             ListTile(
-              leading: Icon(Icons.edit), // 入力＝鉛筆
-              title: Text('焙煎記録を入力する'),
+              leading: Icon(
+                Icons.edit,
+                color: Provider.of<ThemeSettings>(context).iconColor,
+              ), // 入力＝鉛筆
+              title: Text(
+                '焙煎記録を入力する',
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -278,8 +331,16 @@ class _MainScaffoldState extends State<MainScaffold> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.list), // 一覧＝リスト
-              title: Text('焙煎記録の一覧を見る'),
+              leading: Icon(
+                Icons.list,
+                color: Provider.of<ThemeSettings>(context).iconColor,
+              ), // 一覧＝リスト
+              title: Text(
+                '焙煎記録の一覧を見る',
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -289,8 +350,16 @@ class _MainScaffoldState extends State<MainScaffold> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.analytics), // 分析＝グラフ
-              title: Text('焙煎分析'),
+              leading: Icon(
+                Icons.analytics,
+                color: Provider.of<ThemeSettings>(context).iconColor,
+              ), // 分析＝グラフ
+              title: Text(
+                '焙煎分析',
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -303,7 +372,12 @@ class _MainScaffoldState extends State<MainScaffold> {
             const Divider(),
 
             ListTile(
-              title: Text('設定'),
+              title: Text(
+                '設定',
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(

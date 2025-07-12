@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 class DripPackRecordListPage extends StatefulWidget {
   const DripPackRecordListPage({super.key});
@@ -47,7 +49,14 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : _records.isEmpty
-          ? Center(child: Text('記録がありません'))
+          ? Center(
+              child: Text(
+                '記録がありません',
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              ),
+            )
           : ListView.builder(
               padding: EdgeInsets.all(16),
               itemCount: _records.length,
@@ -64,14 +73,20 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Colors.white,
+                  color:
+                      Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                      Colors.white,
                   margin: EdgeInsets.symmetric(vertical: 8),
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.coffee, color: Color(0xFF795548), size: 32),
+                        Icon(
+                          Icons.coffee,
+                          color: Provider.of<ThemeSettings>(context).iconColor,
+                          size: 32,
+                        ),
                         SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -82,7 +97,9 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 17,
-                                  color: Color(0xFF795548),
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
                                 ),
                               ),
                               SizedBox(height: 6),
@@ -91,23 +108,35 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                                   Icon(
                                     Icons.shopping_bag,
                                     size: 18,
-                                    color: Color(0xFF795548),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
                                   ),
                                   SizedBox(width: 4),
                                   Text(
                                     '数: ${record['count']}',
-                                    style: TextStyle(fontSize: 15),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
+                                    ),
                                   ),
                                   SizedBox(width: 16),
                                   Icon(
                                     Icons.access_time,
                                     size: 18,
-                                    color: Color(0xFF795548),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
                                   ),
                                   SizedBox(width: 4),
                                   Text(
                                     '日時: $formattedDate',
-                                    style: TextStyle(fontSize: 15),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Provider.of<ThemeSettings>(context).fontColor1,
+                                    ),
                                   ),
                                 ],
                               ),

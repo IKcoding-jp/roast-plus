@@ -557,14 +557,20 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.edit, color: brown, size: 24),
+                        Icon(
+                          Icons.edit,
+                          color: Provider.of<ThemeSettings>(context).iconColor,
+                          size: 24,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           'スケジュール自動作成用入力フォーム',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
-                            color: brown,
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
                           ),
                         ),
                       ],
@@ -632,14 +638,20 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.access_time, color: brown, size: 24),
+                        Icon(
+                          Icons.access_time,
+                          color: Provider.of<ThemeSettings>(context).iconColor,
+                          size: 24,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           '焙煎開始時刻',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
-                            color: brown,
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
                           ),
                         ),
                       ],
@@ -652,7 +664,12 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                           children: [
                             Text(
                               '午前:',
-                              style: TextStyle(color: brown, fontSize: 15),
+                              style: TextStyle(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
+                                fontSize: 15,
+                              ),
                             ),
                             SizedBox(width: 8),
                             ElevatedButton(
@@ -690,7 +707,12 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                             SizedBox(width: 24),
                             Text(
                               '午後:',
-                              style: TextStyle(color: brown, fontSize: 15),
+                              style: TextStyle(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
+                                fontSize: 15,
+                              ),
                             ),
                             SizedBox(width: 8),
                             ElevatedButton(
@@ -840,7 +862,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          color: Color(0xFFFFF3E0), // 淡いオレンジ
+          color:
+              Provider.of<ThemeSettings>(context).backgroundColor2 ??
+              Colors.white,
           margin: EdgeInsets.only(bottom: 12),
           child: ListTile(
             contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -854,7 +878,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: brown,
+                color: Provider.of<ThemeSettings>(context).fontColor1,
               ),
             ),
           ),
@@ -868,7 +892,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Colors.blueGrey[50],
+              color:
+                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                  Colors.white,
               margin: EdgeInsets.only(bottom: 12),
               child: ListTile(
                 contentPadding: EdgeInsets.symmetric(
@@ -878,7 +904,10 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                 leading: Icon(Icons.ac_unit, color: Colors.blue, size: 28),
                 title: Text(
                   'アフターパージを実行',
-                  style: TextStyle(color: brown, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -890,7 +919,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Colors.white, // ← ここをデフォルト色に固定
+              color:
+                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                  Colors.white,
               margin: EdgeInsets.only(bottom: 12),
               child: ListTile(
                 contentPadding: EdgeInsets.symmetric(
@@ -899,7 +930,11 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                 ),
                 leading: r.task != null
                     ? CircleAvatar(
-                        backgroundColor: Color(0xFFFFF8E1),
+                        backgroundColor:
+                            Provider.of<ThemeSettings>(
+                              context,
+                            ).backgroundColor2 ??
+                            Colors.white,
                         child: Text(
                           _roastIcons[r.task!.roastLevel] ?? '☕',
                           style: TextStyle(fontSize: 20),
@@ -913,7 +948,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                         r.time!.format(context),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: brown,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                           fontSize: 16,
                         ),
                       ),
@@ -924,7 +959,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                         '${r.task?.weights.map((w) => '${w}g').join('・') ?? ''}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2C1D17),
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                         ),
                       ),
                     ),
@@ -934,7 +969,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                     ? Text(
                         r.task!.roastLevel,
                         style: TextStyle(
-                          color: brown,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                           fontWeight: FontWeight.w500,
                         ),
                       )
@@ -953,7 +988,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          color: Color(0xFFFFF3E0),
+          color:
+              Provider.of<ThemeSettings>(context).backgroundColor2 ??
+              Colors.white,
           margin: EdgeInsets.only(top: 16, bottom: 12),
           child: ListTile(
             contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -967,7 +1004,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: brown,
+                color: Provider.of<ThemeSettings>(context).fontColor1,
               ),
             ),
           ),
@@ -981,7 +1018,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Colors.blueGrey[50],
+              color:
+                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                  Colors.white,
               margin: EdgeInsets.only(bottom: 12),
               child: ListTile(
                 contentPadding: EdgeInsets.symmetric(
@@ -991,7 +1030,10 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                 leading: Icon(Icons.ac_unit, color: Colors.blue, size: 28),
                 title: Text(
                   'アフターパージを実行',
-                  style: TextStyle(color: brown, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -1003,7 +1045,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Colors.white, // ← ここもデフォルト色に固定
+              color:
+                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                  Colors.white,
               margin: EdgeInsets.only(bottom: 12),
               child: ListTile(
                 contentPadding: EdgeInsets.symmetric(
@@ -1012,7 +1056,11 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                 ),
                 leading: r.task != null
                     ? CircleAvatar(
-                        backgroundColor: Color(0xFFFFF8E1),
+                        backgroundColor:
+                            Provider.of<ThemeSettings>(
+                              context,
+                            ).backgroundColor2 ??
+                            Colors.white,
                         child: Text(
                           _roastIcons[r.task!.roastLevel] ?? '☕',
                           style: TextStyle(fontSize: 20),
@@ -1026,7 +1074,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                         r.time!.format(context),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: brown,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                           fontSize: 16,
                         ),
                       ),
@@ -1037,7 +1085,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                         '${r.task?.weights.map((w) => '${w}g').join('・') ?? ''}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2C1D17),
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                         ),
                       ),
                     ),
@@ -1047,7 +1095,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                     ? Text(
                         r.task!.roastLevel,
                         style: TextStyle(
-                          color: brown,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                           fontWeight: FontWeight.w500,
                         ),
                       )
@@ -1083,7 +1131,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          color: Color(0xFFFFF3E0),
+          color:
+              Provider.of<ThemeSettings>(context).backgroundColor2 ??
+              Colors.white,
           margin: EdgeInsets.only(bottom: 12),
           child: ListTile(
             contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -1097,7 +1147,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: brown,
+                color: Provider.of<ThemeSettings>(context).fontColor1,
               ),
             ),
           ),
@@ -1112,7 +1162,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          color: Color(0xFFFFF3E0),
+          color:
+              Provider.of<ThemeSettings>(context).backgroundColor2 ??
+              Colors.white,
           margin: EdgeInsets.only(top: 16, bottom: 12),
           child: ListTile(
             contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -1126,7 +1178,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: brown,
+                color: Provider.of<ThemeSettings>(context).fontColor1,
               ),
             ),
           ),
@@ -1143,7 +1195,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: brown,
+              color: Provider.of<ThemeSettings>(context).fontColor1,
             ),
           ),
         ),
@@ -1240,7 +1292,11 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(Icons.coffee, color: brown, size: 20),
+                Icon(
+                  Icons.coffee,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  size: 20,
+                ),
                 SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -1249,7 +1305,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                       Text(
                         '豆の名前',
                         style: TextStyle(
-                          color: brown,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -1273,10 +1329,17 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: brown, width: 2),
+                            borderSide: BorderSide(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).buttonColor,
+                              width: 2,
+                            ),
                           ),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                         ),
                         onChanged: (val) {
                           provider.updateBean(
@@ -1294,7 +1357,11 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                   ),
                 ),
                 SizedBox(width: 20),
-                Icon(Icons.scale, color: brown, size: 20),
+                Icon(
+                  Icons.scale,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  size: 20,
+                ),
                 SizedBox(width: 8),
                 SizedBox(
                   width: 100,
@@ -1304,7 +1371,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                       Text(
                         '重量',
                         style: TextStyle(
-                          color: brown,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -1331,7 +1398,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                             borderSide: BorderSide(color: brown, width: 2),
                           ),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                         ),
                         keyboardType: TextInputType.number,
                         onChanged: (val) {
@@ -1357,7 +1426,11 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(Icons.shopping_bag, color: brown, size: 20),
+                Icon(
+                  Icons.shopping_bag,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  size: 20,
+                ),
                 SizedBox(width: 8),
                 SizedBox(
                   width: 80,
@@ -1367,7 +1440,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                       Text(
                         '袋数',
                         style: TextStyle(
-                          color: brown,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -1394,7 +1467,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                             borderSide: BorderSide(color: brown, width: 2),
                           ),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                         ),
                         keyboardType: TextInputType.number,
                         onChanged: (val) {
@@ -1414,7 +1489,11 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                   ),
                 ),
                 SizedBox(width: 16),
-                Icon(Icons.local_fire_department, color: brown, size: 20),
+                Icon(
+                  Icons.local_fire_department,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  size: 20,
+                ),
                 SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -1423,7 +1502,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                       Text(
                         '焙煎度合い',
                         style: TextStyle(
-                          color: brown,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -1450,7 +1529,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                             borderSide: BorderSide(color: brown, width: 2),
                           ),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                         ),
                         items: ['浅煎り', '中煎り', '中深煎り', '深煎り']
                             .map(

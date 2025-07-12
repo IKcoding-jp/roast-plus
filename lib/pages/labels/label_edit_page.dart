@@ -102,14 +102,19 @@ class _LabelEditPageState extends State<LabelEditPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.label, color: Color(0xFF795548)),
+                        Icon(
+                          Icons.label,
+                          color: Provider.of<ThemeSettings>(context).iconColor,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           '担当ラベル一覧',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF795548),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
                           ),
                         ),
                       ],
@@ -123,14 +128,31 @@ class _LabelEditPageState extends State<LabelEditPage> {
                             Expanded(
                               child: TextFormField(
                                 initialValue: leftLabels[i],
+                                style: TextStyle(
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: '左ラベル',
+                                  labelStyle: TextStyle(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  prefixIcon: Icon(Icons.label_outline),
+                                  prefixIcon: Icon(
+                                    Icons.label_outline,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
+                                  ),
                                   filled: true,
-                                  fillColor: Colors.white,
+                                  fillColor: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).inputBackgroundColor,
                                 ),
                                 onChanged: (v) => leftLabels[i] = v,
                               ),
@@ -139,14 +161,31 @@ class _LabelEditPageState extends State<LabelEditPage> {
                             Expanded(
                               child: TextFormField(
                                 initialValue: rightLabels[i],
+                                style: TextStyle(
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: '右ラベル',
+                                  labelStyle: TextStyle(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  prefixIcon: Icon(Icons.label_outline),
+                                  prefixIcon: Icon(
+                                    Icons.label_outline,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
+                                  ),
                                   filled: true,
-                                  fillColor: Colors.white,
+                                  fillColor: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).inputBackgroundColor,
                                 ),
                                 onChanged: (v) => rightLabels[i] = v,
                               ),

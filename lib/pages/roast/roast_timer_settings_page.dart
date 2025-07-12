@@ -84,7 +84,9 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                           children: [
                             Icon(
                               Icons.timer,
-                              color: Color(0xFF795548),
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).iconColor, // テーマのアイコン色を適用
                               size: 24,
                             ),
                             SizedBox(width: 10),

@@ -29,7 +29,7 @@ class AppSettingsPage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF795548),
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
                 ),
               ),
             ),
@@ -42,12 +42,21 @@ class AppSettingsPage extends StatelessWidget {
                   Provider.of<ThemeSettings>(context).backgroundColor2 ??
                   Colors.white,
               child: ListTile(
-                leading: Icon(Icons.person_outline, color: Color(0xFF795548)),
+                leading: Icon(
+                  Icons.person_outline,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                ),
                 title: Text(
                   'アカウント情報',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                  ),
                 ),
-                trailing: Icon(Icons.chevron_right, color: Color(0xFF795548)),
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                ),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -66,12 +75,21 @@ class AppSettingsPage extends StatelessWidget {
                   Provider.of<ThemeSettings>(context).backgroundColor2 ??
                   Colors.white,
               child: ListTile(
-                leading: Icon(Icons.lock_outline, color: Color(0xFF795548)),
+                leading: Icon(
+                  Icons.lock_outline,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                ),
                 title: Text(
                   'パスコードロック設定',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                  ),
                 ),
-                trailing: Icon(Icons.chevron_right, color: Color(0xFF795548)),
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                ),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -94,13 +112,19 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.color_lens_outlined,
-                  color: Color(0xFF795548),
+                  color: Provider.of<ThemeSettings>(context).iconColor,
                 ),
                 title: Text(
                   'テーマを変更する',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                  ),
                 ),
-                trailing: Icon(Icons.chevron_right, color: Color(0xFF795548)),
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                ),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -273,7 +297,9 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                         : Icon(
                                             Icons.account_circle,
                                             size: 64,
-                                            color: Color(0xFF795548),
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).iconColor,
                                           ),
                                     SizedBox(width: 16),
                                     Expanded(
@@ -285,14 +311,21 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                             'ログイン済み',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              color: Color(0xFF795548),
+                                              color: Provider.of<ThemeSettings>(
+                                                context,
+                                              ).fontColor1,
                                               fontSize: 16,
                                             ),
                                           ),
                                           SizedBox(height: 4),
                                           Text(
                                             '$_userName（$_loginProvider）',
-                                            style: TextStyle(fontSize: 16),
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Provider.of<ThemeSettings>(
+                                                context,
+                                              ).fontColor1,
+                                            ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
@@ -374,7 +407,9 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                     Icon(
                                       Icons.account_circle,
                                       size: 48,
-                                      color: Color(0xFF795548),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).iconColor,
                                     ),
                                     SizedBox(width: 16),
                                     Expanded(
@@ -382,7 +417,9 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                         '未ログイン',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xFF795548),
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontColor1,
                                           fontSize: 16,
                                         ),
                                       ),
@@ -400,12 +437,17 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                     label: Text('Googleでログイン'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.white,
-                                      foregroundColor: Color(0xFF795548),
+                                      foregroundColor:
+                                          Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontColor1,
                                       elevation: 2,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                         side: BorderSide(
-                                          color: Color(0xFF795548),
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontColor1,
                                           width: 1,
                                         ),
                                       ),
@@ -576,12 +618,15 @@ class _TodaySchedulePageState extends State<TodaySchedulePage>
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(Icons.schedule, color: Color(0xFF795548)),
+            Icon(
+              Icons.schedule,
+              color: Provider.of<ThemeSettings>(context).iconColor,
+            ),
             SizedBox(width: 8),
             Text(
               '本日のスケジュール',
               style: TextStyle(
-                color: Color(0xFF2C1D17),
+                color: Provider.of<ThemeSettings>(context).fontColor1,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -596,7 +641,9 @@ class _TodaySchedulePageState extends State<TodaySchedulePage>
         ],
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        iconTheme: IconThemeData(color: Color(0xFF795548)),
+        iconTheme: IconThemeData(
+          color: Provider.of<ThemeSettings>(context).iconColor,
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -643,7 +690,9 @@ class _TodaySchedulePageState extends State<TodaySchedulePage>
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF795548),
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1,
                             ),
                           ),
                         ),
@@ -758,7 +807,7 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF795548),
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
                         ),
                       ),
                     ),
@@ -832,7 +881,9 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
                                 children: [
                                   Icon(
                                     Icons.lock_outline,
-                                    color: Color(0xFF795548),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
                                     size: 24,
                                   ),
                                   SizedBox(width: 12),
@@ -841,7 +892,9 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF795548),
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
                                     ),
                                   ),
                                 ],
@@ -852,12 +905,31 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
                                 keyboardType: TextInputType.number,
                                 maxLength: 4,
                                 obscureText: true,
+                                style: TextStyle(
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: 'パスコード',
+                                  labelStyle: TextStyle(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  prefixIcon: Icon(Icons.lock_outline),
+                                  prefixIcon: Icon(
+                                    Icons.lock_outline,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
+                                  ),
+                                  filled: true,
+                                  fillColor: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).inputBackgroundColor,
                                 ),
                               ),
                               SizedBox(height: 12),
@@ -866,12 +938,31 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
                                 keyboardType: TextInputType.number,
                                 maxLength: 4,
                                 obscureText: true,
+                                style: TextStyle(
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
+                                ),
                                 decoration: InputDecoration(
                                   labelText: 'パスコード（確認）',
+                                  labelStyle: TextStyle(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  prefixIcon: Icon(Icons.lock_outline),
+                                  prefixIcon: Icon(
+                                    Icons.lock_outline,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
+                                  ),
+                                  filled: true,
+                                  fillColor: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).inputBackgroundColor,
                                   errorText: _error,
                                 ),
                               ),
@@ -915,20 +1006,43 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('パスコードのリセット'),
+              backgroundColor:
+                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                  Colors.white,
+              title: Text(
+                'パスコードのリセット',
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('現在のパスコードを入力してください'),
+                  Text(
+                    '現在のパスコードを入力してください',
+                    style: TextStyle(
+                      color: Provider.of<ThemeSettings>(context).fontColor1,
+                    ),
+                  ),
                   SizedBox(height: 12),
                   TextField(
                     controller: _currentController,
                     keyboardType: TextInputType.number,
                     maxLength: 4,
                     obscureText: true,
+                    style: TextStyle(
+                      color: Provider.of<ThemeSettings>(context).fontColor1,
+                    ),
                     decoration: InputDecoration(
                       labelText: '現在のパスコード',
+                      labelStyle: TextStyle(
+                        color: Provider.of<ThemeSettings>(context).fontColor1,
+                      ),
                       border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Provider.of<ThemeSettings>(
+                        context,
+                      ).inputBackgroundColor,
                       errorText: errorText,
                     ),
                   ),
@@ -937,7 +1051,12 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('キャンセル'),
+                  child: Text(
+                    'キャンセル',
+                    style: TextStyle(
+                      color: Provider.of<ThemeSettings>(context).fontColor1,
+                    ),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -961,7 +1080,12 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
                       context,
                     ).showSnackBar(SnackBar(content: Text('パスコードをリセットしました')));
                   },
-                  child: Text('リセット'),
+                  child: Text(
+                    'リセット',
+                    style: TextStyle(
+                      color: Provider.of<ThemeSettings>(context).fontColor2,
+                    ),
+                  ),
                 ),
               ],
             );
