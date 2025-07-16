@@ -116,6 +116,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
     try {
       final success = await groupProvider.deleteGroup(widget.group.id);
       if (success && mounted) {
+        await groupProvider.loadUserGroups(); // グループリスト再取得
         navigator.pop(); // 設定ページを閉じる
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('グループを削除しました'), backgroundColor: Colors.red),

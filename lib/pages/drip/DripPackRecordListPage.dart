@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
-import '../../widgets/bean_name_with_sticker.dart';
 
 class DripPackRecordListPage extends StatefulWidget {
   const DripPackRecordListPage({super.key});

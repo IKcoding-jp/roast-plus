@@ -15,6 +15,7 @@ class ThemeSettingsPage extends StatefulWidget {
 class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   Map<String, Map<String, Color>> _customThemes = {};
   bool _isLoading = true;
+  late BuildContext _rootContext;
 
   // --- 追加: debounce用 ---
   Timer? _snackbarDebounceTimer;
@@ -23,6 +24,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     _pendingThemeName = themeName;
     _snackbarDebounceTimer?.cancel();
     _snackbarDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
       if (_pendingThemeName != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$_pendingThemeName テーマを適用しました')),
@@ -44,6 +46,12 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     _loadCustomThemes();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadCustomThemes();
+  }
+
   Future<void> _loadCustomThemes() async {
     final customThemes = await ThemeSettings.getCustomThemes();
     setState(() {
@@ -54,6 +62,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    _rootContext = context;
     final themeSettings = Provider.of<ThemeSettings>(context);
     if (_isLoading) {
       return Scaffold(
@@ -74,13 +83,16 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.tune, color: themeSettings.appBarTextColor),
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => const CustomThemeSettingsPage(),
                 ),
               );
+              if (result == true) {
+                await _loadCustomThemes();
+              }
             },
             tooltip: 'カスタム設定',
           ),
@@ -267,7 +279,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               title: const Text('名前を変更'),
               onTap: () {
                 Navigator.pop(context);
-                _showRenameDialog(context, themeName);
+                _showRenameDialog(_rootContext, themeName);
               },
             ),
             ListTile(
@@ -275,7 +287,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               title: const Text('ボタンの色を変更'),
               onTap: () {
                 Navigator.pop(context);
-                _showButtonColorDialog(context, themeName);
+                _showButtonColorDialog(_rootContext, themeName);
               },
             ),
             ListTile(
@@ -283,7 +295,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               title: const Text('削除', style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
-                _showDeleteDialog(context, themeName);
+                _showDeleteDialog(_rootContext, themeName);
               },
             ),
           ],
@@ -368,9 +380,12 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       themeData['buttonColor'] = newColor;
       await ThemeSettings.saveCustomTheme(themeName, themeData);
       await _loadCustomThemes();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ボタンの色を変更しました')));
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('ボタンの色を変更しました')));
+      }
     }
   }
 

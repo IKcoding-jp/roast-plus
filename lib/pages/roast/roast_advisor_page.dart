@@ -189,7 +189,24 @@ class RoastAdvisorPage extends StatelessWidget {
                           final key = '${r.weight}|${r.roast}';
                           group.putIfAbsent(key, () => []).add(r);
                         }
-                        final rows = group.entries.map((entry) {
+                        // ソート用: 煎り度の順序リスト
+                        final roastOrder = ['浅煎り', '中煎り', '中深煎り', '深煎り'];
+                        final sortedEntries = group.entries.toList()
+                          ..sort((a, b) {
+                            final aParts = a.key.split('|');
+                            final bParts = b.key.split('|');
+                            final aWeight = int.tryParse(aParts[0]) ?? 0;
+                            final bWeight = int.tryParse(bParts[0]) ?? 0;
+                            if (aWeight != bWeight) {
+                              return aWeight.compareTo(bWeight);
+                            }
+                            final aRoast = aParts[1];
+                            final bRoast = bParts[1];
+                            final aRoastIdx = roastOrder.indexOf(aRoast);
+                            final bRoastIdx = roastOrder.indexOf(bRoast);
+                            return aRoastIdx.compareTo(bRoastIdx);
+                          });
+                        final rows = sortedEntries.map((entry) {
                           final keyParts = entry.key.split('|');
                           final weight = keyParts[0];
                           final roast = keyParts[1];

@@ -513,13 +513,15 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                                       SizedBox(height: 4),
                                       Text(
                                         tastingGroup.allOverallImpressions.join(
-                                          ', ',
+                                          '\n',
                                         ),
                                         style: TextStyle(
                                           fontSize: 13,
                                           color: themeSettings.fontColor1
                                               .withOpacity(0.8),
                                         ),
+                                        softWrap: true,
+                                        maxLines: null,
                                       ),
                                     ],
                                   ),

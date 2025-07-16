@@ -38,8 +38,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
     final doc = await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
-        .collection('settings')
-        .doc('assignmentMembers')
+        .collection('assignmentMembers')
+        .doc('assignment')
         .get();
     if (doc.exists && doc.data() != null) {
       final data = doc.data()!;
@@ -48,22 +48,34 @@ class _MemberEditPageState extends State<MemberEditPage> {
           teams = List<Map<String, dynamic>>.from(
             data['teams'],
           ).map((teamMap) => Team.fromMap(teamMap)).toList();
+        } else {
+          // 古い形式の場合は新しい形式に変換
+          final aMembers = List<String>.from(data['aMembers'] ?? []);
+          final bMembers = List<String>.from(data['bMembers'] ?? []);
+          teams = [
+            Team(id: 'team_a', name: 'A班', members: aMembers),
+            Team(id: 'team_b', name: 'B班', members: bMembers),
+          ];
         }
-        if (data['leftLabels'] != null) {
+        if ((data['leftLabels'] as List?)?.isNotEmpty ?? false) {
           leftLabels = List<String>.from(data['leftLabels']);
         }
-        if (data['rightLabels'] != null) {
+        if ((data['rightLabels'] as List?)?.isNotEmpty ?? false) {
           rightLabels = List<String>.from(data['rightLabels']);
         }
-        // Firestoreにデータがなければ初期値をセット
-        if ((data['teams'] == null || teams.isEmpty)) {
-          teams = [Team(id: 'team_default', name: '新しい班', members: [])];
+        if (teams.isEmpty) {
+          teams = [
+            Team(id: 'team_a', name: 'A班', members: []),
+            Team(id: 'team_b', name: 'B班', members: []),
+          ];
         }
       });
     } else {
-      // Firestoreにデータがなければ初期値をセット
       setState(() {
-        teams = [Team(id: 'team_default', name: '新しい班', members: [])];
+        teams = [
+          Team(id: 'team_a', name: 'A班', members: []),
+          Team(id: 'team_b', name: 'B班', members: []),
+        ];
       });
     }
   }
@@ -76,24 +88,33 @@ class _MemberEditPageState extends State<MemberEditPage> {
     _assignmentMembersSubscription = FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
-        .collection('settings')
-        .doc('assignmentMembers')
+        .collection('assignmentMembers')
+        .doc('assignment')
         .snapshots()
         .listen((doc) {
           if (doc.exists && doc.data() != null) {
             final data = doc.data()!;
             setState(() {
-              // ここでteams, leftLabels, rightLabelsをFirestoreのデータで上書き
               if (data['teams'] != null) {
                 teams = List<Map<String, dynamic>>.from(
                   data['teams'],
                 ).map((teamMap) => Team.fromMap(teamMap)).toList();
+              } else {
+                final aMembers = List<String>.from(data['aMembers'] ?? []);
+                final bMembers = List<String>.from(data['bMembers'] ?? []);
+                teams = [
+                  Team(id: 'team_a', name: 'A班', members: aMembers),
+                  Team(id: 'team_b', name: 'B班', members: bMembers),
+                ];
               }
-              if (data['leftLabels'] != null) {
+              if ((data['leftLabels'] as List?)?.isNotEmpty ?? false) {
                 leftLabels = List<String>.from(data['leftLabels']);
               }
-              if (data['rightLabels'] != null) {
+              if ((data['rightLabels'] as List?)?.isNotEmpty ?? false) {
                 rightLabels = List<String>.from(data['rightLabels']);
+              }
+              if (teams.isEmpty) {
+                teams = [Team(id: 'team_default', name: '新しい班', members: [])];
               }
             });
           }
@@ -186,8 +207,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   void _addTeam() {
     final newId = 'team_${DateTime.now().millisecondsSinceEpoch}';
+    // 既存の班数に応じてアルファベットを決定
+    final alphabet = String.fromCharCode('A'.codeUnitAt(0) + teams.length);
+    final newName = '$alphabet班';
     setState(() {
-      teams.add(Team(id: newId, name: '新しい班', members: []));
+      teams.add(Team(id: newId, name: newName, members: []));
     });
     _adjustLabelsToTeams();
   }

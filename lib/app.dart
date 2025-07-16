@@ -665,7 +665,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                     color: themeSettings.iconColor,
                   ), // 入力＝鉛筆
                   title: Text(
-                    '焙煎記録を入力する',
+                    '焙煎記録入力',
                     style: TextStyle(color: themeSettings.fontColor1),
                   ),
                   onTap: () {
@@ -682,7 +682,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                     color: themeSettings.iconColor,
                   ), // 一覧＝リスト
                   title: Text(
-                    '焙煎記録の一覧を見る',
+                    '焙煎記録一覧',
                     style: TextStyle(color: themeSettings.fontColor1),
                   ),
                   onTap: () {

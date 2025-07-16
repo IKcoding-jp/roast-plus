@@ -352,6 +352,52 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
             onPressed: () async {
               final themeName = nameController.text.trim();
               if (themeName.isNotEmpty) {
+                // プリセットテーマと同じかチェック
+                final currentThemeData = {
+                  'appBarColor': themeSettings.appBarColor,
+                  'backgroundColor': themeSettings.backgroundColor,
+                  'buttonColor': themeSettings.buttonColor,
+                  'backgroundColor2': themeSettings.backgroundColor2,
+                  'fontColor1': themeSettings.fontColor1,
+                  'fontColor2': themeSettings.fontColor2,
+                  'iconColor': themeSettings.iconColor,
+                  'timerCircleColor': themeSettings.timerCircleColor,
+                  'bottomNavigationColor': themeSettings.bottomNavigationColor,
+                  'inputBackgroundColor': themeSettings.inputBackgroundColor,
+                  'memberBackgroundColor': themeSettings.memberBackgroundColor,
+                  'appBarTextColor': themeSettings.appBarTextColor,
+                  'bottomNavigationTextColor':
+                      themeSettings.bottomNavigationTextColor,
+                  'dialogBackgroundColor': themeSettings.dialogBackgroundColor,
+                  'dialogTextColor': themeSettings.dialogTextColor,
+                  'inputTextColor': themeSettings.inputTextColor,
+                };
+                bool isPreset = false;
+                for (final preset in ThemeSettings.presets.values) {
+                  if (preset.length == currentThemeData.length &&
+                      preset.keys.every(
+                        (k) => preset[k] == currentThemeData[k],
+                      )) {
+                    isPreset = true;
+                    break;
+                  }
+                }
+                if (isPreset) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text('保存できません'),
+                      content: Text('プリセットテーマと同じ設定です'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                  return;
+                }
                 final themeData = {
                   'appBarColor': themeSettings.appBarColor,
                   'backgroundColor': themeSettings.backgroundColor,
@@ -372,7 +418,7 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
                   'inputTextColor': themeSettings.inputTextColor,
                 };
                 await ThemeSettings.saveCustomTheme(themeName, themeData);
-                Navigator.pop(context);
+                Navigator.pop(context, true);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('$themeName として保存しました'),

@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../models/theme_settings.dart';
-import '../pages/schedule/schedule_time_label_edit_page.dart';  
+import '../pages/schedule/schedule_time_label_edit_page.dart';
 
 class TodaySchedulePage extends StatefulWidget {
   const TodaySchedulePage({super.key});
@@ -141,7 +141,7 @@ class _TodaySchedulePageState extends State<TodaySchedulePage>
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.edit),
+            icon: Icon(Icons.label),
             tooltip: '時間ラベル編集',
             onPressed: _openLabelEdit,
           ),

@@ -268,69 +268,37 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
     final beanName = _beanNameController.text.trim();
     final roastLevel = _selectedRoastLevel;
 
-    // 新規作成時のみ重複チェック
-    if (!_isEditing) {
-      if (tastingProvider.isDuplicateTasting(beanName, roastLevel)) {
-        final existingTastings = tastingProvider.getExistingTastings(
-          beanName,
-          roastLevel,
-        );
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('重複確認'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('同じ豆の種類と焙煎度合いの組み合わせが既に存在します：'),
-                SizedBox(height: 8),
-                Text('豆の名前: $beanName'),
-                Text('焙煎度合い: $roastLevel'),
-                SizedBox(height: 8),
-                Text('既存の記録数: ${existingTastings.length}件'),
-                SizedBox(height: 16),
-                Text('この組み合わせで新しく記録を作成しますか？'),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text('キャンセル'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text('作成する'),
-              ),
-            ],
-          ),
-        );
-
-        if (confirmed != true) {
-          return;
-        }
-      }
-    }
-
     final now = DateTime.now();
 
+    // 既存レコードを検索
+    final existing = tastingProvider.getExistingTastings(beanName, roastLevel);
+    String recordId = widget.tastingRecord?.id ?? '';
+    DateTime createdAt = widget.tastingRecord?.createdAt ?? now;
+    String userId = widget.tastingRecord?.userId ?? 'local_user';
+    if (!_isEditing && existing.isNotEmpty) {
+      // 新規作成時、同じ豆＋焙煎度合いがあればそのIDで上書き
+      recordId = existing.first.id;
+      createdAt = existing.first.createdAt;
+      userId = existing.first.userId;
+    }
+
     final tastingRecord = TastingRecord(
-      id: widget.tastingRecord?.id ?? '',
-      beanName: _beanNameController.text.trim(),
+      id: recordId,
+      beanName: beanName,
       tastingDate: _selectedDate,
-      roastLevel: _selectedRoastLevel,
+      roastLevel: roastLevel,
       acidity: _acidity,
       bitterness: _bitterness,
       aroma: _aroma,
       overallRating: _overallRating,
       overallImpression: _overallImpressionController.text.trim(),
-      createdAt: widget.tastingRecord?.createdAt ?? now,
+      createdAt: createdAt,
       updatedAt: now,
-      userId: widget.tastingRecord?.userId ?? 'local_user',
+      userId: userId,
     );
 
     try {
-      if (_isEditing) {
+      if (_isEditing || (!_isEditing && existing.isNotEmpty)) {
         await tastingProvider.updateTastingRecord(tastingRecord);
         ScaffoldMessenger.of(
           context,
@@ -443,6 +411,8 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
                           }
                           return null;
                         },
+                        // 常に入力可能に修正
+                        enabled: true,
                       ),
 
                       SizedBox(height: 16),
@@ -458,6 +428,7 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
                             child: Text(level),
                           );
                         }).toList(),
+                        // 常に選択可能に修正
                         onChanged: (String? newValue) {
                           setState(() {
                             _selectedRoastLevel = newValue!;
@@ -511,7 +482,7 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                '既存の記録数: ${_existingTastings.length}件',
+                                '既存の記録数:  ${_existingTastings.length}件',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: themeSettings.fontColor1.withOpacity(
@@ -523,28 +494,6 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
                           ),
                         ),
                       ],
-                      SizedBox(height: 16),
-                      InkWell(
-                        onTap: () => _selectDate(context),
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: '試飲日 *',
-                            border: OutlineInputBorder(),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                DateFormat('yyyy/MM/dd').format(_selectedDate),
-                                style: TextStyle(
-                                  color: themeSettings.fontColor1,
-                                ),
-                              ),
-                              Icon(Icons.calendar_today),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -633,7 +582,9 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _saveTastingRecord,
+                  onPressed: (!_isDuplicate || _isEditing)
+                      ? _saveTastingRecord
+                      : null,
                   child: Text(_isEditing ? '更新' : '保存'),
                 ),
               ),

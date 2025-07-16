@@ -88,7 +88,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     setState(() {
       _settings = _settings!.copyWith(dataPermissions: updatedPermissions);
     });
-    
+
     // 設定をリアルタイムで保存
     _saveSettingsRealtime();
   }
@@ -258,15 +258,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     final themeSettings = Provider.of<ThemeSettings>(context);
     final dataTypes = {
       'roast_records': '焙煎記録一覧',
-      'todo_list': 'TODOリスト',
       'drip_counter_records': 'ドリップカウンター',
       'assignment_board': '担当表',
       'today_assignment': '今日の担当履歴',
       'assignment_history': '担当履歴',
-      'schedule': 'スケジュール',
       'today_schedule': '本日のスケジュール',
-      'time_labels': '時間ラベル',
-      'settings': '設定',
     };
 
     return dataTypes.entries.map((entry) {

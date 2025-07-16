@@ -715,6 +715,33 @@ class TodoListPageState extends State<TodoListPage>
                 ),
               ),
               actions: [
+                IconButton(
+                  icon: Icon(Icons.label),
+                  tooltip: '時間ラベル編集',
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RoastBreakTimeEditPage(
+                          breakTimes: _roastBreakTimes,
+                          onBreakTimesChanged: (newBreakTimes) async {
+                            setState(() {
+                              _roastBreakTimes = newBreakTimes;
+                            });
+                            final prefs = await SharedPreferences.getInstance();
+                            final jsonList = _roastBreakTimes
+                                .map((b) => b.toJson())
+                                .toList();
+                            prefs.setString(
+                              'roastBreakTimes',
+                              json.encode(jsonList),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
                 // デバッグ用: 自動同期状態確認
                 // IconButton(
                 //   icon: Icon(Icons.bug_report),
@@ -754,8 +781,8 @@ class TodoListPageState extends State<TodoListPage>
                     if (tabIndex == 1) {
                       // ローストスケジュール: 休憩時間設定
                       return IconButton(
-                        icon: Icon(Icons.event_available),
-                        tooltip: '休憩時間を設定',
+                        icon: Icon(Icons.label),
+                        tooltip: 'ラベル設定',
                         onPressed: _openRoastSettings,
                       );
                     } else if (tabIndex == 2) {

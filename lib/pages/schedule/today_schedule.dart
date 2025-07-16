@@ -617,7 +617,14 @@ class _TodayScheduleState extends State<TodaySchedule> {
                                                     },
                                                     maxLines: null,
                                                     style: TextStyle(
-                                                      fontSize: 15,
+                                                      fontSize:
+                                                          16 *
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontSizeScale,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                     decoration: InputDecoration(
                                                       filled: true,
@@ -697,7 +704,14 @@ class _TodayScheduleState extends State<TodaySchedule> {
                                                       _scheduleContents[label] ??
                                                           '',
                                                       style: TextStyle(
-                                                        fontSize: 15,
+                                                        fontSize:
+                                                            16 *
+                                                            Provider.of<
+                                                                  ThemeSettings
+                                                                >(context)
+                                                                .fontSizeScale,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ),
@@ -762,7 +776,13 @@ class _TodayScheduleState extends State<TodaySchedule> {
                                                   },
                                                   maxLines: null,
                                                   style: TextStyle(
-                                                    fontSize: 15,
+                                                    fontSize:
+                                                        16 *
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontSizeScale,
+                                                    fontWeight: FontWeight.bold,
                                                   ),
                                                   decoration: InputDecoration(
                                                     filled: true,
@@ -840,7 +860,14 @@ class _TodayScheduleState extends State<TodaySchedule> {
                                                     _scheduleContents[label] ??
                                                         '',
                                                     style: TextStyle(
-                                                      fontSize: 15,
+                                                      fontSize:
+                                                          16 *
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontSizeScale,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                 ),
