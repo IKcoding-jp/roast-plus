@@ -12,6 +12,19 @@ import '../../models/group_models.dart';
 import '../../services/schedule_firestore_service.dart' as ScheduleService;
 import '../schedule/schedule_time_label_edit_page.dart';
 
+// ▼▼▼ 範囲管理用クラスを追加 ▼▼▼
+class _ArrowRange {
+  final int start;
+  final int end;
+  _ArrowRange(this.start, this.end);
+  bool contains(int idx) =>
+      (start < end) ? (idx > start && idx < end) : (idx < start && idx > end);
+  bool isStart(int idx) => idx == start;
+  bool isEnd(int idx) => idx == end;
+  bool inRange(int idx) => isStart(idx) || isEnd(idx);
+}
+// ▲▲▲
+
 class TodaySchedule extends StatefulWidget {
   final void Function(void Function())? onEditTimeLabels;
   const TodaySchedule({super.key, this.onEditTimeLabels});
@@ -25,6 +38,16 @@ class _TodayScheduleState extends State<TodaySchedule> {
   Map<String, String> _scheduleContents = {};
   bool _canEditTodaySchedule = true;
   bool _canEditTimeLabels = true;
+
+  // ▼▼▼ 複数範囲用 ▼▼▼
+  List<_ArrowRange> _arrowRanges = [];
+  int? _tempStartIndex;
+  // ▲▲▲
+
+  // ▼▼▼ 追加: ラベル選択用インデックス ▼▼▼
+  int? _selectedStartIndex;
+  int? _selectedEndIndex;
+  // ▲▲▲
 
   // テキストコントローラー管理
   final Map<String, TextEditingController> _scheduleControllers = {};
@@ -550,7 +573,6 @@ class _TodayScheduleState extends State<TodaySchedule> {
                             ).fontColor1,
                           ),
                         ),
-                        // グループ状態バッジを追加
                         if (groupProvider.groups.isNotEmpty)
                           Container(
                             margin: EdgeInsets.only(left: 12),
@@ -602,319 +624,8 @@ class _TodayScheduleState extends State<TodaySchedule> {
                         ),
                       )
                     else
-                      (_scheduleLabels.length <= 10)
-                          ? Column(
-                              children: _scheduleLabels
-                                  .map(
-                                    (label) => Padding(
-                                      padding: EdgeInsets.only(bottom: 12),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 6,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).buttonColor.withOpacity(0.1),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              label,
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                color:
-                                                    Provider.of<ThemeSettings>(
-                                                      context,
-                                                    ).fontColor1,
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(width: 12),
-                                          Expanded(
-                                            child: _canEditTodaySchedule
-                                                ? TextField(
-                                                    controller:
-                                                        _scheduleControllers[label],
-                                                    keyboardType:
-                                                        TextInputType.text,
-                                                    enableSuggestions: true,
-                                                    autocorrect: true,
-                                                    enabled: true,
-                                                    onChanged: (v) {
-                                                      setState(() {
-                                                        _scheduleContents[label] =
-                                                            v;
-                                                      });
-                                                      _saveSchedules();
-                                                    },
-                                                    maxLines: null,
-                                                    style: TextStyle(
-                                                      fontSize:
-                                                          16 *
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontSizeScale,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                    decoration: InputDecoration(
-                                                      filled: true,
-                                                      fillColor:
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .inputBackgroundColor,
-                                                      border: OutlineInputBorder(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              10,
-                                                            ),
-                                                        borderSide: BorderSide(
-                                                          color: Colors
-                                                              .grey
-                                                              .shade300,
-                                                        ),
-                                                      ),
-                                                      enabledBorder:
-                                                          OutlineInputBorder(
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  10,
-                                                                ),
-                                                            borderSide:
-                                                                BorderSide(
-                                                                  color: Colors
-                                                                      .grey
-                                                                      .shade300,
-                                                                ),
-                                                          ),
-                                                      focusedBorder: OutlineInputBorder(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              10,
-                                                            ),
-                                                        borderSide: BorderSide(
-                                                          color:
-                                                              Provider.of<
-                                                                    ThemeSettings
-                                                                  >(context)
-                                                                  .buttonColor,
-                                                          width: 2,
-                                                        ),
-                                                      ),
-                                                      contentPadding:
-                                                          EdgeInsets.symmetric(
-                                                            horizontal: 14,
-                                                            vertical: 12,
-                                                          ),
-                                                    ),
-                                                  )
-                                                : Container(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                          horizontal: 14,
-                                                          vertical: 12,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .inputBackgroundColor,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            10,
-                                                          ),
-                                                      border: Border.all(
-                                                        color: Colors
-                                                            .grey
-                                                            .shade300,
-                                                      ),
-                                                    ),
-                                                    child: Text(
-                                                      _scheduleContents[label] ??
-                                                          '',
-                                                      style: TextStyle(
-                                                        fontSize:
-                                                            16 *
-                                                            Provider.of<
-                                                                  ThemeSettings
-                                                                >(context)
-                                                                .fontSizeScale,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                            )
-                          : SizedBox(
-                              height: 540, // 10行分程度の高さ（1行約54px）
-                              child: ListView.builder(
-                                itemCount: _scheduleLabels.length,
-                                itemBuilder: (context, idx) {
-                                  final label = _scheduleLabels[idx];
-                                  return Padding(
-                                    padding: EdgeInsets.only(bottom: 12),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Provider.of<ThemeSettings>(
-                                              context,
-                                            ).buttonColor.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            label,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor1,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(width: 12),
-                                        Expanded(
-                                          child: _canEditTodaySchedule
-                                              ? TextField(
-                                                  controller:
-                                                      _scheduleControllers[label],
-                                                  keyboardType:
-                                                      TextInputType.text,
-                                                  enableSuggestions: true,
-                                                  autocorrect: true,
-                                                  enabled: true,
-                                                  onChanged: (v) {
-                                                    setState(() {
-                                                      _scheduleContents[label] =
-                                                          v;
-                                                    });
-                                                    _saveSchedules();
-                                                  },
-                                                  maxLines: null,
-                                                  style: TextStyle(
-                                                    fontSize:
-                                                        16 *
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontSizeScale,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  decoration: InputDecoration(
-                                                    filled: true,
-                                                    fillColor:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .inputBackgroundColor,
-                                                    border: OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            10,
-                                                          ),
-                                                      borderSide: BorderSide(
-                                                        color: Colors
-                                                            .grey
-                                                            .shade300,
-                                                      ),
-                                                    ),
-                                                    enabledBorder:
-                                                        OutlineInputBorder(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                10,
-                                                              ),
-                                                          borderSide:
-                                                              BorderSide(
-                                                                color: Colors
-                                                                    .grey
-                                                                    .shade300,
-                                                              ),
-                                                        ),
-                                                    focusedBorder: OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            10,
-                                                          ),
-                                                      borderSide: BorderSide(
-                                                        color:
-                                                            Provider.of<
-                                                                  ThemeSettings
-                                                                >(context)
-                                                                .buttonColor,
-                                                        width: 2,
-                                                      ),
-                                                    ),
-                                                    contentPadding:
-                                                        EdgeInsets.symmetric(
-                                                          horizontal: 14,
-                                                          vertical: 12,
-                                                        ),
-                                                  ),
-                                                )
-                                              : Container(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 14,
-                                                    vertical: 12,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .inputBackgroundColor,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          10,
-                                                        ),
-                                                    border: Border.all(
-                                                      color:
-                                                          Colors.grey.shade300,
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    _scheduleContents[label] ??
-                                                        '',
-                                                    style: TextStyle(
-                                                      fontSize:
-                                                          16 *
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontSizeScale,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
+                      Column(children: _buildScheduleLabelWidgets()),
+                    // ▲▲▲
                   ],
                 ),
               ),
@@ -924,4 +635,193 @@ class _TodayScheduleState extends State<TodaySchedule> {
       },
     );
   }
+
+  // ▼▼▼ UI改善版: ラベル＋内容＋矢印の縦並びを明確にし、間隔・高さを統一 ▼▼▼
+  List<Widget> _buildScheduleLabelWidgets() {
+    List<Widget> widgets = [];
+    for (int i = 0; i < _scheduleLabels.length; i++) {
+      final inAnyRange = _arrowRanges.any((r) => r.inRange(i));
+      final isRangeStart = _arrowRanges.any((r) => r.isStart(i));
+      final isRangeEnd = _arrowRanges.any((r) => r.isEnd(i));
+      final isBetweenRange = _arrowRanges.any((r) => r.contains(i));
+      // タイムライン用アイコン
+      final themeButtonColor = Provider.of<ThemeSettings>(context).buttonColor;
+      Widget timelineIcon;
+      if (isRangeStart) {
+        timelineIcon = Icon(
+          Icons.fiber_manual_record,
+          color: themeButtonColor,
+          size: 18,
+        ); // ●
+      } else if (isRangeEnd) {
+        timelineIcon = Icon(
+          Icons.arrow_drop_down,
+          color: themeButtonColor,
+          size: 24,
+        ); // ▼
+      } else if (isBetweenRange) {
+        timelineIcon = Container(
+          width: 2,
+          height: 24,
+          color: themeButtonColor.withOpacity(0.7),
+        ); // │
+      } else {
+        timelineIcon = SizedBox(width: 18, height: 24); // 空白
+      }
+      widgets.add(
+        Container(
+          decoration: BoxDecoration(
+            color: (isRangeStart || isRangeEnd || isBetweenRange)
+                ? Provider.of<ThemeSettings>(
+                    context,
+                  ).buttonColor.withOpacity(0.07)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          margin: EdgeInsets.symmetric(vertical: isBetweenRange ? 1 : 3),
+          padding: EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(width: 4),
+              // 時間ラベル（左）
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    final removeIndex = _arrowRanges.indexWhere(
+                      (r) => r.isStart(i) || r.isEnd(i),
+                    );
+                    if (removeIndex != -1) {
+                      _arrowRanges.removeAt(removeIndex);
+                      return;
+                    }
+                    if (_tempStartIndex == null) {
+                      _tempStartIndex = i;
+                    } else if (_tempStartIndex != i) {
+                      _arrowRanges.add(_ArrowRange(_tempStartIndex!, i));
+                      _tempStartIndex = null;
+                    } else {
+                      _tempStartIndex = null;
+                    }
+                  });
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (_tempStartIndex == i || isRangeStart || isRangeEnd)
+                        ? Provider.of<ThemeSettings>(
+                            context,
+                          ).buttonColor.withOpacity(0.18)
+                        : inAnyRange
+                        ? Colors.transparent
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _scheduleLabels[i],
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: inAnyRange
+                          ? Colors.grey.shade700
+                          : Provider.of<ThemeSettings>(context).fontColor1,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 6),
+              if (!isBetweenRange)
+                Expanded(
+                  child: _canEditTodaySchedule
+                      ? TextField(
+                          controller: _scheduleControllers[_scheduleLabels[i]],
+                          keyboardType: TextInputType.text,
+                          enableSuggestions: true,
+                          autocorrect: true,
+                          enabled: true,
+                          onChanged: (v) {
+                            setState(() {
+                              _scheduleContents[_scheduleLabels[i]] = v;
+                            });
+                            _saveSchedules();
+                          },
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize:
+                                14 *
+                                Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontSizeScale,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Provider.of<ThemeSettings>(
+                              context,
+                            ).inputBackgroundColor,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).buttonColor,
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).inputBackgroundColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Text(
+                            _scheduleContents[_scheduleLabels[i]] ?? '',
+                            style: TextStyle(
+                              fontSize:
+                                  14 *
+                                  Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontSizeScale,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                ),
+              if (isBetweenRange) Expanded(child: SizedBox.shrink()),
+              // タイムライン（右端）
+              SizedBox(width: 4),
+              SizedBox(width: 18, child: Center(child: timelineIcon)),
+            ],
+          ),
+        ),
+      );
+    }
+    return widgets;
+  }
+
+  // ▲▲▲
 }
