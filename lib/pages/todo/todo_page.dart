@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../services/todo_notification_service.dart';
 import 'todo_list_tab.dart';
 import 'memo_tab.dart';
 import 'memo_list_page.dart';
@@ -26,6 +27,9 @@ class TodoPageState extends State<TodoPage>
       // タブが切り替わった時にUIを更新
       setState(() {});
     });
+    
+    // TODO通知サービスを開始
+    TodoNotificationService().startNotificationService();
   }
 
   @override

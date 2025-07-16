@@ -3,6 +3,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/sound_utils.dart';
 import '../models/theme_settings.dart';
 
@@ -19,6 +21,8 @@ class TodoNotificationService {
 
   // グローバルナビゲーションキー（どの画面からでもダイアログを表示するため）
   GlobalKey<NavigatorState>? _navigatorKey;
+
+  DateTime? _lastCheckTime;
 
   // ナビゲーションキーを設定
   void setNavigatorKey(GlobalKey<NavigatorState> navigatorKey) {
@@ -85,19 +89,95 @@ class TodoNotificationService {
     return null;
   }
 
+  /// FirestoreからTODOリストを取得
+  Future<List<Map<String, dynamic>>> _getTodosFromFirestore() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return [];
+
+      final today = DateTime.now();
+      final docId =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('todoList')
+          .doc(docId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final todos = data['todos'] as List<dynamic>?;
+        if (todos != null) {
+          return todos.cast<Map<String, dynamic>>();
+        }
+      }
+    } catch (e) {
+      print('FirestoreからTODO取得エラー: $e');
+    }
+    return [];
+  }
+
+  /// SharedPreferencesからTODOリストを取得
+  Future<List<String>> _getTodosFromSharedPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getStringList('todoList') ?? [];
+    } catch (e) {
+      print('SharedPreferencesからTODO取得エラー: $e');
+      return [];
+    }
+  }
+
   /// 通知サービスを開始
   void startNotificationService() {
+    print('TodoNotificationService: startNotificationService() が呼ばれました');
     print('TodoNotificationService: 通知サービス開始');
 
     // AudioPlayerを遅延初期化
     _audioPlayer = AudioPlayer();
 
-    // 毎秒チェックに変更
-    _checkTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _checkTodoNotifications();
-    });
+    // 最初のチェック間隔を計算（00秒または30秒に合わせる）
+    print('TodoNotificationService: _scheduleNextCheck() を呼び出します');
+    _scheduleNextCheck();
 
+    _lastCheckTime = DateTime.now().subtract(const Duration(seconds: 30));
     print('TodoNotificationService: 通知サービス開始完了');
+  }
+
+  /// 次のチェック時刻をスケジュール（00秒または30秒に合わせる）
+  void _scheduleNextCheck() {
+    final now = DateTime.now();
+    final seconds = now.second;
+    
+    print('TodoNotificationService: 現在時刻 ${now.hour}:${now.minute}:${now.second}');
+    
+    // 次の00秒または30秒までの秒数を計算
+    int secondsToNext;
+    if (seconds < 30) {
+      // 次の30秒まで
+      secondsToNext = 30 - seconds;
+      print('TodoNotificationService: 次の30秒まで ${secondsToNext}秒待機');
+    } else {
+      // 次の00秒まで（次の分の00秒）
+      secondsToNext = 60 - seconds;
+      print('TodoNotificationService: 次の00秒まで ${secondsToNext}秒待機');
+    }
+    
+    print('TodoNotificationService: 次のチェックまで ${secondsToNext}秒');
+    print('TodoNotificationService: 予定チェック時刻 ${now.add(Duration(seconds: secondsToNext)).hour}:${now.add(Duration(seconds: secondsToNext)).minute}:${now.add(Duration(seconds: secondsToNext)).second}');
+    
+    _checkTimer?.cancel();
+    _checkTimer = Timer(Duration(seconds: secondsToNext), () {
+      print('TodoNotificationService: 最初のチェック実行');
+      _checkTodoNotifications();
+      // その後は30秒ごとにチェック
+      _checkTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+        print('TodoNotificationService: 定期チェック実行');
+        _checkTodoNotifications();
+      });
+    });
   }
 
   /// 通知サービスを停止
@@ -114,28 +194,89 @@ class TodoNotificationService {
   /// TODO通知をチェック
   Future<void> _checkTodoNotifications() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getStringList('todoList') ?? [];
+      // チェック開始時の時刻を保存（前回チェック時刻として使用）
+      final lastCheck = _lastCheckTime ?? DateTime.now().subtract(const Duration(seconds: 30));
+      
+      // FirestoreとSharedPreferencesの両方からTODOを取得
+      final firestoreTodos = await _getTodosFromFirestore();
+      final sharedPrefsTodos = await _getTodosFromSharedPreferences();
 
       final now = DateTime.now();
       print('TODO通知チェック: 現在時刻 ${now.hour}:${now.minute}:${now.second}');
-      print('TODO通知チェック: TODO数 ${saved.length}');
+      print('TODO通知チェック: 前回チェック時刻 ${lastCheck.hour}:${lastCheck.minute}:${lastCheck.second}');
+      print('TODO通知チェック: Firestore TODO数 ${firestoreTodos.length}');
+      print('TODO通知チェック: SharedPreferences TODO数 ${sharedPrefsTodos.length}');
 
-      for (final todoStr in saved) {
+      // FirestoreのTODOをチェック
+      for (final todo in firestoreTodos) {
+        final title = todo['title'] as String? ?? '';
+        final isDone = todo['isDone'] as bool? ?? false;
+        final time = todo['time'] as String? ?? '';
+
+        print('TODO通知チェック: $title - 時刻: $time, 完了: $isDone');
+
+        if (time.isNotEmpty && !isDone) {
+          final todoKey = '$title|$time';
+          final today = DateTime.now().toIso8601String().split('T')[0];
+          final notifiedKey = '$todoKey|$today';
+
+          // 分単位で一致するか判定
+          final todoDateTime = _parseTimeToToday(time);
+          if (!_notifiedTodos.contains(notifiedKey) &&
+              todoDateTime != null &&
+              now.year == todoDateTime.year &&
+              now.month == todoDateTime.month &&
+              now.day == todoDateTime.day &&
+              now.hour == todoDateTime.hour &&
+              now.minute == todoDateTime.minute) {
+            
+            // 前回チェック時刻と今回チェック時刻の間に「00秒」が含まれているかチェック
+            final todoTimeInSeconds = todoDateTime.hour * 3600 + todoDateTime.minute * 60;
+            final lastCheckInSeconds = lastCheck.hour * 3600 + lastCheck.minute * 60 + lastCheck.second;
+            final nowInSeconds = now.hour * 3600 + now.minute * 60 + now.second;
+            
+            print('TODO通知判定: 前回チェック ${lastCheckInSeconds}秒, TODO時刻 ${todoTimeInSeconds}秒, 今回チェック ${nowInSeconds}秒');
+            
+            // 前回チェック時刻 < TODO時刻 <= 今回チェック時刻 かつ TODO時刻が00秒
+            if (lastCheckInSeconds < todoTimeInSeconds && 
+                todoTimeInSeconds <= nowInSeconds && 
+                todoDateTime.second == 0) {
+              print('TODO通知: $title の時刻になりました！（00秒ちょうど）');
+              print('TODO通知: 前回チェック ${lastCheck.hour}:${lastCheck.minute}:${lastCheck.second}');
+              print('TODO通知: TODO時刻 ${todoDateTime.hour}:${todoDateTime.minute}:${todoDateTime.second}');
+              print('TODO通知: 今回チェック ${now.hour}:${now.minute}:${now.second}');
+              await _playNotificationSound();
+              await _showTodoNotificationDialog(title, time);
+              _notifiedTodos.add(notifiedKey);
+              _saveNotificationHistory();
+            }
+          }
+        }
+      }
+
+      // SharedPreferencesのTODOもチェック（重複を避けるため、既に通知済みのものはスキップ）
+      for (final todoStr in sharedPrefsTodos) {
         final parts = todoStr.split('|');
         if (parts.length >= 3) {
           final title = parts[0];
           final isDone = parts.length > 1 && parts[1] == 'true';
           final time = parts[2];
 
-          print('TODO通知チェック: $title - 時刻: $time, 完了: $isDone');
+          // Firestoreで既にチェック済みの場合はスキップ
+          bool alreadyChecked = false;
+          for (final firestoreTodo in firestoreTodos) {
+            final firestoreTitle = firestoreTodo['title'] as String? ?? '';
+            final firestoreTime = firestoreTodo['time'] as String? ?? '';
+            if (title == firestoreTitle && time == firestoreTime) {
+              alreadyChecked = true;
+              break;
+            }
+          }
 
-          if (time.isNotEmpty && !isDone) {
+          if (!alreadyChecked && time.isNotEmpty && !isDone) {
             final todoKey = '$title|$time';
             final today = DateTime.now().toIso8601String().split('T')[0];
             final notifiedKey = '$todoKey|$today';
-
-            print('TODO通知チェック: 通知キー $notifiedKey');
 
             // 分単位で一致するか判定
             final todoDateTime = _parseTimeToToday(time);
@@ -145,18 +286,33 @@ class TodoNotificationService {
                 now.month == todoDateTime.month &&
                 now.day == todoDateTime.day &&
                 now.hour == todoDateTime.hour &&
-                now.minute == todoDateTime.minute &&
-                now.second == 0) {
-              // 00秒のみ通知
-              print('TODO通知: $title の時刻になりました！（分・秒単位一致）');
-              await _playNotificationSound();
-              await _showTodoNotificationDialog(title, time);
-              _notifiedTodos.add(notifiedKey);
-              _saveNotificationHistory();
+                now.minute == todoDateTime.minute) {
+              
+              // 前回チェック時刻と今回チェック時刻の間に「00秒」が含まれているかチェック
+              final todoTimeInSeconds = todoDateTime.hour * 3600 + todoDateTime.minute * 60;
+              final lastCheckInSeconds = lastCheck.hour * 3600 + lastCheck.minute * 60 + lastCheck.second;
+              final nowInSeconds = now.hour * 3600 + now.minute * 60 + now.second;
+              
+              // 前回チェック時刻 < TODO時刻 <= 今回チェック時刻 かつ TODO時刻が00秒
+              if (lastCheckInSeconds < todoTimeInSeconds && 
+                  todoTimeInSeconds <= nowInSeconds && 
+                  todoDateTime.second == 0) {
+                print('TODO通知: $title の時刻になりました！（00秒ちょうど）');
+                print('TODO通知: 前回チェック ${lastCheck.hour}:${lastCheck.minute}:${lastCheck.second}');
+                print('TODO通知: TODO時刻 ${todoDateTime.hour}:${todoDateTime.minute}:${todoDateTime.second}');
+                print('TODO通知: 今回チェック ${now.hour}:${now.minute}:${now.second}');
+                await _playNotificationSound();
+                await _showTodoNotificationDialog(title, time);
+                _notifiedTodos.add(notifiedKey);
+                _saveNotificationHistory();
+              }
             }
           }
         }
       }
+      
+      // チェック終了時に今回の時刻を保存
+      _lastCheckTime = now;
     } catch (e) {
       print('TODO通知チェックエラー: $e');
     }

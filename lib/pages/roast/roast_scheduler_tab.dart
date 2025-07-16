@@ -580,7 +580,8 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                             Row(
                               children: [
                                 // 重さ
-                                Expanded(
+                                SizedBox(
+                                  width: 90,
                                   child: TextField(
                                     controller: _weightControllers[i],
                                     decoration: InputDecoration(
@@ -610,7 +611,8 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                                 ),
                                 SizedBox(width: 8),
                                 // 袋数
-                                Expanded(
+                                SizedBox(
+                                  width: 70,
                                   child: TextField(
                                     controller: _bagsControllers[i],
                                     decoration: InputDecoration(
@@ -640,7 +642,8 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                                 ),
                                 SizedBox(width: 8),
                                 // 焙煎度合い
-                                Expanded(
+                                Flexible(
+                                  flex: 2,
                                   child: DropdownButtonFormField<String>(
                                     value: bean.roastLevel,
                                     decoration: InputDecoration(

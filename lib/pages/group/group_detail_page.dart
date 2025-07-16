@@ -46,8 +46,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         ),
         backgroundColor: themeSettings.appBarColor,
         iconTheme: IconThemeData(color: themeSettings.iconColor),
-        actions: [
-        ],
+        actions: [],
       ),
       body: Consumer<GroupProvider>(
         builder: (context, groupProvider, child) {
@@ -480,6 +479,63 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                     ),
                   ),
                 ),
+                // グループアイコン説明カード
+                SliverToBoxAdapter(
+                  child: Card(
+                    margin: EdgeInsets.all(12),
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: themeSettings.backgroundColor2 ?? Colors.white,
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.lightBlueAccent.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.groups,
+                              color: Colors.lightBlue,
+                              size: 36,
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'グループアイコンについて',
+                                  style: TextStyle(
+                                    color: themeSettings.fontColor1,
+                                    fontSize: 16 * themeSettings.fontSizeScale,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: themeSettings.fontFamily,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'このグループアイコンは、表示されているページでグループのデータがメンバーと共有されていることを示します。個人利用時は表示されません。',
+                                  style: TextStyle(
+                                    color: themeSettings.fontColor1,
+                                    fontSize: 14 * themeSettings.fontSizeScale,
+                                    fontFamily: themeSettings.fontFamily,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
                 // 脱退ボタン
                 if (!isLeader)
@@ -768,7 +824,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     }
   }
 
-  Widget _getGroupIcon(String? iconName) {
+  Widget _getGroupIcon(String? iconName, {double size = 24}) {
     final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
     final groupProvider = context.read<GroupProvider>();
 
@@ -779,8 +835,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     // 画像URLがある場合は画像を表示
     if (currentGroup.imageUrl != null) {
       return Container(
-        width: 40,
-        height: 40,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
@@ -793,8 +849,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
           child: Image.network(
             '${currentGroup.imageUrl}?t=${DateTime.now().millisecondsSinceEpoch}',
             fit: BoxFit.cover,
-            width: 40,
-            height: 40,
+            width: size,
+            height: size,
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;
               return Container(
@@ -812,7 +868,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               );
             },
             errorBuilder: (context, error, stackTrace) {
-              return _getIconWidget(currentGroup.iconName, themeSettings);
+              return _getIconWidget(
+                currentGroup.iconName,
+                themeSettings,
+                size: size,
+              );
             },
           ),
         ),
@@ -820,11 +880,15 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     }
 
     // 画像URLがない場合はアイコンを表示
-    return _getIconWidget(currentGroup.iconName, themeSettings);
+    return _getIconWidget(currentGroup.iconName, themeSettings, size: size);
   }
 
-  Widget _getIconWidget(String? iconName, ThemeSettings themeSettings) {
+  Widget _getIconWidget(
+    String? iconName,
+    ThemeSettings themeSettings, {
+    double size = 24,
+  }) {
     // シンプルにグループアイコンを表示
-    return Icon(Icons.group, color: themeSettings.iconColor, size: 24);
+    return Icon(Icons.group, color: themeSettings.iconColor, size: size);
   }
 }

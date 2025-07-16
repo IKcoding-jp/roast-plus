@@ -244,7 +244,8 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                         '• グループを作成すると、あなたがリーダーになります\n'
                         '• リーダーはメンバーの招待・削除・権限変更ができます\n'
                         '• メンバーはデータの閲覧のみ可能です\n'
-                        '• グループ内でデータを共有・同期できます',
+                        '• グループ内でデータを共有・同期できます\n'
+                        '• グループアイコンは、グループを識別するために様々な画面で表示されます',
                         style: TextStyle(
                           color: themeSettings.fontColor1,
                           fontSize: 14 * themeSettings.fontSizeScale,
