@@ -533,7 +533,44 @@ class _TodayScheduleState extends State<TodaySchedule> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: []),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          color: Provider.of<ThemeSettings>(context).iconColor,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          '本日のスケジュール',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).fontColor1,
+                          ),
+                        ),
+                        // グループ状態バッジを追加
+                        if (groupProvider.groups.isNotEmpty)
+                          Container(
+                            margin: EdgeInsets.only(left: 12),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue.shade400),
+                            ),
+                            child: Icon(
+                              Icons.groups,
+                              size: 18,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                      ],
+                    ),
                     SizedBox(height: 16),
                     if (_scheduleLabels.isEmpty ||
                         (_scheduleLabels.length == 1 &&

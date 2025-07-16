@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:provider/provider.dart';
+import '../../models/group_provider.dart';
+import '../../services/drip_counter_firestore_service.dart';
+import '../../services/group_data_sync_service.dart';
 
 class DripCounterHistoryPage extends StatefulWidget {
   const DripCounterHistoryPage({super.key});
@@ -15,7 +19,21 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
   @override
   void initState() {
     super.initState();
-    _loadRecords();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        _loadGroupRecords();
+      } else {
+        _loadRecords();
+      }
+      groupProvider.addListener(() {
+        if (groupProvider.groups.isNotEmpty) {
+          _loadGroupRecords();
+        } else {
+          _loadRecords();
+        }
+      });
+    });
   }
 
   Future<void> _loadRecords() async {
@@ -29,6 +47,29 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
       }
     } catch (e) {
       print('ドリップパック記録の読み込みエラー: $e');
+    }
+  }
+
+  Future<void> _loadGroupRecords() async {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+        final data = await GroupDataSyncService.getGroupDripCounterRecords(
+          group.id,
+        );
+        if (data != null && data['records'] != null) {
+          setState(() {
+            _records = List<Map<String, dynamic>>.from(data['records']);
+          });
+        } else {
+          setState(() {
+            _records = [];
+          });
+        }
+      }
+    } catch (e) {
+      print('グループドリップパック記録の読み込みエラー: $e');
     }
   }
 

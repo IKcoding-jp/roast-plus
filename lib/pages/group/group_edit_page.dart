@@ -93,7 +93,8 @@ class _GroupEditPageState extends State<GroupEditPage> {
   Future<void> _deleteGroup() async {
     final groupProvider = context.read<GroupProvider>();
     final navigator = Navigator.of(context);
-    final confirm = await showDialog<bool>(
+    // 1回目の確認
+    final confirm1 = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('グループを削除'),
@@ -111,7 +112,27 @@ class _GroupEditPageState extends State<GroupEditPage> {
         ],
       ),
     );
-    if (confirm != true) return;
+    if (confirm1 != true) return;
+    // 2回目の確認
+    final confirm2 = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('最終確認'),
+        content: Text('本当に本当に削除してもよろしいですか？\nこの操作は完全に取り消せません。'),
+        actions: [
+          TextButton(
+            onPressed: () => navigator.pop(false),
+            child: Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () => navigator.pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('完全に削除'),
+          ),
+        ],
+      ),
+    );
+    if (confirm2 != true) return;
 
     try {
       final success = await groupProvider.deleteGroup(widget.group.id);

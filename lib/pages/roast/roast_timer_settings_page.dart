@@ -21,6 +21,9 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
   bool _usePreheat = true;
   bool _useCooling = true;
   bool _useRoast = true;
+  final TextEditingController _recommendedOffsetController =
+      TextEditingController();
+  int _recommendedOffsetSeconds = 60;
 
   // Firestore同期用setter
   void setPreheatMinutesFromFirestore(int minutes) {
@@ -36,6 +39,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
     _loadPreheat();
     _loadCooling();
     _loadSwitches();
+    _loadRecommendedOffset();
   }
 
   Future<void> _loadPreheat() async {
@@ -61,6 +65,15 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       _usePreheat = prefs.getBool('usePreheat') ?? true;
       _useCooling = prefs.getBool('useCooling') ?? true;
       _useRoast = prefs.getBool('useRoast') ?? true;
+    });
+  }
+
+  Future<void> _loadRecommendedOffset() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _recommendedOffsetSeconds =
+          prefs.getInt('recommendedRoastOffsetSeconds') ?? 60;
+      _recommendedOffsetController.text = _recommendedOffsetSeconds.toString();
     });
   }
 
@@ -127,10 +140,21 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
     ).showSnackBar(SnackBar(content: Text('豆冷ましタイマーを$value分に保存しました')));
   }
 
+  Future<void> _saveRecommendedOffset() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = int.tryParse(_recommendedOffsetController.text) ?? 60;
+    await prefs.setInt('recommendedRoastOffsetSeconds', value);
+    _recommendedOffsetSeconds = value;
+    setState(() {});
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('おすすめ焙煎の引き秒数を${value}秒に保存しました')));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('予熱タイマー設定')),
+      appBar: AppBar(title: const Text('焙煎タイマー設定')),
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : Padding(
@@ -218,7 +242,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               ),
                               SizedBox(width: 10),
                               Text(
-                                '予熱時間（分）',
+                                '焙煎時間（分）',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
@@ -407,6 +431,144 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 ),
                               ),
                             ],
+                          ),
+                          SizedBox(height: 32),
+                          // おすすめ焙煎の引き秒数設定欄
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.recommend,
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).iconColor,
+                                size: 24,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                '焙煎室にいくまでの時間（秒）',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Color(0xFF795548),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '焙煎室に移動するために必要な秒数を設定してください。おすすめタイマーは、この秒数分だけ短く提案されます。',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          SizedBox(height: 18),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 100,
+                                child: TextField(
+                                  controller: _recommendedOffsetController,
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: false,
+                                    signed: false,
+                                  ),
+                                  style: TextStyle(fontSize: 16),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey.shade300,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey.shade300,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Color(0xFF795548),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              ElevatedButton.icon(
+                                onPressed: _saveRecommendedOffset,
+                                icon: Icon(Icons.save, size: 20),
+                                label: Text(
+                                  '保存',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.backgroundColor
+                                          ?.resolve({}) ??
+                                      Theme.of(context).colorScheme.primary,
+                                  foregroundColor:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.foregroundColor
+                                          ?.resolve({}) ??
+                                      Colors.white,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  elevation: 4,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Colors.orange,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '【おすすめ焙煎タイマーとは】\n過去の記録から平均焙煎時間を計算し、「焙煎室に行くまでの時間」を引いた値を自動でタイマーに設定します。',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           SizedBox(height: 32),
                         ],

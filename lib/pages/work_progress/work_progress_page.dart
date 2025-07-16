@@ -4,6 +4,7 @@ import '../../models/work_progress_models.dart';
 import '../../models/theme_settings.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 import 'work_progress_edit_page.dart';
+import '../../models/group_provider.dart';
 
 class WorkProgressPage extends StatefulWidget {
   const WorkProgressPage({super.key});
@@ -19,7 +20,14 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WorkProgressProvider>().loadWorkProgress();
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        context.read<WorkProgressProvider>().loadWorkProgress(
+          groupId: groupProvider.groups.first.id,
+        );
+      } else {
+        context.read<WorkProgressProvider>().loadWorkProgress();
+      }
     });
   }
 
@@ -34,7 +42,14 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       // アプリが復帰した時にデータを再読み込み
-      context.read<WorkProgressProvider>().loadWorkProgress();
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        context.read<WorkProgressProvider>().loadWorkProgress(
+          groupId: groupProvider.groups.first.id,
+        );
+      } else {
+        context.read<WorkProgressProvider>().loadWorkProgress();
+      }
     }
   }
 
@@ -171,15 +186,50 @@ class _WorkProgressPageState extends State<WorkProgressPage>
 
     // ページが表示されるたびにデータを読み込む
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final groupProvider = context.read<GroupProvider>();
       if (!workProgressProvider.isLoading &&
           workProgressProvider.workProgressList.isEmpty) {
-        workProgressProvider.loadWorkProgress();
+        if (groupProvider.groups.isNotEmpty) {
+          workProgressProvider.loadWorkProgress(
+            groupId: groupProvider.groups.first.id,
+          );
+        } else {
+          workProgressProvider.loadWorkProgress();
+        }
       }
     });
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('作業状況記録'),
+        title: Row(
+          children: [
+            Text('作業状況記録'),
+            // グループ状態バッジを追加
+            Consumer<GroupProvider>(
+              builder: (context, groupProvider, _) {
+                if (groupProvider.groups.isNotEmpty) {
+                  // グループ名のテキストを削除し、アイコンのみ表示
+                  return Container(
+                    margin: EdgeInsets.only(left: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade400),
+                    ),
+                    child: Icon(
+                      Icons.groups,
+                      size: 18,
+                      color: Colors.blue.shade700,
+                    ),
+                  );
+                } else {
+                  return SizedBox.shrink();
+                }
+              },
+            ),
+          ],
+        ),
         backgroundColor: themeSettings.appBarColor,
         foregroundColor: themeSettings.appBarTextColor,
       ),

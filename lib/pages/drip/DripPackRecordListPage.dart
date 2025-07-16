@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../models/group_provider.dart';
 
 class DripPackRecordListPage extends StatefulWidget {
   const DripPackRecordListPage({super.key});
@@ -52,7 +53,34 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
     final themeSettings = Provider.of<ThemeSettings>(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('ドリップパック記録一覧'),
+        title: Row(
+          children: [
+            Text('ドリップパック記録一覧'),
+            const SizedBox(width: 8),
+            Consumer<GroupProvider>(
+              builder: (context, groupProvider, _) {
+                if (groupProvider.groups.isNotEmpty) {
+                  return Container(
+                    margin: EdgeInsets.only(left: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade400),
+                    ),
+                    child: Icon(
+                      Icons.groups,
+                      size: 18,
+                      color: Colors.blue.shade700,
+                    ),
+                  );
+                } else {
+                  return SizedBox.shrink();
+                }
+              },
+            ),
+          ],
+        ),
         backgroundColor: themeSettings.appBarColor,
         foregroundColor: themeSettings.appBarTextColor,
       ),

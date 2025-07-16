@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/bean_sticker_models.dart';
 import '../../models/theme_settings.dart';
+import '../../models/group_provider.dart';
 
 class BeanStickerSettingsPage extends StatefulWidget {
   const BeanStickerSettingsPage({super.key});
@@ -67,17 +68,24 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadBeanStickers();
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        _loadBeanStickers(groupId: groupProvider.groups.first.id);
+      } else {
+        _loadBeanStickers();
+      }
     });
   }
 
-  Future<void> _loadBeanStickers() async {
+  Future<void> _loadBeanStickers({String? groupId}) async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      await context.read<BeanStickerProvider>().loadBeanStickers();
+      await context.read<BeanStickerProvider>().loadBeanStickers(
+        groupId: groupId,
+      );
       final provider = context.read<BeanStickerProvider>();
       setState(() {
         _beanStickers = List.from(provider.beanStickers);
@@ -326,18 +334,41 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeSettings = Provider.of<ThemeSettings>(context);
+    final groupProvider = context.watch<GroupProvider>();
     return Scaffold(
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(
-              Icons.label,
-              color: Provider.of<ThemeSettings>(context).iconColor,
-            ),
-            SizedBox(width: 8),
             Text('豆のシール設定'),
+            // グループ状態バッジを追加
+            Consumer<GroupProvider>(
+              builder: (context, groupProvider, _) {
+                if (groupProvider.groups.isNotEmpty) {
+                  // グループ名のテキストを削除し、アイコンのみ表示
+                  return Container(
+                    margin: EdgeInsets.only(left: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade400),
+                    ),
+                    child: Icon(
+                      Icons.groups,
+                      size: 18,
+                      color: Colors.blue.shade700,
+                    ),
+                  );
+                } else {
+                  return SizedBox.shrink();
+                }
+              },
+            ),
           ],
         ),
+        backgroundColor: themeSettings.appBarColor,
+        foregroundColor: themeSettings.appBarTextColor,
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())

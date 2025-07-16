@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../../models/roast_schedule_form_provider.dart';
 import '../../models/theme_settings.dart';
 import '../../widgets/bean_name_with_sticker.dart';
+import '../../models/group_provider.dart';
+import '../../services/group_data_sync_service.dart';
 
 class RoastSchedulerTab extends StatefulWidget {
   final List<RoastBreakTime> breakTimes;
@@ -117,6 +119,21 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
   void initState() {
     super.initState();
     _restoreInputState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        _loadGroupRoastSchedule();
+      } else {
+        _restoreInputState();
+      }
+      groupProvider.addListener(() {
+        if (groupProvider.groups.isNotEmpty) {
+          _loadGroupRoastSchedule();
+        } else {
+          _restoreInputState();
+        }
+      });
+    });
   }
 
   void _addBean() {
@@ -1313,23 +1330,30 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
 
   // --- 入力内容の保存・復元 ---
   Future<void> _saveInputState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final provider = Provider.of<RoastScheduleFormProvider>(
-        context,
-        listen: false,
-      );
-      final beansList = provider.beans.map((b) => b.toJson()).toList();
-      await prefs.setString('roastInput_beans', json.encode(beansList));
-      await prefs.setString(
-        'roastInput_am',
-        _amStart != null ? '${_amStart!.hour}:${_amStart!.minute}' : '',
-      );
-      await prefs.setString(
-        'roastInput_pm',
-        _pmStart != null ? '${_pmStart!.hour}:${_pmStart!.minute}' : '',
-      );
-    } catch (_) {}
+    final provider = Provider.of<RoastScheduleFormProvider>(
+      context,
+      listen: false,
+    );
+    final beans = provider.beans;
+    final prefs = await SharedPreferences.getInstance();
+    final beansJson = json.encode(beans.map((b) => b.toJson()).toList());
+    await prefs.setString('roastSchedule_beans', beansJson);
+    if (_amStart != null) {
+      await prefs.setString('roastSchedule_amStart', _amStart!.format(context));
+    }
+    if (_pmStart != null) {
+      await prefs.setString('roastSchedule_pmStart', _pmStart!.format(context));
+    }
+    final groupProvider = context.read<GroupProvider>();
+    if (groupProvider.groups.isNotEmpty) {
+      final group = groupProvider.groups.first;
+      // グループ用のローストスケジュール保存・取得APIはsyncSchedule/getGroupScheduleを利用
+      await GroupDataSyncService.syncSchedule(group.id, {
+        'beans': beans.map((b) => b.toJson()).toList(),
+        'amStart': _amStart?.format(context),
+        'pmStart': _pmStart?.format(context),
+      });
+    }
   }
 
   Future<void> _restoreInputState() async {
@@ -1380,6 +1404,22 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
         }
       }
     } catch (_) {}
+  }
+
+  Future<void> _loadGroupRoastSchedule() async {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+        final data = await GroupDataSyncService.getGroupSchedule(group.id);
+        if (data != null) {
+          // ここでdataからbeansや時刻などをセットする処理を追加
+          // 例: setState(() { ... });
+        }
+      }
+    } catch (e) {
+      print('グループ焙煎スケジュール取得エラー: $e');
+    }
   }
 
   Widget _buildBeanInputRow(RoastScheduleBean bean, int index) {

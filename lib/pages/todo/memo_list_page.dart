@@ -153,6 +153,87 @@ class _MemoListPageState extends State<MemoListPage> {
     }
   }
 
+  Future<void> _showEditMemoDialog(MemoItem memo) async {
+    final titleController = TextEditingController(text: memo.title);
+    final contentController = TextEditingController(text: memo.content);
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('メモを編集'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(labelText: 'タイトル'),
+                maxLength: 50,
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: contentController,
+                decoration: InputDecoration(labelText: '内容'),
+                maxLines: 5,
+                minLines: 2,
+                maxLength: 500,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: Text('キャンセル'),
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          ElevatedButton(
+            child: Text('保存'),
+            onPressed: () async {
+              final newTitle = titleController.text.trim();
+              final newContent = contentController.text.trim();
+              if (newTitle.isEmpty) return;
+              final updatedMemo = memo.copyWith(
+                title: newTitle,
+                content: newContent,
+                updatedAt: DateTime.now(),
+              );
+              try {
+                final groupProvider = context.read<GroupProvider>();
+                if (groupProvider.groups.isNotEmpty) {
+                  await MemoFirestoreService.updateGroupMemo(
+                    groupProvider.groups.first.id,
+                    updatedMemo,
+                  );
+                } else {
+                  await MemoFirestoreService.updateMemo(updatedMemo);
+                }
+                await _loadMemos();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('メモを更新しました'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+                Navigator.pop(context, true);
+              } catch (e) {
+                print('メモ更新エラー: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('メモの更新に失敗しました'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
@@ -290,6 +371,9 @@ class _MemoListPageState extends State<MemoListPage> {
                         ),
                       ],
                     ),
+                    onTap: _canEditMemos
+                        ? () => _showEditMemoDialog(memo)
+                        : null,
                   ),
                 );
               },

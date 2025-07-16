@@ -5,6 +5,7 @@ import '../../models/theme_settings.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 import 'tasting_record_edit_page.dart';
 import 'package:intl/intl.dart';
+import '../../models/group_provider.dart';
 
 class TastingRecordPage extends StatefulWidget {
   const TastingRecordPage({super.key});
@@ -20,7 +21,14 @@ class _TastingRecordPageState extends State<TastingRecordPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TastingProvider>().loadTastingRecords();
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        context.read<TastingProvider>().loadTastingRecords(
+          groupId: groupProvider.groups.first.id,
+        );
+      } else {
+        context.read<TastingProvider>().loadTastingRecords();
+      }
     });
   }
 
@@ -35,7 +43,14 @@ class _TastingRecordPageState extends State<TastingRecordPage>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       // アプリが復帰した時にデータを再読み込み
-      context.read<TastingProvider>().loadTastingRecords();
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        context.read<TastingProvider>().loadTastingRecords(
+          groupId: groupProvider.groups.first.id,
+        );
+      } else {
+        context.read<TastingProvider>().loadTastingRecords();
+      }
     }
   }
 
@@ -144,15 +159,50 @@ class _TastingRecordPageState extends State<TastingRecordPage>
 
     // ページが表示されるたびにデータを読み込む
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final groupProvider = context.read<GroupProvider>();
       if (!tastingProvider.isLoading &&
           tastingProvider.tastingRecords.isEmpty) {
-        tastingProvider.loadTastingRecords();
+        if (groupProvider.groups.isNotEmpty) {
+          tastingProvider.loadTastingRecords(
+            groupId: groupProvider.groups.first.id,
+          );
+        } else {
+          tastingProvider.loadTastingRecords();
+        }
       }
     });
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('試飲感想記録'),
+        title: Row(
+          children: [
+            Text('試飲感想記録'),
+            // グループ状態バッジを追加
+            Consumer<GroupProvider>(
+              builder: (context, groupProvider, _) {
+                if (groupProvider.groups.isNotEmpty) {
+                  // グループ名のテキストを削除し、アイコンのみ表示
+                  return Container(
+                    margin: EdgeInsets.only(left: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade400),
+                    ),
+                    child: Icon(
+                      Icons.groups,
+                      size: 18,
+                      color: Colors.blue.shade700,
+                    ),
+                  );
+                } else {
+                  return SizedBox.shrink();
+                }
+              },
+            ),
+          ],
+        ),
         backgroundColor: themeSettings.appBarColor,
         foregroundColor: themeSettings.appBarTextColor,
       ),

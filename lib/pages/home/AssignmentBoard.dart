@@ -417,15 +417,22 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   Future<void> _loadState() async {
     prefs = await SharedPreferences.getInstance();
-
-    // まずFirestoreからデータを取得を試行
+    final groupProvider = context.read<GroupProvider>();
+    // グループ状態ならグループデータのみ監視・利用
+    if (groupProvider.groups.isNotEmpty) {
+      // グループ監視はinitStateで既に開始されているため、ここでは何もしない
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+    // 個人データ取得
     try {
       final assignmentMembers =
           await AssignmentFirestoreService.loadAssignmentMembers();
       if (assignmentMembers != null) {
         print('AssignmentBoard: Firestoreから担当表データを取得しました');
         setAssignmentMembersFromFirestore(assignmentMembers);
-
         // 今日の担当履歴も取得
         final today = _todayKey();
         final assignmentHistory =
@@ -433,16 +440,14 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         if (assignmentHistory != null && assignmentHistory.isNotEmpty) {
           setAssignmentHistoryFromFirestore(assignmentHistory);
         }
-
         setState(() {
           _isLoading = false;
         });
-        return; // Firestoreからデータを取得できた場合は終了
+        return;
       }
     } catch (e) {
       print('AssignmentBoard: Firestoreからのデータ取得に失敗しました: $e');
     }
-
     // Firestoreからデータを取得できなかった場合はローカルデータを使用
     print('AssignmentBoard: ローカルデータを使用します');
 
@@ -732,6 +737,33 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                 ),
                 SizedBox(width: 8),
                 Text('担当表'),
+                // グループ状態バッジを追加
+                Consumer<GroupProvider>(
+                  builder: (context, groupProvider, _) {
+                    if (groupProvider.groups.isNotEmpty) {
+                      // グループ名のテキストを削除し、アイコンのみ表示
+                      return Container(
+                        margin: EdgeInsets.only(left: 12),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue.shade400),
+                        ),
+                        child: Icon(
+                          Icons.groups,
+                          size: 18,
+                          color: Colors.blue.shade700,
+                        ),
+                      );
+                    } else {
+                      return SizedBox.shrink();
+                    }
+                  },
+                ),
               ],
             ),
             actions: [

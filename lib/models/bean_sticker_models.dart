@@ -95,21 +95,31 @@ class BeanStickerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadBeanStickers() async {
+  Future<void> loadBeanStickers({String? groupId}) async {
     print('Loading bean stickers...');
     _isLoading = true;
     // notifyListeners();
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_storageKey);
+      List<dynamic>? jsonList;
+      if (groupId != null && groupId.isNotEmpty) {
+        // グループ用API
+        jsonList = await AppSettingsFirestoreService.getGroupBeanStickers(
+          groupId,
+        );
+      } else {
+        // 個人用API
+        final prefs = await SharedPreferences.getInstance();
+        final jsonString = prefs.getString(_storageKey);
+        if (jsonString != null) {
+          jsonList = json.decode(jsonString);
+        }
+      }
 
-      if (jsonString != null) {
-        final List<dynamic> jsonList = json.decode(jsonString);
+      if (jsonList != null) {
         _beanStickers = jsonList
             .map((json) => BeanSticker.fromMap(json))
             .toList();
-
         // 作成日順にソート（新しい順）
         _beanStickers.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         print('Loaded ${_beanStickers.length} bean stickers');
@@ -138,6 +148,31 @@ class BeanStickerProvider extends ChangeNotifier {
       print('Saving to SharedPreferences with key: $_storageKey');
       await prefs.setString(_storageKey, jsonString);
       print('Successfully saved to SharedPreferences');
+    } catch (e) {
+      print('Error saving bean stickers: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> saveBeanStickers({String? groupId}) async {
+    try {
+      if (groupId != null && groupId.isNotEmpty) {
+        // グループ用API
+        await AppSettingsFirestoreService.saveGroupBeanStickers(
+          groupId,
+          _beanStickers,
+        );
+      } else {
+        // 個人用API
+        await _saveToStorage();
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final groupProvider = GroupProvider();
+          if (groupProvider.groups.isEmpty) {
+            await AppSettingsFirestoreService.saveBeanStickers(_beanStickers);
+          }
+        }
+      }
     } catch (e) {
       print('Error saving bean stickers: $e');
       rethrow;

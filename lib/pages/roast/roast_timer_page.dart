@@ -1229,7 +1229,11 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                             }
                             if (count == 0) return;
                             int avgSeconds = (totalSeconds ~/ count);
-                            int setSeconds = avgSeconds - 60;
+                            final prefs = await SharedPreferences.getInstance();
+                            int offset =
+                                prefs.getInt('recommendedRoastOffsetSeconds') ??
+                                60;
+                            int setSeconds = avgSeconds - offset;
                             if (setSeconds < 60) setSeconds = 60;
                             String format(int sec) =>
                                 '${(sec ~/ 60).toString().padLeft(2, '0')}:${(sec % 60).toString().padLeft(2, '0')}';
@@ -1255,7 +1259,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 title: Text('おすすめ焙煎時間'),
                                 content: Text(
                                   '平均焙煎時間: ${format(avgSeconds)}\n'
-                                  'おすすめタイマー: ${format(setSeconds)}（平均−60秒）\n\n'
+                                  'おすすめタイマー: ${format(setSeconds)}（平均−${offset}秒）\n\n'
                                   'この時間でタイマーを開始しますか？',
                                 ),
                                 actions: [

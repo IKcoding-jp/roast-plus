@@ -113,14 +113,23 @@ class WorkProgressProvider extends ChangeNotifier {
   }
   // --- ここまで追加 ---
 
-  Future<void> loadWorkProgress() async {
+  Future<void> loadWorkProgress({String? groupId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // Firestoreからデータを取得
-      final firestoreRecords =
-          await WorkProgressFirestoreService.getWorkProgressRecords();
+      List<WorkProgress> firestoreRecords = [];
+      if (groupId != null && groupId.isNotEmpty) {
+        // グループ用API
+        firestoreRecords =
+            await WorkProgressFirestoreService.getGroupWorkProgressRecords(
+              groupId,
+            );
+      } else {
+        // 個人用API
+        firestoreRecords =
+            await WorkProgressFirestoreService.getWorkProgressRecords();
+      }
 
       if (firestoreRecords.isNotEmpty) {
         _workProgressList = firestoreRecords;

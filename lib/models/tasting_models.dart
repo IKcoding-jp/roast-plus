@@ -208,14 +208,21 @@ class TastingProvider extends ChangeNotifier {
     return total / records.length;
   }
 
-  Future<void> loadTastingRecords() async {
+  Future<void> loadTastingRecords({String? groupId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // Firestoreからデータを取得
-      final firestoreRecords =
-          await TastingFirestoreService.getTastingRecords();
+      List<TastingRecord> firestoreRecords = [];
+      if (groupId != null && groupId.isNotEmpty) {
+        // グループ用API
+        firestoreRecords = await TastingFirestoreService.getGroupTastingRecords(
+          groupId,
+        );
+      } else {
+        // 個人用API
+        firestoreRecords = await TastingFirestoreService.getTastingRecords();
+      }
 
       if (firestoreRecords.isNotEmpty) {
         _tastingRecords = firestoreRecords;

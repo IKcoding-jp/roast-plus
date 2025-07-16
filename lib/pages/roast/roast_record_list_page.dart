@@ -68,8 +68,15 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     super.initState();
     _filterExpanded = false;
 
-    // 初期ストリームを設定
-    _recordsStream = RoastRecordFirestoreService.getRecordsStream();
+    // 初期ストリームをグループ状態で分岐
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+    if (groupProvider.groups.isNotEmpty) {
+      _recordsStream = RoastRecordFirestoreService.getGroupRecordsStream(
+        groupProvider.groups.first.id,
+      );
+    } else {
+      _recordsStream = RoastRecordFirestoreService.getRecordsStream();
+    }
 
     _setupGroupDataListener();
     _checkEditPermissions();
@@ -538,6 +545,33 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                     ),
                     SizedBox(width: 8),
                     Text('焙煎記録一覧'),
+                    // グループ状態バッジを追加
+                    Consumer<GroupProvider>(
+                      builder: (context, groupProvider, _) {
+                        if (groupProvider.groups.isNotEmpty) {
+                          // グループ名のテキストを削除し、アイコンのみ表示
+                          return Container(
+                            margin: EdgeInsets.only(left: 12),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue.shade400),
+                            ),
+                            child: Icon(
+                              Icons.groups,
+                              size: 18,
+                              color: Colors.blue.shade700,
+                            ),
+                          );
+                        } else {
+                          return SizedBox.shrink();
+                        }
+                      },
+                    ),
                   ],
                 ),
                 actions: [
@@ -983,8 +1017,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                             ],
                                           ),
                                           if (record.memo
-                                                  .trim()
-                                                  .isNotEmpty) ...[
+                                              .trim()
+                                              .isNotEmpty) ...[
                                             SizedBox(height: 4),
                                             Row(
                                               crossAxisAlignment:

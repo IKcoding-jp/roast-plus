@@ -229,6 +229,48 @@ class AppSettingsFirestoreService {
     }
   }
 
+  /// グループの豆のシール設定を保存
+  static Future<void> saveGroupBeanStickers(
+    String groupId,
+    List beanStickers,
+  ) async {
+    if (_uid == null) throw Exception('未ログイン');
+    try {
+      await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('settings')
+          .doc('bean_stickers')
+          .set({
+            'beanStickers': beanStickers.map((e) => e.toMap()).toList(),
+            'savedAt': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      print('グループ豆のシール設定保存エラー: $e');
+      rethrow;
+    }
+  }
+
+  /// グループの豆のシール設定を取得
+  static Future<List?> getGroupBeanStickers(String groupId) async {
+    if (_uid == null) throw Exception('未ログイン');
+    try {
+      final doc = await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('settings')
+          .doc('bean_stickers')
+          .get();
+      if (!doc.exists) return null;
+      final data = doc.data();
+      if (data == null || data['beanStickers'] == null) return null;
+      return data['beanStickers'];
+    } catch (e) {
+      print('グループ豆のシール設定取得エラー: $e');
+      return null;
+    }
+  }
+
   /// 全アプリ設定を保存
   static Future<void> saveAllAppSettings({
     required Map<String, dynamic> soundSettings,

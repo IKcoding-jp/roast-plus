@@ -265,6 +265,43 @@ class _GroupInvitationsPageState extends State<GroupInvitationsPage> {
 
   Future<void> _acceptInvitation(GroupInvitation invitation) async {
     final groupProvider = context.read<GroupProvider>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('ご注意'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person, color: Colors.blue, size: 32),
+                SizedBox(width: 12),
+                Icon(Icons.arrow_forward, color: Colors.grey, size: 28),
+                SizedBox(width: 12),
+                Icon(Icons.groups, color: Colors.orange, size: 36),
+              ],
+            ),
+            SizedBox(height: 16),
+            Text(
+              'グループに参加すると、今後はグループ全体で共有されるデータが表示・保存されます。\n\nグループを脱退すれば、もとの個人データに自動で切り替わります。\n\nこのまま進めてもよろしいですか？',
+              style: TextStyle(fontSize: 15),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     final success = await groupProvider.acceptInvitation(invitation.id);
 
     if (success && mounted) {
