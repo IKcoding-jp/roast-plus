@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../services/group_data_sync_service.dart';
+import '../../models/group_provider.dart';
+import '../../services/assignment_firestore_service.dart';
 
 class LabelEditPage extends StatefulWidget {
   const LabelEditPage({super.key});
@@ -30,15 +33,55 @@ class _LabelEditPageState extends State<LabelEditPage> {
       rightLabels = prefs.getStringList('rightLabels') ?? [];
       aMembers = prefs.getStringList('a班') ?? [];
       bMembers = prefs.getStringList('b班') ?? [];
+      // デフォルトで空の状態にする
+      if (leftLabels.isEmpty && rightLabels.isEmpty) {
+        leftLabels = [''];
+        rightLabels = [''];
+      }
     });
   }
 
-  void _saveLabels() {
+  Future<void> _saveLabels() async {
     prefs.setStringList('leftLabels', leftLabels);
     prefs.setStringList('rightLabels', rightLabels);
-    // メンバーも保存
+
+    // メンバーも保存（空でもOK、ラベルは消さない）
     prefs.setStringList('a班', aMembers);
     prefs.setStringList('b班', bMembers);
+
+    // Firestoreにも保存
+    await AssignmentFirestoreService.saveAssignmentMembers(
+      aMembers: aMembers,
+      bMembers: bMembers,
+      leftLabels: leftLabels, // ← ラベルは常に現在の値を保存
+      rightLabels: rightLabels, // ← ラベルは常に現在の値を保存
+    );
+
+    // グループに同期
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+        print('LabelEditPage: 担当表データをグループに同期開始 - groupId: ${group.id}');
+
+        final assignmentData = {
+          'aMembers': aMembers,
+          'bMembers': bMembers,
+          'leftLabels': leftLabels,
+          'rightLabels': rightLabels,
+          'savedAt': DateTime.now().toIso8601String(),
+        };
+
+        await GroupDataSyncService.syncAssignmentBoard(
+          group.id,
+          assignmentData,
+        );
+        print('LabelEditPage: 担当表データ同期完了');
+      }
+    } catch (e) {
+      print('LabelEditPage: 担当表データ同期エラー: $e');
+    }
+
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('ラベル保存しました')));
@@ -64,7 +107,7 @@ class _LabelEditPageState extends State<LabelEditPage> {
       leftLabels.removeAt(i);
       rightLabels.removeAt(i);
 
-      // ラベル削除時、メンバーも削除
+      // メンバー数が多い場合のみ削除
       if (aMembers.length > leftLabels.length) {
         aMembers.removeAt(i);
       }

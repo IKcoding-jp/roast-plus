@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:bysnapp/models/roast_record.dart';
 import 'package:bysnapp/services/roast_record_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../models/group_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 class RoastRecordPage extends StatefulWidget {
   const RoastRecordPage({super.key});
@@ -19,14 +21,74 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
   final _weightAController = TextEditingController();
   final _minuteAController = TextEditingController();
   final _secondAController = TextEditingController();
-  String _roastLevelA = '中深煎り';
+  String? _roastLevelA;
 
   // B台入力欄
   final _beanBController = TextEditingController();
   final _weightBController = TextEditingController();
   final _minuteBController = TextEditingController();
   final _secondBController = TextEditingController();
-  String _roastLevelB = '中深煎り';
+  String? _roastLevelB;
+
+  List<RoastRecord> _records = [];
+  StreamSubscription? _roastRecordsSubscription;
+  void _startRoastRecordsListener() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    _roastRecordsSubscription?.cancel();
+    _roastRecordsSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('roastRecords')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+          _records = snapshot.docs.map((doc) {
+            final data = doc.data();
+            return RoastRecord(
+              id: doc.id,
+              bean: data['bean'] ?? '',
+              weight: data['weight'] ?? 0,
+              roast: data['roast'] ?? '',
+              time: data['time'] ?? '',
+              memo: data['memo'] ?? '',
+              timestamp: (data['timestamp'] as Timestamp).toDate(),
+            );
+          }).toList();
+          setState(() {});
+        });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoastRecordsFromFirestore();
+    _startRoastRecordsListener();
+  }
+
+  Future<void> _loadRoastRecordsFromFirestore() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('roastRecords')
+        .orderBy('timestamp', descending: true)
+        .get();
+    _records = snapshot.docs.map((doc) {
+      final data = doc.data();
+      return RoastRecord(
+        id: doc.id,
+        bean: data['bean'] ?? '',
+        weight: data['weight'] ?? 0,
+        roast: data['roast'] ?? '',
+        time: data['time'] ?? '',
+        memo: data['memo'] ?? '',
+        timestamp: (data['timestamp'] as Timestamp).toDate(),
+      );
+    }).toList();
+    setState(() {});
+  }
 
   Widget _buildRoastForm({
     required String title,
@@ -34,7 +96,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     required TextEditingController weightController,
     required TextEditingController minController,
     required TextEditingController secController,
-    required String roastLevel,
+    required String? roastLevel,
     required Function(String?) onRoastLevelChanged,
   }) {
     final isA = title.contains('A台');
@@ -216,6 +278,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     required Color iconColor,
     TextInputType? keyboardType,
   }) {
+    final accentColor = Provider.of<ThemeSettings>(context).fontColor1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -236,7 +299,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: iconColor,
+                  color: accentColor,
                 ),
               ),
             ),
@@ -259,7 +322,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 vertical: 12,
               ),
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey[400]),
+              hintStyle: TextStyle(color: accentColor.withOpacity(0.6)),
             ),
           ),
         ),
@@ -280,7 +343,10 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
       ),
       child: TextField(
         controller: controller,
-        keyboardType: TextInputType.number,
+        keyboardType: TextInputType.numberWithOptions(
+          decimal: false,
+          signed: false,
+        ),
         textAlign: TextAlign.center,
         decoration: InputDecoration(
           border: InputBorder.none,
@@ -296,6 +362,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     required TextEditingController controller,
     required Color iconColor,
   }) {
+    final accentColor = Provider.of<ThemeSettings>(context).fontColor1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -316,7 +383,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: iconColor,
+                  color: accentColor,
                 ),
               ),
             ),
@@ -338,6 +405,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 vertical: 12,
               ),
               hintText: '重さを選択',
+              hintStyle: TextStyle(color: accentColor.withOpacity(0.6)),
             ),
             items: [
               '200',
@@ -360,12 +428,13 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     List<RoastRecord> newRecords = [];
 
     if (_beanAController.text.isNotEmpty &&
-        _weightAController.text.isNotEmpty) {
+        _weightAController.text.isNotEmpty &&
+        _roastLevelA != null) {
       final aRecord = RoastRecord(
         id: '', // Firestoreで自動生成
         bean: _beanAController.text.trim(),
         weight: int.tryParse(_weightAController.text.trim()) ?? 0,
-        roast: _roastLevelA,
+        roast: _roastLevelA!,
         time:
             '${_minuteAController.text.padLeft(2, '0')}:${_secondAController.text.padLeft(2, '0')}',
         memo: '',
@@ -374,12 +443,13 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
       newRecords.add(aRecord);
     }
     if (_beanBController.text.isNotEmpty &&
-        _weightBController.text.isNotEmpty) {
+        _weightBController.text.isNotEmpty &&
+        _roastLevelB != null) {
       final bRecord = RoastRecord(
         id: '', // Firestoreで自動生成
         bean: _beanBController.text.trim(),
         weight: int.tryParse(_weightBController.text.trim()) ?? 0,
-        roast: _roastLevelB,
+        roast: _roastLevelB!,
         time:
             '${_minuteBController.text.padLeft(2, '0')}:${_secondBController.text.padLeft(2, '0')}',
         memo: '',
@@ -388,38 +458,76 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
       newRecords.add(bRecord);
     }
     if (newRecords.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('どちらかの記録を入力してください')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('どちらかの記録を入力してください')));
+      }
       return;
     }
 
     try {
+      if (!mounted) return;
+
+      final groupProvider = context.read<GroupProvider>();
+
       for (final record in newRecords) {
-        await RoastRecordFirestoreService.addRecord(record);
+        if (!mounted) return;
+
+        if (groupProvider.groups.isNotEmpty) {
+          // グループに参加している場合はグループに記録を追加
+          await RoastRecordFirestoreService.addGroupRecord(
+            groupProvider.groups.first.id,
+            record,
+          );
+        } else {
+          // グループに参加していない場合は個人の記録を追加
+          await RoastRecordFirestoreService.addRecord(record);
+        }
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${newRecords.length}件の記録を保存しました')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${newRecords.length}件の記録を保存しました')),
+        );
+      }
 
       _beanAController.clear();
       _weightAController.clear();
       _minuteAController.clear();
       _secondAController.clear();
-      _roastLevelA = '中深煎り';
+      _roastLevelA = null;
 
       _beanBController.clear();
       _weightBController.clear();
       _minuteBController.clear();
       _secondBController.clear();
-      _roastLevelB = '中深煎り';
+      _roastLevelB = null;
 
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    // コントローラーを適切に破棄
+    _beanAController.dispose();
+    _weightAController.dispose();
+    _minuteAController.dispose();
+    _secondAController.dispose();
+    _beanBController.dispose();
+    _weightBController.dispose();
+    _minuteBController.dispose();
+    _secondBController.dispose();
+    _roastRecordsSubscription?.cancel();
+    super.dispose();
   }
 
   @override

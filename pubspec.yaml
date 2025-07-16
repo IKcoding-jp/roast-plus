@@ -1,5 +1,5 @@
 name: bysnapp
-description: "焙煎ログ+"
+description: "ローストプラス+"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -21,7 +21,17 @@ dependencies:
   firebase_core: ^2.30.0
   firebase_auth: ^4.17.8
   cloud_firestore: ^4.15.8
+  firebase_storage: ^11.6.10
+  image_picker: ^1.0.7
+  permission_handler: ^11.3.1
   flutter_colorpicker: ^1.1.0
+  url_launcher: ^6.2.5
+  image: ^4.1.7
+  table_calendar: ^3.0.9
+  flutter_local_notifications: ^17.2.2
+  android_intent_plus: ^4.0.3
+  package_info_plus: ^8.0.2
+  device_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:
@@ -32,19 +42,30 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/launcher_icon/icon.png
-    - assets/sounds/alarm.mp3
+    - assets/sounds/
+    - assets/sounds/alarm/
+    - assets/sounds/notification/
     - assets/fonts/
+    - assets/launcher_icon/icon.png
     - assets/google_logo.png
   fonts:
-    - family: YDWaosagi
+    - family: ZenMaruGothic
       fonts:
-        - asset: assets/fonts/YDWaosagi.otf
+        - asset: assets/fonts/ZenMaruGothic-Regular.ttf
+    - family: ShipporiAntiqueB1
+      fonts:
+        - asset: assets/fonts/ShipporiAntiqueB1-Regular.ttf
+    - family: KiwiMaru
+      fonts:
+        - asset: assets/fonts/KiwiMaru-Regular.ttf
     - family: HannariMincho
       fonts:
         - asset: assets/fonts/HannariMincho-Regular.otf
 
+# パフォーマンス最適化設定
 flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/launcher_icon/icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/launcher_icon/icon.png"

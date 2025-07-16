@@ -6,6 +6,8 @@ import 'package:bysnapp/pages/roast/roast_record_page.dart';
 import 'package:bysnapp/pages/roast/roast_advisor_page.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../utils/sound_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RoastTimerAdvancedPage extends StatefulWidget {
   final Duration? initialDuration;
@@ -21,6 +23,9 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
   int _totalSeconds = 0;
   bool _isPreheating = false;
   bool _isRoasting = false;
+  bool _isCooling = false; // 豆冷ましタイマー用
+  bool _isPaused = false; // 一時停止状態を管理
+  bool? _usePreheat; // nullableに変更
   // アニメーション用
   // late AnimationController _progressController;
   // late AnimationController _pulseController;
@@ -47,15 +52,31 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
     // _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
     //   CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     // );
+    _loadUsePreheat();
     if (widget.initialDuration != null) {
       _startRecommendedRoast(widget.initialDuration!);
     }
+  }
+
+  Future<void> _loadUsePreheat() async {
+    final prefs = await SharedPreferences.getInstance();
+    final usePreheat = prefs.getBool('usePreheat') ?? true;
+    setState(() {
+      _usePreheat = usePreheat;
+      if (_usePreheat == false &&
+          !_isRoasting &&
+          !_isPreheating &&
+          !_isCooling) {
+        _isRoasting = true;
+      }
+    });
   }
 
   void _startPreheating() {
     setState(() {
       _isPreheating = true;
       _isRoasting = false;
+      _isCooling = false;
       _totalSeconds = 30 * 60;
       _remainingSeconds = _totalSeconds;
     });
@@ -67,6 +88,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
     setState(() {
       _isPreheating = false;
       _isRoasting = true;
+      _isCooling = false;
       _totalSeconds = minutes * 60;
       _remainingSeconds = _totalSeconds;
     });
@@ -78,6 +100,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
     setState(() {
       _isPreheating = false;
       _isRoasting = true;
+      _isCooling = false;
       _totalSeconds = duration.inSeconds;
       _remainingSeconds = _totalSeconds;
     });
@@ -85,21 +108,55 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
     _startTimer();
   }
 
+  // 豆冷ましタイマー開始用
+  void _startCooling(int minutes) {
+    setState(() {
+      _isPreheating = false;
+      _isRoasting = false;
+      _isCooling = true;
+      _totalSeconds = minutes * 60;
+      _remainingSeconds = _totalSeconds;
+    });
+    _startTimer();
+  }
+
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(Duration(seconds: 1), (timer) async {
-      setState(() {
-        _remainingSeconds--;
-      });
-      if (_remainingSeconds <= 0) {
-        _timer?.cancel();
-        // _pulseController.repeat(reverse: true);
-        // ループ再生モードにしてアラームを鳴らす
-        // await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-        // await _audioPlayer.setVolume(1.0); // 音量を最大に設定
-        // await _audioPlayer.play(AssetSource('sounds/alarm.mp3'));
-        _showCompletionDialog();
+      if (!_isPaused) {
+        // 一時停止中でない場合のみカウントダウン
+        setState(() {
+          _remainingSeconds--;
+        });
+        if (_remainingSeconds <= 0) {
+          _timer?.cancel();
+
+          // サウンド設定を確認
+          final isSoundEnabled = await SoundUtils.isTimerSoundEnabled();
+          if (isSoundEnabled) {
+            final selectedSound = await SoundUtils.getSelectedTimerSound();
+            final volume = await SoundUtils.getTimerVolume();
+
+            await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+            await _audioPlayer.setVolume(volume);
+            await _audioPlayer.play(AssetSource(selectedSound));
+          }
+
+          _showCompletionDialog();
+        }
       }
+    });
+  }
+
+  void _pauseTimer() {
+    setState(() {
+      _isPaused = true;
+    });
+  }
+
+  void _resumeTimer() {
+    setState(() {
+      _isPaused = false;
     });
   }
 
@@ -111,6 +168,8 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
       _remainingSeconds = 0;
       _isPreheating = false;
       _isRoasting = false;
+      _isCooling = false;
+      _isPaused = false;
     });
   }
 
@@ -122,6 +181,18 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Provider.of<ThemeSettings>(
+          context,
+        ).dialogBackgroundColor,
+        titleTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        contentTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 16,
+        ),
         title: Text(_isPreheating ? '予熱完了' : 'もうすぐ焙煎が完了します。'),
         content: Text(
           _isPreheating ? '用意した豆を持って焙煎しに行きましょう。' : 'タッパーと木べらを持って焙煎室に行きましょう。',
@@ -138,6 +209,9 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
                 _showAfterRoastDialog();
               }
             },
+            style: TextButton.styleFrom(
+              foregroundColor: Provider.of<ThemeSettings>(context).fontColor1,
+            ),
             child: Text('OK'),
           ),
         ],
@@ -156,6 +230,18 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Provider.of<ThemeSettings>(
+          context,
+        ).dialogBackgroundColor,
+        titleTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        contentTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 16,
+        ),
         title: Text('連続焙煎しますか？'),
         content: Text('焙煎機が温かいうちに次の焙煎が可能です。'),
         actions: [
@@ -164,6 +250,9 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
               Navigator.pop(context);
               _goToAdvisor(); // 連続焙煎もAdvisorから！
             },
+            style: TextButton.styleFrom(
+              foregroundColor: Provider.of<ThemeSettings>(context).fontColor1,
+            ),
             child: Text('はい（連続焙煎）'),
           ),
           TextButton(
@@ -171,6 +260,9 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
               Navigator.pop(context);
               _showCoolingDialog();
             },
+            style: TextButton.styleFrom(
+              foregroundColor: Provider.of<ThemeSettings>(context).fontColor1,
+            ),
             child: Text('いいえ（アフターパージ）'),
           ),
         ],
@@ -182,19 +274,37 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Provider.of<ThemeSettings>(
+          context,
+        ).dialogBackgroundColor,
+        titleTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        contentTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 16,
+        ),
         title: Text('アフターパージに設定しましょう。'),
-        content: Text('機械を冷却モードに設定してください。\nお疲れ様でした！'),
+        content: Text('機械を冷却モードに設定してください。\nお疲れ様でした！\n焙煎時間の記録ができます。'),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context, true); // true: 記録画面へ
             },
+            style: TextButton.styleFrom(
+              foregroundColor: Provider.of<ThemeSettings>(context).buttonColor,
+            ),
             child: Text('記録に進む'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context, false); // false: 閉じるだけ
             },
+            style: TextButton.styleFrom(
+              foregroundColor: Provider.of<ThemeSettings>(context).fontColor1,
+            ),
             child: Text('閉じる'),
           ),
         ],
@@ -206,6 +316,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
     setState(() {
       _isPreheating = false;
       _isRoasting = false;
+      _isCooling = false;
       _timer?.cancel();
       _remainingSeconds = 0;
       _totalSeconds = 0;
@@ -228,22 +339,73 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
   @override
   void dispose() {
     _timer?.cancel();
-    // _audioPlayer.dispose(); // ★サウンド用リソース解放
-    // _progressController.dispose();
-    // _pulseController.dispose();
+    _audioPlayer.dispose(); // AudioPlayerのリソース解放を有効化
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_usePreheat == null) {
+      // 設定取得前はローディング
+      return Scaffold(
+        appBar: AppBar(title: Text('タイマー')),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     final progress = _totalSeconds == 0
         ? 0.0
         : (_totalSeconds - _remainingSeconds) / _totalSeconds;
-    final title = _isPreheating
-        ? '🔥 予熱中'
-        : _isRoasting
-        ? '🔥 焙煎中'
-        : '⏱ 焙煎タイマー';
+
+    // --- タイトル・中央テキスト分岐 ---
+    String title;
+    String centerText;
+    List<Widget> actionButtons = [];
+
+    if (_isCooling) {
+      title = '豆冷ましタイマー';
+      centerText = '豆冷ましタイマー';
+      actionButtons.add(
+        TextButton(
+          onPressed: _totalSeconds == 0 ? () => _startCooling(10) : null,
+          child: Text('豆冷ましタイマーを開始'),
+        ),
+      );
+    } else if (_isPreheating) {
+      title = '予熱タイマー';
+      centerText = '予熱タイマー';
+      actionButtons.add(
+        ElevatedButton(
+          onPressed: _isPaused ? _resumeTimer : _pauseTimer,
+          child: Text(_isPaused ? '再開' : '一時停止'),
+        ),
+      );
+    } else if (_isRoasting) {
+      title = '焙煎タイマー';
+      centerText = '焙煎タイマー';
+      actionButtons.add(
+        ElevatedButton(
+          onPressed: _isPaused ? _resumeTimer : _pauseTimer,
+          child: Text(_isPaused ? '再開' : '一時停止'),
+        ),
+      );
+    } else if (!_usePreheat!) {
+      // 予熱タイマーOFF時の初期画面
+      title = '焙煎タイマー';
+      centerText = '焙煎タイマー';
+      actionButtons.add(
+        ElevatedButton(
+          onPressed: () => _startRoasting(10), // デフォルト10分
+          child: Text('焙煎開始'),
+        ),
+      );
+    } else {
+      // 予熱タイマーON時の初期画面
+      title = '予熱タイマー';
+      centerText = '予熱タイマー';
+      actionButtons.add(
+        ElevatedButton(onPressed: _startPreheating, child: Text('予熱開始')),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -251,7 +413,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
           children: [
             Icon(Icons.local_fire_department, color: Colors.orange[600]),
             SizedBox(width: 8),
-            Text('焙煎タイマー'),
+            Text(title),
           ],
         ),
         actions: [
@@ -285,7 +447,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    title,
+                    centerText,
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -318,13 +480,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
                     ],
                   ),
                   SizedBox(height: 40),
-                  if (!_isPreheating && !_isRoasting)
-                    ElevatedButton(
-                      onPressed: _startPreheating,
-                      child: Text('予熱開始'),
-                    )
-                  else
-                    ElevatedButton(onPressed: _stopTimer, child: Text('停止')),
+                  ...actionButtons,
                   SizedBox(height: 20),
                   TextButton(
                     onPressed: _totalSeconds == 0 ? null : _skipTime,

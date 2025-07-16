@@ -1,19 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:bysnapp/main.dart';
-import 'package:bysnapp/pages/roast/roast_scheduler_tab.dart';
-import 'package:intl/intl.dart';
-import 'package:bysnapp/pages/roast/roast_timer_page.dart';
-import 'package:bysnapp/pages/roast/roast_record_page.dart';
-import 'package:bysnapp/pages/roast/roast_advisor_page.dart';
-import 'package:bysnapp/pages/roast/roast_timer_page.dart';
 import 'package:bysnapp/models/roast_schedule_models.dart';
 import 'package:bysnapp/models/roast_break_time.dart';
 import 'package:provider/provider.dart';
 import '../../models/roast_schedule_form_provider.dart';
-import '../../services/todayschedule_firestore_service.dart';
 import '../../models/theme_settings.dart';
+import '../../widgets/bean_name_with_sticker.dart';
 
 class RoastSchedulerTab extends StatefulWidget {
   final List<RoastBreakTime> breakTimes;
@@ -21,41 +14,6 @@ class RoastSchedulerTab extends StatefulWidget {
 
   @override
   State<RoastSchedulerTab> createState() => RoastSchedulerTabState();
-}
-
-// --- 追加: スケジュール保存用 ---
-class RoastScheduleResultModel {
-  final String? type;
-  final String? roastLevel;
-  final List<int>? weights;
-  final String? time; // "HH:mm" 形式
-  final bool afterPurge;
-
-  RoastScheduleResultModel({
-    this.type,
-    this.roastLevel,
-    this.weights,
-    this.time,
-    this.afterPurge = false,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'type': type,
-    'roastLevel': roastLevel,
-    'weights': weights,
-    'time': time,
-    'afterPurge': afterPurge,
-  };
-
-  static RoastScheduleResultModel fromJson(Map<String, dynamic> json) {
-    return RoastScheduleResultModel(
-      type: json['type'] as String?,
-      roastLevel: json['roastLevel'] as String?,
-      weights: (json['weights'] as List?)?.map((e) => e as int).toList(),
-      time: json['time'] as String?,
-      afterPurge: json['afterPurge'] as bool? ?? false,
-    );
-  }
 }
 
 class RoastSchedulerTabState extends State<RoastSchedulerTab>
@@ -70,14 +28,10 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
   String _overflowMsg = '';
   String _inputErrorMsg = ''; // 入力エラー用
 
-  // --- 追加: スケジュール保存用 ---
-  List<RoastScheduleResultModel> _savedSchedule = [];
-  List<RoastScheduleResultModel> _savedPmSchedule = [];
-  String _savedOverflowMsg = '';
-  bool _restored = false;
-
   // スケジュール生成結果をFutureで管理
   Future<RoastScheduleData>? _futureResult;
+  // ダイアログ表示フラグ
+  bool _dialogShown = false;
 
   // 焙煎度合いアイコンマップ
   final Map<String, String> _roastIcons = {
@@ -87,113 +41,82 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     '深煎り': '🔥',
   };
 
+  // 24時間表記で時間をフォーマット
+  String _formatTime24Hour(TimeOfDay time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  // --- 追加: コントローラーリスト ---
+  final List<TextEditingController> _nameControllers = [];
+  final List<TextEditingController> _weightControllers = [];
+  final List<TextEditingController> _bagsControllers = [];
+
+  @override
+  void dispose() {
+    // コントローラーの破棄を最適化
+    for (final c in _nameControllers) {
+      c.dispose();
+    }
+    for (final c in _weightControllers) {
+      c.dispose();
+    }
+    for (final c in _bagsControllers) {
+      c.dispose();
+    }
+    _nameControllers.clear();
+    _weightControllers.clear();
+    _bagsControllers.clear();
+    super.dispose();
+  }
+
+  void _syncControllersWithBeans(List<RoastScheduleBean> beans) {
+    // 名前
+    while (_nameControllers.length < beans.length) {
+      _nameControllers.add(TextEditingController());
+    }
+    while (_nameControllers.length > beans.length) {
+      final controller = _nameControllers.removeLast();
+      controller.dispose();
+    }
+    for (int i = 0; i < beans.length; i++) {
+      if (_nameControllers[i].text != beans[i].name) {
+        _nameControllers[i].text = beans[i].name;
+      }
+    }
+    // 重量
+    while (_weightControllers.length < beans.length) {
+      _weightControllers.add(TextEditingController());
+    }
+    while (_weightControllers.length > beans.length) {
+      final controller = _weightControllers.removeLast();
+      controller.dispose();
+    }
+    for (int i = 0; i < beans.length; i++) {
+      final w = beans[i].weight > 0 ? beans[i].weight.toString() : '';
+      if (_weightControllers[i].text != w) {
+        _weightControllers[i].text = w;
+      }
+    }
+    // 袋数
+    while (_bagsControllers.length < beans.length) {
+      _bagsControllers.add(TextEditingController());
+    }
+    while (_bagsControllers.length > beans.length) {
+      final controller = _bagsControllers.removeLast();
+      controller.dispose();
+    }
+    for (int i = 0; i < beans.length; i++) {
+      final b = beans[i].bags?.toString() ?? '';
+      if (_bagsControllers[i].text != b) {
+        _bagsControllers[i].text = b;
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _restoreInputState().then((_) async {
-      await _restoreSchedule();
-      // 追加: 自動生成済みフラグがあれば_futureResultを再セット
-      final prefs = await SharedPreferences.getInstance();
-      final isAutoGenerated =
-          prefs.getBool('roastSchedule_autoGenerated') ?? false;
-      if (isAutoGenerated && _amStart != null) {
-        setState(() {
-          final provider = Provider.of<RoastScheduleFormProvider>(
-            context,
-            listen: false,
-          );
-          _futureResult = _calcSchedule(provider.beans, _amStart!, _pmStart);
-        });
-      }
-    });
-  }
-
-  Future<void> _restoreSchedule() async {
-    if (_restored) return;
-    _restored = true;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final amJson = prefs.getString('roastSchedule_am');
-      final pmJson = prefs.getString('roastSchedule_pm');
-      final overflowMsg = prefs.getString('roastSchedule_overflow') ?? '';
-      if (amJson != null) {
-        final List<dynamic> amList = json.decode(amJson);
-        _savedSchedule = amList
-            .map((e) => RoastScheduleResultModel.fromJson(e))
-            .toList();
-      } else {
-        _savedSchedule = [];
-      }
-      if (pmJson != null) {
-        final List<dynamic> pmList = json.decode(pmJson);
-        _savedPmSchedule = pmList
-            .map((e) => RoastScheduleResultModel.fromJson(e))
-            .toList();
-      } else {
-        _savedPmSchedule = [];
-      }
-      setState(() {
-        _savedOverflowMsg = overflowMsg;
-      });
-    } catch (e) {
-      setState(() {
-        _savedSchedule = [];
-        _savedPmSchedule = [];
-        _savedOverflowMsg = '';
-      });
-    }
-  }
-
-  Future<void> _saveSchedule(
-    List<RoastScheduleResult> am,
-    List<RoastScheduleResult> pm,
-    String overflowMsg,
-  ) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final amList = am
-          .map(
-            (r) => RoastScheduleResultModel(
-              type: r.task?.type,
-              roastLevel: r.task?.roastLevel,
-              weights: r.task?.weights,
-              time: r.time != null
-                  ? '${r.time!.hour.toString().padLeft(2, '0')}:${r.time!.minute.toString().padLeft(2, '0')}'
-                  : null,
-              afterPurge: r.afterPurge,
-            ).toJson(),
-          )
-          .toList();
-      final pmList = pm
-          .map(
-            (r) => RoastScheduleResultModel(
-              type: r.task?.type,
-              roastLevel: r.task?.roastLevel,
-              weights: r.task?.weights,
-              time: r.time != null
-                  ? '${r.time!.hour.toString().padLeft(2, '0')}:${r.time!.minute.toString().padLeft(2, '0')}'
-                  : null,
-              afterPurge: r.afterPurge,
-            ).toJson(),
-          )
-          .toList();
-      await prefs.setString('roastSchedule_am', json.encode(amList));
-      await prefs.setString('roastSchedule_pm', json.encode(pmList));
-      await prefs.setString('roastSchedule_overflow', overflowMsg);
-
-      setState(() {
-        _savedSchedule = amList
-            .map((e) => RoastScheduleResultModel.fromJson(e))
-            .toList();
-        _savedPmSchedule = pmList
-            .map((e) => RoastScheduleResultModel.fromJson(e))
-            .toList();
-        _savedOverflowMsg = overflowMsg;
-      });
-      // Firestore自動保存は削除
-    } catch (e) {
-      // 失敗時は何もしない（空リスト扱い）
-    }
+    _restoreInputState();
   }
 
   void _addBean() {
@@ -202,6 +125,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
       listen: false,
     );
     provider.addBean(RoastScheduleBean(name: '', weight: 0));
+    _saveInputState(); // 追加時に保存
   }
 
   void _removeBean(int index) {
@@ -210,6 +134,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
       listen: false,
     );
     provider.removeBean(index);
+    _saveInputState(); // 削除時に保存
   }
 
   void _moveBean(int oldIndex, int newIndex) {
@@ -230,6 +155,12 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: isAm ? 10 : 13, minute: 30),
+      builder: (BuildContext context, Widget? child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -248,6 +179,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
       _overflowMsg = '';
       _inputErrorMsg = '';
       _futureResult = null;
+      _dialogShown = false;
     });
 
     // 入力チェック
@@ -288,7 +220,6 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
         _futureResult = _calcSchedule(beans, _amStart!, null);
       });
       _futureResult!.then((data) async {
-        await _saveSchedule(data.amResult, data.pmResult, data.overflowMsg);
         final prefs = await SharedPreferences.getInstance();
         prefs.setBool('roastSchedule_autoGenerated', true);
       });
@@ -299,7 +230,6 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
         _futureResult = _calcSchedule(beans, _pmStart!, _pmStart);
       });
       _futureResult!.then((data) async {
-        await _saveSchedule([], data.pmResult, data.overflowMsg);
         final prefs = await SharedPreferences.getInstance();
         prefs.setBool('roastSchedule_autoGenerated', true);
       });
@@ -310,7 +240,6 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
         _futureResult = _calcSchedule(beans, _amStart!, _pmStart);
       });
       _futureResult!.then((data) async {
-        await _saveSchedule(data.amResult, data.pmResult, data.overflowMsg);
         final prefs = await SharedPreferences.getInstance();
         prefs.setBool('roastSchedule_autoGenerated', true);
       });
@@ -534,6 +463,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     final beans = provider.beans;
     final beige = const Color(0xFFFFF8E1);
     final brown = const Color(0xFF795548);
+    _syncControllersWithBeans(beans); // ←ここで同期
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
@@ -576,12 +506,162 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                       ],
                     ),
                     SizedBox(height: 16),
-                    ListView.builder(
+                    ListView.separated(
                       shrinkWrap: true,
                       physics: NeverScrollableScrollPhysics(),
                       itemCount: beans.length,
-                      itemBuilder: (context, i) =>
-                          _buildBeanInputRow(beans[i], i),
+                      separatorBuilder: (_, __) => SizedBox(height: 12),
+                      itemBuilder: (context, i) {
+                        final bean = beans[i];
+                        return Column(
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // 豆名
+                                Expanded(
+                                  child: TextField(
+                                    controller: _nameControllers[i],
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8,
+                                        horizontal: 8,
+                                      ),
+                                      border: OutlineInputBorder(),
+                                      labelText: '豆名',
+                                    ),
+                                    onChanged: (val) {
+                                      provider.updateBean(
+                                        i,
+                                        RoastScheduleBean(
+                                          name: val,
+                                          weight: bean.weight,
+                                          bags: bean.bags,
+                                          roastLevel: bean.roastLevel,
+                                        ),
+                                      );
+                                      _saveInputState();
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                // 削除ボタン
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.remove_circle,
+                                    color: Colors.red,
+                                    size: 28,
+                                  ),
+                                  onPressed: () => _removeBean(i),
+                                  iconSize: 28,
+                                  padding: EdgeInsets.all(8),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                // 重さ
+                                Expanded(
+                                  child: TextField(
+                                    controller: _weightControllers[i],
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8,
+                                        horizontal: 8,
+                                      ),
+                                      border: OutlineInputBorder(),
+                                      labelText: '重さ',
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (val) {
+                                      final weight = int.tryParse(val) ?? 0;
+                                      provider.updateBean(
+                                        i,
+                                        RoastScheduleBean(
+                                          name: bean.name,
+                                          weight: weight,
+                                          bags: bean.bags,
+                                          roastLevel: bean.roastLevel,
+                                        ),
+                                      );
+                                      _saveInputState();
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                // 袋数
+                                Expanded(
+                                  child: TextField(
+                                    controller: _bagsControllers[i],
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8,
+                                        horizontal: 8,
+                                      ),
+                                      border: OutlineInputBorder(),
+                                      labelText: '袋数',
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (val) {
+                                      final bags = int.tryParse(val);
+                                      provider.updateBean(
+                                        i,
+                                        RoastScheduleBean(
+                                          name: bean.name,
+                                          weight: bean.weight,
+                                          bags: bags,
+                                          roastLevel: bean.roastLevel,
+                                        ),
+                                      );
+                                      _saveInputState();
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                // 焙煎度合い
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: bean.roastLevel,
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 8,
+                                        horizontal: 8,
+                                      ),
+                                      border: OutlineInputBorder(),
+                                      labelText: '焙煎度合い',
+                                    ),
+                                    items: ['浅煎り', '中煎り', '中深煎り', '深煎り']
+                                        .map(
+                                          (e) => DropdownMenuItem(
+                                            value: e,
+                                            child: Text(e),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (val) {
+                                      provider.updateBean(
+                                        i,
+                                        RoastScheduleBean(
+                                          name: bean.name,
+                                          weight: bean.weight,
+                                          bags: bean.bags,
+                                          roastLevel: val,
+                                        ),
+                                      );
+                                      _saveInputState();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     SizedBox(height: 16),
                     SizedBox(
@@ -658,113 +738,112 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                     ),
                     SizedBox(height: 16),
                     // --- 焙煎開始時刻エリア ---
-                    Stack(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              '午前:',
-                              style: TextStyle(
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).fontColor1,
-                                fontSize: 15,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () => _pickTime(true),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(context)
-                                        .elevatedButtonTheme
-                                        .style
-                                        ?.backgroundColor
-                                        ?.resolve({}) ??
-                                    Theme.of(context).colorScheme.primary,
-                                foregroundColor:
-                                    Theme.of(context)
-                                        .elevatedButtonTheme
-                                        .style
-                                        ?.foregroundColor
-                                        ?.resolve({}) ??
-                                    Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                '午前',
+                                style: TextStyle(
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              child: Text(
-                                _amStart == null
-                                    ? '選択'
-                                    : _amStart!.format(context),
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ),
-                            SizedBox(width: 24),
-                            Text(
-                              '午後:',
-                              style: TextStyle(
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).fontColor1,
-                                fontSize: 15,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () => _pickTime(false),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(context)
-                                        .elevatedButtonTheme
-                                        .style
-                                        ?.backgroundColor
-                                        ?.resolve({}) ??
-                                    Theme.of(context).colorScheme.primary,
-                                foregroundColor:
-                                    Theme.of(context)
-                                        .elevatedButtonTheme
-                                        .style
-                                        ?.foregroundColor
-                                        ?.resolve({}) ??
-                                    Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                              SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () => _pickTime(true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.backgroundColor
+                                          ?.resolve({}) ??
+                                      Theme.of(context).colorScheme.primary,
+                                  foregroundColor:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.foregroundColor
+                                          ?.resolve({}) ??
+                                      Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
                                 ),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
+                                child: Text(
+                                  _amStart == null
+                                      ? '時刻を選択'
+                                      : _formatTime24Hour(_amStart!),
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                              child: Text(
-                                _pmStart == null
-                                    ? '選択'
-                                    : _pmStart!.format(context),
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        Positioned(
-                          top: -8,
-                          right: 0,
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.refresh,
-                              color: Colors.grey,
-                              size: 22,
-                            ),
-                            tooltip: '午前・午後の時刻をリセット',
-                            onPressed: () {
-                              setState(() {
-                                _amStart = null;
-                                _pmStart = null;
-                              });
-                            },
+                        SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                '午後',
+                                style: TextStyle(
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () => _pickTime(false),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.backgroundColor
+                                          ?.resolve({}) ??
+                                      Theme.of(context).colorScheme.primary,
+                                  foregroundColor:
+                                      Theme.of(context)
+                                          .elevatedButtonTheme
+                                          .style
+                                          ?.foregroundColor
+                                          ?.resolve({}) ??
+                                      Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: Text(
+                                  _pmStart == null
+                                      ? '時刻を選択'
+                                      : _formatTime24Hour(_pmStart!),
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -824,18 +903,23 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                     }
                     if (!snapshot.hasData) return SizedBox();
                     final data = snapshot.data!;
-                    // --- スケジュール表示 ---
-                    return _buildScheduleWidgets(
-                      context,
-                      data.amResult,
-                      data.pmResult,
-                      data.overflowMsg,
-                      brown,
-                    );
+                    // スケジュール生成完了後、一度だけダイアログを表示
+                    if (!_dialogShown) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _showScheduleDialog(
+                          context,
+                          data.amResult,
+                          data.pmResult,
+                          data.overflowMsg,
+                        );
+                        setState(() {
+                          _dialogShown = true;
+                        });
+                      });
+                    }
+                    return SizedBox();
                   },
                 )
-              else if (_savedSchedule.isNotEmpty || _savedPmSchedule.isNotEmpty)
-                _buildSavedScheduleWidgets(context, brown)
               else
                 SizedBox(),
             ],
@@ -845,7 +929,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     );
   }
 
-  // --- 追加: スケジュール表示ウィジェット ---
+  // --- スケジュール表示ウィジェット ---
   Widget _buildScheduleWidgets(
     BuildContext context,
     List<RoastScheduleResult> amResult,
@@ -853,253 +937,343 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     String overflowMsg,
     Color brown,
   ) {
-    List<Widget> scheduleWidgets = [];
-    // 午前
+    final scheduleWidgets = <Widget>[];
+    int totalWeight = 0;
+    // 合計グラム数を計算
+    for (final r in [...amResult, ...pmResult]) {
+      if (r.task != null && r.task!.weights.isNotEmpty) {
+        totalWeight += r.task!.weights.reduce((a, b) => a + b);
+      }
+    }
+    // 200g, 300g, 500gで割った余りを計算し、最小余りを端数とする
+    final List<int> candidateUnits = [200, 300, 500];
+    int minRemainder = totalWeight;
+    int bestUnit = 200;
+    for (final u in candidateUnits) {
+      final rem = totalWeight % u;
+      if (rem < minRemainder) {
+        minRemainder = rem;
+        bestUnit = u;
+      }
+    }
+    final int remainder = minRemainder;
+    final int unit = bestUnit;
+
+    // 午前セクション
     if (_amStart != null && amResult.isNotEmpty) {
       scheduleWidgets.add(
-        Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        Container(
+          margin: EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          height: 56, // 高さを完全固定
+          width: double.infinity, // 横幅を揃える
+          decoration: BoxDecoration(
+            color: Color(0xFFFF5722).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Color(0xFFFF5722).withOpacity(0.3)),
           ),
-          color:
-              Provider.of<ThemeSettings>(context).backgroundColor2 ??
-              Colors.white,
-          margin: EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            leading: Icon(
-              Icons.local_fire_department,
-              color: Color(0xFFFF8225),
-              size: 28,
-            ),
-            title: Text(
-              '${_amStart!.format(context)} 焙煎機予熱開始',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Provider.of<ThemeSettings>(context).fontColor1,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.local_fire_department,
+                color: Color(0xFFFF5722),
+                size: 24,
               ),
-            ),
+              SizedBox(width: 10),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFF5722).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _formatTime24Hour(_amStart!),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFF5722),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              SizedBox(width: 10),
+              Text(
+                '予熱開始',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  fontSize: 15,
+                ),
+              ),
+            ],
           ),
         ),
       );
+
       for (final r in amResult) {
         if (r.afterPurge) {
           scheduleWidgets.add(
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            Container(
+              margin: EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12), // 統一
+              height: 56, // 高さを完全固定
+              width: double.infinity, // 横幅を揃える
+              decoration: BoxDecoration(
+                color: Color(0xFF2196F3).withOpacity(0.1), // 青系統
+                borderRadius: BorderRadius.circular(8), // 統一
+                border: Border.all(
+                  color: Color(0xFF2196F3).withOpacity(0.3),
+                ), // 統一
               ),
-              color:
-                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
-                  Colors.white,
-              margin: EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                leading: Icon(Icons.ac_unit, color: Colors.blue, size: 28),
-                title: Text(
-                  'アフターパージを実行',
-                  style: TextStyle(
-                    color: Provider.of<ThemeSettings>(context).fontColor1,
-                    fontWeight: FontWeight.bold,
+              child: Row(
+                children: [
+                  Icon(Icons.ac_unit, color: Color(0xFF2196F3), size: 24), // 統一
+                  SizedBox(width: 10),
+                  Text(
+                    'アフターパージ',
+                    style: TextStyle(
+                      color: Colors.black, // 統一
+                      fontWeight: FontWeight.bold, // 統一
+                      fontSize: 15, // 統一
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           );
         } else {
+          // ★予熱開始・アフターパージと同じデザイン・レイアウトで焙煎項目を表示（1行横並び、はみ出し防止）
           scheduleWidgets.add(
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            Container(
+              margin: EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              height: 56, // 高さを完全固定
+              width: double.infinity, // 横幅を揃える
+              decoration: BoxDecoration(
+                color: Color(0xFF795548).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Color(0xFF795548).withOpacity(0.3)),
               ),
-              color:
-                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
-                  Colors.white,
-              margin: EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                leading: r.task != null
-                    ? CircleAvatar(
-                        backgroundColor:
-                            Provider.of<ThemeSettings>(
-                              context,
-                            ).backgroundColor2 ??
-                            Colors.white,
-                        child: Text(
-                          _roastIcons[r.task!.roastLevel] ?? '☕',
-                          style: TextStyle(fontSize: 20),
-                        ),
-                      )
-                    : null,
-                title: Row(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // コーヒーカップアイコン削除
                     if (r.time != null)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF795548).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _formatTime24Hour(r.time!),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF795548),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    SizedBox(width: 10),
+                    if (r.task != null)
+                      BeanNameWithSticker(
+                        beanName: r.task!.type,
+                        textStyle: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                          fontSize: 15,
+                        ),
+                        stickerSize: 18,
+                      ),
+                    SizedBox(width: 10),
+                    if (r.task != null)
                       Text(
-                        r.time!.format(context),
+                        r.task!.weights.map((w) => '${w}g').join('・'),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                          fontSize: 16,
+                          color: Colors.black,
+                          fontSize: 15,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '${r.task?.type ?? ''} '
-                        '${r.task?.weights.map((w) => '${w}g').join('・') ?? ''}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                subtitle: r.task != null && r.task!.roastLevel.isNotEmpty
-                    ? Text(
+                    SizedBox(width: 10),
+                    if (r.task != null && r.task!.roastLevel.isNotEmpty)
+                      Text(
                         r.task!.roastLevel,
                         style: TextStyle(
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                          fontWeight: FontWeight.w500,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
-                      )
-                    : null,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
               ),
             ),
           );
         }
       }
     }
-    // 午後予熱開始
+    // 午後セクション
     if (_pmStart != null && pmResult.isNotEmpty) {
       scheduleWidgets.add(
-        Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        Container(
+          margin: EdgeInsets.only(top: 16, bottom: 8),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          height: 56, // 高さを完全固定
+          width: double.infinity, // 横幅を揃える
+          decoration: BoxDecoration(
+            color: Color(0xFFFF5722).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Color(0xFFFF5722).withOpacity(0.3)),
           ),
-          color:
-              Provider.of<ThemeSettings>(context).backgroundColor2 ??
-              Colors.white,
-          margin: EdgeInsets.only(top: 16, bottom: 12),
-          child: ListTile(
-            contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            leading: Icon(
-              Icons.local_fire_department,
-              color: Color(0xFFFF8225),
-              size: 28,
-            ),
-            title: Text(
-              '${_pmStart!.format(context)} 焙煎機予熱開始',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Provider.of<ThemeSettings>(context).fontColor1,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.local_fire_department,
+                color: Color(0xFFFF5722),
+                size: 24,
               ),
-            ),
+              SizedBox(width: 10),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFF5722).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _formatTime24Hour(_pmStart!),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFF5722),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              SizedBox(width: 10),
+              Text(
+                '予熱開始',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  fontSize: 15,
+                ),
+              ),
+            ],
           ),
         ),
       );
       for (final r in pmResult) {
         if (r.afterPurge) {
           scheduleWidgets.add(
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            Container(
+              margin: EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12), // 統一
+              height: 56, // 高さを完全固定
+              width: double.infinity, // 横幅を揃える
+              decoration: BoxDecoration(
+                color: Color(0xFF2196F3).withOpacity(0.1), // 青系統
+                borderRadius: BorderRadius.circular(8), // 統一
+                border: Border.all(
+                  color: Color(0xFF2196F3).withOpacity(0.3),
+                ), // 統一
               ),
-              color:
-                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
-                  Colors.white,
-              margin: EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                leading: Icon(Icons.ac_unit, color: Colors.blue, size: 28),
-                title: Text(
-                  'アフターパージを実行',
-                  style: TextStyle(
-                    color: Provider.of<ThemeSettings>(context).fontColor1,
-                    fontWeight: FontWeight.bold,
+              child: Row(
+                children: [
+                  Icon(Icons.ac_unit, color: Color(0xFF2196F3), size: 24), // 統一
+                  SizedBox(width: 10),
+                  Text(
+                    'アフターパージ',
+                    style: TextStyle(
+                      color: Colors.black, // 統一
+                      fontWeight: FontWeight.bold, // 統一
+                      fontSize: 15, // 統一
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           );
         } else {
+          // ★予熱開始・アフターパージと同じデザイン・レイアウトで焙煎項目を表示（1行横並び、はみ出し防止）
           scheduleWidgets.add(
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            Container(
+              margin: EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              height: 56, // 高さを完全固定
+              width: double.infinity, // 横幅を揃える
+              decoration: BoxDecoration(
+                color: Color(0xFF795548).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Color(0xFF795548).withOpacity(0.3)),
               ),
-              color:
-                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
-                  Colors.white,
-              margin: EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                leading: r.task != null
-                    ? CircleAvatar(
-                        backgroundColor:
-                            Provider.of<ThemeSettings>(
-                              context,
-                            ).backgroundColor2 ??
-                            Colors.white,
-                        child: Text(
-                          _roastIcons[r.task!.roastLevel] ?? '☕',
-                          style: TextStyle(fontSize: 20),
-                        ),
-                      )
-                    : null,
-                title: Row(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // コーヒーカップアイコン削除
                     if (r.time != null)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF795548).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _formatTime24Hour(r.time!),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF795548),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    SizedBox(width: 10),
+                    if (r.task != null)
                       Text(
-                        r.time!.format(context),
+                        r.task!.type,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                          fontSize: 16,
+                          color: Colors.black,
+                          fontSize: 15,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '${r.task?.type ?? ''} '
-                        '${r.task?.weights.map((w) => '${w}g').join('・') ?? ''}',
+                    SizedBox(width: 10),
+                    if (r.task != null)
+                      Text(
+                        r.task!.weights.map((w) => '${w}g').join('・'),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
+                          color: Colors.black,
+                          fontSize: 15,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-                subtitle: r.task != null && r.task!.roastLevel.isNotEmpty
-                    ? Text(
+                    SizedBox(width: 10),
+                    if (r.task != null && r.task!.roastLevel.isNotEmpty)
+                      Text(
                         r.task!.roastLevel,
                         style: TextStyle(
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                          fontWeight: FontWeight.w500,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
-                      )
-                    : null,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
               ),
             ),
           );
@@ -1108,99 +1282,32 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     }
     if (overflowMsg.isNotEmpty) {
       scheduleWidgets.add(
-        Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: Text(overflowMsg, style: TextStyle(color: Colors.red)),
+        Container(
+          margin: EdgeInsets.only(top: 8),
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.red.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.red, size: 18),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  overflowMsg,
+                  style: TextStyle(color: Colors.red, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: scheduleWidgets,
-    );
-  }
-
-  // --- 追加: 保存済みスケジュールの表示 ---
-  Widget _buildSavedScheduleWidgets(BuildContext context, Color brown) {
-    List<Widget> scheduleWidgets = [];
-    // 午前
-    if (_amStart != null) {
-      scheduleWidgets.add(
-        Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          color:
-              Provider.of<ThemeSettings>(context).backgroundColor2 ??
-              Colors.white,
-          margin: EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            leading: Icon(
-              Icons.local_fire_department,
-              color: Color(0xFFFF8225),
-              size: 28,
-            ),
-            title: Text(
-              '${_amStart!.format(context)} 焙煎機予熱開始',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Provider.of<ThemeSettings>(context).fontColor1,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    // 午後
-    if (_pmStart != null) {
-      scheduleWidgets.add(
-        Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          color:
-              Provider.of<ThemeSettings>(context).backgroundColor2 ??
-              Colors.white,
-          margin: EdgeInsets.only(top: 16, bottom: 12),
-          child: ListTile(
-            contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            leading: Icon(
-              Icons.local_fire_department,
-              color: Color(0xFFFF8225),
-              size: 28,
-            ),
-            title: Text(
-              '${_pmStart!.format(context)} 焙煎機予熱開始',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Provider.of<ThemeSettings>(context).fontColor1,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(bottom: 8),
-          child: Text(
-            '保存済みスケジュール',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-        ),
-        ...scheduleWidgets,
-      ],
     );
   }
 
@@ -1240,8 +1347,12 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               .map<RoastScheduleBean>((e) => RoastScheduleBean.fromJson(e))
               .toList();
           if (provider.beans.isEmpty) {
-            provider.addBean(RoastScheduleBean(name: '', weight: 0));
+            provider.beans = [];
           }
+        });
+      } else {
+        setState(() {
+          provider.beans = [];
         });
       }
       final amStr = prefs.getString('roastInput_am');
@@ -1351,6 +1462,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                               roastLevel: bean.roastLevel,
                             ),
                           );
+                          _saveInputState(); // 変更時に保存
                         },
                       ),
                     ],
@@ -1414,6 +1526,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                               roastLevel: bean.roastLevel,
                             ),
                           );
+                          _saveInputState(); // 変更時に保存
                         },
                       ),
                     ],
@@ -1423,147 +1536,174 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
             ),
             SizedBox(height: 16),
             // 2行目：袋数・焙煎度合い・削除ボタン
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            Column(
               children: [
-                Icon(
-                  Icons.shopping_bag,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
-                  size: 20,
-                ),
-                SizedBox(width: 8),
-                SizedBox(
-                  width: 80,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '袋数',
-                        style: TextStyle(
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      TextFormField(
-                        initialValue: bean.bags?.toString() ?? '',
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 14,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: brown, width: 2),
-                          ),
-                          filled: true,
-                          fillColor: Provider.of<ThemeSettings>(
-                            context,
-                          ).inputBackgroundColor,
-                        ),
-                        keyboardType: TextInputType.number,
-                        onChanged: (val) {
-                          final bags = int.tryParse(val);
-                          provider.updateBean(
-                            index,
-                            RoastScheduleBean(
-                              name: bean.name,
-                              weight: bean.weight,
-                              bags: bags,
-                              roastLevel: bean.roastLevel,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 16),
-                Icon(
-                  Icons.local_fire_department,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
-                  size: 20,
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '焙煎度合い',
-                        style: TextStyle(
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      DropdownButtonFormField<String>(
-                        value: bean.roastLevel,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 14,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: brown, width: 2),
-                          ),
-                          filled: true,
-                          fillColor: Provider.of<ThemeSettings>(
-                            context,
-                          ).inputBackgroundColor,
-                        ),
-                        items: ['浅煎り', '中煎り', '中深煎り', '深煎り']
-                            .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
-                            )
-                            .toList(),
-                        onChanged: (val) {
-                          provider.updateBean(
-                            index,
-                            RoastScheduleBean(
-                              name: bean.name,
-                              weight: bean.weight,
-                              bags: bean.bags,
-                              roastLevel: val,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                if (index != 0)
-                  IconButton(
-                    icon: Icon(
-                      Icons.remove_circle,
-                      color: Colors.red,
-                      size: 28,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.shopping_bag,
+                      color: Provider.of<ThemeSettings>(context).iconColor,
+                      size: 20,
                     ),
-                    onPressed: () => _removeBean(index),
-                    iconSize: 28,
-                    padding: EdgeInsets.all(8),
-                  ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '袋数',
+                            style: TextStyle(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          TextFormField(
+                            initialValue: bean.bags?.toString() ?? '',
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade300,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade300,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: brown, width: 2),
+                              ),
+                              filled: true,
+                              fillColor: Provider.of<ThemeSettings>(
+                                context,
+                              ).inputBackgroundColor,
+                            ),
+                            keyboardType: TextInputType.number,
+                            onChanged: (val) {
+                              final bags = int.tryParse(val);
+                              provider.updateBean(
+                                index,
+                                RoastScheduleBean(
+                                  name: bean.name,
+                                  weight: bean.weight,
+                                  bags: bags,
+                                  roastLevel: bean.roastLevel,
+                                ),
+                              );
+                              _saveInputState(); // 変更時に保存
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...[
+                      SizedBox(width: 16),
+                      IconButton(
+                        icon: Icon(
+                          Icons.remove_circle,
+                          color: Colors.red,
+                          size: 28,
+                        ),
+                        onPressed: () => _removeBean(index),
+                        iconSize: 28,
+                        padding: EdgeInsets.all(8),
+                      ),
+                    ],
+                  ],
+                ),
+                SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.local_fire_department,
+                      color: Provider.of<ThemeSettings>(context).iconColor,
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '焙煎度合い',
+                            style: TextStyle(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            value: bean.roastLevel,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade300,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade300,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: brown, width: 2),
+                              ),
+                              filled: true,
+                              fillColor: Provider.of<ThemeSettings>(
+                                context,
+                              ).inputBackgroundColor,
+                            ),
+                            items: ['浅煎り', '中煎り', '中深煎り', '深煎り']
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(e),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (val) {
+                              provider.updateBean(
+                                index,
+                                RoastScheduleBean(
+                                  name: bean.name,
+                                  weight: bean.weight,
+                                  bags: bean.bags,
+                                  roastLevel: val,
+                                ),
+                              );
+                              _saveInputState(); // 変更時に保存
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ],
@@ -1584,25 +1724,95 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     return null;
   }
 
-  // Firestore同期用setter
-  void setScheduleFromFirestore(Map<String, dynamic> schedule) {
-    setState(() {
-      final amList = schedule['am'] as List<dynamic>? ?? [];
-      final pmList = schedule['pm'] as List<dynamic>? ?? [];
-      _savedSchedule = amList
-          .map(
-            (e) =>
-                RoastScheduleResultModel.fromJson(Map<String, dynamic>.from(e)),
-          )
-          .toList();
-      _savedPmSchedule = pmList
-          .map(
-            (e) =>
-                RoastScheduleResultModel.fromJson(Map<String, dynamic>.from(e)),
-          )
-          .toList();
-      _savedOverflowMsg = schedule['overflowMsg'] as String? ?? '';
-    });
+  // スケジュールダイアログ表示メソッド
+  void _showScheduleDialog(
+    BuildContext context,
+    List<RoastScheduleResult> amResult,
+    List<RoastScheduleResult> pmResult,
+    String overflowMsg,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Provider.of<ThemeSettings>(
+            context,
+          ).dialogBackgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ヘッダー
+                Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Provider.of<ThemeSettings>(context).appBarColor,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.schedule,
+                        color: Provider.of<ThemeSettings>(
+                          context,
+                        ).appBarTextColor,
+                        size: 24,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'ローストスケジュール',
+                          style: TextStyle(
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).appBarTextColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).appBarTextColor,
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                // スケジュール内容
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(20),
+                    child: _buildScheduleWidgets(
+                      context,
+                      amResult,
+                      pmResult,
+                      overflowMsg,
+                      Color(0xFF795548),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override

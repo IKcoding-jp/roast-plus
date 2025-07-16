@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 class TrashPage extends StatefulWidget {
   const TrashPage({super.key});
@@ -20,15 +22,25 @@ class _TrashPageState extends State<TrashPage> {
   }
 
   Future<void> _loadTrashedRecords() async {
-    final prefs = await SharedPreferences.getInstance();
-    final trashed = prefs.getStringList('trashedRecords') ?? [];
-    setState(() {
-      _trashedRecords =
-          trashed.map((e) => Map<String, dynamic>.from(json.decode(e))).toList()
-            ..sort(
-              (a, b) => (b['timestamp'] ?? '').compareTo(a['timestamp'] ?? ''),
-            );
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final trashed = prefs.getStringList('trashedRecords') ?? [];
+
+      if (mounted) {
+        setState(() {
+          _trashedRecords =
+              trashed
+                  .map((e) => Map<String, dynamic>.from(json.decode(e)))
+                  .toList()
+                ..sort(
+                  (a, b) =>
+                      (b['timestamp'] ?? '').compareTo(a['timestamp'] ?? ''),
+                );
+        });
+      }
+    } catch (e) {
+      print('ゴミ箱記録の読み込みエラー: $e');
+    }
   }
 
   Future<void> _saveTrashedRecords() async {
@@ -65,15 +77,31 @@ class _TrashPageState extends State<TrashPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Provider.of<ThemeSettings>(
+          context,
+        ).dialogBackgroundColor,
+        titleTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        contentTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 16,
+        ),
         title: Text('完全に削除しますか？'),
         content: Text('この記録は元に戻せません。'),
         actions: [
           TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Provider.of<ThemeSettings>(context).fontColor1,
+            ),
             child: Text('キャンセル'),
             onPressed: () => Navigator.pop(context, false),
           ),
           TextButton(
-            child: Text('削除', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('削除'),
             onPressed: () => Navigator.pop(context, true),
           ),
         ],
@@ -93,15 +121,31 @@ class _TrashPageState extends State<TrashPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Provider.of<ThemeSettings>(
+          context,
+        ).dialogBackgroundColor,
+        titleTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        contentTextStyle: TextStyle(
+          color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          fontSize: 16,
+        ),
         title: Text('ゴミ箱を空にしますか？'),
         content: Text('すべての記録が完全に削除され、元に戻せません。'),
         actions: [
           TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Provider.of<ThemeSettings>(context).fontColor1,
+            ),
             child: Text('キャンセル'),
             onPressed: () => Navigator.pop(context, false),
           ),
           TextButton(
-            child: Text('すべて削除', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('すべて削除'),
             onPressed: () => Navigator.pop(context, true),
           ),
         ],

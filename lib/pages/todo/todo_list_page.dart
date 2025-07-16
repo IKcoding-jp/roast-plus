@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:bysnapp/main.dart';
-import 'package:bysnapp/pages/labels/label_edit_page.dart';
-import 'package:bysnapp/pages/home/AssignmentBoard.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/group_data_sync_service.dart';
+import '../../models/group_provider.dart';
+import '../../models/group_models.dart';
 
 import '../roast/roast_scheduler_tab.dart' show RoastSchedulerTab;
-import '../schedule/schedule_time_label_edit_page.dart';
 import '../roast/roast_break_time_edit_page.dart';
 import 'package:bysnapp/models/roast_break_time.dart';
 import '../../services/schedule_firestore_service.dart';
-import '../../services/roast_break_time_firestore_service.dart';
+import '../../services/todo_notification_service.dart';
+import '../schedule/today_schedule.dart';
 
 class TodoListPage extends StatefulWidget {
   const TodoListPage({super.key});
@@ -28,35 +31,9 @@ class TodoListPageState extends State<TodoListPage>
   late SharedPreferences prefs;
   final TextEditingController _controller = TextEditingController();
   TimeOfDay? _selectedTime;
-
-  // 本日のスケジュール機能を追加
-  List<String> _scheduleLabels = [''];
-  Map<String, String> _scheduleContents = {};
+  bool _canEditTodoList = true;
 
   final String _storageKey = 'todoList';
-
-  // 1. Stateに追加
-  final Map<String, TextEditingController> _scheduleControllers = {};
-
-  // 2. ラベル追加・削除・初期化時にコントローラを管理
-  void _initScheduleControllers() {
-    // 新規ラベルのみcontroller生成
-    for (final label in _scheduleLabels) {
-      if (!_scheduleControllers.containsKey(label)) {
-        _scheduleControllers[label] = TextEditingController(
-          text: _scheduleContents[label] ?? '',
-        );
-      }
-    }
-    // 不要なコントローラを破棄
-    final toRemove = _scheduleControllers.keys
-        .where((k) => !_scheduleLabels.contains(k))
-        .toList();
-    for (final k in toRemove) {
-      _scheduleControllers[k]?.dispose();
-      _scheduleControllers.remove(k);
-    }
-  }
 
   // --- 休憩時間設定用 ---
   List<RoastBreakTime> _roastBreakTimes = [];
@@ -88,8 +65,23 @@ class TodoListPageState extends State<TodoListPage>
       setState(() {});
     });
     _loadTodos();
-    _loadSchedules();
-    _initScheduleControllers();
+    _setupGroupDataListener();
+    _checkEditPermissions();
+    _loadTodosFromFirestore();
+    _startTodoListListener();
+
+    // GroupProviderのグループ読み込みを確認
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isEmpty && !groupProvider.loading) {
+        print('TodoListPage: グループが読み込まれていないため、読み込みを開始します');
+        groupProvider.loadUserGroups();
+      } else if (groupProvider.groups.isNotEmpty) {
+        print('TodoListPage: グループが既に読み込まれています - グループデータ監視を開始');
+        _startGroupDataWatching(groupProvider);
+      }
+    });
+
     // 休憩時間リストの初期値をロード
     SharedPreferences.getInstance().then((prefs) {
       final jsonStr = prefs.getString('roastBreakTimes');
@@ -104,82 +96,190 @@ class TodoListPageState extends State<TodoListPage>
     });
   }
 
+  StreamSubscription? _todoListSubscription;
+  void _startTodoListListener() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final today = DateTime.now();
+    final docId =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    _todoListSubscription?.cancel();
+    _todoListSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('todoList')
+        .doc(docId)
+        .snapshots()
+        .listen((doc) {
+          if (doc.exists && doc.data() != null) {
+            final data = doc.data()!;
+            if (data['todos'] != null) {
+              setState(() {
+                _todos = List<Map<String, dynamic>>.from(data['todos'])
+                    .map(
+                      (e) => TodoItem(
+                        title: e['title'] as String,
+                        isDone: e['isDone'] as bool,
+                        time: e['time'] as String,
+                      ),
+                    )
+                    .toList();
+              });
+              _sortTodos();
+            }
+          }
+        });
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
     _controller.dispose();
-    for (final c in _scheduleControllers.values) {
-      c.dispose();
-    }
+    _todoListSubscription?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadSchedules() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final labelsStr = prefs.getString('todaySchedule_labels');
-      final contentsStr = prefs.getString('todaySchedule_contents');
-      List<String> loadedLabels = [];
-      Map<String, String> loadedContents = {};
-      if (labelsStr != null) {
-        loadedLabels = List<String>.from(json.decode(labelsStr));
-      }
-      if (contentsStr != null) {
-        loadedContents = Map<String, String>.from(json.decode(contentsStr));
-      }
-      setState(() {
-        _scheduleLabels = loadedLabels;
-        _scheduleContents = loadedContents;
+  // グループデータの変更を監視
+  void _setupGroupDataListener() {
+    print('TodoListPage: グループデータリスナーを設定開始');
+
+    // GroupProviderの変更を監視
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final groupProvider = context.read<GroupProvider>();
+
+      // 初回のグループデータ監視開始
+      _startGroupDataWatching(groupProvider);
+
+      // GroupProviderの変更を監視
+      groupProvider.addListener(() {
+        print('TodoListPage: GroupProviderの変更を検知');
+        print('TodoListPage: グループ数: ${groupProvider.groups.length}');
+
+        // グループが追加された場合、監視を開始
+        _startGroupDataWatching(groupProvider);
+
+        // グループ設定の変更を検知するため、常に権限チェックを実行
+        _checkEditPermissions();
+
+        if (groupProvider.isWatchingGroupData) {
+          // グループデータが更新されたら、ローカルデータを再読み込み
+          _loadTodosFromFirestore();
+        }
       });
-      _initScheduleControllers();
-    } catch (_) {
-      setState(() {
-        _scheduleLabels = [];
-        _scheduleContents = {};
-      });
-      _initScheduleControllers();
+    });
+
+    print('TodoListPage: グループデータリスナー設定完了');
+  }
+
+  // グループデータの監視を開始
+  void _startGroupDataWatching(GroupProvider groupProvider) {
+    if (groupProvider.groups.isNotEmpty && !groupProvider.isWatchingGroupData) {
+      print('TodoListPage: グループデータ監視を開始します');
+      groupProvider.startWatchingGroupData();
     }
   }
 
-  // 3. ラベル編集後やスケジュールロード後にもコントローラを再初期化
-  void _openLabelEdit() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ScheduleTimeLabelEditPage(
-          labels: _scheduleLabels,
-          onLabelsChanged: (newLabels) {
+  // 編集権限をチェック
+  Future<void> _checkEditPermissions() async {
+    try {
+      print('TodoListPage: 編集権限チェック開始');
+      final groupProvider = context.read<GroupProvider>();
+      print('TodoListPage: グループ数: ${groupProvider.groups.length}');
+
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+        final currentUser = FirebaseAuth.instance.currentUser;
+        print('TodoListPage: 現在のユーザー: ${currentUser?.uid}');
+
+        if (currentUser != null) {
+          final userRole = group.getMemberRole(currentUser.uid);
+          print('TodoListPage: ユーザーロール: $userRole');
+          final groupSettings = groupProvider.getCurrentGroupSettings();
+          print('TodoListPage: グループ設定: $groupSettings');
+
+          if (groupSettings != null) {
+            // TODOリストの編集権限をチェック
+            final canEditTodoList = groupSettings.canEditDataType(
+              'todo_list',
+              userRole ?? GroupRole.member,
+            );
+
+            print('TodoListPage: 権限チェック結果:');
+            print('TodoListPage: - todo_list: $canEditTodoList');
+
+            // 現在の権限と比較して変更があったかチェック
+            final hasChanged = _canEditTodoList != canEditTodoList;
+
+            if (hasChanged) {
+              print('TodoListPage: 権限に変更を検知しました！');
+              print('TodoListPage: 変更前 - todo_list: $_canEditTodoList');
+              print('TodoListPage: 変更後 - todo_list: $canEditTodoList');
+            }
+
             setState(() {
-              _scheduleLabels = List.from(newLabels);
-              // _scheduleContents からは値を消さずに残す（ラベルが復活したときに内容も復活するため）
-              _initScheduleControllers();
+              _canEditTodoList = canEditTodoList;
             });
-            _saveSchedules();
-          },
-        ),
-      ),
-    );
+
+            print('TodoListPage: 編集権限チェック完了');
+            print('TodoListPage: TODOリスト編集可能: $_canEditTodoList');
+          } else {
+            print('TodoListPage: グループ設定がnullです');
+          }
+        } else {
+          print('TodoListPage: 現在のユーザーがnullです');
+        }
+      } else {
+        print('TodoListPage: グループがありません');
+      }
+    } catch (e) {
+      print('TodoListPage: 編集権限チェックエラー: $e');
+      print('TodoListPage: エラーの詳細: ${e.toString()}');
+    }
   }
 
-  Future<void> _saveSchedules() async {
+  // FirestoreからTODOリストを読み込み
+  Future<void> _loadTodosFromFirestore() async {
+    print('TodoListPage: FirestoreからTODOリストを読み込み開始');
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'todaySchedule_labels',
-        json.encode(_scheduleLabels),
-      );
-      await prefs.setString(
-        'todaySchedule_contents',
-        json.encode(_scheduleContents),
-      );
-      // Firestoreにも自動保存
-      try {
-        await ScheduleFirestoreService.saveTodayTodoSchedule(
-          labels: _scheduleLabels,
-          contents: _scheduleContents,
-        );
-      } catch (_) {}
-    } catch (_) {}
+      final today = DateTime.now();
+      final docId =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .collection('todoList')
+          .doc(docId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final todos = data['todos'] as List<dynamic>?;
+        if (todos != null) {
+          print('TodoListPage: Firestoreから読み込んだTODOリスト: $todos');
+          if (mounted) {
+            setState(() {
+              _todos = todos
+                  .map(
+                    (todo) => TodoItem(
+                      title: todo['title'] as String,
+                      isDone: todo['isDone'] as bool,
+                      time: todo['time'] as String,
+                    ),
+                  )
+                  .toList();
+            });
+            _sortTodos();
+            print('TodoListPage: TODOリストを更新しました');
+            // ここでローカルにも保存する
+            final saved = _todos.map((e) => e.toStorageString()).toList();
+            await prefs.setStringList(_storageKey, saved);
+          }
+        }
+      }
+    } catch (e) {
+      print('TodoListPage: FirestoreからのTODOリスト読み込みエラー: $e');
+    }
   }
 
   Future<void> _loadTodos() async {
@@ -198,10 +298,8 @@ class TodoListPageState extends State<TodoListPage>
     final aHas = a.time.isNotEmpty;
     final bHas = b.time.isNotEmpty;
     if (aHas && bHas) {
-      final aParts = a.time.split(':');
-      final bParts = b.time.split(':');
-      final aMinutes = int.parse(aParts[0]) * 60 + int.parse(aParts[1]);
-      final bMinutes = int.parse(bParts[0]) * 60 + int.parse(bParts[1]);
+      final aMinutes = _parseTimeToMinutes(a.time);
+      final bMinutes = _parseTimeToMinutes(b.time);
       return aMinutes.compareTo(bMinutes);
     } else if (aHas && !bHas) {
       return -1;
@@ -209,6 +307,41 @@ class TodoListPageState extends State<TodoListPage>
       return 1;
     }
     return 0;
+  }
+
+  // 時間文字列を分に変換するヘルパー関数
+  int _parseTimeToMinutes(String time) {
+    if (time.contains('AM') || time.contains('PM')) {
+      // 12時間形式の場合
+      final timeParts = time.split(' ');
+      if (timeParts.length == 2) {
+        final timeStr = timeParts[0];
+        final period = timeParts[1];
+        final timeComponents = timeStr.split(':');
+        if (timeComponents.length == 2) {
+          int hour = int.tryParse(timeComponents[0]) ?? 0;
+          int minute = int.tryParse(timeComponents[1]) ?? 0;
+
+          // AM/PMを24時間形式に変換
+          if (period == 'PM' && hour != 12) {
+            hour += 12;
+          } else if (period == 'AM' && hour == 12) {
+            hour = 0;
+          }
+
+          return hour * 60 + minute;
+        }
+      }
+    } else {
+      // 24時間形式の場合
+      final parts = time.split(':');
+      if (parts.length == 2) {
+        final hour = int.tryParse(parts[0]) ?? 0;
+        final minute = int.tryParse(parts[1]) ?? 0;
+        return hour * 60 + minute;
+      }
+    }
+    return 0; // 無効な形式の場合は0を返す
   }
 
   // 追加: ソート実行
@@ -226,14 +359,43 @@ class TodoListPageState extends State<TodoListPage>
             .map((e) => {'title': e.title, 'isDone': e.isDone, 'time': e.time})
             .toList(),
       );
-    } catch (_) {}
+
+      // グループ同期を実行
+      await _triggerTodoGroupSync();
+    } catch (e) {
+      print('TodoListPage: TODOリスト保存エラー: $e');
+    }
     // ソート設定は固定のため保存不要
+  }
+
+  // TODOリストのグループ同期を実行
+  Future<void> _triggerTodoGroupSync() async {
+    try {
+      print('TodoListPage: TODOリストのグループ同期を開始');
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+        await GroupDataSyncService.syncTodoList(group.id, {
+          'todos': _todos
+              .map(
+                (e) => {'title': e.title, 'isDone': e.isDone, 'time': e.time},
+              )
+              .toList(),
+          'savedAt': DateTime.now().toIso8601String(),
+        });
+        print('TodoListPage: TODOリストのグループ同期完了');
+      }
+    } catch (e) {
+      print('TodoListPage: TODOリストのグループ同期エラー: $e');
+    }
   }
 
   void _addTodo() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    final time = _selectedTime != null ? _selectedTime!.format(context) : '';
+    final time = _selectedTime != null
+        ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}'
+        : '';
     setState(() {
       _todos.add(TodoItem(title: text, isDone: false, time: time));
       _sortTodos();
@@ -244,9 +406,16 @@ class TodoListPageState extends State<TodoListPage>
   }
 
   void _toggleDone(int index) {
+    final todo = _todos[index];
     setState(() {
-      _todos[index].isDone = !_todos[index].isDone;
+      todo.isDone = !todo.isDone;
     });
+
+    // TODOが完了した場合、通知履歴をクリア
+    if (todo.isDone && todo.time.isNotEmpty) {
+      TodoNotificationService().clearTodoNotification(todo.title, todo.time);
+    }
+
     _saveTodos();
   }
 
@@ -291,6 +460,12 @@ class TodoListPageState extends State<TodoListPage>
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -307,12 +482,36 @@ class TodoListPageState extends State<TodoListPage>
 
     // 既存の時刻をパース
     if (item.time.isNotEmpty) {
-      final parts = item.time.split(':');
-      if (parts.length == 2) {
-        editedTime = TimeOfDay(
-          hour: int.parse(parts[0]),
-          minute: int.parse(parts[1]),
-        );
+      // 12時間形式（例: "12 AM"）または24時間形式（例: "12:00"）を処理
+      if (item.time.contains('AM') || item.time.contains('PM')) {
+        // 12時間形式の場合
+        final timeParts = item.time.split(' ');
+        if (timeParts.length == 2) {
+          final timeStr = timeParts[0];
+          final period = timeParts[1];
+          final timeComponents = timeStr.split(':');
+          if (timeComponents.length == 2) {
+            int hour = int.tryParse(timeComponents[0]) ?? 0;
+            int minute = int.tryParse(timeComponents[1]) ?? 0;
+
+            // AM/PMを24時間形式に変換
+            if (period == 'PM' && hour != 12) {
+              hour += 12;
+            } else if (period == 'AM' && hour == 12) {
+              hour = 0;
+            }
+
+            editedTime = TimeOfDay(hour: hour, minute: minute);
+          }
+        }
+      } else {
+        // 24時間形式の場合
+        final parts = item.time.split(':');
+        if (parts.length == 2) {
+          final hour = int.tryParse(parts[0]) ?? 0;
+          final minute = int.tryParse(parts[1]) ?? 0;
+          editedTime = TimeOfDay(hour: hour, minute: minute);
+        }
       }
     }
 
@@ -333,7 +532,7 @@ class TodoListPageState extends State<TodoListPage>
                 Expanded(
                   child: Text(
                     editedTime != null
-                        ? '時刻: ${editedTime!.format(context)}'
+                        ? '時刻: ${editedTime!.hour.toString().padLeft(2, '0')}:${editedTime!.minute.toString().padLeft(2, '0')}'
                         : '時刻: --:--',
                   ),
                 ),
@@ -343,6 +542,14 @@ class TodoListPageState extends State<TodoListPage>
                     final picked = await showTimePicker(
                       context: context,
                       initialTime: editedTime ?? TimeOfDay.now(),
+                      builder: (context, child) {
+                        return MediaQuery(
+                          data: MediaQuery.of(
+                            context,
+                          ).copyWith(alwaysUse24HourFormat: true),
+                          child: child!,
+                        );
+                      },
                     );
                     if (picked != null) {
                       setState(() {
@@ -366,9 +573,10 @@ class TodoListPageState extends State<TodoListPage>
               final newTitle = titleController.text.trim();
               setState(() {
                 if (newTitle.isNotEmpty) _todos[index].title = newTitle;
+                // 修正: 時刻を変更しなかった場合は元の時刻を保持
                 _todos[index].time = editedTime != null
-                    ? editedTime!.format(context)
-                    : '';
+                    ? '${editedTime!.hour.toString().padLeft(2, '0')}:${editedTime!.minute.toString().padLeft(2, '0')}'
+                    : _todos[index].time;
                 _sortTodos();
               });
               _saveTodos();
@@ -387,21 +595,6 @@ class TodoListPageState extends State<TodoListPage>
     });
   }
 
-  void setScheduleFromFirestore(Map<String, dynamic> schedule) {
-    setState(() {
-      _scheduleLabels = List<String>.from(schedule['labels'] ?? []);
-      _scheduleContents = Map<String, String>.from(schedule['contents'] ?? {});
-      _initScheduleControllers();
-    });
-  }
-
-  void setTimeLabelsFromFirestore(List<String> labels) {
-    setState(() {
-      _scheduleLabels = labels;
-      _initScheduleControllers();
-    });
-  }
-
   void setRoastBreakTimesFromFirestore(List<RoastBreakTime> breaks) {
     setState(() {
       _roastBreakTimes = List<RoastBreakTime>.from(breaks);
@@ -410,566 +603,563 @@ class TodoListPageState extends State<TodoListPage>
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3, // タブ数に合わせる
-      child: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            children: [
-              Icon(
-                Icons.local_fire_department,
-                color: Provider.of<ThemeSettings>(context).iconColor,
-              ),
-              SizedBox(width: 8),
-              Text('スケジュール管理'),
-            ],
-          ),
-          bottom: PreferredSize(
-            preferredSize: Size.fromHeight(kToolbarHeight),
-            child: Container(
-              decoration: BoxDecoration(
-                color:
-                    Provider.of<ThemeSettings>(context).backgroundColor2 ??
-                    Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                isScrollable: false,
-                labelPadding: EdgeInsets.symmetric(horizontal: 8),
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                indicatorPadding: EdgeInsets.symmetric(horizontal: 4),
-                tabs: [
-                  Tab(
-                    child: Text(
-                      '本日のスケジュール',
-                      style: TextStyle(fontSize: 12),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+    return Consumer<GroupProvider>(
+      builder: (context, groupProvider, child) {
+        // グループデータの監視状態を確認
+        if (groupProvider.groups.isNotEmpty &&
+            !groupProvider.isWatchingGroupData) {
+          // グループデータの監視を開始
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            groupProvider.startWatchingGroupData();
+          });
+        }
+
+        // 権限チェックを実行
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _checkEditPermissions();
+        });
+
+        return DefaultTabController(
+          length: 3, // タブ数に合わせる
+          child: Scaffold(
+            appBar: AppBar(
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.local_fire_department,
+                    color: Provider.of<ThemeSettings>(context).iconColor,
                   ),
-                  Tab(
-                    child: Text(
-                      'ローストスケジュール',
-                      style: TextStyle(fontSize: 12),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Tab(
-                    child: Text(
-                      'TODOリスト',
-                      style: TextStyle(fontSize: 12),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                  SizedBox(width: 8),
+                  Text('スケジュール管理'),
                 ],
-                labelColor: Provider.of<ThemeSettings>(context).fontColor1,
-                unselectedLabelColor: Provider.of<ThemeSettings>(
-                  context,
-                ).fontColor1.withOpacity(0.7),
-                indicatorColor: Provider.of<ThemeSettings>(context).buttonColor,
-                indicatorWeight: 2,
               ),
-            ),
-          ),
-          actions: [
-            // タブインデックスによるアクション切り替え
-            Builder(
-              builder: (context) {
-                final tabIndex = _tabController.index;
-                if (tabIndex == 0) {
-                  return IconButton(
-                    icon: Icon(Icons.today),
-                    tooltip: '時間ラベル編集',
-                    onPressed: _openLabelEdit,
-                  );
-                } else if (tabIndex == 1) {
-                  // ローストスケジュール: 休憩時間設定
-                  return IconButton(
-                    icon: Icon(Icons.event_available),
-                    tooltip: '休憩時間を設定',
-                    onPressed: _openRoastSettings,
-                  );
-                } else if (tabIndex == 2) {
-                  // TODOリスト: すべて削除
-                  return Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.delete_sweep),
-                        tooltip: 'すべて削除',
-                        onPressed: _clearTodos,
+              bottom: PreferredSize(
+                preferredSize: Size.fromHeight(kToolbarHeight),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color:
+                        Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                        Colors.white,
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+                    ),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    labelPadding: EdgeInsets.symmetric(horizontal: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    indicatorPadding: EdgeInsets.symmetric(horizontal: 2),
+                    tabs: [
+                      Tab(
+                        child: Flexible(
+                          child: Text(
+                            '本日のスケジュール',
+                            style: TextStyle(
+                              fontSize:
+                                  (12 *
+                                          Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontSizeScale)
+                                      .clamp(10.0, 16.0),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        child: Flexible(
+                          child: Text(
+                            'ローストスケジュール',
+                            style: TextStyle(
+                              fontSize:
+                                  (12 *
+                                          Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontSizeScale)
+                                      .clamp(10.0, 16.0),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                      Tab(
+                        child: Flexible(
+                          child: Text(
+                            'TODOリスト',
+                            style: TextStyle(
+                              fontSize:
+                                  (12 *
+                                          Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontSizeScale)
+                                      .clamp(10.0, 16.0),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
                       ),
                     ],
-                  );
-                }
-                return SizedBox.shrink();
-              },
-            ),
-          ],
-        ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            // --- 本日のスケジュールタブ ---
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: SingleChildScrollView(
-                child: Card(
-                  elevation: 6,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    labelColor: Provider.of<ThemeSettings>(context).fontColor1,
+                    unselectedLabelColor: Provider.of<ThemeSettings>(
+                      context,
+                    ).fontColor1.withOpacity(0.7),
+                    indicatorColor: Provider.of<ThemeSettings>(
+                      context,
+                    ).buttonColor,
+                    indicatorWeight: 2,
                   ),
-                  color:
-                      Provider.of<ThemeSettings>(context).backgroundColor2 ??
-                      Colors.white,
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.schedule,
-                              color: Provider.of<ThemeSettings>(
-                                context,
-                              ).iconColor,
-                              size: 24,
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '本日のスケジュール',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).fontColor1,
-                                ),
-                              ),
-                            ),
-                          ],
+                ),
+              ),
+              actions: [
+                // デバッグ用: 自動同期状態確認
+                // IconButton(
+                //   icon: Icon(Icons.bug_report),
+                //   tooltip: '自動同期状態確認',
+                //   onPressed: () async {
+                //     final isInitialized = AutoSyncService.isInitialized;
+                //     final isSyncing = AutoSyncService.isSyncing;
+                //     final lastSyncTime = AutoSyncService.lastSyncTime;
+                //
+                //     showDialog(
+                //       context: context,
+                //       builder: (context) => AlertDialog(
+                //         title: Text('自動同期状態'),
+                //         content: Column(
+                //           mainAxisSize: MainAxisSize.min,
+                //           crossAxisAlignment: CrossAxisAlignment.start,
+                //           children: [
+                //             Text('初期化済み: $isInitialized'),
+                //             Text('同期中: $isSyncing'),
+                //             Text('最終同期:  {lastSyncTime?.toString() ?? 'なし'}'),
+                //           ],
+                //         ),
+                //         actions: [
+                //           TextButton(
+                //             onPressed: () => Navigator.pop(context),
+                //             child: Text('OK'),
+                //           ),
+                //         ],
+                //       ),
+                //     );
+                //   },
+                // ),
+                // タブインデックスによるアクション切り替え
+                Builder(
+                  builder: (context) {
+                    final tabIndex = _tabController.index;
+                    if (tabIndex == 1) {
+                      // ローストスケジュール: 休憩時間設定
+                      return IconButton(
+                        icon: Icon(Icons.event_available),
+                        tooltip: '休憩時間を設定',
+                        onPressed: _openRoastSettings,
+                      );
+                    } else if (tabIndex == 2) {
+                      // TODOリスト: すべて削除
+                      return Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.delete_sweep),
+                            tooltip: 'すべて削除',
+                            onPressed: _clearTodos,
+                          ),
+                        ],
+                      );
+                    }
+                    return SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                // --- 本日のスケジュールタブ ---
+                TodaySchedule(),
+                // --- ローストスケジュールタブ ---
+                RoastSchedulerTab(breakTimes: _roastBreakTimes),
+                // --- TODOリストタブ ---
+                Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // 入力部分
+                      Card(
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        SizedBox(height: 16),
-                        ..._scheduleLabels.map(
-                          (label) => Padding(
-                            padding: EdgeInsets.only(bottom: 12),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
+                        color:
+                            Provider.of<ThemeSettings>(
+                              context,
+                            ).backgroundColor2 ??
+                            Colors.white,
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.add_task,
                                     color: Provider.of<ThemeSettings>(
                                       context,
-                                    ).buttonColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
+                                    ).iconColor,
+                                    size: 24,
                                   ),
-                                  child: Text(
-                                    label,
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '新しいタスクを追加',
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize:
+                                          18 *
+                                          Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontSizeScale,
                                       fontWeight: FontWeight.bold,
                                       color: Provider.of<ThemeSettings>(
                                         context,
                                       ).fontColor1,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _scheduleControllers[label],
-                                    keyboardType: TextInputType.text,
-                                    enableSuggestions: true,
-                                    autocorrect: true,
-                                    onChanged: (v) {
-                                      setState(() {
-                                        _scheduleContents[label] = v;
-                                      });
-                                      _saveSchedules();
-                                    },
-                                    maxLines: null,
-                                    style: TextStyle(fontSize: 15),
-                                    decoration: InputDecoration(
-                                      filled: true,
-                                      fillColor: Provider.of<ThemeSettings>(
-                                        context,
-                                      ).inputBackgroundColor,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: Colors.grey.shade300,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: Colors.grey.shade300,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: Provider.of<ThemeSettings>(
-                                            context,
-                                          ).buttonColor,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // --- ローストスケジュールタブ ---
-            RoastSchedulerTab(breakTimes: _roastBreakTimes),
-            // --- TODOリストタブ ---
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // 入力部分
-                  Card(
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    color:
-                        Provider.of<ThemeSettings>(context).backgroundColor2 ??
-                        Colors.white,
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.add_task,
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).iconColor,
-                                size: 24,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                '新しいタスクを追加',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).fontColor1,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Provider.of<ThemeSettings>(
-                                      context,
-                                    ).inputBackgroundColor,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  child: TextField(
-                                    controller: _controller,
-                                    decoration: InputDecoration(
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
-                                      ),
-                                      hintText: 'やることを入力',
-                                      hintStyle: TextStyle(
-                                        color: Colors.grey[400],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.backgroundColor
-                                          ?.resolve({}) ??
-                                      Theme.of(context).colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.access_time,
-                                    color:
-                                        Theme.of(context)
-                                            .elevatedButtonTheme
-                                            .style
-                                            ?.foregroundColor
-                                            ?.resolve({}) ??
-                                        Colors.white,
-                                    size: 20,
-                                  ),
-                                  onPressed: _pickTime,
-                                  tooltip: '時刻を設定',
-                                  padding: EdgeInsets.all(12),
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.backgroundColor
-                                          ?.resolve({}) ??
-                                      Theme.of(context).colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.add,
-                                    color:
-                                        Theme.of(context)
-                                            .elevatedButtonTheme
-                                            .style
-                                            ?.foregroundColor
-                                            ?.resolve({}) ??
-                                        Colors.white,
-                                    size: 20,
-                                  ),
-                                  onPressed: _addTodo,
-                                  tooltip: '追加',
-                                  padding: EdgeInsets.all(12),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_selectedTime != null)
-                            Padding(
-                              padding: EdgeInsets.only(top: 12),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.access_time,
-                                    size: 16,
-                                    color: Provider.of<ThemeSettings>(
-                                      context,
-                                    ).iconColor,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    '選択した時刻: ${_selectedTime!.format(context)}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Provider.of<ThemeSettings>(
-                                        context,
-                                      ).fontColor1,
-                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  // タスク一覧
-                  Expanded(
-                    child: _todos.isEmpty
-                        ? Align(
-                            alignment: Alignment.topCenter,
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: Card(
-                                elevation: 6,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                color:
-                                    Provider.of<ThemeSettings>(
-                                      context,
-                                    ).backgroundColor2 ??
-                                    Colors.white,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(40),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
+                              SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).inputBackgroundColor,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                        ),
+                                      ),
+                                      child: TextField(
+                                        controller: _controller,
+                                        enabled: _canEditTodoList,
+                                        decoration: InputDecoration(
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
+                                          ),
+                                          hintText: _canEditTodoList
+                                              ? 'やることを入力'
+                                              : 'リーダーのみが編集できます',
+                                          hintStyle: TextStyle(
+                                            color: Colors.grey[400],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Theme.of(context)
+                                              .elevatedButtonTheme
+                                              .style
+                                              ?.backgroundColor
+                                              ?.resolve({}) ??
+                                          Theme.of(context).colorScheme.primary,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.access_time,
+                                        color:
+                                            Theme.of(context)
+                                                .elevatedButtonTheme
+                                                .style
+                                                ?.foregroundColor
+                                                ?.resolve({}) ??
+                                            Colors.white,
+                                        size: 20,
+                                      ),
+                                      onPressed: _pickTime,
+                                      tooltip: '時刻を設定',
+                                      padding: EdgeInsets.all(12),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Theme.of(context)
+                                              .elevatedButtonTheme
+                                              .style
+                                              ?.backgroundColor
+                                              ?.resolve({}) ??
+                                          Theme.of(context).colorScheme.primary,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.add,
+                                        color:
+                                            Theme.of(context)
+                                                .elevatedButtonTheme
+                                                .style
+                                                ?.foregroundColor
+                                                ?.resolve({}) ??
+                                            Colors.white,
+                                        size: 20,
+                                      ),
+                                      onPressed: _canEditTodoList
+                                          ? _addTodo
+                                          : null,
+                                      tooltip: _canEditTodoList
+                                          ? '追加'
+                                          : 'リーダーのみが編集できます',
+                                      padding: EdgeInsets.all(12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (_selectedTime != null)
+                                Padding(
+                                  padding: EdgeInsets.only(top: 12),
+                                  child: Row(
                                     children: [
                                       Icon(
-                                        Icons.checklist,
-                                        size: 64,
+                                        Icons.access_time,
+                                        size: 16,
                                         color: Provider.of<ThemeSettings>(
                                           context,
                                         ).iconColor,
                                       ),
-                                      SizedBox(height: 16),
+                                      SizedBox(width: 8),
                                       Text(
-                                        'タスクがありません',
+                                        '選択した時刻: ${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
                                         style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                          fontSize:
+                                              14 *
+                                              Provider.of<ThemeSettings>(
+                                                context,
+                                              ).fontSizeScale,
                                           color: Provider.of<ThemeSettings>(
                                             context,
                                           ).fontColor1,
+                                          fontWeight: FontWeight.w600,
                                         ),
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        '新しいタスクを追加してください',
-                                        style: TextStyle(
-                                          color: Provider.of<ThemeSettings>(
-                                            context,
-                                          ).fontColor1.withOpacity(0.7),
-                                        ),
-                                        textAlign: TextAlign.center,
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: _todos.length,
-                            itemBuilder: (_, i) {
-                              final item = _todos[i];
-                              return Card(
-                                elevation: 4,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                color:
-                                    Provider.of<ThemeSettings>(
-                                      context,
-                                    ).backgroundColor2 ??
-                                    Colors.white,
-                                margin: EdgeInsets.only(bottom: 12),
-                                child: ListTile(
-                                  contentPadding: EdgeInsets.all(16),
-                                  leading: GestureDetector(
-                                    onTap: () => _toggleDone(i),
-                                    child: Container(
-                                      padding: EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: item.isDone
-                                            ? Color(0xFF4CAF50).withOpacity(0.2)
-                                            : Color(
-                                                0xFF795548,
-                                              ).withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        item.isDone
-                                            ? Icons.check_circle
-                                            : Icons.radio_button_unchecked,
-                                        color: item.isDone
-                                            ? Color(0xFF4CAF50)
-                                            : Provider.of<ThemeSettings>(
-                                                context,
-                                              ).iconColor,
-                                        size: 24,
-                                      ),
-                                    ),
-                                  ),
-                                  title: Text(
-                                    item.title,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Provider.of<ThemeSettings>(
-                                        context,
-                                      ).fontColor1,
-                                      decoration: item.isDone
-                                          ? TextDecoration.lineThrough
-                                          : TextDecoration.none,
-                                    ),
-                                  ),
-                                  subtitle: item.time.isNotEmpty
-                                      ? Padding(
-                                          padding: EdgeInsets.only(top: 8),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.access_time,
-                                                size: 16,
-                                                color:
-                                                    Provider.of<ThemeSettings>(
-                                                      context,
-                                                    ).iconColor,
-                                              ),
-                                              SizedBox(width: 4),
-                                              Text(
-                                                '予定時刻: ${item.time}',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color:
-                                                      Provider.of<
-                                                            ThemeSettings
-                                                          >(context)
-                                                          .fontColor1
-                                                          .withOpacity(0.7),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      : null,
-                                  trailing: Container(
-                                    decoration: BoxDecoration(
-                                      color: Color(0xFFE57373).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: IconButton(
-                                      icon: Icon(
-                                        Icons.delete,
-                                        color: Color(0xFFE57373),
-                                        size: 20,
-                                      ),
-                                      onPressed: () => _deleteTodo(i),
-                                      padding: EdgeInsets.all(8),
-                                    ),
-                                  ),
-                                  onTap: () => _editTodo(i),
-                                ),
-                              );
-                            },
+                            ],
                           ),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      // タスク一覧
+                      Expanded(
+                        child: _todos.isEmpty
+                            ? Align(
+                                alignment: Alignment.topCenter,
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: Card(
+                                    elevation: 6,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    color:
+                                        Provider.of<ThemeSettings>(
+                                          context,
+                                        ).backgroundColor2 ??
+                                        Colors.white,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(40),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.checklist,
+                                            size: 64,
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).iconColor,
+                                          ),
+                                          SizedBox(height: 16),
+                                          Text(
+                                            'タスクがありません',
+                                            style: TextStyle(
+                                              fontSize:
+                                                  18 *
+                                                  Provider.of<ThemeSettings>(
+                                                    context,
+                                                  ).fontSizeScale,
+                                              fontWeight: FontWeight.bold,
+                                              color: Provider.of<ThemeSettings>(
+                                                context,
+                                              ).fontColor1,
+                                            ),
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            '新しいタスクを追加してください',
+                                            style: TextStyle(
+                                              color: Provider.of<ThemeSettings>(
+                                                context,
+                                              ).fontColor1.withOpacity(0.7),
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: _todos.length,
+                                itemExtent: 80.0, // 固定高さを設定してパフォーマンスを向上
+                                itemBuilder: (_, i) {
+                                  final item = _todos[i];
+                                  return Card(
+                                    elevation: 4,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    color:
+                                        Provider.of<ThemeSettings>(
+                                          context,
+                                        ).backgroundColor2 ??
+                                        Colors.white,
+                                    margin: EdgeInsets.only(bottom: 12),
+                                    child: ListTile(
+                                      contentPadding: EdgeInsets.all(16),
+                                      leading: GestureDetector(
+                                        onTap: _canEditTodoList
+                                            ? () => _toggleDone(i)
+                                            : null,
+                                        child: Container(
+                                          padding: EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: item.isDone
+                                                ? Color(
+                                                    0xFF4CAF50,
+                                                  ).withOpacity(0.2)
+                                                : Color(
+                                                    0xFF795548,
+                                                  ).withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            item.isDone
+                                                ? Icons.check_circle
+                                                : Icons.radio_button_unchecked,
+                                            color: item.isDone
+                                                ? Color(0xFF4CAF50)
+                                                : Provider.of<ThemeSettings>(
+                                                    context,
+                                                  ).iconColor,
+                                            size: 24,
+                                          ),
+                                        ),
+                                      ),
+                                      title: Text(
+                                        item.title,
+                                        style: TextStyle(
+                                          fontSize:
+                                              16 *
+                                              Provider.of<ThemeSettings>(
+                                                context,
+                                              ).fontSizeScale,
+                                          fontWeight: FontWeight.bold,
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontColor1,
+                                          decoration: item.isDone
+                                              ? TextDecoration.lineThrough
+                                              : TextDecoration.none,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 2,
+                                      ),
+                                      subtitle: item.time.isNotEmpty
+                                          ? Padding(
+                                              padding: EdgeInsets.only(top: 8),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.access_time,
+                                                    size: 16,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .iconColor,
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    '予定時刻: ${item.time}',
+                                                    style: TextStyle(
+                                                      fontSize:
+                                                          14 *
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontSizeScale,
+                                                      color:
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontColor1
+                                                              .withOpacity(0.7),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : null,
+                                      trailing: Container(
+                                        decoration: BoxDecoration(
+                                          color: Color(
+                                            0xFFE57373,
+                                          ).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: IconButton(
+                                          icon: Icon(
+                                            Icons.delete,
+                                            color: Color(0xFFE57373),
+                                            size: 20,
+                                          ),
+                                          onPressed: _canEditTodoList
+                                              ? () => _deleteTodo(i)
+                                              : null,
+                                          padding: EdgeInsets.all(8),
+                                        ),
+                                      ),
+                                      onTap: () => _editTodo(i),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

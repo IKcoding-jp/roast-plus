@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import 'custom_theme_settings_page.dart';
+import 'dart:async'; // Added for Timer
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -13,6 +15,28 @@ class ThemeSettingsPage extends StatefulWidget {
 class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   Map<String, Map<String, Color>> _customThemes = {};
   bool _isLoading = true;
+
+  // --- 追加: debounce用 ---
+  Timer? _snackbarDebounceTimer;
+  String? _pendingThemeName;
+  void _showDebouncedSnackBar(String themeName) {
+    _pendingThemeName = themeName;
+    _snackbarDebounceTimer?.cancel();
+    _snackbarDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (_pendingThemeName != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$_pendingThemeName テーマを適用しました')),
+        );
+        _pendingThemeName = null;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _snackbarDebounceTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -47,6 +71,20 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       appBar: AppBar(
         title: const Text('テーマ設定'),
         backgroundColor: themeSettings.appBarColor,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.tune, color: themeSettings.appBarTextColor),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CustomThemeSettingsPage(),
+                ),
+              );
+            },
+            tooltip: 'カスタム設定',
+          ),
+        ],
       ),
       body: Container(
         color: themeSettings.backgroundColor,
@@ -59,10 +97,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
             // カスタムテーマセクション
             _buildCustomThemesSection(context, themeSettings),
-            const SizedBox(height: 24),
-
-            // カスタム設定セクション
-            _buildCustomSection(context, themeSettings),
           ],
         ),
       ),
@@ -89,7 +123,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 Text(
                   'プリセットテーマ',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 18 * themeSettings.fontSizeScale,
                     fontWeight: FontWeight.bold,
                     color: themeSettings.fontColor1,
                   ),
@@ -102,7 +136,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             Text(
               '基本テーマ',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 16 * themeSettings.fontSizeScale,
                 fontWeight: FontWeight.w600,
                 color: themeSettings.fontColor1,
               ),
@@ -116,9 +150,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   presetName: presetName,
                   onPressed: () {
                     themeSettings.applyPreset(presetName);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$presetName テーマを適用しました')),
-                    );
+                    _showDebouncedSnackBar(presetName);
                   },
                 );
               }).toList(),
@@ -130,7 +162,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             Text(
               'カラーテーマ',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 16 * themeSettings.fontSizeScale,
                 fontWeight: FontWeight.w600,
                 color: themeSettings.fontColor1,
               ),
@@ -149,144 +181,11 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       presetName: presetName,
                       onPressed: () {
                         themeSettings.applyPreset(presetName);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('$presetName テーマを適用しました')),
-                        );
+                        _showDebouncedSnackBar(presetName);
                       },
                     );
                   })
                   .toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCustomSection(
-    BuildContext context,
-    ThemeSettings themeSettings,
-  ) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2 ?? Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.tune, color: themeSettings.iconColor),
-                const SizedBox(width: 8),
-                Text(
-                  'カスタム設定',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: themeSettings.fontColor1,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: '背景色',
-              color: themeSettings.backgroundColor,
-              onColorChanged: themeSettings.updateBackgroundColor,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: 'カード・パネルの背景色',
-              color: themeSettings.backgroundColor2 ?? Colors.white,
-              onColorChanged: themeSettings.updateBackgroundColor2,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: '画面上部の色',
-              color: themeSettings.appBarColor,
-              onColorChanged: themeSettings.updateAppBarColor,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: '画面上部の文字色',
-              color: themeSettings.appBarTextColor,
-              onColorChanged: themeSettings.updateAppBarTextColor,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: '画面下部の色',
-              color: themeSettings.bottomNavigationColor,
-              onColorChanged: themeSettings.updateBottomNavigationColor,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: '画面下部の文字色',
-              color: themeSettings.bottomNavigationTextColor,
-              onColorChanged: themeSettings.updateBottomNavigationTextColor,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: '通常の文字色',
-              color: themeSettings.fontColor1,
-              onColorChanged: themeSettings.updateFontColor1,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: 'ボタンの色',
-              color: themeSettings.buttonColor,
-              onColorChanged: themeSettings.updateButtonColor,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: 'ボタンの文字色',
-              color: themeSettings.fontColor2,
-              onColorChanged: themeSettings.updateFontColor2,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: 'アイコンの色',
-              color: themeSettings.iconColor,
-              onColorChanged: themeSettings.updateIconColor,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: '入力欄の背景',
-              color: themeSettings.inputBackgroundColor,
-              onColorChanged: themeSettings.updateInputBackgroundColor,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: 'メンバーの背景色',
-              color: themeSettings.memberBackgroundColor,
-              onColorChanged: themeSettings.updateMemberBackgroundColor,
-            ),
-            const SizedBox(height: 16),
-            _ColorPickerTile(
-              label: 'タイマーの円の色',
-              color: themeSettings.timerCircleColor,
-              onColorChanged: themeSettings.updateTimerCircleColor,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.save),
-                label: const Text('現在の設定をカスタムテーマとして保存'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: themeSettings.buttonColor,
-                  foregroundColor: themeSettings.fontColor2,
-                  textStyle: const TextStyle(fontSize: 16),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () async {
-                  _showSaveCustomThemeDialog(context, themeSettings);
-                },
-              ),
             ),
           ],
         ),
@@ -314,7 +213,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 Text(
                   'カスタムテーマ',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 18 * themeSettings.fontSizeScale,
                     fontWeight: FontWeight.bold,
                     color: themeSettings.fontColor1,
                   ),
@@ -342,9 +241,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     themeData: _customThemes[themeName]!,
                     onPressed: () async {
                       await themeSettings.applyCustomTheme(themeName);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('$themeName テーマを適用しました')),
-                      );
+                      _showDebouncedSnackBar(themeName);
                     },
                     onLongPress: () =>
                         _showCustomThemeOptions(context, themeName),

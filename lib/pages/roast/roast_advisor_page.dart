@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'dart:async';
 import 'package:bysnapp/models/roast_record.dart';
 import 'package:bysnapp/services/roast_record_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../models/group_provider.dart';
+import '../../widgets/bean_name_with_sticker.dart';
 
 class RoastAdvisorPage extends StatelessWidget {
   const RoastAdvisorPage({super.key});
@@ -50,143 +51,126 @@ class RoastAdvisorPage extends StatelessWidget {
       ),
       body: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
-        child: StreamBuilder<List<RoastRecord>>(
-          stream: RoastRecordFirestoreService.getRecordsStream(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return const Center(child: Text('データ取得エラー'));
-            }
-            final records = snapshot.data ?? [];
-            if (records.isEmpty) {
-              return const Center(child: Text('記録がありません'));
+        child: Consumer<GroupProvider>(
+          builder: (context, groupProvider, child) {
+            // グループに参加している場合はグループの記録も取得
+            Stream<List<RoastRecord>> recordsStream;
+            if (groupProvider.groups.isNotEmpty) {
+              // 個人の記録とグループの記録を結合
+              final personalStream =
+                  RoastRecordFirestoreService.getRecordsStream();
+              final groupStream =
+                  RoastRecordFirestoreService.getGroupRecordsStream(
+                    groupProvider.groups.first.id,
+                  );
+
+              // 両方のストリームを監視して結合
+              recordsStream = personalStream
+                  .asBroadcastStream()
+                  .map((personalRecords) {
+                    return personalRecords;
+                  })
+                  .asyncMap((personalRecords) async {
+                    final groupRecords = await groupStream.first;
+                    // 重複を避けるため、IDでフィルタリング
+                    final personalIds = personalRecords
+                        .map((r) => r.id)
+                        .toSet();
+                    final uniqueGroupRecords = groupRecords
+                        .where((r) => !personalIds.contains(r.id))
+                        .toList();
+                    return [...personalRecords, ...uniqueGroupRecords];
+                  });
+            } else {
+              // グループに参加していない場合は個人の記録のみ
+              recordsStream = RoastRecordFirestoreService.getRecordsStream();
             }
 
-            // 豆の種類ごとにグループ化
-            final Map<String, List<RoastRecord>> beanGroups = {};
-            for (final r in records) {
-              beanGroups.putIfAbsent(r.bean, () => []).add(r);
-            }
-            // 表示順を指定
-            final List<String> preferredOrder = [
-              'ブラジル',
-              'コロンビア',
-              'エチオピア',
-              'ペルー',
-            ];
-            final List<String> beanNames = [];
-            final List<String> others = [];
-            for (final name in preferredOrder) {
-              if (beanGroups.containsKey(name)) beanNames.add(name);
-            }
-            for (final name in beanGroups.keys) {
-              if (!preferredOrder.contains(name)) others.add(name);
-            }
-            if (others.isNotEmpty) {
-              // "その他"グループを作成
-              final List<RoastRecord> otherRecords = others
-                  .expand((n) => beanGroups[n]!)
-                  .toList();
-              beanGroups['その他'] = otherRecords;
-              beanNames.add('その他');
-            }
+            return StreamBuilder<List<RoastRecord>>(
+              stream: recordsStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('エラーが発生しました'));
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Provider.of<ThemeSettings>(
-                            context,
-                          ).iconColor.withOpacity(0.12), // テーマのアイコン色を薄く反映
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.analytics,
+                final records = snapshot.data ?? [];
+                if (records.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.coffee,
+                          size: 64,
                           color: Provider.of<ThemeSettings>(context).iconColor,
-                          size: 24,
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '豆の種類ごとに平均焙煎時間を表示',
+                        SizedBox(height: 16),
+                        Text(
+                          '焙煎記録がありません',
                           style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
                             color: Provider.of<ThemeSettings>(
                               context,
                             ).fontColor1,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  ...beanNames.map((bean) {
-                    final beanRecords = beanGroups[bean]!;
-                    // (重さ,煎り度)ごとにグループ化
-                    final Map<String, List<RoastRecord>> group = {};
-                    for (final r in beanRecords) {
-                      final key = '${r.weight}|${r.roast}';
-                      group.putIfAbsent(key, () => []).add(r);
-                    }
-                    final rows = group.entries.map((entry) {
-                      final keyParts = entry.key.split('|');
-                      final weight = keyParts[0];
-                      final roast = keyParts[1];
-                      final times = entry.value
-                          .map((r) => _parseTimeToSeconds(r.time))
-                          .where((s) => s > 0)
-                          .toList();
-                      final avgSec = times.isNotEmpty
-                          ? (times.reduce((a, b) => a + b) ~/ times.length)
-                          : 0;
-                      return TableRow(
+                      ],
+                    ),
+                  );
+                }
+
+                // 豆の種類ごとにグループ化
+                final Map<String, List<RoastRecord>> beanGroups = {};
+                for (final r in records) {
+                  beanGroups.putIfAbsent(r.bean, () => []).add(r);
+                }
+                // 表示順を指定
+                final List<String> preferredOrder = [
+                  'ブラジル',
+                  'コロンビア',
+                  'エチオピア',
+                  'ペルー',
+                ];
+                final List<String> beanNames = [];
+                for (final name in preferredOrder) {
+                  if (beanGroups.containsKey(name)) beanNames.add(name);
+                }
+                for (final name in beanGroups.keys) {
+                  if (!preferredOrder.contains(name)) beanNames.add(name);
+                }
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 4,
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).iconColor.withOpacity(0.12), // テーマのアイコン色を薄く反映
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(
-                              '$weight g',
-                              style: TextStyle(
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).fontColor1,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 4,
-                            ),
-                            child: Text(
-                              roast,
-                              style: TextStyle(
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).fontColor1,
-                              ),
+                            child: Icon(
+                              Icons.analytics,
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).iconColor,
+                              size: 24,
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 4,
-                            ),
+                          const SizedBox(width: 12),
+                          Expanded(
                             child: Text(
-                              times.isNotEmpty ? _formatSeconds(avgSec) : '-',
+                              '豆の種類ごとに平均焙煎時間を表示',
                               style: TextStyle(
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Provider.of<ThemeSettings>(
                                   context,
@@ -194,78 +178,122 @@ class RoastAdvisorPage extends StatelessWidget {
                               ),
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 4,
-                            ),
-                            child: Text(
-                              '${entry.value.length}',
-                              style: TextStyle(
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).fontColor1,
-                              ),
-                            ),
-                          ),
                         ],
-                      );
-                    }).toList();
-
-                    return Card(
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
                       ),
-                      color:
-                          Provider.of<ThemeSettings>(
-                            context,
-                          ).backgroundColor2 ??
-                          Colors.white,
-                      margin: const EdgeInsets.only(bottom: 24),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
+                      const SizedBox(height: 20),
+                      ...beanNames.map((bean) {
+                        final beanRecords = beanGroups[bean]!;
+                        // (重さ,煎り度)ごとにグループ化
+                        final Map<String, List<RoastRecord>> group = {};
+                        for (final r in beanRecords) {
+                          final key = '${r.weight}|${r.roast}';
+                          group.putIfAbsent(key, () => []).add(r);
+                        }
+                        final rows = group.entries.map((entry) {
+                          final keyParts = entry.key.split('|');
+                          final weight = keyParts[0];
+                          final roast = keyParts[1];
+
+                          final times = entry.value
+                              .map((r) => _parseTimeToSeconds(r.time))
+                              .where((s) => s > 0)
+                              .toList();
+                          final avgSec = times.isNotEmpty
+                              ? (times.reduce((a, b) => a + b) ~/ times.length)
+                              : 0;
+                          return TableRow(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 4,
+                                ),
+                                child: Text(
+                                  '$weight g',
+                                  style: TextStyle(
                                     color: Provider.of<ThemeSettings>(
                                       context,
-                                    ).iconColor.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.coffee,
-                                    color: Provider.of<ThemeSettings>(
-                                      context,
-                                    ).iconColor,
-                                    size: 20,
+                                    ).fontColor1,
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  bean,
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 4,
+                                ),
+                                child: Text(
+                                  roast,
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 4,
+                                ),
+                                child: Text(
+                                  times.isNotEmpty
+                                      ? _formatSeconds(avgSec)
+                                      : '-',
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Provider.of<ThemeSettings>(
                                       context,
                                     ).fontColor1,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                return Table(
-                                  border: TableBorder.symmetric(
-                                    inside: BorderSide(color: Colors.black12),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 4,
+                                ),
+                                child: Text(
+                                  '${times.length}回',
+                                  style: TextStyle(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
                                   ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList();
+
+                        return Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          color:
+                              Provider.of<ThemeSettings>(
+                                context,
+                              ).backgroundColor2 ??
+                              Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                BeanNameWithSticker(
+                                  beanName: bean,
+                                  textStyle: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
+                                  ),
+                                  stickerSize: 20.0,
+                                ),
+                                const SizedBox(height: 16),
+                                Table(
                                   columnWidths: {
                                     0: FlexColumnWidth(colFlex[0].toDouble()),
                                     1: FlexColumnWidth(colFlex[1].toDouble()),
@@ -314,7 +342,7 @@ class RoastAdvisorPage extends StatelessWidget {
                                             horizontal: 4,
                                           ),
                                           child: Text(
-                                            '平均焙煎時間',
+                                            '平均時間',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: brown,
@@ -328,7 +356,7 @@ class RoastAdvisorPage extends StatelessWidget {
                                             horizontal: 4,
                                           ),
                                           child: Text(
-                                            '件数',
+                                            '回数',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: brown,
@@ -340,21 +368,76 @@ class RoastAdvisorPage extends StatelessWidget {
                                     ),
                                     ...rows,
                                   ],
-                                );
-                              },
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 24),
+                      // おすすめ焙煎タイマーについての説明
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        color:
+                            Provider.of<ThemeSettings>(
+                              context,
+                            ).backgroundColor2 ??
+                            Colors.white,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFFF8225).withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.recommend,
+                                  color: Color(0xFFFF8225),
+                                  size: 20,
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'おすすめ焙煎タイマー',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).fontColor1,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      '同じ焙煎記録が2件以上あると、おすすめの焙煎時間を提案できるようになります。たくさん記録を集めましょう！',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).fontColor1.withOpacity(0.8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    );
-                  }),
-                  const SizedBox(height: 24),
-                  const Text(
-                    '※平均は同じ条件の全記録から算出されます。',
-                    style: TextStyle(color: Colors.grey),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         ),

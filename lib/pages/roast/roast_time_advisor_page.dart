@@ -4,11 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:bysnapp/main.dart';
 import 'package:bysnapp/pages/roast/roast_timer_settings_page.dart';
 import 'package:bysnapp/pages/roast/roast_record_page.dart';
-import 'package:bysnapp/pages/roast/roast_advisor_page.dart';
-import 'package:bysnapp/pages/roast/roast_timer_page.dart';
 
 // ------ タイマー・ページ遷移管理 ------
 enum RoastMode { idle, preheating, roasting, inputManualTime, inputRecommended }
@@ -720,7 +717,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
         ? '🔥 予熱中'
         : _mode == RoastMode.roasting
         ? '🔥 焙煎中'
-        : '⏱ 焙煎タイマー';
+        : '⏱ 予熱タイマー';
 
     return Scaffold(
       appBar: AppBar(
@@ -728,7 +725,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
           children: [
             Icon(Icons.timer, color: Colors.white),
             SizedBox(width: 8),
-            Text('焙煎タイマー'),
+            Text('予熱タイマー'),
           ],
         ),
         actions: [

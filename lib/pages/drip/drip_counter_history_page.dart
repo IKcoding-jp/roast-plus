@@ -19,12 +19,16 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
   }
 
   Future<void> _loadRecords() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('dripPackRecords');
-    if (saved != null) {
-      setState(() {
-        _records = List<Map<String, dynamic>>.from(json.decode(saved));
-      });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('dripPackRecords');
+      if (saved != null && mounted) {
+        setState(() {
+          _records = List<Map<String, dynamic>>.from(json.decode(saved));
+        });
+      }
+    } catch (e) {
+      print('ドリップパック記録の読み込みエラー: $e');
     }
   }
 
@@ -51,6 +55,7 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
           ? Center(child: Text('記録がありません'))
           : ListView.builder(
               itemCount: _records.length,
+              itemExtent: 80.0, // 固定高さを設定してパフォーマンスを向上
               itemBuilder: (context, index) {
                 final record = _records[index];
                 return Card(

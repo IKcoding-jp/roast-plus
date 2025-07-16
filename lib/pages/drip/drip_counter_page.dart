@@ -5,6 +5,9 @@ import 'package:bysnapp/pages/drip/DripPackRecordListPage.dart';
 import '../../services/drip_counter_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 class DripCounterPage extends StatefulWidget {
   const DripCounterPage({super.key});
@@ -33,11 +36,64 @@ class DripCounterPageState extends State<DripCounterPage>
   @override
   void initState() {
     super.initState();
+    _loadDripRecordsFromFirestore();
+    _startDripRecordsListener();
+  }
+
+  Future<void> _loadDripRecordsFromFirestore() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final today = DateTime.now();
+    final docId =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('dripPackRecords')
+        .doc(docId)
+        .get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data()!;
+      if (data['records'] != null) {
+        if (!mounted) return;
+        setState(() {
+          _records = List<Map<String, dynamic>>.from(data['records']);
+        });
+      }
+    }
+  }
+
+  StreamSubscription? _dripRecordsSubscription;
+  void _startDripRecordsListener() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final today = DateTime.now();
+    final docId =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    _dripRecordsSubscription?.cancel();
+    _dripRecordsSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('dripPackRecords')
+        .doc(docId)
+        .snapshots()
+        .listen((doc) {
+          if (doc.exists && doc.data() != null) {
+            final data = doc.data()!;
+            if (data['records'] != null) {
+              if (!mounted) return;
+              setState(() {
+                _records = List<Map<String, dynamic>>.from(data['records']);
+              });
+            }
+          }
+        });
   }
 
   @override
   void dispose() {
     _beanController.dispose();
+    _dripRecordsSubscription?.cancel();
     super.dispose();
   }
 
@@ -67,7 +123,7 @@ class DripCounterPageState extends State<DripCounterPage>
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.history),
+            icon: Icon(Icons.list),
             tooltip: '記録一覧',
             onPressed: () {
               Navigator.push(
@@ -95,46 +151,76 @@ class DripCounterPageState extends State<DripCounterPage>
                       shape: cardShape,
                       elevation: cardElevation,
                       color: cardColor,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Stack(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '$_counter',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 120,
-                                  fontWeight: FontWeight.w900,
+                          // カウンター数字
+                          Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$_counter',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 120,
+                                    fontWeight: FontWeight.w900,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
+                                    letterSpacing: 2,
+                                    fontFamily: 'Arial',
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.white,
+                                        blurRadius: 4,
+                                        offset: Offset(1, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // リセットボタン（右上）
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).iconColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
                                   color: Provider.of<ThemeSettings>(
                                     context,
-                                  ).fontColor1,
-                                  letterSpacing: 2,
-                                  fontFamily: 'Arial',
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.white,
-                                      blurRadius: 4,
-                                      offset: Offset(1, 1),
-                                    ),
-                                  ],
+                                  ).iconColor.withOpacity(0.3),
+                                  width: 1,
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '袋',
-                            style: TextStyle(
-                              fontSize: 22,
-                              color: Provider.of<ThemeSettings>(
-                                context,
-                              ).fontColor1,
-                              fontWeight: FontWeight.bold,
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.refresh,
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).iconColor,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _counter = 0;
+                                  });
+                                },
+                                tooltip: 'カウンターをリセット',
+                                padding: EdgeInsets.all(4),
+                                constraints: BoxConstraints(
+                                  minWidth: 32,
+                                  minHeight: 32,
+                                ),
+                              ),
                             ),
                           ),
                         ],

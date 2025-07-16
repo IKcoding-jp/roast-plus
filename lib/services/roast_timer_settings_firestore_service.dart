@@ -7,9 +7,13 @@ class RoastTimerSettingsFirestoreService {
 
   static String? get _uid => _auth.currentUser?.uid;
 
-  /// 焙煎タイマー設定（予熱時間）を保存
+  /// 焙煎タイマー設定（全項目）を保存
   static Future<void> saveRoastTimerSettings({
     required int preheatMinutes,
+    required int coolingMinutes,
+    required bool usePreheat,
+    required bool useCooling,
+    required bool useRoast,
   }) async {
     if (_uid == null) throw Exception('未ログイン');
     await _firestore
@@ -19,12 +23,16 @@ class RoastTimerSettingsFirestoreService {
         .doc('settings')
         .set({
           'preheatMinutes': preheatMinutes,
+          'coolingMinutes': coolingMinutes,
+          'usePreheat': usePreheat,
+          'useCooling': useCooling,
+          'useRoast': useRoast,
           'savedAt': FieldValue.serverTimestamp(),
         });
   }
 
-  /// 焙煎タイマー設定（予熱時間）を取得
-  static Future<int?> loadRoastTimerSettings() async {
+  /// 焙煎タイマー設定（全項目）を取得
+  static Future<Map<String, dynamic>?> loadRoastTimerSettings() async {
     if (_uid == null) throw Exception('未ログイン');
     final doc = await _firestore
         .collection('users')
@@ -34,7 +42,7 @@ class RoastTimerSettingsFirestoreService {
         .get();
     if (!doc.exists) return null;
     final data = doc.data();
-    if (data == null || data['preheatMinutes'] == null) return null;
-    return data['preheatMinutes'] as int;
+    if (data == null) return null;
+    return data;
   }
 }

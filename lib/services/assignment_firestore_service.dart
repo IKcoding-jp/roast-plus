@@ -46,6 +46,8 @@ class AssignmentFirestoreService {
   static Future<void> saveAssignmentHistory({
     required String dateKey,
     required List<String> assignments,
+    required List<String> leftLabels,
+    required List<String> rightLabels,
   }) async {
     if (_uid == null) throw Exception('未ログイン');
     await _firestore
@@ -55,6 +57,8 @@ class AssignmentFirestoreService {
         .doc(dateKey)
         .set({
           'assignments': assignments,
+          'leftLabels': leftLabels,
+          'rightLabels': rightLabels,
           'savedAt': FieldValue.serverTimestamp(),
         });
   }
@@ -74,6 +78,33 @@ class AssignmentFirestoreService {
     return List<String>.from(data['assignments']);
   }
 
+  /// 担当履歴とラベル情報を取得
+  static Future<Map<String, dynamic>?> loadAssignmentHistoryWithLabels(
+    String dateKey,
+  ) async {
+    if (_uid == null) throw Exception('未ログイン');
+    final doc = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('assignmentHistory')
+        .doc(dateKey)
+        .get();
+    if (!doc.exists) return null;
+    final data = doc.data();
+    if (data == null) return null;
+    return {
+      'assignments': data['assignments'] != null
+          ? List<String>.from(data['assignments'])
+          : [],
+      'leftLabels': data['leftLabels'] != null
+          ? List<String>.from(data['leftLabels'])
+          : [],
+      'rightLabels': data['rightLabels'] != null
+          ? List<String>.from(data['rightLabels'])
+          : [],
+    };
+  }
+
   /// 担当履歴を削除
   static Future<void> deleteAssignmentHistory(String dateKey) async {
     if (_uid == null) throw Exception('未ログイン');
@@ -83,5 +114,24 @@ class AssignmentFirestoreService {
         .collection('assignmentHistory')
         .doc(dateKey)
         .delete();
+  }
+
+  /// 担当履歴を全件取得
+  static Future<Map<String, List<String>>> loadAllAssignmentHistory() async {
+    if (_uid == null) throw Exception('未ログイン');
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('assignmentHistory')
+        .orderBy('savedAt', descending: true)
+        .get();
+    final result = <String, List<String>>{};
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      if (data['assignments'] != null) {
+        result[doc.id] = List<String>.from(data['assignments']);
+      }
+    }
+    return result;
   }
 }

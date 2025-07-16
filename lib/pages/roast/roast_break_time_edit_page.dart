@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/roast_break_time.dart';
 import '../../services/roast_break_time_firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 class RoastBreakTimeEditPage extends StatefulWidget {
   final List<RoastBreakTime> breakTimes;
@@ -30,6 +31,54 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
   void initState() {
     super.initState();
     _breakTimes = List.from(widget.breakTimes);
+    _loadBreakTimesFromFirestore();
+    _startBreakTimesListener();
+  }
+
+  Future<void> _loadBreakTimesFromFirestore() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('roastBreakTimes')
+        .doc('settings')
+        .get();
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data()!;
+      if (data['breakTimes'] != null) {
+        setState(() {
+          _breakTimes = List<Map<String, dynamic>>.from(
+            data['breakTimes'],
+          ).map((e) => RoastBreakTime.fromJson(e)).toList();
+        });
+      }
+    }
+  }
+
+  StreamSubscription? _breakTimesSubscription;
+  void _startBreakTimesListener() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    _breakTimesSubscription?.cancel();
+    _breakTimesSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('roastBreakTimes')
+        .doc('settings')
+        .snapshots()
+        .listen((doc) {
+          if (doc.exists && doc.data() != null) {
+            final data = doc.data()!;
+            if (data['breakTimes'] != null) {
+              setState(() {
+                _breakTimes = List<Map<String, dynamic>>.from(
+                  data['breakTimes'],
+                ).map((e) => RoastBreakTime.fromJson(e)).toList();
+              });
+            }
+          }
+        });
   }
 
   @override
@@ -38,6 +87,7 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
     _startMinuteController.dispose();
     _endHourController.dispose();
     _endMinuteController.dispose();
+    _breakTimesSubscription?.cancel();
     super.dispose();
   }
 
@@ -126,7 +176,10 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
                 Expanded(
                   child: TextField(
                     controller: _startHourController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: false,
+                      signed: false,
+                    ),
                     style: TextStyle(
                       color: Provider.of<ThemeSettings>(context).fontColor1,
                     ),
@@ -151,7 +204,10 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
                 Expanded(
                   child: TextField(
                     controller: _startMinuteController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: false,
+                      signed: false,
+                    ),
                     style: TextStyle(
                       color: Provider.of<ThemeSettings>(context).fontColor1,
                     ),
@@ -173,7 +229,10 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
                 Expanded(
                   child: TextField(
                     controller: _endHourController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: false,
+                      signed: false,
+                    ),
                     style: TextStyle(
                       color: Provider.of<ThemeSettings>(context).fontColor1,
                     ),
@@ -198,7 +257,10 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
                 Expanded(
                   child: TextField(
                     controller: _endMinuteController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: false,
+                      signed: false,
+                    ),
                     style: TextStyle(
                       color: Provider.of<ThemeSettings>(context).fontColor1,
                     ),
@@ -508,7 +570,10 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
             Expanded(
               child: TextField(
                 controller: hourController,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.numberWithOptions(
+                  decimal: false,
+                  signed: false,
+                ),
                 style: TextStyle(
                   fontSize: fontSize,
                   color: Provider.of<ThemeSettings>(context).fontColor1,
@@ -546,7 +611,10 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
             Expanded(
               child: TextField(
                 controller: minuteController,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.numberWithOptions(
+                  decimal: false,
+                  signed: false,
+                ),
                 style: TextStyle(
                   fontSize: fontSize,
                   color: Provider.of<ThemeSettings>(context).fontColor1,

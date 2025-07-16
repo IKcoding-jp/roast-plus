@@ -54,4 +54,38 @@ class DripCounterFirestoreService {
     if (data == null || data['records'] == null) return [];
     return List<Map<String, dynamic>>.from(data['records']);
   }
+
+  /// 指定した日付に追加されたドリップパック記録のみを取得
+  static Future<List<Map<String, dynamic>>> loadDripPackRecordsAddedOnDate({
+    required DateTime date,
+  }) async {
+    if (_uid == null) throw Exception('未ログイン');
+    
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(Duration(days: 1));
+    
+    final dateId =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    
+    final doc = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('dripPackRecords')
+        .doc(dateId)
+        .get();
+    
+    if (!doc.exists) return [];
+    final data = doc.data();
+    if (data == null || data['records'] == null) return [];
+    
+    final allRecords = List<Map<String, dynamic>>.from(data['records']);
+    
+    // 指定した日付に追加された記録のみをフィルタリング
+    return allRecords.where((record) {
+      final recordTimestamp = DateTime.tryParse(record['timestamp'] ?? '');
+      if (recordTimestamp == null) return false;
+      
+      return recordTimestamp.isAfter(startOfDay) && recordTimestamp.isBefore(endOfDay);
+    }).toList();
+  }
 }

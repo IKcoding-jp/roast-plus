@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../services/todayschedule_firestore_service.dart';
+import '../../services/group_data_sync_service.dart';
+import '../../models/group_provider.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../services/schedule_firestore_service.dart' as ScheduleService;
 
 class ScheduleTimeLabelEditPage extends StatefulWidget {
   final List<String> labels;
@@ -79,7 +81,10 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
             Expanded(
               child: TextField(
                 controller: _hourController,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.numberWithOptions(
+                  decimal: false,
+                  signed: false,
+                ),
                 style: TextStyle(
                   color: Provider.of<ThemeSettings>(context).fontColor1,
                 ),
@@ -103,7 +108,10 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
             Expanded(
               child: TextField(
                 controller: _minuteController,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.numberWithOptions(
+                  decimal: false,
+                  signed: false,
+                ),
                 style: TextStyle(
                   color: Provider.of<ThemeSettings>(context).fontColor1,
                 ),
@@ -163,6 +171,24 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
     });
   }
 
+  // グループ同期を実行
+  Future<void> _triggerGroupSync() async {
+    try {
+      print('ScheduleTimeLabelEditPage: グループ同期を開始');
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+        await GroupDataSyncService.syncTimeLabels(group.id, {
+          'labels': _labels,
+          'savedAt': DateTime.now().toIso8601String(),
+        });
+        print('ScheduleTimeLabelEditPage: グループ同期完了');
+      }
+    } catch (e) {
+      print('ScheduleTimeLabelEditPage: グループ同期エラー: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -189,8 +215,15 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
             onPressed: () async {
               widget.onLabelsChanged(_labels);
               try {
-                await ScheduleFirestoreService.saveTimeLabels(_labels);
-              } catch (_) {}
+                // Firestoreにも必ず保存
+                await ScheduleService.ScheduleFirestoreService.saveTimeLabels(
+                  _labels,
+                );
+                // グループ同期を実行
+                await _triggerGroupSync();
+              } catch (e) {
+                print('ScheduleTimeLabelEditPage: 保存エラー: $e');
+              }
               Navigator.pop(context);
             },
           ),
@@ -223,7 +256,10 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                       Expanded(
                         child: TextField(
                           controller: _hourController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: false,
+                            signed: false,
+                          ),
                           style: TextStyle(
                             fontSize: 16,
                             color: Provider.of<ThemeSettings>(
@@ -290,7 +326,10 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                       Expanded(
                         child: TextField(
                           controller: _minuteController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: false,
+                            signed: false,
+                          ),
                           style: TextStyle(
                             fontSize: 16,
                             color: Provider.of<ThemeSettings>(

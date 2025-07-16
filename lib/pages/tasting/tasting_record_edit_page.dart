@@ -1,0 +1,646 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/tasting_models.dart';
+import '../../models/theme_settings.dart';
+import 'package:intl/intl.dart';
+
+class TastingRecordEditPage extends StatefulWidget {
+  final TastingRecord? tastingRecord;
+
+  const TastingRecordEditPage({super.key, this.tastingRecord});
+
+  @override
+  State<TastingRecordEditPage> createState() => _TastingRecordEditPageState();
+}
+
+class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _beanNameController = TextEditingController();
+  final TextEditingController _overallImpressionController =
+      TextEditingController();
+
+  DateTime _selectedDate = DateTime.now();
+  double _acidity = 3.0;
+  double _bitterness = 3.0;
+  double _aroma = 3.0;
+  double _overallRating = 3.0;
+
+  bool _isEditing = false;
+  bool _isDuplicate = false;
+  List<TastingRecord> _existingTastings = [];
+
+  final List<String> _roastLevels = ['浅煎り', '中煎り', '中深煎り', '深煎り'];
+  String _selectedRoastLevel = '中深煎り';
+
+  @override
+  void initState() {
+    super.initState();
+    _beanNameController.addListener(_checkDuplicate);
+
+    if (widget.tastingRecord != null) {
+      _loadTastingRecord(widget.tastingRecord!);
+      _isEditing = true;
+    }
+  }
+
+  void _loadTastingRecord(TastingRecord tastingRecord) {
+    _beanNameController.text = tastingRecord.beanName;
+    // 既存データの「深入り」を「深煎り」に変換
+    String roastLevel = tastingRecord.roastLevel;
+    if (roastLevel == '深入り') {
+      roastLevel = '深煎り';
+    }
+    // 有効な選択肢に含まれていない場合はデフォルト値を使用
+    if (!_roastLevels.contains(roastLevel)) {
+      roastLevel = '中深煎り';
+    }
+    _selectedRoastLevel = roastLevel;
+    _overallImpressionController.text = tastingRecord.overallImpression;
+    _selectedDate = tastingRecord.tastingDate;
+    _acidity = tastingRecord.acidity;
+    _bitterness = tastingRecord.bitterness;
+    _aroma = tastingRecord.aroma;
+    _overallRating = tastingRecord.overallRating;
+  }
+
+  @override
+  void dispose() {
+    _beanNameController.removeListener(_checkDuplicate);
+    _beanNameController.dispose();
+    _overallImpressionController.dispose();
+    super.dispose();
+  }
+
+  void _checkDuplicate() {
+    final beanName = _beanNameController.text.trim();
+    final roastLevel = _selectedRoastLevel;
+
+    if (beanName.isNotEmpty && roastLevel.isNotEmpty) {
+      final tastingProvider = context.read<TastingProvider>();
+      final isDuplicate = tastingProvider.isDuplicateTasting(
+        beanName,
+        roastLevel,
+      );
+      final existingTastings = tastingProvider.getExistingTastings(
+        beanName,
+        roastLevel,
+      );
+
+      setState(() {
+        _isDuplicate = isDuplicate;
+        _existingTastings = existingTastings;
+      });
+    } else {
+      setState(() {
+        _isDuplicate = false;
+        _existingTastings = [];
+      });
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(Duration(days: 1)),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  void _showHelpDialog(BuildContext context) {
+    final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          '各項目の説明',
+          style: TextStyle(
+            color: themeSettings.fontColor1,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildHelpItem(
+                '豆の名前',
+                '試飲したコーヒー豆の名前を入力してください。\n例: エチオピア シダモ、グアテマラ アンティグア',
+                themeSettings,
+              ),
+              _buildHelpItem(
+                '焙煎度合い',
+                '豆の焙煎の深さを表します。\n• 浅煎り: ライトロースト、シナモンロースト\n• 中煎り: ミディアムロースト、ハイロースト\n• 深煎り: シティロースト、フルシティロースト',
+                themeSettings,
+              ),
+              _buildHelpItem(
+                '酸味',
+                'コーヒーの酸っぱさの強さです。\n• 弱い: 酸味をほとんど感じない\n• 強い: レモンやオレンジのような爽やかな酸味',
+                themeSettings,
+              ),
+              _buildHelpItem(
+                '苦味',
+                'コーヒーの苦さの強さです。\n• 弱い: 苦味をほとんど感じない\n• 強い: ダークチョコレートのような強い苦味',
+                themeSettings,
+              ),
+              _buildHelpItem(
+                '香り',
+                'コーヒーの香りの強さです。\n• 弱い: 香りをほとんど感じない\n• 強い: 花やフルーツのような豊かな香り',
+                themeSettings,
+              ),
+              _buildHelpItem(
+                'おいしさ',
+                'コーヒー全体の満足度を評価します。\n• 低い: あまり好ましくない\n• 高い: 非常に満足できる',
+                themeSettings,
+              ),
+              _buildHelpItem(
+                '全体的な印象',
+                'コーヒー全体のバランスや飲みやすさについて記録します。\n例: バランスが良く飲みやすい、酸味が効いて爽やか',
+                themeSettings,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('閉じる'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHelpItem(
+    String title,
+    String description,
+    ThemeSettings themeSettings,
+  ) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: themeSettings.fontColor1,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 14,
+              color: themeSettings.fontColor1.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingSlider(
+    String label,
+    double value,
+    ValueChanged<double> onChanged,
+  ) {
+    final themeSettings = Provider.of<ThemeSettings>(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: themeSettings.fontColor1,
+              ),
+            ),
+            Text(
+              value.toStringAsFixed(1),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: themeSettings.fontColor1,
+              ),
+            ),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: 1.0,
+          max: 5.0,
+          divisions: 8,
+          activeColor: themeSettings.buttonColor,
+          inactiveColor: themeSettings.fontColor1.withOpacity(0.3),
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Color _getRatingColor(double rating) {
+    if (rating >= 4.0) return Colors.green;
+    if (rating >= 3.0) return Colors.blue;
+    if (rating >= 2.0) return Colors.orange;
+    return Colors.grey;
+  }
+
+  Future<void> _saveTastingRecord() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final tastingProvider = context.read<TastingProvider>();
+    final beanName = _beanNameController.text.trim();
+    final roastLevel = _selectedRoastLevel;
+
+    // 新規作成時のみ重複チェック
+    if (!_isEditing) {
+      if (tastingProvider.isDuplicateTasting(beanName, roastLevel)) {
+        final existingTastings = tastingProvider.getExistingTastings(
+          beanName,
+          roastLevel,
+        );
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('重複確認'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('同じ豆の種類と焙煎度合いの組み合わせが既に存在します：'),
+                SizedBox(height: 8),
+                Text('豆の名前: $beanName'),
+                Text('焙煎度合い: $roastLevel'),
+                SizedBox(height: 8),
+                Text('既存の記録数: ${existingTastings.length}件'),
+                SizedBox(height: 16),
+                Text('この組み合わせで新しく記録を作成しますか？'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('キャンセル'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('作成する'),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed != true) {
+          return;
+        }
+      }
+    }
+
+    final now = DateTime.now();
+
+    final tastingRecord = TastingRecord(
+      id: widget.tastingRecord?.id ?? '',
+      beanName: _beanNameController.text.trim(),
+      tastingDate: _selectedDate,
+      roastLevel: _selectedRoastLevel,
+      acidity: _acidity,
+      bitterness: _bitterness,
+      aroma: _aroma,
+      overallRating: _overallRating,
+      overallImpression: _overallImpressionController.text.trim(),
+      createdAt: widget.tastingRecord?.createdAt ?? now,
+      updatedAt: now,
+      userId: widget.tastingRecord?.userId ?? 'local_user',
+    );
+
+    try {
+      if (_isEditing) {
+        await tastingProvider.updateTastingRecord(tastingRecord);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('試飲感想記録を更新しました')));
+      } else {
+        await tastingProvider.addTastingRecord(tastingRecord);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('試飲感想記録を保存しました')));
+      }
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('保存に失敗しました')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final themeSettings = Provider.of<ThemeSettings>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isEditing ? '試飲感想を編集' : '試飲感想を記録'),
+        backgroundColor: themeSettings.appBarColor,
+        foregroundColor: themeSettings.appBarTextColor,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.help_outline),
+            onPressed: () => _showHelpDialog(context),
+          ),
+          if (_isEditing)
+            IconButton(
+              icon: Icon(Icons.delete),
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('削除確認'),
+                    content: Text('この試飲感想記録を削除しますか？'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text('キャンセル'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text('削除'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true) {
+                  try {
+                    await context.read<TastingProvider>().deleteTastingRecord(
+                      widget.tastingRecord!.id,
+                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('削除しました')));
+                    Navigator.pop(context);
+                  } catch (e) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('削除に失敗しました')));
+                  }
+                }
+              },
+            ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 基本情報セクション
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '基本情報',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: themeSettings.fontColor1,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: _beanNameController,
+                        decoration: InputDecoration(
+                          labelText: '豆の名前 *',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return '豆の名前を入力してください';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedRoastLevel,
+                        decoration: InputDecoration(
+                          labelText: '焙煎度合い *',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _roastLevels.map((String level) {
+                          return DropdownMenuItem<String>(
+                            value: level,
+                            child: Text(level),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedRoastLevel = newValue!;
+                          });
+                          _checkDuplicate();
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return '焙煎度合いを選択してください';
+                          }
+                          return null;
+                        },
+                      ),
+                      // 重複警告表示
+                      if (_isDuplicate && !_isEditing) ...[
+                        SizedBox(height: 8),
+                        Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            border: Border.all(color: Colors.orange),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning,
+                                    color: Colors.orange,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '重複警告',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                '同じ豆の種類と焙煎度合いの組み合わせが既に存在します。',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: themeSettings.fontColor1,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                '既存の記録数: ${_existingTastings.length}件',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: themeSettings.fontColor1.withOpacity(
+                                    0.7,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: 16),
+                      InkWell(
+                        onTap: () => _selectDate(context),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: '試飲日 *',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                DateFormat('yyyy/MM/dd').format(_selectedDate),
+                                style: TextStyle(
+                                  color: themeSettings.fontColor1,
+                                ),
+                              ),
+                              Icon(Icons.calendar_today),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              // 評価セクション
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '評価 (1-5段階)',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: themeSettings.fontColor1,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      _buildRatingSlider('酸味', _acidity, (value) {
+                        setState(() {
+                          _acidity = value;
+                        });
+                      }),
+                      _buildRatingSlider('苦味', _bitterness, (value) {
+                        setState(() {
+                          _bitterness = value;
+                        });
+                      }),
+                      _buildRatingSlider('香り', _aroma, (value) {
+                        setState(() {
+                          _aroma = value;
+                        });
+                      }),
+                      _buildRatingSlider('おいしさ', _overallRating, (value) {
+                        setState(() {
+                          _overallRating = value;
+                        });
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              // 感想セクション
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '感想',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: themeSettings.fontColor1,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: _overallImpressionController,
+                        decoration: InputDecoration(
+                          labelText: '全体的な印象',
+                          border: OutlineInputBorder(),
+                          hintText: '例: バランスが良く、飲みやすい',
+                        ),
+                        maxLines: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 32),
+              // 保存ボタン
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saveTastingRecord,
+                  child: Text(_isEditing ? '更新' : '保存'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
