@@ -1,0 +1,597 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/group_provider.dart';
+import '../../models/group_models.dart';
+import '../../models/theme_settings.dart';
+import '../../settings/account_info_page.dart';
+import 'group_create_page.dart';
+import 'group_detail_page.dart';
+import 'group_invitations_page.dart';
+
+class GroupListPage extends StatefulWidget {
+  const GroupListPage({super.key});
+
+  @override
+  State<GroupListPage> createState() => _GroupListPageState();
+}
+
+class _GroupListPageState extends State<GroupListPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final groupProvider = context.read<GroupProvider>();
+      await groupProvider.refresh();
+      // 統計情報も読み込む
+      await groupProvider.loadAllGroupStatistics();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // ページが表示されるたびに最新の情報を取得
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        await groupProvider.loadUserGroups();
+        await groupProvider.loadAllGroupStatistics();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final themeSettings = Provider.of<ThemeSettings>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'グループ管理',
+          style: TextStyle(
+            color: themeSettings.appBarTextColor,
+            fontSize: 20 * themeSettings.fontSizeScale,
+            fontWeight: FontWeight.bold,
+            fontFamily: themeSettings.fontFamily,
+          ),
+        ),
+        backgroundColor: themeSettings.appBarColor,
+        iconTheme: IconThemeData(color: themeSettings.iconColor),
+        actions: [],
+      ),
+      body: Consumer<GroupProvider>(
+        builder: (context, groupProvider, child) {
+          if (groupProvider.loading) {
+            return Center(
+              child: CircularProgressIndicator(color: themeSettings.iconColor),
+            );
+          }
+
+          if (groupProvider.error != null) {
+            final isLoginError = groupProvider.error!.contains('ログインすることで');
+
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isLoginError ? Icons.account_circle : Icons.error_outline,
+                    size: 64,
+                    color: themeSettings.iconColor,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    isLoginError ? 'ログインが必要です' : 'エラーが発生しました',
+                    style: TextStyle(
+                      color: themeSettings.fontColor1,
+                      fontSize: 18 * themeSettings.fontSizeScale,
+                      fontFamily: themeSettings.fontFamily,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    groupProvider.error!,
+                    style: TextStyle(
+                      color: themeSettings.fontColor1,
+                      fontSize: 14 * themeSettings.fontSizeScale,
+                      fontFamily: themeSettings.fontFamily,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16),
+                  if (isLoginError)
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AccountInfoPage(),
+                          ),
+                        );
+                      },
+                      icon: Image.asset('assets/google_logo.png', height: 20),
+                      label: Text('Googleでログイン'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: themeSettings.fontColor1,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: themeSettings.fontColor1,
+                            width: 1,
+                          ),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                    )
+                  else
+                    ElevatedButton(
+                      onPressed: () {
+                        groupProvider.clearError();
+                        groupProvider.refresh();
+                      },
+                      child: Text('再試行'),
+                    ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              await groupProvider.refresh();
+              await groupProvider.loadAllGroupStatistics();
+            },
+            child: CustomScrollView(
+              slivers: [
+                // 招待通知
+                if (groupProvider.invitations.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Container(
+                      margin: EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.mail_outline,
+                            color: Colors.orange,
+                            size: 24,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '新しい招待があります',
+                                  style: TextStyle(
+                                    color: themeSettings.fontColor1,
+                                    fontSize: 16 * themeSettings.fontSizeScale,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: themeSettings.fontFamily,
+                                  ),
+                                ),
+                                Text(
+                                  '${groupProvider.invitations.length}件の招待を確認してください',
+                                  style: TextStyle(
+                                    color: themeSettings.fontColor1,
+                                    fontSize: 14 * themeSettings.fontSizeScale,
+                                    fontFamily: themeSettings.fontFamily,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => GroupInvitationsPage(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              '確認',
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // グループ一覧
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final group = groupProvider.groups[index];
+                    final isLeader = groupProvider.isCurrentUserLeader(
+                      group.id,
+                    );
+                    final statistics = groupProvider.getGroupStatistics(
+                      group.id,
+                    );
+
+                    print(
+                      'GroupListPage: グループリスト表示 - インデックス: $index, グループ名: ${group.name}',
+                    );
+                    print('GroupListPage: グループ画像URL: ${group.imageUrl}');
+
+                    return Card(
+                      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      color: themeSettings.backgroundColor2 ?? Colors.white,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.all(16),
+                        // leading: グループアイコン部分を削除
+                        title: Text(
+                          group.name,
+                          style: TextStyle(
+                            color: themeSettings.fontColor1,
+                            fontSize: 18 * themeSettings.fontSizeScale,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 4),
+                            Text(
+                              group.description,
+                              style: TextStyle(
+                                color: themeSettings.fontColor1,
+                                fontSize: 14 * themeSettings.fontSizeScale,
+                                fontFamily: themeSettings.fontFamily,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+
+                            // メンバー情報
+                            Row(
+                              children: [
+                                // メンバーアバター（最大4人）
+                                ...group.members
+                                    .take(4)
+                                    .map(
+                                      (member) => Container(
+                                        margin: EdgeInsets.only(right: 4),
+                                        child: CircleAvatar(
+                                          radius: 12,
+                                          backgroundColor:
+                                              member.role == GroupRole.leader
+                                              ? Colors.orange
+                                              : themeSettings.iconColor,
+                                          child: member.photoUrl != null
+                                              ? ClipOval(
+                                                  child: Image.network(
+                                                    member.photoUrl!,
+                                                    width: 24,
+                                                    height: 24,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (
+                                                          context,
+                                                          error,
+                                                          stackTrace,
+                                                        ) {
+                                                          return Icon(
+                                                            member.role ==
+                                                                    GroupRole
+                                                                        .leader
+                                                                ? Icons.star
+                                                                : Icons.person,
+                                                            color: Colors.white,
+                                                            size: 14,
+                                                          );
+                                                        },
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  member.role ==
+                                                          GroupRole.leader
+                                                      ? Icons.star
+                                                      : Icons.person,
+                                                  color: Colors.white,
+                                                  size: 14,
+                                                ),
+                                        ),
+                                      ),
+                                    ),
+
+                                // 残りのメンバー数
+                                if (group.members.length > 4)
+                                  Container(
+                                    margin: EdgeInsets.only(right: 8),
+                                    child: Text(
+                                      '+${group.members.length - 4}',
+                                      style: TextStyle(
+                                        color: themeSettings.fontColor1,
+                                        fontSize:
+                                            10 * themeSettings.fontSizeScale,
+                                        fontFamily: themeSettings.fontFamily,
+                                      ),
+                                    ),
+                                  ),
+
+                                // 役割分布
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: themeSettings.iconColor.withOpacity(
+                                      0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'リーダー${group.members.where((m) => m.role == GroupRole.leader).length}人・メンバー${group.members.where((m) => m.role == GroupRole.member).length}人',
+                                    style: TextStyle(
+                                      color: themeSettings.fontColor1,
+                                      fontSize:
+                                          10 * themeSettings.fontSizeScale,
+                                      fontFamily: themeSettings.fontFamily,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(height: 8),
+
+                            // 統計情報
+                            Row(
+                              children: [
+                                // 今日の焙煎記録数
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.coffee,
+                                        size: 12,
+                                        color: Colors.green,
+                                      ),
+                                      SizedBox(width: 2),
+                                      Text(
+                                        '今日: ${statistics?['todayRoastCount'] ?? 0}回',
+                                        style: TextStyle(
+                                          color: Colors.green[700],
+                                          fontSize:
+                                              10 * themeSettings.fontSizeScale,
+                                          fontFamily: themeSettings.fontFamily,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                SizedBox(width: 8),
+
+                                // 今週の活動回数
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.trending_up,
+                                        size: 12,
+                                        color: Colors.blue,
+                                      ),
+                                      SizedBox(width: 2),
+                                      Text(
+                                        '今週: ${statistics?['thisWeekActivityCount'] ?? 0}回',
+                                        style: TextStyle(
+                                          color: Colors.blue[700],
+                                          fontSize:
+                                              10 * themeSettings.fontSizeScale,
+                                          fontFamily: themeSettings.fontFamily,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                SizedBox(width: 8),
+
+                                // 総焙煎時間
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.timer,
+                                        size: 12,
+                                        color: Colors.orange,
+                                      ),
+                                      SizedBox(width: 2),
+                                      Text(
+                                        '総時間: ${(statistics?['totalRoastTime'] ?? 0.0).toStringAsFixed(1)}h',
+                                        style: TextStyle(
+                                          color: Colors.orange[700],
+                                          fontSize:
+                                              10 * themeSettings.fontSizeScale,
+                                          fontFamily: themeSettings.fontFamily,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          color: themeSettings.iconColor,
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  GroupDetailPage(group: group),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  }, childCount: groupProvider.groups.length),
+                ),
+
+                // グループがない場合のメッセージ
+                if (groupProvider.groups.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.group_outlined,
+                            size: 64,
+                            color: themeSettings.iconColor,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'グループがありません',
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize: 18 * themeSettings.fontSizeScale,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '新しいグループを作成するか、\n招待を受けてグループに参加しましょう',
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize: 14 * themeSettings.fontSizeScale,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => GroupCreatePage()),
+          );
+        },
+        backgroundColor: themeSettings.buttonColor,
+        foregroundColor: themeSettings.fontColor2,
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _getGroupIcon(Group group, bool isLeader) {
+    print('GroupListPage: グループアイコン表示 - グループ名: ${group.name}');
+    print('GroupListPage: 画像URL: ${group.imageUrl}');
+    print('GroupListPage: アイコン名: ${group.iconName}');
+
+    // 画像URLがある場合は画像を表示
+    if (group.imageUrl != null && group.imageUrl!.isNotEmpty) {
+      print('GroupListPage: 画像を表示します: ${group.imageUrl}');
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(7),
+          child: Image.network(
+            '${group.imageUrl}?t=${DateTime.now().millisecondsSinceEpoch}',
+            fit: BoxFit.cover,
+            width: 40,
+            height: 40,
+            cacheWidth: 80, // キャッシュサイズを指定
+            cacheHeight: 80,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                color: Colors.grey.shade100,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                        : null,
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              print('GroupListPage: 画像読み込みエラー: $error');
+              return _getIconWidget(group.iconName, isLeader);
+            },
+          ),
+        ),
+      );
+    }
+
+    // 画像URLがない場合はアイコンを表示
+    print('GroupListPage: アイコンを表示します: ${group.iconName}');
+    return _getIconWidget(group.iconName, isLeader);
+  }
+
+  Widget _getIconWidget(String? iconName, bool isLeader) {
+    // リーダーの場合はスターアイコン、メンバーの場合はグループアイコンを表示
+    IconData iconData = isLeader ? Icons.star : Icons.group;
+    return Icon(iconData, color: Colors.white);
+  }
+}
