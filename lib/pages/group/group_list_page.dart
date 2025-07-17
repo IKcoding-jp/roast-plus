@@ -274,7 +274,8 @@ class _GroupListPageState extends State<GroupListPage> {
                                         child: CircleAvatar(
                                           radius: 12,
                                           backgroundColor:
-                                              member.role == GroupRole.leader
+                                              member.role == GroupRole.leader ||
+                                                  member.role == GroupRole.admin
                                               ? Colors.orange
                                               : themeSettings.iconColor,
                                           child: member.photoUrl != null
@@ -342,7 +343,7 @@ class _GroupListPageState extends State<GroupListPage> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    'リーダー${group.members.where((m) => m.role == GroupRole.leader).length}人・メンバー${group.members.where((m) => m.role == GroupRole.member).length}人',
+                                    '管理者${group.members.where((m) => m.role == GroupRole.admin).length}人・リーダー${group.members.where((m) => m.role == GroupRole.leader).length}人・メンバー${group.members.where((m) => m.role == GroupRole.member).length}人',
                                     style: TextStyle(
                                       color: themeSettings.fontColor1,
                                       fontSize:

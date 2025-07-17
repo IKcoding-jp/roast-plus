@@ -260,15 +260,39 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
       'roast_records': '焙煎記録一覧',
       'drip_counter_records': 'ドリップカウンター',
       'assignment_board': '担当表',
-      'today_assignment': '今日の担当履歴',
       'assignment_history': '担当履歴',
       'today_schedule': '本日のスケジュール',
+      'work_progress': '作業状況記録',
+      'tasting_record': '試飲感想記録',
+      'drip_pack_counter': 'ドリップパックカウンター記録一覧',
+      'bean_sticker_settings': '丸シール設定',
     };
+
+    // DataPermissionの順序を右からadminOnly, leaderOnly, memberOnlyに固定
+    final permissionOrder = [
+      DataPermission.adminOnly,
+      DataPermission.leaderOnly,
+      DataPermission.memberOnly,
+    ];
 
     return dataTypes.entries.map((entry) {
       final dataType = entry.key;
       final displayName = entry.value;
       final currentPermission = _settings!.getPermissionForDataType(dataType);
+
+      // 選択状態を配列で表現
+      List<bool> selected = [false, false, false];
+      switch (currentPermission) {
+        case DataPermission.adminOnly:
+          selected = [true, false, false];
+          break;
+        case DataPermission.leaderOnly:
+          selected = [true, true, false];
+          break;
+        case DataPermission.memberOnly:
+          selected = [true, true, true];
+          break;
+      }
 
       return Padding(
         padding: EdgeInsets.only(bottom: 16),
@@ -286,10 +310,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             ),
             SizedBox(height: 8),
             Row(
-              children: DataPermission.values.map((permission) {
-                final isSelected = currentPermission == permission;
+              children: List.generate(permissionOrder.length, (i) {
+                final permission = permissionOrder[i];
                 final label = _getPermissionLabel(permission);
                 final color = _getPermissionColor(permission);
+                final isSelected = selected[i];
 
                 return Expanded(
                   child: Padding(
@@ -326,7 +351,29 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     ),
                   ),
                 );
-              }).toList(),
+              }),
+            ),
+            SizedBox(height: 6),
+            // 選択状態に応じた説明文を表示
+            Builder(
+              builder: (_) {
+                String desc = '';
+                if (currentPermission == DataPermission.adminOnly) {
+                  desc = '管理者のみ追加・削除・編集できます';
+                } else if (currentPermission == DataPermission.leaderOnly) {
+                  desc = '管理者・リーダーが追加・削除・編集できます';
+                } else if (currentPermission == DataPermission.memberOnly) {
+                  desc = '管理者・リーダー・メンバー全員が追加・削除・編集できます';
+                }
+                return Text(
+                  desc,
+                  style: TextStyle(
+                    color: themeSettings.fontColor1.withOpacity(0.7),
+                    fontSize: 12 * themeSettings.fontSizeScale,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -422,23 +469,23 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
   String _getPermissionLabel(DataPermission permission) {
     switch (permission) {
+      case DataPermission.adminOnly:
+        return '管理者';
       case DataPermission.leaderOnly:
-        return 'リーダーのみ';
-      case DataPermission.allMembers:
-        return '全メンバー';
-      case DataPermission.readOnly:
-        return '閲覧のみ';
+        return 'リーダー';
+      case DataPermission.memberOnly:
+        return 'メンバー';
     }
   }
 
   Color _getPermissionColor(DataPermission permission) {
     switch (permission) {
+      case DataPermission.adminOnly:
+        return Colors.red; // 管理者のみは赤
       case DataPermission.leaderOnly:
-        return Colors.orange;
-      case DataPermission.allMembers:
-        return Colors.green;
-      case DataPermission.readOnly:
-        return Colors.grey;
+        return Colors.orange; // リーダーのみはオレンジ
+      case DataPermission.memberOnly:
+        return Colors.green; // メンバーも編集可は緑
     }
   }
 }

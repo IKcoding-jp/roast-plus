@@ -2,15 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// グループの権限レベル
 enum GroupRole {
+  admin, // 管理者（全権限）
   leader, // リーダー（編集・追加可能）
   member, // メンバー（閲覧のみ）
 }
 
 /// データタイプの権限設定
 enum DataPermission {
+  adminOnly, // 管理者のみ編集可能
   leaderOnly, // リーダーのみ編集可能
-  allMembers, // 全メンバーが編集可能
-  readOnly, // 閲覧のみ
+  memberOnly, // メンバーも編集可能
 }
 
 /// グループ設定
@@ -81,18 +82,18 @@ class GroupSettings {
     return GroupSettings(
       dataPermissions: {
         'roast_records': DataPermission.leaderOnly,
-        'todo_list': DataPermission.allMembers,
-        'drip_counter_records': DataPermission.allMembers,
+        'todo_list': DataPermission.memberOnly,
+        'drip_counter_records': DataPermission.memberOnly,
         'assignment_board': DataPermission.leaderOnly,
         'today_assignment': DataPermission.leaderOnly,
         'assignment_history': DataPermission.leaderOnly,
-        'schedule': DataPermission.allMembers,
-        'today_schedule': DataPermission.leaderOnly, // リーダーのみに変更
-        'time_labels': DataPermission.leaderOnly, // リーダーのみに変更
-        'settings': DataPermission.leaderOnly,
+        'schedule': DataPermission.memberOnly,
+        'today_schedule': DataPermission.leaderOnly,
+        'time_labels': DataPermission.leaderOnly,
+        'settings': DataPermission.adminOnly,
       },
       allowMemberInvite: false,
-      allowMemberDataSync: true, // メンバーもデータ同期可能
+      allowMemberDataSync: true,
       allowMemberViewMembers: true,
       updatedAt: DateTime.now(),
     );
@@ -112,9 +113,10 @@ class GroupSettings {
     print('GroupSettings: 権限設定: $permission');
 
     final result = switch (permission) {
-      DataPermission.leaderOnly => userRole == GroupRole.leader,
-      DataPermission.allMembers => true,
-      DataPermission.readOnly => false,
+      DataPermission.adminOnly => userRole == GroupRole.admin,
+      DataPermission.leaderOnly =>
+        userRole == GroupRole.leader || userRole == GroupRole.admin,
+      DataPermission.memberOnly => true,
     };
 
     print('GroupSettings: 編集可能: $result');
@@ -274,7 +276,7 @@ class Group {
         joinedAt: DateTime.now(),
       ),
     );
-    return member.role == GroupRole.leader;
+    return member.role == GroupRole.leader || member.role == GroupRole.admin;
   }
 
   /// 指定されたユーザーがメンバーかどうかをチェック

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'group_models.dart';
 import '../services/group_firestore_service.dart';
 import '../services/group_data_sync_service.dart';
@@ -16,6 +17,7 @@ class GroupProvider extends ChangeNotifier {
   bool _isWatchingGroupData = false;
   final Map<String, Map<String, dynamic>> _groupStatistics = {};
   final GroupStatisticsService _statisticsService = GroupStatisticsService();
+  final Map<String, StreamSubscription<DocumentSnapshot>> _groupWatchers = {};
 
   // Getters
   List<Group> get groups => _groups;
@@ -445,6 +447,46 @@ class GroupProvider extends ChangeNotifier {
       groupId: groupId,
       dataType: dataType,
     );
+  }
+
+  /// Firestoreのグループドキュメントをリアルタイム監視し、変更があれば即時反映
+  void watchGroup(String groupId) {
+    if (_groupWatchers.containsKey(groupId)) return;
+    final sub = FirebaseFirestore.instance
+        .collection('groups')
+        .doc(groupId)
+        .snapshots()
+        .listen((doc) {
+          if (doc.exists) {
+            final updated = Group.fromJson(doc.data()!);
+            final idx = _groups.indexWhere((g) => g.id == groupId);
+            if (idx != -1) {
+              _groups[idx] = updated;
+            } else {
+              _groups.add(updated);
+            }
+            if (_currentGroup?.id == groupId) {
+              _currentGroup = updated;
+            }
+            notifyListeners();
+          }
+        });
+    _groupWatchers[groupId] = sub;
+  }
+
+  /// Firestoreのグループ監視を解除
+  void unwatchGroup(String groupId) {
+    _groupWatchers[groupId]?.cancel();
+    _groupWatchers.remove(groupId);
+  }
+
+  @override
+  void dispose() {
+    for (final sub in _groupWatchers.values) {
+      sub.cancel();
+    }
+    _groupWatchers.clear();
+    super.dispose();
   }
 
   // Private methods

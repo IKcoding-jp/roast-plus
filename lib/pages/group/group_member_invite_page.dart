@@ -185,7 +185,7 @@ class _GroupMemberInvitePageState extends State<GroupMemberInvitePage> {
                         '• 招待されたユーザーは7日間以内に参加を選択できます\n'
                         '• 招待されたユーザーはメンバーとして参加します\n'
                         '• メンバーはデータの閲覧のみ可能です\n'
-                        '• リーダーは後からメンバーの権限を変更できます',
+                        '• 管理者・リーダーは後からメンバーの権限を変更できます',
                         style: TextStyle(
                           color: themeSettings.fontColor1,
                           fontSize: 14 * themeSettings.fontSizeScale,

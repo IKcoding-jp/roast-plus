@@ -215,7 +215,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
               userRole ?? GroupRole.member,
             );
             // 焙煎記録の削除権限をチェック（リーダーのみ）
-            final canDeleteRoastRecords = userRole == GroupRole.leader;
+            final canDeleteRoastRecords =
+                userRole == GroupRole.leader || userRole == GroupRole.admin;
 
             print('RoastRecordListPage: 権限チェック結果:');
             print(
@@ -330,11 +331,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     } else {
       final groupSettings = groupProvider.getCurrentGroupSettings();
       if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.readOnly) {
-        message = '閲覧のみの設定のため、削除できません';
+          DataPermission.adminOnly) {
+        message = '管理者のみ削除可能です';
       } else if (groupSettings?.getPermissionForDataType('roast_records') ==
           DataPermission.leaderOnly) {
-        message = 'リーダーのみ削除可能です';
+        message = '管理者・リーダーのみ削除可能です';
       } else {
         message = '権限がありません';
       }
@@ -358,11 +359,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     if (currentGroup != null) {
       final groupSettings = groupProvider.getCurrentGroupSettings();
       if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.readOnly) {
-        message = '閲覧のみの設定のため、編集できません';
+          DataPermission.adminOnly) {
+        message = '管理者のみ編集可能です';
       } else if (groupSettings?.getPermissionForDataType('roast_records') ==
           DataPermission.leaderOnly) {
-        message = 'リーダーのみ編集可能です';
+        message = '管理者・リーダーのみ編集可能です';
       } else {
         message = '権限がありません';
       }

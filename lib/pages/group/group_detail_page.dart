@@ -8,6 +8,8 @@ import '../../services/group_data_sync_service.dart';
 import 'group_member_invite_page.dart';
 import 'group_settings_page.dart';
 import 'group_edit_page.dart';
+import 'group_leave_complete_page.dart';
+import 'group_list_page.dart';
 
 class GroupDetailPage extends StatefulWidget {
   final Group group;
@@ -20,11 +22,29 @@ class GroupDetailPage extends StatefulWidget {
 
 class _GroupDetailPageState extends State<GroupDetailPage> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GroupProvider>().watchGroup(widget.group.id);
+    });
+  }
+
+  @override
+  void dispose() {
+    context.read<GroupProvider>().unwatchGroup(widget.group.id);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
     final currentUser = FirebaseAuth.instance.currentUser;
-    final isLeader = context.read<GroupProvider>().isCurrentUserLeader(
-      widget.group.id,
+    final groupProvider = context.watch<GroupProvider>();
+    final currentGroup =
+        groupProvider.getGroupById(widget.group.id) ?? widget.group;
+    final isLeader = groupProvider.isCurrentUserLeader(widget.group.id);
+    final isAdmin = currentGroup.members.any(
+      (m) => m.uid == currentUser?.uid && m.role == GroupRole.admin,
     );
 
     return Scaffold(
@@ -125,7 +145,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                             ],
                           ),
                           SizedBox(height: 16),
-                          ...widget.group.members.map((member) {
+                          ...currentGroup.members.map((member) {
                             final isCurrentUser =
                                 currentUser?.uid == member.uid;
                             final canManage = isLeader && !isCurrentUser;
@@ -136,7 +156,9 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 vertical: 4,
                               ),
                               leading: CircleAvatar(
-                                backgroundColor: member.role == GroupRole.leader
+                                backgroundColor:
+                                    member.role == GroupRole.leader ||
+                                        member.role == GroupRole.admin
                                     ? Colors.orange
                                     : themeSettings.iconColor,
                                 child: member.photoUrl != null
@@ -150,7 +172,10 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                               (context, error, stackTrace) {
                                                 return Icon(
                                                   member.role ==
-                                                          GroupRole.leader
+                                                              GroupRole
+                                                                  .leader ||
+                                                          member.role ==
+                                                              GroupRole.admin
                                                       ? Icons.star
                                                       : Icons.person,
                                                   color: Colors.white,
@@ -159,7 +184,8 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                         ),
                                       )
                                     : Icon(
-                                        member.role == GroupRole.leader
+                                        member.role == GroupRole.leader ||
+                                                member.role == GroupRole.admin
                                             ? Icons.star
                                             : Icons.person,
                                         color: Colors.white,
@@ -205,11 +231,15 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    member.role == GroupRole.leader
+                                    member.role == GroupRole.admin
+                                        ? '管理者'
+                                        : member.role == GroupRole.leader
                                         ? 'リーダー'
                                         : 'メンバー',
                                     style: TextStyle(
-                                      color: member.role == GroupRole.leader
+                                      color: member.role == GroupRole.admin
+                                          ? Colors.red
+                                          : member.role == GroupRole.leader
                                           ? Colors.orange
                                           : themeSettings.fontColor1,
                                       fontSize:
@@ -529,7 +559,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 ),
 
                 // 脱退ボタン
-                if (!isLeader)
+                if (!isLeader || isAdmin)
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.all(16),
@@ -683,6 +713,96 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   }
 
   Future<void> _showLeaveDialog() async {
+    final groupProvider = context.read<GroupProvider>();
+    final currentGroup =
+        groupProvider.getGroupById(widget.group.id) ?? widget.group;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isAdmin = currentGroup.members.any(
+      (m) => m.uid == currentUser?.uid && m.role == GroupRole.admin,
+    );
+
+    if (isAdmin) {
+      // 管理者が脱退する場合、他のメンバーに管理者権限を譲渡するダイアログを表示
+      final candidates = currentGroup.members
+          .where((m) => m.uid != currentUser?.uid)
+          .toList();
+      if (candidates.isEmpty) {
+        // 他にメンバーがいない場合は脱退不可
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('脱退できません'),
+            content: Text('他にメンバーがいないため、管理者は脱退できません。'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+      GroupMember? selected;
+      await showDialog(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: Text('管理者権限の譲渡'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('管理者がグループを脱退する場合、残りのメンバーの中から新しい管理者を選択してください。'),
+                SizedBox(height: 16),
+                ...candidates.map(
+                  (m) => RadioListTile<GroupMember>(
+                    title: Text(m.displayName),
+                    value: m,
+                    groupValue: selected,
+                    onChanged: (val) => setState(() => selected = val),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('キャンセル'),
+              ),
+              ElevatedButton(
+                onPressed: selected == null
+                    ? null
+                    : () async {
+                        // 1. 選択したメンバーを管理者に昇格
+                        await groupProvider.changeMemberRole(
+                          groupId: widget.group.id,
+                          memberUid: selected!.uid,
+                          newRole: GroupRole.admin,
+                        );
+                        // 2. 自分を脱退
+                        final success = await groupProvider.leaveGroup(
+                          widget.group.id,
+                        );
+                        if (success && mounted) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GroupLeaveCompletePage(),
+                            ),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: Text('管理者権限を譲渡して脱退'),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+    // 通常の脱退ダイアログ
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -699,12 +819,25 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 widget.group.id,
               );
               if (success && mounted) {
-                Navigator.pop(context);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                await showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => AlertDialog(
+                    title: Text('脱退完了'),
                     content: Text('グループから脱退しました'),
-                    backgroundColor: Colors.green,
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (context) => const GroupListPage(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        child: Text('OK'),
+                      ),
+                    ],
                   ),
                 );
               }
@@ -725,6 +858,15 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     );
 
     if (success && mounted) {
+      await context.read<GroupProvider>().refresh();
+      setState(() {
+        final groupProvider = context.read<GroupProvider>();
+        final updated = groupProvider.getGroupById(widget.group.id);
+        if (updated != null) {
+          widget.group.members.clear();
+          widget.group.members.addAll(updated.members);
+        }
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${member.displayName}をリーダーに昇格しました'),
@@ -742,6 +884,15 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     );
 
     if (success && mounted) {
+      await context.read<GroupProvider>().refresh();
+      setState(() {
+        final groupProvider = context.read<GroupProvider>();
+        final updated = groupProvider.getGroupById(widget.group.id);
+        if (updated != null) {
+          widget.group.members.clear();
+          widget.group.members.addAll(updated.members);
+        }
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${member.displayName}をメンバーに降格しました'),
@@ -770,6 +921,15 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               );
 
               if (success && mounted) {
+                await context.read<GroupProvider>().refresh();
+                setState(() {
+                  final groupProvider = context.read<GroupProvider>();
+                  final updated = groupProvider.getGroupById(widget.group.id);
+                  if (updated != null) {
+                    widget.group.members.clear();
+                    widget.group.members.addAll(updated.members);
+                  }
+                });
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
