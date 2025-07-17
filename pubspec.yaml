@@ -32,6 +32,8 @@ dependencies:
   android_intent_plus: ^4.0.3
   package_info_plus: ^8.0.2
   device_info_plus: ^10.1.0
+  google_mobile_ads: ^6.0.0
+  in_app_purchase: ^3.2.3
 
 dev_dependencies:
   flutter_test:

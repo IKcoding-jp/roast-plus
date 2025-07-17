@@ -81,25 +81,11 @@ class _MemoTabState extends State<MemoTab> {
         isPinned: false,
       );
 
-      final groupProvider = context.read<GroupProvider>();
-
-      if (groupProvider.groups.isNotEmpty) {
-        // グループにメモを保存
-        print('メモ保存: グループに保存中...');
-        print('メモ保存: グループID: ${groupProvider.groups.first.id}');
-        print('メモ保存: メモ内容: ${memo.toJson()}');
-        await MemoFirestoreService.saveGroupMemo(
-          groupProvider.groups.first.id,
-          memo,
-        );
-        print('メモ保存: グループに保存完了');
-      } else {
-        // 個人のメモを保存
-        print('メモ保存: 個人に保存中...');
-        print('メモ保存: メモ内容: ${memo.toJson()}');
-        await MemoFirestoreService.saveMemo(memo);
-        print('メモ保存: 個人に保存完了');
-      }
+      // 常に個人のメモを保存
+      print('メモ保存: 個人に保存中...');
+      print('メモ保存: メモ内容:  ${memo.toJson()}');
+      await MemoFirestoreService.saveMemo(memo);
+      print('メモ保存: 個人に保存完了');
 
       _titleController.clear();
       _contentController.clear();

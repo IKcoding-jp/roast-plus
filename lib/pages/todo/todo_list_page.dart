@@ -359,35 +359,11 @@ class TodoListPageState extends State<TodoListPage>
             .map((e) => {'title': e.title, 'isDone': e.isDone, 'time': e.time})
             .toList(),
       );
-
-      // グループ同期を実行
-      await _triggerTodoGroupSync();
+      // グループ同期は行わない
     } catch (e) {
       print('TodoListPage: TODOリスト保存エラー: $e');
     }
     // ソート設定は固定のため保存不要
-  }
-
-  // TODOリストのグループ同期を実行
-  Future<void> _triggerTodoGroupSync() async {
-    try {
-      print('TodoListPage: TODOリストのグループ同期を開始');
-      final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
-        await GroupDataSyncService.syncTodoList(group.id, {
-          'todos': _todos
-              .map(
-                (e) => {'title': e.title, 'isDone': e.isDone, 'time': e.time},
-              )
-              .toList(),
-          'savedAt': DateTime.now().toIso8601String(),
-        });
-        print('TodoListPage: TODOリストのグループ同期完了');
-      }
-    } catch (e) {
-      print('TodoListPage: TODOリストのグループ同期エラー: $e');
-    }
   }
 
   void _addTodo() {

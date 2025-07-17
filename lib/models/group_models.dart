@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// グループの権限レベル
 enum GroupRole {
@@ -154,6 +155,12 @@ class GroupMember {
   }
 
   factory GroupMember.fromJson(Map<String, dynamic> json) {
+    DateTime parseDate(dynamic value) {
+      if (value is String) return DateTime.parse(value);
+      if (value is Timestamp) return value.toDate();
+      return DateTime.now();
+    }
+
     return GroupMember(
       uid: json['uid'] as String,
       email: json['email'] as String,
@@ -163,9 +170,9 @@ class GroupMember {
         (e) => e.name == json['role'],
         orElse: () => GroupRole.member,
       ),
-      joinedAt: DateTime.parse(json['joinedAt'] as String),
+      joinedAt: parseDate(json['joinedAt']),
       lastActiveAt: json['lastActiveAt'] != null
-          ? DateTime.parse(json['lastActiveAt'] as String)
+          ? parseDate(json['lastActiveAt'])
           : null,
     );
   }
@@ -233,13 +240,19 @@ class Group {
   }
 
   factory Group.fromJson(Map<String, dynamic> json) {
+    DateTime parseDate(dynamic value) {
+      if (value is String) return DateTime.parse(value);
+      if (value is Timestamp) return value.toDate();
+      return DateTime.now();
+    }
+
     return Group(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String,
       createdBy: json['createdBy'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: parseDate(json['createdAt']),
+      updatedAt: parseDate(json['updatedAt']),
       members: (json['members'] as List<dynamic>)
           .map((m) => GroupMember.fromJson(m as Map<String, dynamic>))
           .toList(),

@@ -24,6 +24,9 @@ class DripCounterPageState extends State<DripCounterPage>
   String? _selectedRoast;
   // Stateに追加
   Color _counterColor = Colors.black;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<Color?> _colorAnimation;
 
   // Firestore同期用 記録リスト
   List<Map<String, dynamic>> _records = [];
@@ -36,6 +39,23 @@ class DripCounterPageState extends State<DripCounterPage>
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
+    _colorAnimation =
+        ColorTween(
+          begin: Colors.orange.shade700,
+          end: Colors.orange.shade300,
+        ).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeInOut,
+          ),
+        );
     _loadDripRecordsFromFirestore();
     _startDripRecordsListener();
   }
@@ -93,6 +113,7 @@ class DripCounterPageState extends State<DripCounterPage>
   @override
   void dispose() {
     _beanController.dispose();
+    _animationController.dispose();
     _dripRecordsSubscription?.cancel();
     super.dispose();
   }
@@ -101,29 +122,55 @@ class DripCounterPageState extends State<DripCounterPage>
   void _addToCounter(int value) {
     setState(() {
       _counter = (_counter + value).clamp(0, 9999);
-      _counterColor = Colors.orange.shade700; // 例: 変化色
+      _counterColor = Colors.orange.shade700;
+    });
+    _animationController.forward().then((_) {
+      _animationController.reverse();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final themeSettings = Provider.of<ThemeSettings>(context);
+
+    // 美しいグラデーションカラーパレット
+    final primaryGradient = LinearGradient(
+      colors: [
+        themeSettings.buttonColor,
+        themeSettings.buttonColor.withOpacity(0.8),
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
+    final cardGradient = LinearGradient(
+      colors: [
+        themeSettings.backgroundColor2 ?? Colors.white,
+        (themeSettings.backgroundColor2 ?? Colors.white).withOpacity(0.95),
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
     // 共通の枠デザイン
     final cardShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
     );
-    final cardElevation = 6.0;
-    final cardColor =
-        Provider.of<ThemeSettings>(context).backgroundColor2 ?? Colors.white;
+    final cardElevation = 8.0;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('ドリップパックカウンター'),
+        title: Text(
+          'ドリップパックカウンター',
+          style: TextStyle(fontWeight: FontWeight.w600, letterSpacing: 1.2),
+        ),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.list),
+            icon: Icon(Icons.list, color: themeSettings.iconColor),
             tooltip: '記録一覧',
             onPressed: () {
               Navigator.push(
@@ -147,66 +194,132 @@ class DripCounterPageState extends State<DripCounterPage>
                   SizedBox(
                     height: sectionHeight,
                     width: double.infinity,
-                    child: Card(
-                      shape: cardShape,
-                      elevation: cardElevation,
-                      color: cardColor,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: cardGradient,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: Offset(0, 8),
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.8),
+                            blurRadius: 1,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
                       child: Stack(
                         children: [
+                          // 背景装飾
+                          Positioned(
+                            top: -20,
+                            right: -20,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                gradient: RadialGradient(
+                                  colors: [
+                                    themeSettings.buttonColor.withOpacity(0.1),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
                           // カウンター数字
                           Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '$_counter',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 120,
-                                    fontWeight: FontWeight.w900,
-                                    color: Provider.of<ThemeSettings>(
-                                      context,
-                                    ).fontColor1,
-                                    letterSpacing: 2,
-                                    fontFamily: 'Arial',
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 4,
-                                        offset: Offset(1, 1),
+                            child: AnimatedBuilder(
+                              animation: _scaleAnimation,
+                              builder: (context, child) {
+                                return Transform.scale(
+                                  scale: _scaleAnimation.value,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '$_counter',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 120,
+                                          fontWeight: FontWeight.w900,
+                                          foreground: Paint()
+                                            ..shader =
+                                                LinearGradient(
+                                                  colors: [
+                                                    themeSettings.fontColor1,
+                                                    themeSettings.fontColor1
+                                                        .withOpacity(0.8),
+                                                  ],
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                ).createShader(
+                                                  Rect.fromLTWH(0, 0, 200, 120),
+                                                ),
+                                          letterSpacing: 2,
+                                          fontFamily: 'Arial',
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black.withOpacity(
+                                                0.1,
+                                              ),
+                                              blurRadius: 8,
+                                              offset: Offset(2, 2),
+                                            ),
+                                            Shadow(
+                                              color: Colors.white.withOpacity(
+                                                0.8,
+                                              ),
+                                              blurRadius: 2,
+                                              offset: Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ],
+                                );
+                              },
                             ),
                           ),
                           // リセットボタン（右上）
                           Positioned(
-                            top: 8,
-                            right: 8,
+                            top: 12,
+                            right: 12,
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).iconColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).iconColor.withOpacity(0.3),
-                                  width: 1,
+                                gradient: LinearGradient(
+                                  colors: [
+                                    themeSettings.iconColor.withOpacity(0.1),
+                                    themeSettings.iconColor.withOpacity(0.05),
+                                  ],
                                 ),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: themeSettings.iconColor.withOpacity(
+                                    0.2,
+                                  ),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: IconButton(
                                 icon: Icon(
                                   Icons.refresh,
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).iconColor,
+                                  color: themeSettings.iconColor,
                                   size: 20,
                                 ),
                                 onPressed: () {
@@ -215,10 +328,10 @@ class DripCounterPageState extends State<DripCounterPage>
                                   });
                                 },
                                 tooltip: 'カウンターをリセット',
-                                padding: EdgeInsets.all(4),
+                                padding: EdgeInsets.all(8),
                                 constraints: BoxConstraints(
-                                  minWidth: 32,
-                                  minHeight: 32,
+                                  minWidth: 40,
+                                  minHeight: 40,
                                 ),
                               ),
                             ),
@@ -232,10 +345,23 @@ class DripCounterPageState extends State<DripCounterPage>
                   SizedBox(
                     height: sectionHeight,
                     width: double.infinity,
-                    child: Card(
-                      shape: cardShape,
-                      elevation: cardElevation,
-                      color: cardColor,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: cardGradient,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: Offset(0, 8),
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.8),
+                            blurRadius: 1,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
                       child: Center(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -251,6 +377,7 @@ class DripCounterPageState extends State<DripCounterPage>
                                     child: _buildCountButton(
                                       v,
                                       fontSize: buttonFont,
+                                      primaryGradient: primaryGradient,
                                     ),
                                   ),
                                 ),
@@ -265,10 +392,23 @@ class DripCounterPageState extends State<DripCounterPage>
                   SizedBox(
                     height: sectionHeight,
                     width: double.infinity,
-                    child: Card(
-                      shape: cardShape,
-                      elevation: cardElevation,
-                      color: cardColor,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: cardGradient,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: Offset(0, 8),
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.8),
+                            blurRadius: 1,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 18,
@@ -312,40 +452,43 @@ class DripCounterPageState extends State<DripCounterPage>
                             const SizedBox(height: 14),
                             SizedBox(
                               width: double.infinity,
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.save, size: 22),
-                                label: const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8),
-                                  child: Text(
-                                    '記録を保存',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.1,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: primaryGradient,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: themeSettings.buttonColor
+                                          .withOpacity(0.3),
+                                      blurRadius: 12,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.save, size: 22),
+                                  label: const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 8),
+                                    child: Text(
+                                      '記録を保存',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.1,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.backgroundColor
-                                          ?.resolve({}) ??
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.foregroundColor
-                                          ?.resolve({}) ??
-                                      Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 0,
                                   ),
-                                  elevation: 8,
+                                  onPressed: _addRecord,
                                 ),
-                                onPressed: _addRecord,
                               ),
                             ),
                           ],
@@ -362,30 +505,64 @@ class DripCounterPageState extends State<DripCounterPage>
     );
   }
 
-  Widget _buildCountButton(int value, {double fontSize = 22}) {
-    return ElevatedButton(
-      onPressed: () => _addToCounter(value),
-      style: ElevatedButton.styleFrom(
-        backgroundColor:
-            Theme.of(
-              context,
-            ).elevatedButtonTheme.style?.backgroundColor?.resolve({}) ??
-            Theme.of(context).colorScheme.primary,
-        foregroundColor:
-            Theme.of(
-              context,
-            ).elevatedButtonTheme.style?.foregroundColor?.resolve({}) ??
-            Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        elevation: 6,
-        padding: EdgeInsets.zero,
-        textStyle: TextStyle(
-          fontSize: fontSize,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.5,
+  Widget _buildCountButton(
+    int value, {
+    double fontSize = 22,
+    LinearGradient? primaryGradient,
+  }) {
+    final themeSettings = Provider.of<ThemeSettings>(context);
+    final isPositive = value > 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient:
+            primaryGradient ??
+            LinearGradient(
+              colors: [
+                themeSettings.buttonColor,
+                themeSettings.buttonColor.withOpacity(0.8),
+              ],
+            ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: themeSettings.buttonColor.withOpacity(0.3),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.8),
+            blurRadius: 1,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _addToCounter(value),
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            alignment: Alignment.center,
+            child: Text(
+              isPositive ? '+$value' : '$value',
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 1.5,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 2,
+                    offset: Offset(1, 1),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
-      child: Text(value > 0 ? '+$value' : '$value'),
     );
   }
 
@@ -402,45 +579,72 @@ class DripCounterPageState extends State<DripCounterPage>
       vertical: 10,
     ),
   }) {
+    final themeSettings = Provider.of<ThemeSettings>(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
-              icon,
-              color: Provider.of<ThemeSettings>(context).iconColor,
-              size: iconSize,
+            Container(
+              padding: EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    themeSettings.iconColor.withOpacity(0.1),
+                    themeSettings.iconColor.withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: themeSettings.iconColor, size: iconSize),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 fontSize: labelFontSize,
-                color: Provider.of<ThemeSettings>(context).fontColor1,
+                color: themeSettings.fontColor1,
                 letterSpacing: 1.1,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Provider.of<ThemeSettings>(context).inputBackgroundColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: contentPadding,
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey, fontSize: fontSize),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: themeSettings.inputBackgroundColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-          style: TextStyle(
-            fontSize: fontSize,
-            color: Provider.of<ThemeSettings>(context).fontColor1,
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.transparent,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: contentPadding,
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: fontSize,
+              ),
+            ),
+            style: TextStyle(
+              fontSize: fontSize,
+              color: themeSettings.fontColor1,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -456,84 +660,111 @@ class DripCounterPageState extends State<DripCounterPage>
       vertical: 10,
     ),
   }) {
+    final themeSettings = Provider.of<ThemeSettings>(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
-              Icons.local_fire_department,
-              color: Provider.of<ThemeSettings>(context).iconColor,
-              size: iconSize,
+            Container(
+              padding: EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    themeSettings.iconColor.withOpacity(0.1),
+                    themeSettings.iconColor.withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.local_fire_department,
+                color: themeSettings.iconColor,
+                size: iconSize,
+              ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               '煎り度',
               style: TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 fontSize: labelFontSize,
-                color: Provider.of<ThemeSettings>(context).fontColor1,
+                color: themeSettings.fontColor1,
                 letterSpacing: 1.1,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
-          value: _selectedRoast,
-          items: _roastLevels
-              .map(
-                (level) => DropdownMenuItem(
-                  value: level,
-                  child: Text(
-                    level,
-                    style: TextStyle(
-                      fontSize: fontSize,
-                      color: Provider.of<ThemeSettings>(context).fontColor1,
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: themeSettings.inputBackgroundColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: DropdownButtonFormField<String>(
+            value: _selectedRoast,
+            items: _roastLevels
+                .map(
+                  (level) => DropdownMenuItem(
+                    value: level,
+                    child: Text(
+                      level,
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        color: themeSettings.fontColor1,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-              )
-              .toList(),
-          onChanged: (val) {
-            setState(() {
-              _selectedRoast = val;
-            });
-          },
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Provider.of<ThemeSettings>(context).inputBackgroundColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
+                )
+                .toList(),
+            onChanged: (val) {
+              setState(() {
+                _selectedRoast = val;
+              });
+            },
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.transparent,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: contentPadding,
+              hintText: '煎り度を選択',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: fontSize,
+              ),
             ),
-            contentPadding: contentPadding,
-            hintText: '煎り度を選択',
-            hintStyle: TextStyle(
-              color: Provider.of<ThemeSettings>(context).fontColor1,
+            style: TextStyle(
               fontSize: fontSize,
+              color: themeSettings.fontColor1,
+              fontWeight: FontWeight.w500,
             ),
+            dropdownColor: themeSettings.backgroundColor2,
+            icon: Icon(Icons.arrow_drop_down, color: themeSettings.iconColor),
+            selectedItemBuilder: (BuildContext context) {
+              return _roastLevels.map<Widget>((String item) {
+                return Text(
+                  item,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    color: themeSettings.fontColor1,
+                    fontWeight: FontWeight.w500,
+                  ),
+                );
+              }).toList();
+            },
           ),
-          style: TextStyle(
-            fontSize: fontSize,
-            color: Provider.of<ThemeSettings>(context).fontColor1,
-          ),
-          dropdownColor: Provider.of<ThemeSettings>(context).backgroundColor2,
-          icon: Icon(
-            Icons.arrow_drop_down,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          selectedItemBuilder: (BuildContext context) {
-            return _roastLevels.map<Widget>((String item) {
-              return Text(
-                item,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  color: Provider.of<ThemeSettings>(context).fontColor1,
-                ),
-              );
-            }).toList();
-          },
         ),
       ],
     );

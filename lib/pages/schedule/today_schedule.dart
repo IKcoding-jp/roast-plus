@@ -122,10 +122,33 @@ class _TodayScheduleState extends State<TodaySchedule> {
     print('TodaySchedule: テキストコントローラー更新完了');
   }
 
+  // ▼▼▼ 範囲選択の保存 ▼▼▼
+  Future<void> _saveArrowRanges() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ranges = _arrowRanges.map((r) => [r.start, r.end]).toList();
+    await prefs.setString('todaySchedule_arrowRanges', json.encode(ranges));
+  }
+
+  Future<void> _loadArrowRanges() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rangesStr = prefs.getString('todaySchedule_arrowRanges');
+    if (rangesStr != null) {
+      final List<dynamic> decoded = json.decode(rangesStr);
+      _arrowRanges.clear();
+      for (final item in decoded) {
+        if (item is List && item.length == 2) {
+          _arrowRanges.add(_ArrowRange(item[0], item[1]));
+        }
+      }
+    }
+  }
+  // ▲▲▲
+
   @override
   void initState() {
     super.initState();
     _loadSchedules();
+    _loadArrowRanges(); // ← 追加
     _setupGroupDataListener();
     _checkEditPermissions();
     _setupFirestoreListener();
@@ -175,12 +198,16 @@ class _TodayScheduleState extends State<TodaySchedule> {
         _scheduleContents = loadedContents;
       });
       _initScheduleControllers();
+      await _loadArrowRanges(); // ← 追加
+      setState(() {}); // _arrowRangesの反映
     } catch (_) {
       setState(() {
         _scheduleLabels = [];
         _scheduleContents = {};
       });
       _initScheduleControllers();
+      _arrowRanges.clear();
+      setState(() {});
     }
   }
 
@@ -522,6 +549,29 @@ class _TodayScheduleState extends State<TodaySchedule> {
     });
   }
 
+  // 範囲選択の追加・削除時に保存
+  void _onTapLabel(int i) {
+    setState(() {
+      final removeIndex = _arrowRanges.indexWhere(
+        (r) => r.isStart(i) || r.isEnd(i),
+      );
+      if (removeIndex != -1) {
+        _arrowRanges.removeAt(removeIndex);
+        _saveArrowRanges();
+        return;
+      }
+      if (_tempStartIndex == null) {
+        _tempStartIndex = i;
+      } else if (_tempStartIndex != i) {
+        _arrowRanges.add(_ArrowRange(_tempStartIndex!, i));
+        _tempStartIndex = null;
+        _saveArrowRanges();
+      } else {
+        _tempStartIndex = null;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<GroupProvider>(
@@ -686,25 +736,7 @@ class _TodayScheduleState extends State<TodaySchedule> {
               SizedBox(width: 4),
               // 時間ラベル（左）
               GestureDetector(
-                onTap: () {
-                  setState(() {
-                    final removeIndex = _arrowRanges.indexWhere(
-                      (r) => r.isStart(i) || r.isEnd(i),
-                    );
-                    if (removeIndex != -1) {
-                      _arrowRanges.removeAt(removeIndex);
-                      return;
-                    }
-                    if (_tempStartIndex == null) {
-                      _tempStartIndex = i;
-                    } else if (_tempStartIndex != i) {
-                      _arrowRanges.add(_ArrowRange(_tempStartIndex!, i));
-                      _tempStartIndex = null;
-                    } else {
-                      _tempStartIndex = null;
-                    }
-                  });
-                },
+                onTap: () => _onTapLabel(i),
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(

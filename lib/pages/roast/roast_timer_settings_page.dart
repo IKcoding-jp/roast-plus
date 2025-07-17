@@ -242,7 +242,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               ),
                               SizedBox(width: 10),
                               Text(
-                                '焙煎時間（分）',
+                                '予熱時間（分）',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
@@ -343,7 +343,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               ),
                               SizedBox(width: 10),
                               Text(
-                                '豆冷ましタイマー（分）',
+                                '豆冷まし時間（分）',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,

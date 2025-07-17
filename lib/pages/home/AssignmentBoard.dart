@@ -18,6 +18,8 @@ import '../../models/group_models.dart';
 import '../../models/attendance_models.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:bysnapp/utils/app_performance_config.dart';
 
 class AssignmentBoard extends StatefulWidget {
   const AssignmentBoard({super.key});
@@ -635,6 +637,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
         // グループに同期（グループ参加時のみ）
         _syncTodayAssignmentToGroup(pairs);
+        // 担当決定後に広告を表示
+        _showInterstitialAdAfterAssignment();
       }
     });
   }
@@ -684,6 +688,28 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     setState(() {
       isAssignedToday = false;
     });
+  }
+
+  void _showInterstitialAdAfterAssignment() async {
+    if (await isDonorUser()) return; // 寄付者は広告を表示しない
+    InterstitialAd.load(
+      adUnitId: 'ca-app-pub-3940256099942544/1033173712', // テスト用ID
+      request: AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+            },
+          );
+          ad.show();
+        },
+        onAdFailedToLoad: (error) {},
+      ),
+    );
   }
 
   @override

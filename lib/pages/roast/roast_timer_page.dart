@@ -16,6 +16,8 @@ import 'package:android_intent_plus/android_intent.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../../utils/app_performance_config.dart';
 
 enum RoastMode {
   idle,
@@ -59,6 +61,38 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   String? _selectedRecommendWeight;
   String? _selectedRecommendRoast;
   List<RoastRecord> _recommendRecords = [];
+
+  InterstitialAd? _interstitialAd;
+  bool _isAdLoaded = false;
+
+  void _loadInterstitialAdAndShow(VoidCallback onAdClosed) async {
+    if (await isDonorUser()) {
+      onAdClosed();
+      return;
+    }
+    InterstitialAd.load(
+      adUnitId: 'ca-app-pub-3940256099942544/1033173712', // テスト用ID
+      request: AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+              onAdClosed();
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              ad.dispose();
+              onAdClosed();
+            },
+          );
+          ad.show();
+        },
+        onAdFailedToLoad: (error) {
+          onAdClosed();
+        },
+      ),
+    );
+  }
 
   // Firestoreから記録を取得しておすすめ条件の組み合わせを抽出
   Future<void> _loadRecommendOptions() async {
@@ -265,9 +299,14 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
 
       print('アプリ復帰時にタイマー完了を検出');
 
+      // 画面が本当にRoastTimerPageのままか確認
+      if (ModalRoute.of(context)?.isCurrent != true) {
+        print('RoastTimerPageが最前面でないため、完了ダイアログを表示しません');
+        return;
+      }
       // 完了ダイアログを表示
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        if (mounted && ModalRoute.of(context)?.isCurrent == true) {
           _showCompletionDialog();
         }
       });
@@ -718,11 +757,13 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context, true);
-              setState(() {
-                _mode = RoastMode.idle;
-                _totalSeconds = 0;
-                _remainingSeconds = 0;
-                _canStartBeanCooling = true;
+              _loadInterstitialAdAndShow(() {
+                setState(() {
+                  _mode = RoastMode.idle;
+                  _totalSeconds = 0;
+                  _remainingSeconds = 0;
+                  _canStartBeanCooling = true;
+                });
               });
             },
             style: TextButton.styleFrom(
@@ -733,8 +774,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context, false);
-              // 豆冷ましタイマーのみオンの場合は再びボタンを表示
-              (() async {
+              _loadInterstitialAdAndShow(() async {
                 final prefs = await SharedPreferences.getInstance();
                 final usePreheat = prefs.getBool('usePreheat') ?? true;
                 final useRoast = prefs.getBool('useRoast') ?? true;
@@ -754,7 +794,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                     _canStartBeanCooling = false;
                   });
                 }
-              })();
+              });
             },
             style: TextButton.styleFrom(
               foregroundColor: Provider.of<ThemeSettings>(context).fontColor1,

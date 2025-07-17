@@ -121,7 +121,33 @@ class _LabelEditPageState extends State<LabelEditPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('担当ラベル編集'),
+        title: Row(
+          children: [
+            Text('担当ラベル編集'),
+            Consumer<GroupProvider>(
+              builder: (context, groupProvider, _) {
+                if (groupProvider.groups.isNotEmpty) {
+                  return Container(
+                    margin: EdgeInsets.only(left: 12),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade400),
+                    ),
+                    child: Icon(
+                      Icons.groups,
+                      size: 18,
+                      color: Colors.blue.shade700,
+                    ),
+                  );
+                } else {
+                  return SizedBox.shrink();
+                }
+              },
+            ),
+          ],
+        ),
         actions: [IconButton(icon: Icon(Icons.save), onPressed: _saveLabels)],
         backgroundColor: Provider.of<ThemeSettings>(context).appBarColor,
       ),

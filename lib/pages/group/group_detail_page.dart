@@ -205,15 +205,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    member.email,
-                                    style: TextStyle(
-                                      color: themeSettings.fontColor1,
-                                      fontSize:
-                                          12 * themeSettings.fontSizeScale,
-                                      fontFamily: themeSettings.fontFamily,
-                                    ),
-                                  ),
-                                  Text(
                                     member.role == GroupRole.leader
                                         ? 'リーダー'
                                         : 'メンバー',

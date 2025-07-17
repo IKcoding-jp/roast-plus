@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import 'custom_theme_settings_page.dart';
 import 'dart:async'; // Added for Timer
+import '../../utils/app_performance_config.dart';
+import '../../settings/donation_page.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -98,19 +100,53 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
           ),
         ],
       ),
-      body: Container(
-        color: themeSettings.backgroundColor,
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            // プリセットセクション
-            _buildPresetSection(context, themeSettings),
-            const SizedBox(height: 24),
-
-            // カスタムテーマセクション
-            _buildCustomThemesSection(context, themeSettings),
-          ],
-        ),
+      body: FutureBuilder<bool>(
+        future: isDonorUser(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.data != true) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.volunteer_activism, size: 48, color: Colors.amber),
+                  SizedBox(height: 16),
+                  Text(
+                    'この機能は寄付者限定です',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '300円以上の寄付でテーマカスタマイズが解放されます',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const DonationPage()),
+                    ),
+                    child: Text('寄付して応援する'),
+                  ),
+                ],
+              ),
+            );
+          }
+          // 寄付者は従来UI
+          return Container(
+            color: themeSettings.backgroundColor,
+            padding: const EdgeInsets.all(16),
+            child: ListView(
+              children: [
+                _buildPresetSection(context, themeSettings),
+                const SizedBox(height: 24),
+                _buildCustomThemesSection(context, themeSettings),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -602,7 +638,8 @@ class _PresetButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
     final preset = ThemeSettings.presets[presetName];
-
+    final isLight = presetName == 'ライト';
+    final paletteColor = isLight ? Colors.black : Colors.white;
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -611,9 +648,16 @@ class _PresetButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      child: Text(
-        presetName,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.palette, color: paletteColor, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            presetName,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ],
       ),
     );
   }
@@ -675,6 +719,7 @@ class _CustomThemeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final paletteColor = (themeName == 'ライト') ? Colors.black : Colors.white;
     return GestureDetector(
       onLongPress: onLongPress,
       child: ElevatedButton(
@@ -687,9 +732,16 @@ class _CustomThemeButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
         ),
-        child: Text(
-          themeName,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.palette, color: paletteColor, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              themeName,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
       ),
     );

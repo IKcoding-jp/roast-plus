@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../utils/app_performance_config.dart';
+import '../../settings/donation_page.dart';
 
 class CustomThemeSettingsPage extends StatefulWidget {
   const CustomThemeSettingsPage({super.key});
@@ -15,34 +17,63 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('カスタム設定'),
         backgroundColor: themeSettings.appBarColor,
         foregroundColor: themeSettings.appBarTextColor,
       ),
-      body: Container(
-        color: themeSettings.backgroundColor,
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            // 基本色設定セクション
-            _buildBasicColorsSection(context, themeSettings),
-            const SizedBox(height: 24),
-
-            // テキスト色設定セクション
-            _buildTextColorsSection(context, themeSettings),
-            const SizedBox(height: 24),
-
-            // UI要素色設定セクション
-            _buildUIColorsSection(context, themeSettings),
-            const SizedBox(height: 24),
-
-            // 保存ボタン
-            _buildSaveButton(context, themeSettings),
-          ],
-        ),
+      body: FutureBuilder<bool>(
+        future: isDonorUser(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.data != true) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.volunteer_activism, size: 48, color: Colors.amber),
+                  SizedBox(height: 16),
+                  Text(
+                    'この機能は寄付者限定です',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '300円以上の寄付でテーマカスタマイズが解放されます',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const DonationPage()),
+                    ),
+                    child: Text('寄付して応援する'),
+                  ),
+                ],
+              ),
+            );
+          }
+          // 寄付者は従来UI
+          return Container(
+            color: themeSettings.backgroundColor,
+            padding: const EdgeInsets.all(16),
+            child: ListView(
+              children: [
+                _buildBasicColorsSection(context, themeSettings),
+                const SizedBox(height: 24),
+                _buildTextColorsSection(context, themeSettings),
+                const SizedBox(height: 24),
+                _buildUIColorsSection(context, themeSettings),
+                const SizedBox(height: 24),
+                _buildSaveButton(context, themeSettings),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -150,6 +181,17 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
               onColorChanged: themeSettings.updateBottomNavigationTextColor,
             ),
             const SizedBox(height: 16),
+            _ColorPickerTile(
+              label: '画面下部の選択済みの文字色',
+              color:
+                  themeSettings.customBottomNavigationSelectedColor ??
+                  themeSettings.bottomNavigationSelectedColor,
+              onColorChanged: (color) {
+                setState(() {
+                  themeSettings.customBottomNavigationSelectedColor = color;
+                });
+              },
+            ),
             _ColorPickerTile(
               label: 'ボタンの文字色',
               color: themeSettings.fontColor2,

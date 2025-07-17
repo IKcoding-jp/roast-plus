@@ -32,22 +32,10 @@ class _MemoListDialogState extends State<MemoListDialog> {
     });
 
     try {
-      final groupProvider = context.read<GroupProvider>();
-      List<MemoItem> memos;
-
-      if (groupProvider.groups.isNotEmpty) {
-        // グループのメモを読み込み
-        print('グループメモを読み込み中...');
-        memos = await MemoFirestoreService.getGroupMemos(
-          groupProvider.groups.first.id,
-        );
-        print('グループメモ読み込み完了: ${memos.length}件');
-      } else {
-        // 個人のメモを読み込み
-        print('個人メモを読み込み中...');
-        memos = await MemoFirestoreService.getMemos();
-        print('個人メモ読み込み完了: ${memos.length}件');
-      }
+      // 常に個人メモを読み込み
+      print('個人メモを読み込み中...');
+      final memos = await MemoFirestoreService.getMemos();
+      print('個人メモ読み込み完了: ${memos.length}件');
 
       setState(() {
         _memos = memos;
@@ -112,17 +100,8 @@ class _MemoListDialogState extends State<MemoListDialog> {
 
     if (confirmed == true) {
       try {
-        final groupProvider = context.read<GroupProvider>();
-
-        if (groupProvider.groups.isNotEmpty) {
-          await MemoFirestoreService.deleteGroupMemo(
-            groupProvider.groups.first.id,
-            memo.id,
-          );
-        } else {
-          await MemoFirestoreService.deleteMemo(memo.id);
-        }
-
+        // 常に個人メモを削除
+        await MemoFirestoreService.deleteMemo(memo.id);
         await _loadMemos();
 
         if (mounted) {

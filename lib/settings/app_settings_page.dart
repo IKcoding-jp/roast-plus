@@ -10,6 +10,7 @@ import 'account_info_page.dart';
 import 'passcode_lock_settings_page.dart';
 import 'creator_message_page.dart';
 import 'upcoming_features_page.dart';
+import 'donation_page.dart';
 
 class AppSettingsPage extends StatelessWidget {
   const AppSettingsPage({super.key});
@@ -98,6 +99,46 @@ class AppSettingsPage extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => const PasscodeLockSettingsPage(),
                     ),
+                  );
+                },
+              ),
+            ),
+            // ▲ここまで追加
+            // ▼ここから追加：寄付セクション
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              color:
+                  Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                  Colors.white,
+              child: ListTile(
+                leading: Icon(
+                  Icons.volunteer_activism,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                ),
+                title: Text(
+                  '寄付で応援する',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                  ),
+                ),
+                subtitle: Text(
+                  '300円から任意の金額で寄付できます。寄付者は広告非表示＆カスタマイズ解放',
+                  style: TextStyle(
+                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: Provider.of<ThemeSettings>(context).iconColor,
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DonationPage()),
                   );
                 },
               ),

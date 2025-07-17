@@ -271,7 +271,7 @@ class RoastAdvisorPage extends StatelessWidget {
                                   horizontal: 4,
                                 ),
                                 child: Text(
-                                  '${times.length}回',
+                                  '${times.length}件',
                                   style: TextStyle(
                                     color: Provider.of<ThemeSettings>(
                                       context,
@@ -373,7 +373,7 @@ class RoastAdvisorPage extends StatelessWidget {
                                             horizontal: 4,
                                           ),
                                           child: Text(
-                                            '回数',
+                                            '件数',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               color: brown,

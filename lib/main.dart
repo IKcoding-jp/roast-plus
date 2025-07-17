@@ -14,6 +14,9 @@ import 'models/bean_sticker_models.dart';
 import 'services/todo_notification_service.dart';
 import 'services/auto_sync_service.dart';
 import 'services/roast_timer_notification_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +26,7 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-// 
+  //
   // メモリ使用量の最適化
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
@@ -56,6 +59,9 @@ void main() async {
   // 古い設定データの移行処理
   await _migrateOldSoundSettings();
 
+  // グローバルナビゲーションキーを通知サービスにセット
+  TodoNotificationService().setNavigatorKey(navigatorKey);
+
   // TODO通知サービスを開始
   TodoNotificationService().startNotificationService();
 
@@ -70,6 +76,8 @@ void main() async {
     ),
   );
 
+  await MobileAds.instance.initialize();
+
   runApp(
     MultiProvider(
       providers: [
@@ -80,7 +88,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => TastingProvider()),
         ChangeNotifierProvider(create: (_) => BeanStickerProvider()),
       ],
-      child: const WorkAssignmentApp(),
+      child: WorkAssignmentApp(), // 下でMaterialAppにnavigatorKeyを渡す
     ),
   );
 }

@@ -399,6 +399,32 @@ class _CalendarPageState extends State<CalendarPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
+                    // 年単位の移動ボタン
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedDate = DateTime(
+                            _selectedDate.year - 1,
+                            _selectedDate.month,
+                            _selectedDate.day,
+                          );
+                          _focusedDate = _selectedDate;
+                        });
+                        _loadSelectedDateData();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeSettings.buttonColor,
+                        foregroundColor: themeSettings.fontColor2,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text('前年'),
+                    ),
                     _buildDateButton(context, -3, '3日前', themeSettings),
                     _buildDateButton(context, -2, '2日前', themeSettings),
                     _buildDateButton(context, -1, '昨日', themeSettings),
@@ -406,6 +432,32 @@ class _CalendarPageState extends State<CalendarPage> {
                     _buildDateButton(context, 1, '明日', themeSettings),
                     _buildDateButton(context, 2, '2日後', themeSettings),
                     _buildDateButton(context, 3, '3日後', themeSettings),
+                    // 年単位の移動ボタン
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedDate = DateTime(
+                            _selectedDate.year + 1,
+                            _selectedDate.month,
+                            _selectedDate.day,
+                          );
+                          _focusedDate = _selectedDate;
+                        });
+                        _loadSelectedDateData();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeSettings.buttonColor,
+                        foregroundColor: themeSettings.fontColor2,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text('翌年'),
+                    ),
                   ],
                 ),
               ],

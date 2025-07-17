@@ -7,6 +7,8 @@ import '../services/app_settings_firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import '../utils/app_performance_config.dart';
+import 'donation_page.dart';
 
 class SoundSettingsPage extends StatefulWidget {
   const SoundSettingsPage({super.key});
@@ -344,7 +346,6 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('サウンド設定'),
@@ -358,15 +359,10 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
             : ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // タイマー音設定セクション
                   _buildTimerSoundSection(themeSettings),
                   const SizedBox(height: 24),
-
-                  // 通知音設定セクション
                   _buildNotificationSoundSection(themeSettings),
                   const SizedBox(height: 24),
-
-                  // 音量設定セクション
                   _buildVolumeSection(themeSettings),
                 ],
               ),

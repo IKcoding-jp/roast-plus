@@ -32,22 +32,10 @@ class _MemoListPageState extends State<MemoListPage> {
     });
 
     try {
-      final groupProvider = context.read<GroupProvider>();
-      List<MemoItem> memos;
-
-      if (groupProvider.groups.isNotEmpty) {
-        // グループのメモを読み込み
-        print('グループメモを読み込み中...');
-        memos = await MemoFirestoreService.getGroupMemos(
-          groupProvider.groups.first.id,
-        );
-        print('グループメモ読み込み完了: ${memos.length}件');
-      } else {
-        // 個人のメモを読み込み
-        print('個人メモを読み込み中...');
-        memos = await MemoFirestoreService.getMemos();
-        print('個人メモ読み込み完了: ${memos.length}件');
-      }
+      // 常に個人メモを読み込み
+      print('個人メモを読み込み中...');
+      final memos = await MemoFirestoreService.getMemos();
+      print('個人メモ読み込み完了: ${memos.length}件');
 
       setState(() {
         _memos = memos;
@@ -112,17 +100,8 @@ class _MemoListPageState extends State<MemoListPage> {
 
     if (confirmed == true) {
       try {
-        final groupProvider = context.read<GroupProvider>();
-
-        if (groupProvider.groups.isNotEmpty) {
-          await MemoFirestoreService.deleteGroupMemo(
-            groupProvider.groups.first.id,
-            memo.id,
-          );
-        } else {
-          await MemoFirestoreService.deleteMemo(memo.id);
-        }
-
+        // 常に個人メモを削除
+        await MemoFirestoreService.deleteMemo(memo.id);
         await _loadMemos();
 
         if (mounted) {
@@ -153,85 +132,33 @@ class _MemoListPageState extends State<MemoListPage> {
     }
   }
 
-  Future<void> _showEditMemoDialog(MemoItem memo) async {
-    final titleController = TextEditingController(text: memo.title);
-    final contentController = TextEditingController(text: memo.content);
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('メモを編集'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(labelText: 'タイトル'),
-                maxLength: 50,
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: contentController,
-                decoration: InputDecoration(labelText: '内容'),
-                maxLines: 5,
-                minLines: 2,
-                maxLength: 500,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            child: Text('キャンセル'),
-            onPressed: () => Navigator.pop(context, false),
-          ),
-          ElevatedButton(
-            child: Text('保存'),
-            onPressed: () async {
-              final newTitle = titleController.text.trim();
-              final newContent = contentController.text.trim();
-              if (newTitle.isEmpty) return;
-              final updatedMemo = memo.copyWith(
-                title: newTitle,
-                content: newContent,
-                updatedAt: DateTime.now(),
-              );
-              try {
-                final groupProvider = context.read<GroupProvider>();
-                if (groupProvider.groups.isNotEmpty) {
-                  await MemoFirestoreService.updateGroupMemo(
-                    groupProvider.groups.first.id,
-                    updatedMemo,
-                  );
-                } else {
-                  await MemoFirestoreService.updateMemo(updatedMemo);
-                }
-                await _loadMemos();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('メモを更新しました'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-                Navigator.pop(context, true);
-              } catch (e) {
-                print('メモ更新エラー: $e');
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('メモの更新に失敗しました'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-          ),
-        ],
-      ),
+  // 編集も個人メモのみ
+  Future<void> _editMemo(
+    MemoItem memo,
+    String newTitle,
+    String newContent,
+  ) async {
+    final updatedMemo = memo.copyWith(
+      title: newTitle,
+      content: newContent,
+      updatedAt: DateTime.now(),
     );
+    try {
+      await MemoFirestoreService.updateMemo(updatedMemo);
+      await _loadMemos();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('メモを更新しました'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      print('メモ更新エラー: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('メモの更新に失敗しました'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -372,7 +299,7 @@ class _MemoListPageState extends State<MemoListPage> {
                       ],
                     ),
                     onTap: _canEditMemos
-                        ? () => _showEditMemoDialog(memo)
+                        ? () => _editMemo(memo, memo.title, memo.content)
                         : null,
                   ),
                 );

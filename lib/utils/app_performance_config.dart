@@ -1,3 +1,7 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// アプリ全体のパフォーマンス設定を管理するクラス
 class AppPerformanceConfig {
   // リストビューの設定
@@ -44,4 +48,20 @@ class AppPerformanceConfig {
       'enableNetworkLogging': false,
     };
   }
+}
+
+Future<bool> isDonorUser() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return false;
+  if (user.email == 'kensaku.ikeda04@gmail.com') return true;
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('settings')
+      .doc('donation')
+      .get();
+  if (doc.exists && doc.data() != null) {
+    return doc.data()!['isDonor'] == true;
+  }
+  return false;
 }

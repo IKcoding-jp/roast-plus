@@ -24,6 +24,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'services/data_sync_service.dart';
 import 'services/assignment_firestore_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'utils/app_performance_config.dart';
+// navigatorKeyが定義されているファイルをimport
 
 class WorkAssignmentApp extends StatefulWidget {
   const WorkAssignmentApp({super.key});
@@ -80,8 +83,12 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
             ),
             bottomNavigationBarTheme: BottomNavigationBarThemeData(
               backgroundColor: themeSettings.bottomNavigationColor,
-              selectedItemColor: themeSettings.bottomNavigationTextColor,
-              unselectedItemColor: Colors.white,
+              selectedItemColor: themeSettings.bottomNavigationSelectedColor
+                  .withOpacity(0.7),
+              unselectedItemColor:
+                  themeSettings.bottomNavigationColor.computeLuminance() > 0.5
+                  ? Colors.black
+                  : Colors.white,
               selectedLabelStyle: TextStyle(
                 fontSize: (12 * themeSettings.fontSizeScale).clamp(8.0, 14.0),
                 fontFamily: themeSettings.fontFamily,
@@ -571,6 +578,14 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
 
+  InterstitialAd? _interstitialAd;
+  bool _isAdLoaded = false;
+
+  // バナー広告用
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+  static const double _bannerHeight = 50.0;
+
   // ページを遅延読み込みするためのリスト
   final List<Widget> _pages = [
     RoastTimerPage(), // 予熱タイマー
@@ -585,11 +600,74 @@ class _MainScaffoldState extends State<MainScaffold> {
     super.initState();
     // 自動同期サービスを初期化
     _initializeAutoSync();
+    _loadInterstitialAd();
+    _loadBannerAd();
+  }
+
+  void _loadInterstitialAd() async {
+    if (await isDonorUser()) return; // 寄付者は広告を表示しない
+    InterstitialAd.load(
+      adUnitId: 'ca-app-pub-3940256099942544/1033173712', // テスト用ID
+      request: AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          setState(() {
+            _interstitialAd = ad;
+            _isAdLoaded = true;
+          });
+          // ロード完了後すぐ表示
+          _showInterstitialAd();
+        },
+        onAdFailedToLoad: (error) {
+          _isAdLoaded = false;
+        },
+      ),
+    );
+  }
+
+  void _showInterstitialAd() {
+    if (_isAdLoaded && _interstitialAd != null) {
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          ad.dispose();
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          ad.dispose();
+        },
+      );
+      _interstitialAd!.show();
+      setState(() {
+        _isAdLoaded = false;
+      });
+    }
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // テスト用バナーID
+      size: AdSize.banner,
+      request: AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          setState(() {
+            _isBannerAdLoaded = false;
+          });
+        },
+      ),
+    )..load();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _interstitialAd?.dispose();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -815,14 +893,49 @@ class _MainScaffoldState extends State<MainScaffold> {
           );
         },
       ),
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        children: _pages,
+      body: Stack(
+        children: [
+          FutureBuilder<bool>(
+            future: isDonorUser(),
+            builder: (context, snapshot) {
+              final isDonor = snapshot.data == true;
+              final bottomPadding = isDonor
+                  ? 0.0
+                  : (_isBannerAdLoaded ? _bannerHeight : 0.0);
+              return Padding(
+                padding: EdgeInsets.only(bottom: bottomPadding),
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
+                  children: _pages,
+                ),
+              );
+            },
+          ),
+          FutureBuilder<bool>(
+            future: isDonorUser(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done)
+                return SizedBox.shrink();
+              if (snapshot.data == true) return SizedBox.shrink();
+              if (_isBannerAdLoaded && _bannerAd != null) {
+                return Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    width: _bannerAd!.size.width.toDouble(),
+                    height: _bannerAd!.size.height.toDouble(),
+                    child: AdWidget(ad: _bannerAd!),
+                  ),
+                );
+              }
+              return SizedBox.shrink();
+            },
+          ),
+        ],
       ),
       bottomNavigationBar: Consumer<ThemeSettings>(
         builder: (context, themeSettings, child) {
@@ -837,7 +950,7 @@ class _MainScaffoldState extends State<MainScaffold> {
               currentIndex: _selectedIndex,
               onTap: _onItemTapped,
               backgroundColor: themeSettings.bottomNavigationColor,
-              selectedItemColor: themeSettings.bottomNavigationTextColor,
+              selectedItemColor: themeSettings.bottomNavigationSelectedColor,
               unselectedItemColor: Colors.white,
               selectedLabelStyle: TextStyle(
                 fontSize: fontSize,

@@ -7,6 +7,7 @@ import '../services/sync_firestore_all.dart';
 import '../services/data_sync_service.dart';
 import 'package:provider/provider.dart';
 import '../models/theme_settings.dart';
+import '../utils/app_performance_config.dart';
 
 // ダミーのアカウント情報ページ
 class AccountInfoPage extends StatefulWidget {
@@ -18,6 +19,7 @@ class AccountInfoPage extends StatefulWidget {
 
 class _AccountInfoPageState extends State<AccountInfoPage> {
   String? _userName;
+  String? _userEmail;
   String? _loginProvider;
   String? _userPhotoUrl;
   bool _loading = false;
@@ -30,8 +32,9 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
     googleSignIn.onCurrentUserChanged.listen((account) async {
       if (account != null) {
         if (!mounted) return;
+        await _loadCustomDisplayName();
         setState(() {
-          _userName = account.displayName ?? account.email;
+          _userEmail = account.email;
           _loginProvider = 'Google';
           _userPhotoUrl = account.photoUrl;
           _loading = false;
@@ -47,8 +50,9 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
         googleSignIn.currentUser ?? await googleSignIn.signInSilently();
     if (account != null) {
       if (!mounted) return;
+      await _loadCustomDisplayName();
       setState(() {
-        _userName = account.displayName ?? account.email;
+        _userEmail = account.email;
         _loginProvider = 'Google';
         _userPhotoUrl = account.photoUrl;
       });
@@ -57,6 +61,104 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
     setState(() {
       _loading = false;
     });
+  }
+
+  Future<void> _loadCustomDisplayName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    if (doc.exists &&
+        doc.data() != null &&
+        doc.data()!['displayName'] != null) {
+      setState(() {
+        _userName = doc.data()!['displayName'];
+      });
+    } else {
+      // Firestoreにカスタム名がなければGoogleアカウント名
+      setState(() {
+        _userName = user.displayName ?? user.email;
+      });
+    }
+  }
+
+  Future<void> _editDisplayName() async {
+    final controller = TextEditingController(text: _userName ?? '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('表示名を編集'),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(hintText: '新しい表示名'),
+          maxLength: 30,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'displayName': result,
+        }, SetOptions(merge: true));
+        setState(() {
+          _userName = result;
+        });
+        // 参加中の全グループのmembers配列も更新
+        final groupsSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('userGroups')
+            .get();
+        for (final doc in groupsSnapshot.docs) {
+          final groupId = doc.data()['groupId'] as String?;
+          if (groupId == null) continue;
+          final groupDoc = await FirebaseFirestore.instance
+              .collection('groups')
+              .doc(groupId)
+              .get();
+          if (!groupDoc.exists) continue;
+          final groupData = groupDoc.data();
+          if (groupData == null || groupData['members'] == null) continue;
+          final membersRaw = groupData['members'];
+          if (membersRaw is! List) continue;
+          final updatedMembers = membersRaw
+              .map((m) {
+                if (m is Map<String, dynamic> && m['uid'] == user.uid) {
+                  return {...m, 'displayName': result};
+                }
+                return m;
+              })
+              .where((m) => m != null)
+              .toList();
+          await FirebaseFirestore.instance
+              .collection('groups')
+              .doc(groupId)
+              .update({
+                'members': updatedMembers,
+                'updatedAt': FieldValue.serverTimestamp(),
+              });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('表示名を変更しました（グループにも反映）'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _signInWithGoogle() async {
@@ -91,6 +193,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
         if (!mounted) return;
         setState(() {
           _userName = account.displayName ?? account.email;
+          _userEmail = account.email;
           _loginProvider = 'Google';
           _userPhotoUrl = account.photoUrl;
           _loading = false;
@@ -192,6 +295,99 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                _userName ?? '',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
+                                                  color:
+                                                      Provider.of<
+                                                            ThemeSettings
+                                                          >(context)
+                                                          .fontColor1,
+                                                ),
+                                              ),
+                                              SizedBox(width: 4),
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.edit,
+                                                  size: 18,
+                                                  color:
+                                                      Provider.of<
+                                                            ThemeSettings
+                                                          >(context)
+                                                          .iconColor,
+                                                ),
+                                                tooltip: '表示名を編集',
+                                                onPressed: _editDisplayName,
+                                              ),
+                                              SizedBox(width: 8),
+                                              if (_userEmail ==
+                                                  'kensaku.ikeda04@gmail.com')
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 2,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.blue,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    '開発者',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ),
+                                              FutureBuilder<bool>(
+                                                future: isDonorUser(),
+                                                builder: (context, snapshot) {
+                                                  if (_userEmail ==
+                                                      'kensaku.ikeda04@gmail.com') {
+                                                    return SizedBox.shrink();
+                                                  }
+                                                  if (snapshot.connectionState !=
+                                                          ConnectionState
+                                                              .done ||
+                                                      snapshot.data != true) {
+                                                    return SizedBox.shrink();
+                                                  }
+                                                  return Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 2,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.amber,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      '寄付者',
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ],
+                                          ),
                                           Text(
                                             'ログイン済み',
                                             style: TextStyle(
@@ -199,19 +395,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                               color: Provider.of<ThemeSettings>(
                                                 context,
                                               ).fontColor1,
-                                              fontSize: 16,
                                             ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            '$_userName（$_loginProvider）',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor1,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
                                       ),
