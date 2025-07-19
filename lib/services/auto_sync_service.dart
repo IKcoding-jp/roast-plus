@@ -70,7 +70,7 @@ class AutoSyncService {
       );
       if (groupSettings != null && !groupSettings.allowMemberDataSync) {
         final memberRole = currentGroup.getMemberRole(user.uid);
-        if (memberRole != GroupRole.leader) {
+        if (memberRole != GroupRole.leader && memberRole != GroupRole.admin) {
           print('AutoSyncService: データ同期の権限がありません - メンバーは同期できません');
           return;
         }
@@ -145,7 +145,7 @@ class AutoSyncService {
       );
       if (groupSettings != null && !groupSettings.allowMemberDataSync) {
         final memberRole = currentGroup.getMemberRole(user.uid);
-        if (memberRole != GroupRole.leader) {
+        if (memberRole != GroupRole.leader && memberRole != GroupRole.admin) {
           print('AutoSyncService: データ同期の権限がありません - メンバーは同期できません');
           return;
         }

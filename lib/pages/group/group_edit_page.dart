@@ -162,64 +162,13 @@ class _GroupEditPageState extends State<GroupEditPage> {
     }
   }
 
-  Future<void> _leaveGroup() async {
-    final groupProvider = context.read<GroupProvider>();
-    final navigator = Navigator.of(context);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('グループから脱退'),
-        content: Text('このグループから脱退しますか？'),
-        actions: [
-          TextButton(
-            onPressed: () => navigator.pop(false),
-            child: Text('キャンセル'),
-          ),
-          ElevatedButton(
-            onPressed: () => navigator.pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('脱退'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
-    try {
-      final success = await groupProvider.leaveGroup(widget.group.id);
-      if (success && mounted) {
-        navigator.pop(); // 設定ページを閉じる
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('グループから脱退しました'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(groupProvider.error ?? '脱退に失敗しました'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('エラーが発生しました: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   bool get _isLeader {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
     return widget.group.members.any(
-      (m) => m.uid == user.uid && m.role == GroupRole.leader,
+      (m) =>
+          m.uid == user.uid &&
+          (m.role == GroupRole.leader || m.role == GroupRole.admin),
     );
   }
 
@@ -436,29 +385,6 @@ class _GroupEditPageState extends State<GroupEditPage> {
                                 ),
                               ),
                               onPressed: _deleteGroup,
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              icon: Icon(
-                                Icons.exit_to_app,
-                                color: Colors.white,
-                              ),
-                              label: Text('グループから脱退'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 16,
-                                  horizontal: 32,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: _leaveGroup,
                             ),
                           ),
                         ],

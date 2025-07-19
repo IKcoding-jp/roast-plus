@@ -11,6 +11,8 @@ import 'models/group_provider.dart';
 import 'models/work_progress_models.dart';
 import 'models/tasting_models.dart';
 import 'models/bean_sticker_models.dart';
+import 'models/gamification_provider.dart';
+import 'models/dashboard_stats_provider.dart';
 import 'services/todo_notification_service.dart';
 import 'services/auto_sync_service.dart';
 import 'services/roast_timer_notification_service.dart';
@@ -87,6 +89,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => WorkProgressProvider()),
         ChangeNotifierProvider(create: (_) => TastingProvider()),
         ChangeNotifierProvider(create: (_) => BeanStickerProvider()),
+        ChangeNotifierProvider(create: (_) => GamificationProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardStatsProvider()),
       ],
       child: WorkAssignmentApp(), // 下でMaterialAppにnavigatorKeyを渡す
     ),

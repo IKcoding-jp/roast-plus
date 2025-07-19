@@ -21,9 +21,9 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
+      if (groupProvider.hasGroup) {
         context.read<WorkProgressProvider>().loadWorkProgress(
-          groupId: groupProvider.groups.first.id,
+          groupId: groupProvider.currentGroup!.id,
         );
       } else {
         context.read<WorkProgressProvider>().loadWorkProgress();
@@ -43,9 +43,9 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     if (state == AppLifecycleState.resumed) {
       // アプリが復帰した時にデータを再読み込み
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
+      if (groupProvider.hasGroup) {
         context.read<WorkProgressProvider>().loadWorkProgress(
-          groupId: groupProvider.groups.first.id,
+          groupId: groupProvider.currentGroup!.id,
         );
       } else {
         context.read<WorkProgressProvider>().loadWorkProgress();

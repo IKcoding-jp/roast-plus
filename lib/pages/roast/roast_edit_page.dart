@@ -65,15 +65,15 @@ class _RoastEditPageState extends State<RoastEditPage> {
     );
 
     switch (roastRecordPermission) {
-      case DataPermission.readOnly:
-        // 閲覧のみの場合は誰も編集できない
-        return false;
+      case DataPermission.adminOnly:
+        // 管理者のみ編集可能
+        return memberRole == GroupRole.admin;
       case DataPermission.leaderOnly:
-        // リーダーのみの場合はリーダーのみ編集可能
-        return memberRole == GroupRole.leader;
-      case DataPermission.allMembers:
-        // 全メンバーの場合は全メンバー編集可能
-        return memberRole == GroupRole.leader || memberRole == GroupRole.member;
+        // リーダーのみ編集可能
+        return memberRole == GroupRole.leader || memberRole == GroupRole.admin;
+      case DataPermission.memberOnly:
+        // メンバーも編集可能
+        return true;
     }
   }
 
@@ -88,11 +88,14 @@ class _RoastEditPageState extends State<RoastEditPage> {
     } else {
       final groupSettings = groupProvider.getCurrentGroupSettings();
       if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.readOnly) {
-        message = '閲覧のみの設定のため、編集できません';
+          DataPermission.adminOnly) {
+        message = '管理者のみ編集可能です';
       } else if (groupSettings?.getPermissionForDataType('roast_records') ==
           DataPermission.leaderOnly) {
         message = 'リーダーのみ編集可能です';
+      } else if (groupSettings?.getPermissionForDataType('roast_records') ==
+          DataPermission.memberOnly) {
+        message = 'メンバーも編集可能です';
       } else {
         message = '権限がありません';
       }
@@ -150,9 +153,9 @@ class _RoastEditPageState extends State<RoastEditPage> {
             color: Theme.of(context).scaffoldBackgroundColor,
             child: SingleChildScrollView(
               padding: EdgeInsets.all(16),
-            child: Column(
-              children: [
-                if (!canEdit)
+              child: Column(
+                children: [
+                  if (!canEdit)
                     Card(
                       elevation: 4,
                       shape: RoundedRectangleBorder(
@@ -161,35 +164,39 @@ class _RoastEditPageState extends State<RoastEditPage> {
                       color: Colors.orange.withOpacity(0.1),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
+                        child: Row(
+                          children: [
                             Icon(
                               Icons.info_outline,
                               color: Colors.orange,
                               size: 24,
                             ),
                             SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '閲覧のみの設定のため、編集できません',
+                            Expanded(
+                              child: Text(
+                                '権限がないため、編集できません',
                                 style: TextStyle(
                                   color: Colors.orange[800],
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
-                          ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
                     ),
                   if (!canEdit) SizedBox(height: 20),
-                  
+
                   // すべての項目を1つのカードにまとめる
                   Card(
                     elevation: 6,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    color: Provider.of<ThemeSettings>(context).backgroundColor2 ?? Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color:
+                        Provider.of<ThemeSettings>(context).backgroundColor2 ??
+                        Colors.white,
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(
@@ -201,12 +208,16 @@ class _RoastEditPageState extends State<RoastEditPage> {
                               Container(
                                 padding: EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Provider.of<ThemeSettings>(context).iconColor.withOpacity(0.12),
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).iconColor.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
                                   Icons.edit_note,
-                                  color: Provider.of<ThemeSettings>(context).iconColor,
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).iconColor,
                                   size: 20,
                                 ),
                               ),
@@ -216,13 +227,15 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
                                 ),
                               ),
                             ],
                           ),
                           SizedBox(height: 20),
-                          
+
                           // 豆の種類
                           _buildInputRow(
                             label: '豆の種類',
@@ -233,9 +246,9 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: Colors.grey.shade300),
                               ),
-                            child: TextField(
+                              child: TextField(
                                 controller: _beanController,
-                              enabled: canEdit,
+                                enabled: canEdit,
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.symmetric(
@@ -244,16 +257,18 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                   ),
                                   hintText: '例：ブラジル、コロンビア',
                                   hintStyle: TextStyle(
-                                    color: Provider.of<ThemeSettings>(context).fontColor1.withOpacity(0.6),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1.withOpacity(0.6),
                                     fontSize: 13,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          
+
                           SizedBox(height: 12),
-                          
+
                           // 重さ
                           _buildInputRow(
                             label: '重さ（g）',
@@ -274,22 +289,30 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                   ),
                                   hintText: '重さを選択',
                                   hintStyle: TextStyle(
-                                    color: Provider.of<ThemeSettings>(context).fontColor1.withOpacity(0.6),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1.withOpacity(0.6),
                                     fontSize: 13,
                                   ),
                                 ),
                                 items: ['200', '300', '500']
-                                    .map((e) => DropdownMenuItem(value: e, child: Text('${e}g')))
+                                    .map(
+                                      (e) => DropdownMenuItem(
+                                        value: e,
+                                        child: Text('${e}g'),
+                                      ),
+                                    )
                                     .toList(),
                                 onChanged: canEdit
-                                    ? (v) => setState(() => _selectedWeight = v!)
+                                    ? (v) =>
+                                          setState(() => _selectedWeight = v!)
                                     : null,
                               ),
                             ),
                           ),
-                          
+
                           SizedBox(height: 12),
-                          
+
                           // 焙煎時間
                           _buildInputRow(
                             label: '焙煎時間',
@@ -301,12 +324,18 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade50,
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.grey.shade300),
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                      ),
                                     ),
                                     child: TextField(
                                       controller: _minuteController,
                                       enabled: canEdit,
-                                      keyboardType: TextInputType.numberWithOptions(decimal: false, signed: false),
+                                      keyboardType:
+                                          TextInputType.numberWithOptions(
+                                            decimal: false,
+                                            signed: false,
+                                          ),
                                       textAlign: TextAlign.center,
                                       decoration: InputDecoration(
                                         border: InputBorder.none,
@@ -316,7 +345,9 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                         ),
                                         hintText: '分',
                                         hintStyle: TextStyle(
-                                          color: Provider.of<ThemeSettings>(context).fontColor1.withOpacity(0.6),
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontColor1.withOpacity(0.6),
                                           fontSize: 13,
                                         ),
                                       ),
@@ -329,21 +360,29 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Provider.of<ThemeSettings>(context).fontColor1,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
                                   ),
                                 ),
                                 SizedBox(width: 8),
-                          Expanded(
+                                Expanded(
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade50,
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.grey.shade300),
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                      ),
                                     ),
-                            child: TextField(
-                              controller: _secondController,
+                                    child: TextField(
+                                      controller: _secondController,
                                       enabled: canEdit,
-                              keyboardType: TextInputType.numberWithOptions(decimal: false, signed: false),
+                                      keyboardType:
+                                          TextInputType.numberWithOptions(
+                                            decimal: false,
+                                            signed: false,
+                                          ),
                                       textAlign: TextAlign.center,
                                       decoration: InputDecoration(
                                         border: InputBorder.none,
@@ -353,7 +392,9 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                         ),
                                         hintText: '秒',
                                         hintStyle: TextStyle(
-                                          color: Provider.of<ThemeSettings>(context).fontColor1.withOpacity(0.6),
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).fontColor1.withOpacity(0.6),
                                           fontSize: 13,
                                         ),
                                       ),
@@ -363,9 +404,9 @@ class _RoastEditPageState extends State<RoastEditPage> {
                               ],
                             ),
                           ),
-                          
+
                           SizedBox(height: 12),
-                          
+
                           // 煎り度
                           _buildInputRow(
                             label: '煎り度',
@@ -377,7 +418,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                 border: Border.all(color: Colors.grey.shade300),
                               ),
                               child: DropdownButtonFormField<String>(
-                        value: _selectedRoast,
+                                value: _selectedRoast,
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.symmetric(
@@ -386,22 +427,29 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                   ),
                                   hintText: '煎り度を選択',
                                   hintStyle: TextStyle(
-                                    color: Provider.of<ThemeSettings>(context).fontColor1.withOpacity(0.6),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1.withOpacity(0.6),
                                     fontSize: 13,
                                   ),
                                 ),
-                        items: ['浅煎り', '中煎り', '中深煎り', '深煎り']
-                                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: canEdit
-                            ? (v) => setState(() => _selectedRoast = v!)
-                            : null,
-                      ),
+                                items: ['浅煎り', '中煎り', '中深煎り', '深煎り']
+                                    .map(
+                                      (e) => DropdownMenuItem(
+                                        value: e,
+                                        child: Text(e),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: canEdit
+                                    ? (v) => setState(() => _selectedRoast = v!)
+                                    : null,
+                              ),
                             ),
                           ),
-                          
+
                           SizedBox(height: 12),
-                          
+
                           // メモ
                           _buildInputRow(
                             label: 'メモ',
@@ -413,8 +461,8 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                 border: Border.all(color: Colors.grey.shade300),
                               ),
                               child: TextField(
-                        controller: _memoController,
-                        enabled: canEdit,
+                                controller: _memoController,
+                                enabled: canEdit,
                                 maxLines: 2,
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
@@ -424,7 +472,9 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                   ),
                                   hintText: 'メモを入力してください',
                                   hintStyle: TextStyle(
-                                    color: Provider.of<ThemeSettings>(context).fontColor1.withOpacity(0.6),
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1.withOpacity(0.6),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -442,7 +492,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                        onPressed: canEdit ? _saveChanges : null,
+                      onPressed: canEdit ? _saveChanges : null,
                       icon: Icon(Icons.save, size: 20),
                       label: Text(
                         '変更を保存',
@@ -483,7 +533,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
     );
   }
 
-    Widget _buildInputRow({
+  Widget _buildInputRow({
     required String label,
     required IconData icon,
     required Widget child,

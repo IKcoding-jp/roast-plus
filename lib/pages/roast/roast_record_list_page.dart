@@ -70,9 +70,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
 
     // 初期ストリームをグループ状態で分岐
     final groupProvider = Provider.of<GroupProvider>(context, listen: false);
-    if (groupProvider.groups.isNotEmpty) {
+    if (groupProvider.hasGroup) {
       _recordsStream = RoastRecordFirestoreService.getGroupRecordsStream(
-        groupProvider.groups.first.id,
+        groupProvider.currentGroup!.id,
       );
     } else {
       _recordsStream = RoastRecordFirestoreService.getRecordsStream();
@@ -91,7 +91,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
         if (groupProvider.groups.isEmpty && !groupProvider.loading) {
           print('RoastRecordListPage: グループが読み込まれていないため、読み込みを開始します');
           groupProvider.loadUserGroups();
-        } else if (groupProvider.groups.isNotEmpty) {
+        } else if (groupProvider.hasGroup) {
           print('RoastRecordListPage: グループが既に読み込まれています - グループデータ監視を開始');
           _startGroupDataWatching(groupProvider);
         }
@@ -103,7 +103,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
 
   // グループデータの監視を開始
   void _startGroupDataWatching(GroupProvider groupProvider) {
-    if (groupProvider.groups.isNotEmpty && !groupProvider.isWatchingGroupData) {
+    if (groupProvider.hasGroup && !groupProvider.isWatchingGroupData) {
       print('RoastRecordListPage: グループデータ監視開始');
       groupProvider.startWatchingGroupData();
     }
@@ -215,7 +215,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
               userRole ?? GroupRole.member,
             );
             // 焙煎記録の削除権限をチェック（リーダーのみ）
-            final canDeleteRoastRecords = userRole == GroupRole.leader;
+            final canDeleteRoastRecords =
+                userRole == GroupRole.leader || userRole == GroupRole.admin;
 
             print('RoastRecordListPage: 権限チェック結果:');
             print(
@@ -296,8 +297,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     try {
       final groupProvider = context.read<GroupProvider>();
 
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
+      if (groupProvider.hasGroup) {
+        final group = groupProvider.currentGroup!;
 
         // グループに参加している場合は、常にグループの焙煎記録を表示
         _recordsStream = RoastRecordFirestoreService.getGroupRecordsStream(
@@ -330,11 +331,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     } else {
       final groupSettings = groupProvider.getCurrentGroupSettings();
       if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.readOnly) {
-        message = '閲覧のみの設定のため、削除できません';
+          DataPermission.adminOnly) {
+        message = '管理者のみ削除可能です';
       } else if (groupSettings?.getPermissionForDataType('roast_records') ==
           DataPermission.leaderOnly) {
-        message = 'リーダーのみ削除可能です';
+        message = '管理者・リーダーのみ削除可能です';
       } else {
         message = '権限がありません';
       }
@@ -358,11 +359,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     if (currentGroup != null) {
       final groupSettings = groupProvider.getCurrentGroupSettings();
       if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.readOnly) {
-        message = '閲覧のみの設定のため、編集できません';
+          DataPermission.adminOnly) {
+        message = '管理者のみ編集可能です';
       } else if (groupSettings?.getPermissionForDataType('roast_records') ==
           DataPermission.leaderOnly) {
-        message = 'リーダーのみ編集可能です';
+        message = '管理者・リーダーのみ編集可能です';
       } else {
         message = '権限がありません';
       }
@@ -416,10 +417,10 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
         );
 
         final groupProvider = context.read<GroupProvider>();
-        if (groupProvider.groups.isNotEmpty) {
+        if (groupProvider.hasGroup) {
           // グループに参加している場合はグループの記録を更新
           await RoastRecordFirestoreService.updateGroupRecord(
-            groupProvider.groups.first.id,
+            groupProvider.currentGroup!.id,
             updatedRecord,
           );
         } else {
@@ -488,7 +489,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
       if (groupProvider.groups.isNotEmpty) {
         // グループに参加している場合はグループの記録を削除
         await RoastRecordFirestoreService.deleteGroupRecord(
-          groupProvider.groups.first.id,
+          groupProvider.currentGroup!.id,
           record.id,
         );
       } else {

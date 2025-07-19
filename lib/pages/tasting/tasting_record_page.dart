@@ -22,9 +22,9 @@ class _TastingRecordPageState extends State<TastingRecordPage>
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
+      if (groupProvider.hasGroup) {
         context.read<TastingProvider>().loadTastingRecords(
-          groupId: groupProvider.groups.first.id,
+          groupId: groupProvider.currentGroup!.id,
         );
       } else {
         context.read<TastingProvider>().loadTastingRecords();
@@ -44,9 +44,9 @@ class _TastingRecordPageState extends State<TastingRecordPage>
     if (state == AppLifecycleState.resumed) {
       // アプリが復帰した時にデータを再読み込み
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
+      if (groupProvider.hasGroup) {
         context.read<TastingProvider>().loadTastingRecords(
-          groupId: groupProvider.groups.first.id,
+          groupId: groupProvider.currentGroup!.id,
         );
       } else {
         context.read<TastingProvider>().loadTastingRecords();
@@ -162,9 +162,9 @@ class _TastingRecordPageState extends State<TastingRecordPage>
       final groupProvider = context.read<GroupProvider>();
       if (!tastingProvider.isLoading &&
           tastingProvider.tastingRecords.isEmpty) {
-        if (groupProvider.groups.isNotEmpty) {
+        if (groupProvider.hasGroup) {
           tastingProvider.loadTastingRecords(
-            groupId: groupProvider.groups.first.id,
+            groupId: groupProvider.currentGroup!.id,
           );
         } else {
           tastingProvider.loadTastingRecords();
@@ -180,7 +180,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
             // グループ状態バッジを追加
             Consumer<GroupProvider>(
               builder: (context, groupProvider, _) {
-                if (groupProvider.groups.isNotEmpty) {
+                if (groupProvider.hasGroup) {
                   // グループ名のテキストを削除し、アイコンのみ表示
                   return Container(
                     margin: EdgeInsets.only(left: 12),

@@ -7,8 +7,6 @@ import '../services/app_settings_firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-import '../utils/app_performance_config.dart';
-import 'donation_page.dart';
 
 class SoundSettingsPage extends StatefulWidget {
   const SoundSettingsPage({super.key});

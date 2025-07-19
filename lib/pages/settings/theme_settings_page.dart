@@ -17,28 +17,11 @@ class ThemeSettingsPage extends StatefulWidget {
 class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   Map<String, Map<String, Color>> _customThemes = {};
   bool _isLoading = true;
+  bool? _isDonorUser;
   late BuildContext _rootContext;
-
-  // --- 追加: debounce用 ---
-  Timer? _snackbarDebounceTimer;
-  String? _pendingThemeName;
-  void _showDebouncedSnackBar(String themeName) {
-    _pendingThemeName = themeName;
-    _snackbarDebounceTimer?.cancel();
-    _snackbarDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-      if (!mounted) return;
-      if (_pendingThemeName != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$_pendingThemeName テーマを適用しました')),
-        );
-        _pendingThemeName = null;
-      }
-    });
-  }
 
   @override
   void dispose() {
-    _snackbarDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -46,20 +29,32 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   void initState() {
     super.initState();
     _loadCustomThemes();
+    _checkDonorStatus();
+  }
+
+  Future<void> _checkDonorStatus() async {
+    final isDonor = await isDonorUser();
+    if (mounted) {
+      setState(() {
+        _isDonorUser = isDonor;
+      });
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadCustomThemes();
+    // テーマ変更時の読み込み表示を防ぐため、この呼び出しを削除
   }
 
   Future<void> _loadCustomThemes() async {
     final customThemes = await ThemeSettings.getCustomThemes();
-    setState(() {
-      _customThemes = customThemes;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _customThemes = customThemes;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -100,14 +95,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
           ),
         ],
       ),
-      body: FutureBuilder<bool>(
-        future: isDonorUser(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.data != true) {
-            return Center(
+      body: _isDonorUser == null
+          ? Center(child: CircularProgressIndicator())
+          : _isDonorUser != true
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -132,22 +123,18 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   ),
                 ],
               ),
-            );
-          }
-          // 寄付者は従来UI
-          return Container(
-            color: themeSettings.backgroundColor,
-            padding: const EdgeInsets.all(16),
-            child: ListView(
-              children: [
-                _buildPresetSection(context, themeSettings),
-                const SizedBox(height: 24),
-                _buildCustomThemesSection(context, themeSettings),
-              ],
+            )
+          : Container(
+              color: themeSettings.backgroundColor,
+              padding: const EdgeInsets.all(16),
+              child: ListView(
+                children: [
+                  _buildPresetSection(context, themeSettings),
+                  const SizedBox(height: 24),
+                  _buildCustomThemesSection(context, themeSettings),
+                ],
+              ),
             ),
-          );
-        },
-      ),
     );
   }
 
@@ -180,64 +167,105 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             ),
             const SizedBox(height: 16),
 
-            // 基本テーマ（デフォルト、ダーク、ライト）
-            Text(
-              '基本テーマ',
-              style: TextStyle(
-                fontSize: 16 * themeSettings.fontSizeScale,
-                fontWeight: FontWeight.w600,
-                color: themeSettings.fontColor1,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: ['デフォルト', 'ダーク', 'ライト'].map((presetName) {
-                return _PresetButton(
-                  presetName: presetName,
-                  onPressed: () {
-                    themeSettings.applyPreset(presetName);
-                    _showDebouncedSnackBar(presetName);
-                  },
-                );
-              }).toList(),
-            ),
+            // 基本テーマ
+            _buildThemeCategory(context, themeSettings, '基本', [
+              'デフォルト',
+              'ダーク',
+              'ライト',
+            ], Icons.settings),
 
             const SizedBox(height: 16),
 
-            // カラーテーマ（その他の色）
+            // コーヒー系テーマ
+            _buildThemeCategory(context, themeSettings, 'コーヒー ☕', [
+              'ブラウン',
+              'ベージュ',
+              'エスプレッソ',
+              'カプチーノ',
+              'キャラメル',
+            ], Icons.local_cafe),
+
+            const SizedBox(height: 16),
+
+            // 暖色系テーマ
+            _buildThemeCategory(context, themeSettings, '暖色系 🧡', [
+              'レッド',
+              'オレンジ',
+              'タンジェリン',
+              'アンバー',
+              'パンプキン',
+              'サンセット',
+            ], Icons.wb_sunny),
+
+            const SizedBox(height: 16),
+
+            // 寒色系テーマ
+            _buildThemeCategory(context, themeSettings, '寒色系 💙', [
+              'オーシャン',
+              'ネイビー',
+              'フォレスト',
+              'ティール',
+              'ミントグリーン',
+            ], Icons.water_drop),
+
+            const SizedBox(height: 16),
+
+            // エレガント系テーマ
+            _buildThemeCategory(context, themeSettings, 'エレガント 💎', [
+              'サクラ',
+              'ラベンダー',
+            ], Icons.auto_awesome),
+
+            const SizedBox(height: 16),
+
+            // シンプル系テーマ
+            _buildThemeCategory(context, themeSettings, 'シンプル ⚪', [
+              'ライトグレー',
+            ], Icons.circle_outlined),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeCategory(
+    BuildContext context,
+    ThemeSettings themeSettings,
+    String categoryName,
+    List<String> themeNames,
+    IconData categoryIcon,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(categoryIcon, size: 20, color: themeSettings.iconColor),
+            const SizedBox(width: 8),
             Text(
-              'カラーテーマ',
+              categoryName,
               style: TextStyle(
                 fontSize: 16 * themeSettings.fontSizeScale,
                 fontWeight: FontWeight.w600,
                 color: themeSettings.fontColor1,
               ),
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: ThemeSettings.getPresetNames()
-                  .where(
-                    (presetName) =>
-                        !['デフォルト', 'ダーク', 'ライト'].contains(presetName),
-                  )
-                  .map((presetName) {
-                    return _PresetButton(
-                      presetName: presetName,
-                      onPressed: () {
-                        themeSettings.applyPreset(presetName);
-                        _showDebouncedSnackBar(presetName);
-                      },
-                    );
-                  })
-                  .toList(),
-            ),
           ],
         ),
-      ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: themeNames.map((presetName) {
+            return _PresetButton(
+              presetName: presetName,
+              onPressed: () {
+                themeSettings.applyPreset(presetName);
+              },
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
@@ -289,7 +317,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     themeData: _customThemes[themeName]!,
                     onPressed: () async {
                       await themeSettings.applyCustomTheme(themeName);
-                      _showDebouncedSnackBar(themeName);
                     },
                     onLongPress: () =>
                         _showCustomThemeOptions(context, themeName),
@@ -639,27 +666,129 @@ class _PresetButton extends StatelessWidget {
     final themeSettings = Provider.of<ThemeSettings>(context);
     final preset = ThemeSettings.presets[presetName];
     final isLight = presetName == 'ライト';
-    final paletteColor = isLight ? Colors.black : Colors.white;
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: preset?['buttonColor'] ?? Colors.grey,
-        foregroundColor: preset?['fontColor2'] ?? Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.palette, color: paletteColor, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            presetName,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+
+    // アイコン色の決定（ボタン色と背景色のコントラストを考慮）
+    final backgroundColor = preset?['buttonColor'] ?? Colors.grey;
+    final luminance = backgroundColor.computeLuminance();
+    final iconColor = luminance > 0.5 ? Colors.black87 : Colors.white;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: (preset?['buttonColor'] ?? Colors.grey).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: preset?['buttonColor'] ?? Colors.grey,
+          foregroundColor: preset?['fontColor2'] ?? Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // テーマに応じたアイコンとプレビュー色
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    preset?['backgroundColor'] ?? Colors.grey[100]!,
+                    preset?['iconColor'] ?? Colors.grey,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(color: iconColor.withOpacity(0.3), width: 1),
+              ),
+              child: Icon(
+                _getThemeIcon(presetName),
+                color: iconColor,
+                size: 14,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                presetName,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  IconData _getThemeIcon(String themeName) {
+    switch (themeName) {
+      case 'デフォルト':
+        return Icons.home;
+      case 'ダーク':
+        return Icons.dark_mode;
+      case 'ライト':
+        return Icons.light_mode;
+      case 'ライトグレー':
+        return Icons.contrast;
+      case 'ブラウン':
+        return Icons.coffee;
+      case 'ベージュ':
+        return Icons.local_cafe;
+      case 'エスプレッソ':
+        return Icons.coffee_maker;
+      case 'カプチーノ':
+        return Icons.coffee;
+      case 'レッド':
+        return Icons.favorite;
+      case 'オレンジ':
+        return Icons.circle;
+      case 'タンジェリン':
+        return Icons.set_meal;
+      case 'アンバー':
+        return Icons.star;
+      case 'キャラメル':
+        return Icons.emoji_food_beverage;
+      case 'パンプキン':
+        return Icons.emoji_nature;
+      case 'フォレスト':
+        return Icons.forest;
+      case 'ティール':
+        return Icons.water;
+      case 'ミントグリーン':
+        return Icons.eco;
+      case 'オーシャン':
+        return Icons.waves;
+      case 'ネイビー':
+        return Icons.sailing;
+
+      case 'サクラ':
+        return Icons.local_florist;
+      case 'ラベンダー':
+        return Icons.auto_awesome;
+      case 'サンセット':
+        return Icons.wb_sunny;
+
+      default:
+        return Icons.palette;
+    }
   }
 }
 

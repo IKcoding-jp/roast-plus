@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:bysnapp/pages/home/AssignmentBoard.dart';
-import 'package:bysnapp/pages/roast/roast_record_list_page.dart';
 import 'package:bysnapp/pages/roast/roast_timer_page.dart';
 import 'package:bysnapp/pages/todo/todo_page.dart';
 import 'package:bysnapp/pages/drip/drip_counter_page.dart';
 import 'package:bysnapp/pages/schedule/schedule_page.dart';
-import 'package:bysnapp/settings/app_settings_page.dart';
-import 'package:bysnapp/pages/roast/roast_record_page.dart';
-import 'package:bysnapp/pages/roast/roast_advisor_page.dart';
-import 'package:bysnapp/pages/group/group_list_page.dart';
-import 'package:bysnapp/pages/work_progress/work_progress_page.dart';
-import 'package:bysnapp/pages/tasting/tasting_record_page.dart';
-import 'package:bysnapp/pages/help/usage_guide_page.dart';
-import 'package:bysnapp/pages/calendar/calendar_page.dart';
+import 'package:bysnapp/pages/dashboard/dashboard_page.dart';
+import 'models/gamification_provider.dart';
+import 'services/experience_manager.dart';
+import 'pages/gamification/badge_list_page.dart';
 import 'services/sync_firestore_all.dart';
 import 'services/auto_sync_service.dart';
 import 'services/todo_notification_service.dart';
@@ -20,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'models/theme_settings.dart';
 import 'models/group_provider.dart';
+import 'models/dashboard_stats_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'services/data_sync_service.dart';
@@ -575,8 +571,8 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
-  int _selectedIndex = 0;
-  final PageController _pageController = PageController();
+  int _selectedIndex = 2; // デフォルトでホーム画面を表示
+  final PageController _pageController = PageController(initialPage: 2);
 
   InterstitialAd? _interstitialAd;
   bool _isAdLoaded = false;
@@ -590,7 +586,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   final List<Widget> _pages = [
     RoastTimerPage(), // 予熱タイマー
     SchedulePage(), // スケジュール
-    TodoPage(key: todoListPageKey), // TODOリスト
+    DashboardPage(), // ダッシュボード（中央）
     DripCounterPage(key: dripCounterPageKey), // ドリップ
     AssignmentBoard(key: assignmentBoardKey), // 担当表
   ];
@@ -676,13 +672,26 @@ class _MainScaffoldState extends State<MainScaffold> {
     await Future.delayed(Duration(seconds: 2));
     await AutoSyncService.initialize();
 
+    // ExperienceManagerを初期化
+    try {
+      await ExperienceManager.instance.initialize();
+    } catch (e) {
+      print('ExperienceManager初期化エラー: $e');
+    }
+
     // GroupProviderを初期化してグループデータの監視を開始
     if (mounted) {
       final groupProvider = context.read<GroupProvider>();
       await groupProvider.loadUserGroups();
-      if (groupProvider.groups.isNotEmpty && mounted) {
+      if (groupProvider.hasGroup && mounted) {
         groupProvider.startWatchingGroupData();
       }
+    }
+
+    // GamificationProviderを初期化
+    if (mounted) {
+      final gamificationProvider = context.read<GamificationProvider>();
+      await gamificationProvider.initialize();
     }
   }
 
@@ -720,179 +729,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           ],
         ),
       ),
-      drawer: Consumer<ThemeSettings>(
-        builder: (context, themeSettings, child) {
-          return Drawer(
-            child: ListView(
-              padding: EdgeInsets.zero, // ← これで余白防止
-              children: [
-                DrawerHeader(
-                  decoration: BoxDecoration(color: themeSettings.appBarColor),
-                  child: Text(
-                    'メニュー',
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: themeSettings.appBarTextColor,
-                    ),
-                  ),
-                ),
 
-                ListTile(
-                  leading: Icon(
-                    Icons.edit,
-                    color: themeSettings.iconColor,
-                  ), // 入力＝鉛筆
-                  title: Text(
-                    '焙煎記録入力',
-                    style: TextStyle(color: themeSettings.fontColor1),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => RoastRecordPage()),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.list,
-                    color: themeSettings.iconColor,
-                  ), // 一覧＝リスト
-                  title: Text(
-                    '焙煎記録一覧',
-                    style: TextStyle(color: themeSettings.fontColor1),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => RoastRecordListPage()),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.analytics,
-                    color: themeSettings.iconColor,
-                  ), // 分析＝グラフ
-                  title: Text(
-                    '焙煎分析',
-                    style: TextStyle(color: themeSettings.fontColor1),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => RoastAdvisorPage()),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.work_outline,
-                    color: themeSettings.iconColor,
-                  ),
-                  title: Text(
-                    '作業状況記録',
-                    style: TextStyle(color: themeSettings.fontColor1),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => WorkProgressPage()),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.coffee, color: themeSettings.iconColor),
-                  title: Text(
-                    '試飲感想記録',
-                    style: TextStyle(color: themeSettings.fontColor1),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => TastingRecordPage()),
-                    );
-                  },
-                ),
-
-                ListTile(
-                  leading: Icon(
-                    Icons.calendar_month,
-                    color: themeSettings.iconColor,
-                  ),
-                  title: Text(
-                    'カレンダー',
-                    style: TextStyle(color: themeSettings.fontColor1),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => CalendarPage()),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.group_work,
-                    color: themeSettings.iconColor,
-                  ),
-                  title: Text(
-                    'グループ管理',
-                    style: TextStyle(color: themeSettings.fontColor1),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => GroupListPage()),
-                    );
-                  },
-                ),
-
-                const Divider(),
-
-                ListTile(
-                  leading: Icon(
-                    Icons.help_outline,
-                    color: themeSettings.iconColor,
-                  ),
-                  title: Text(
-                    '使い方',
-                    style: TextStyle(color: themeSettings.fontColor1),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => UsageGuidePage()),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.settings, color: themeSettings.iconColor),
-                  title: Text(
-                    '設定',
-                    style: TextStyle(color: themeSettings.fontColor1),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => AppSettingsPage()),
-                    );
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      ),
       body: Stack(
         children: [
           FutureBuilder<bool>(
@@ -919,13 +756,14 @@ class _MainScaffoldState extends State<MainScaffold> {
           FutureBuilder<bool>(
             future: isDonorUser(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done)
+              if (snapshot.connectionState != ConnectionState.done) {
                 return SizedBox.shrink();
+              }
               if (snapshot.data == true) return SizedBox.shrink();
               if (_isBannerAdLoaded && _bannerAd != null) {
                 return Align(
                   alignment: Alignment.bottomCenter,
-                  child: Container(
+                  child: SizedBox(
                     width: _bannerAd!.size.width.toDouble(),
                     height: _bannerAd!.size.height.toDouble(),
                     child: AdWidget(ad: _bannerAd!),
@@ -969,10 +807,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                   icon: Icon(Icons.schedule),
                   label: 'スケジュール',
                 ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.check_circle_outline),
-                  label: 'メモ・TODO',
-                ),
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.local_cafe),
                   label: 'カウンター',

@@ -15,6 +15,10 @@ import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
+import '../../models/gamification_provider.dart';
+import '../../services/experience_manager.dart';
+import '../../widgets/lottie_animation_widget.dart';
+import '../../models/dashboard_stats_provider.dart';
 import '../../models/attendance_models.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
@@ -194,6 +198,20 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         status,
       );
 
+      // 出勤の場合、経験値を追加
+      if (status == AttendanceStatus.present && mounted) {
+        await _addAttendanceExperience();
+      }
+
+      // 統計データを更新
+      if (mounted) {
+        final statsProvider = Provider.of<DashboardStatsProvider>(
+          context,
+          listen: false,
+        );
+        await statsProvider.onAttendanceUpdated();
+      }
+
       // ローカル状態を更新
       await _loadTodayAttendance();
     } catch (e) {
@@ -201,6 +219,64 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('出勤退勤状態の更新に失敗しました')));
+    }
+  }
+
+  /// 出勤記録からXPを加算
+  Future<void> _addAttendanceExperience() async {
+    try {
+      // ExperienceManagerでXPを加算
+      final result = await ExperienceManager.instance.addAttendanceExperience(
+        attendanceDate: DateTime.now(),
+        isCheckIn: true,
+      );
+
+      if (mounted && result.success) {
+        // GamificationProviderに通知
+        final gamificationProvider = context.read<GamificationProvider>();
+        gamificationProvider.refreshFromExperienceManager();
+
+        // 成果表示
+        _showAttendanceExperienceResult(result);
+      }
+    } catch (e) {
+      print('出勤XP加算エラー: $e');
+    }
+  }
+
+  /// 出勤XP獲得結果を表示（Lottieアニメーション付き）
+  void _showAttendanceExperienceResult(ExperienceGainResult result) {
+    if (!mounted) return;
+
+    // レベルアップした場合はレベルアップアニメーションを優先
+    if (result.leveledUp) {
+      final badgeNames = result.newBadges.map((b) => b.name).toList();
+
+      AnimationHelper.showLevelUpAnimation(
+        context,
+        oldLevel: result.oldProfile.level,
+        newLevel: result.newLevel,
+        newBadges: badgeNames,
+        onComplete: () {
+          // アニメーション完了後の処理
+          if (mounted) {
+            // 状態更新は既にExperienceManager内で完了している
+          }
+        },
+      );
+    } else if (result.xpGained > 0) {
+      // 経験値獲得アニメーションを表示
+      AnimationHelper.showExperienceGainAnimation(
+        context,
+        xpGained: result.xpGained,
+        description: '出勤記録',
+        onComplete: () {
+          // アニメーション完了後の処理
+          if (mounted) {
+            // 必要に応じて追加の処理
+          }
+        },
+      );
     }
   }
 
@@ -228,8 +304,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     _groupSettingsSubscription?.cancel();
     _groupTodayAssignmentSubscription?.cancel();
 
-    if (groupProvider.groups.isNotEmpty) {
-      final group = groupProvider.groups.first;
+    if (groupProvider.hasGroup) {
+      final group = groupProvider.currentGroup!;
       print('AssignmentBoard: グループ監視開始 - groupId: ${group.id}');
 
       // グループの担当表データを監視
@@ -312,8 +388,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   /// リアルタイムで権限をチェック（Consumer内で使用）
   void _checkEditPermissionRealtime(GroupProvider groupProvider) {
-    if (groupProvider.groups.isNotEmpty) {
-      final group = groupProvider.groups.first;
+    if (groupProvider.hasGroup) {
+      final group = groupProvider.currentGroup!;
       GroupFirestoreService.canEditDataType(
             groupId: group.id,
             dataType: 'assignment_board',
@@ -340,8 +416,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   Future<void> _syncAssignmentToGroup() async {
     try {
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
+      if (groupProvider.hasGroup) {
+        final group = groupProvider.currentGroup!;
         print('AssignmentBoard: 担当表データをグループに同期開始 - groupId: ${group.id}');
 
         final assignmentData = {
@@ -366,8 +442,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   Future<void> _syncTodayAssignmentToGroup(List<String> assignments) async {
     try {
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
+      if (groupProvider.hasGroup) {
+        final group = groupProvider.currentGroup!;
         print('AssignmentBoard: 今日の担当履歴をグループに同期開始 - groupId: ${group.id}');
 
         final todayAssignmentData = {
@@ -393,8 +469,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   ) async {
     try {
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
+      if (groupProvider.hasGroup) {
+        final group = groupProvider.currentGroup!;
         print(
           'AssignmentBoard: 担当履歴をグループに同期開始 - groupId: ${group.id}, dateKey: $dateKey',
         );
@@ -661,8 +737,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       // グループにも同期
       try {
         final groupProvider = context.read<GroupProvider>();
-        if (groupProvider.groups.isNotEmpty) {
-          final group = groupProvider.groups.first;
+        if (groupProvider.hasGroup) {
+          final group = groupProvider.currentGroup!;
           print('AssignmentBoard: 今日の担当履歴をグループから削除開始 - groupId: ${group.id}');
 
           final assignmentHistoryData = {
@@ -731,8 +807,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     return Consumer<GroupProvider>(
       builder: (context, groupProvider, child) {
         // グループデータの監視状態を確認
-        if (groupProvider.groups.isNotEmpty &&
-            !groupProvider.isWatchingGroupData) {
+        if (groupProvider.hasGroup && !groupProvider.isWatchingGroupData) {
           // グループデータの監視を開始
           WidgetsBinding.instance.addPostFrameCallback((_) {
             groupProvider.startWatchingGroupData();

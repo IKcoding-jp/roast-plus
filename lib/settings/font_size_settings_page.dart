@@ -23,7 +23,14 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
       final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
       setState(() {
         _fontSizeScale = themeSettings.fontSizeScale;
-        _selectedFontFamily = themeSettings.fontFamily;
+        // フォントが利用可能なリストにない場合はデフォルトに変更
+        if (ThemeSettings.availableFonts.contains(themeSettings.fontFamily)) {
+          _selectedFontFamily = themeSettings.fontFamily;
+        } else {
+          _selectedFontFamily = 'HannariMincho';
+          // 設定も更新
+          themeSettings.updateFontFamily('HannariMincho');
+        }
       });
     });
   }

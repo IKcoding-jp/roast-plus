@@ -26,6 +26,19 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
   Future<void> _createGroup() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final groupProvider = context.read<GroupProvider>();
+
+    // 既にグループに参加している場合はエラーメッセージを表示
+    if (groupProvider.hasGroup) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('既にグループに参加しています。1つのグループのみ参加可能です。'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -67,8 +80,6 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
     setState(() {
       _isCreating = true;
     });
-
-    final groupProvider = context.read<GroupProvider>();
     final success = await groupProvider.createGroup(
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),
@@ -241,8 +252,8 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                       ),
                       SizedBox(height: 12),
                       Text(
-                        '• グループを作成すると、あなたがリーダーになります\n'
-                        '• リーダーはメンバーの招待・削除・権限変更ができます\n'
+                        '• グループを作成すると、あなたが管理者になります\n'
+                        '• 管理者・リーダーはメンバーの招待・削除・権限変更ができます\n'
                         '• メンバーはデータの閲覧のみ可能です\n'
                         '• グループ内でデータを共有・同期できます\n'
                         '• グループアイコンは、グループを識別するために様々な画面で表示されます',

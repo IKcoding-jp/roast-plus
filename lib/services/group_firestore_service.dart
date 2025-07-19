@@ -35,7 +35,7 @@ class GroupFirestoreService {
       email: _email!,
       displayName: _displayName ?? 'Unknown User',
       photoUrl: _photoUrl,
-      role: GroupRole.leader,
+      role: GroupRole.admin, // グループ作成者は管理者として扱う
       joinedAt: now,
       lastActiveAt: now,
     );
@@ -65,7 +65,7 @@ class GroupFirestoreService {
         .set({
           'groupId': groupId,
           'groupName': name,
-          'role': GroupRole.leader.name,
+          'role': GroupRole.admin.name,
           'joinedAt': now.toIso8601String(),
         });
 
@@ -215,7 +215,7 @@ class GroupFirestoreService {
       email: _email!,
       displayName: _displayName ?? 'Unknown User',
       photoUrl: _photoUrl,
-      role: GroupRole.member,
+      role: GroupRole.member, // 招待されたメンバーはメンバーとして扱う
       joinedAt: DateTime.now(),
       lastActiveAt: DateTime.now(),
     );
@@ -383,16 +383,6 @@ class GroupFirestoreService {
 
     final group = await getGroup(groupId);
     if (group == null) throw Exception('グループが見つかりません');
-
-    // リーダーは脱退できない（他のリーダーに権限を譲る必要がある）
-    if (group.isLeader(_uid!)) {
-      final leaders = group.members
-          .where((m) => m.role == GroupRole.leader)
-          .length;
-      if (leaders <= 1) {
-        throw Exception('リーダーは他のリーダーに権限を譲ってから脱退してください');
-      }
-    }
 
     final updatedMembers = group.members.where((m) => m.uid != _uid).toList();
     final updatedGroup = group.copyWith(
@@ -566,13 +556,17 @@ class GroupFirestoreService {
     try {
       final settings = GroupSettings.fromJson(group.settings);
       // リーダーは常に同期可能
-      if (userRole == GroupRole.leader) return true;
+      if (userRole == GroupRole.admin || userRole == GroupRole.leader) {
+        return true;
+      }
       // メンバーは設定に応じて同期可能
       return settings.allowMemberDataSync;
     } catch (e) {
       // 古い形式の設定の場合はデフォルト設定で判定
       final defaultSettings = GroupSettings.defaultSettings();
-      if (userRole == GroupRole.leader) return true;
+      if (userRole == GroupRole.admin || userRole == GroupRole.leader) {
+        return true;
+      }
       return defaultSettings.allowMemberDataSync;
     }
   }

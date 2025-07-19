@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/group_data_sync_service.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 
@@ -73,10 +72,10 @@ class TodoListPageState extends State<TodoListPage>
     // GroupProviderのグループ読み込みを確認
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isEmpty && !groupProvider.loading) {
+      if (!groupProvider.hasGroup && !groupProvider.loading) {
         print('TodoListPage: グループが読み込まれていないため、読み込みを開始します');
         groupProvider.loadUserGroups();
-      } else if (groupProvider.groups.isNotEmpty) {
+      } else if (groupProvider.hasGroup) {
         print('TodoListPage: グループが既に読み込まれています - グループデータ監視を開始');
         _startGroupDataWatching(groupProvider);
       }
@@ -173,7 +172,7 @@ class TodoListPageState extends State<TodoListPage>
 
   // グループデータの監視を開始
   void _startGroupDataWatching(GroupProvider groupProvider) {
-    if (groupProvider.groups.isNotEmpty && !groupProvider.isWatchingGroupData) {
+    if (groupProvider.hasGroup && !groupProvider.isWatchingGroupData) {
       print('TodoListPage: グループデータ監視を開始します');
       groupProvider.startWatchingGroupData();
     }
@@ -184,10 +183,10 @@ class TodoListPageState extends State<TodoListPage>
     try {
       print('TodoListPage: 編集権限チェック開始');
       final groupProvider = context.read<GroupProvider>();
-      print('TodoListPage: グループ数: ${groupProvider.groups.length}');
+      print('TodoListPage: グループあり: ${groupProvider.hasGroup}');
 
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
+      if (groupProvider.hasGroup) {
+        final group = groupProvider.currentGroup!;
         final currentUser = FirebaseAuth.instance.currentUser;
         print('TodoListPage: 現在のユーザー: ${currentUser?.uid}');
 
@@ -582,8 +581,7 @@ class TodoListPageState extends State<TodoListPage>
     return Consumer<GroupProvider>(
       builder: (context, groupProvider, child) {
         // グループデータの監視状態を確認
-        if (groupProvider.groups.isNotEmpty &&
-            !groupProvider.isWatchingGroupData) {
+        if (groupProvider.hasGroup && !groupProvider.isWatchingGroupData) {
           // グループデータの監視を開始
           WidgetsBinding.instance.addPostFrameCallback((_) {
             groupProvider.startWatchingGroupData();

@@ -10,6 +10,7 @@ import '../../models/theme_settings.dart';
 import '../../utils/sound_utils.dart';
 import '../../models/group_provider.dart';
 import '../../models/roast_record.dart';
+import '../../models/gamification_provider.dart';
 import '../../services/roast_record_firestore_service.dart';
 import '../../services/roast_timer_notification_service.dart';
 import 'package:android_intent_plus/android_intent.dart';
@@ -63,7 +64,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   List<RoastRecord> _recommendRecords = [];
 
   InterstitialAd? _interstitialAd;
-  bool _isAdLoaded = false;
+  final bool _isAdLoaded = false;
 
   void _loadInterstitialAdAndShow(VoidCallback onAdClosed) async {
     if (await isDonorUser()) {
@@ -645,6 +646,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
               } else if (_mode == RoastMode.cooling) {
                 _showCoolingDialog();
               } else {
+                // 焙煎完了時に経験値を追加
+                _recordRoastingExperience();
                 _showAfterRoastDialog();
               }
             },
@@ -656,6 +659,22 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
         ],
       ),
     );
+  }
+
+  /// 焙煎完了時に経験値を記録
+  Future<void> _recordRoastingExperience() async {
+    try {
+      final gamificationProvider = context.read<GamificationProvider>();
+      final roastTimeMinutes = _totalSeconds / 60.0;
+      final result = await gamificationProvider.recordRoasting(
+        roastTimeMinutes,
+      );
+      if (mounted) {
+        gamificationProvider.showActivityResult(context, result);
+      }
+    } catch (e) {
+      print('焙煎経験値記録エラー: $e');
+    }
   }
 
   void _showAfterRoastDialog() {

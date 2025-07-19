@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'group_models.dart';
 import '../services/group_firestore_service.dart';
 import '../services/group_data_sync_service.dart';
@@ -16,6 +17,7 @@ class GroupProvider extends ChangeNotifier {
   bool _isWatchingGroupData = false;
   final Map<String, Map<String, dynamic>> _groupStatistics = {};
   final GroupStatisticsService _statisticsService = GroupStatisticsService();
+  final Map<String, StreamSubscription<DocumentSnapshot>> _groupWatchers = {};
 
   // Getters
   List<Group> get groups => _groups;
@@ -26,7 +28,11 @@ class GroupProvider extends ChangeNotifier {
   String? get error => _error;
   Map<String, Map<String, dynamic>> get groupStatistics => _groupStatistics;
 
-  /// ユーザーが参加しているグループを取得
+  // 単一グループ対応のための追加getter
+  bool get hasGroup => _currentGroup != null;
+  Group? get singleGroup => _currentGroup;
+
+  /// ユーザーが参加しているグループを取得（単一グループ対応）
   Future<void> loadUserGroups() async {
     _setLoading(true);
     _clearError();
@@ -35,10 +41,16 @@ class GroupProvider extends ChangeNotifier {
       _groups = await GroupFirestoreService.getUserGroups();
       print('GroupProvider: グループ読み込み完了 - グループ数: ${_groups.length}');
 
-      // グループが読み込まれた後にAutoSyncServiceを初期化
+      // 単一グループ制限: 最初のグループのみをcurrentGroupに設定
       if (_groups.isNotEmpty) {
+        _currentGroup = _groups.first;
+        print('GroupProvider: currentGroupを設定: ${_currentGroup!.name}');
+
+        // AutoSyncServiceの初期化
         print('GroupProvider: AutoSyncServiceの初期化を開始');
         await _initializeAutoSyncService();
+      } else {
+        _currentGroup = null;
       }
 
       _safeNotifyListeners();
@@ -89,11 +101,17 @@ class GroupProvider extends ChangeNotifier {
     }
   }
 
-  /// グループを作成
+  /// グループを作成（単一グループ制限）
   Future<bool> createGroup({
     required String name,
     required String description,
   }) async {
+    // 既にグループに参加している場合は作成を拒否
+    if (_currentGroup != null) {
+      _setError('既にグループに参加しています。1つのグループのみ参加可能です。');
+      return false;
+    }
+
     _setLoading(true);
     _clearError();
 
@@ -102,7 +120,9 @@ class GroupProvider extends ChangeNotifier {
         name: name,
         description: description,
       );
+      _groups.clear(); // 他のグループがあれば削除
       _groups.add(newGroup);
+      _currentGroup = newGroup; // 新しいグループをcurrentGroupに設定
       _safeNotifyListeners();
       return true;
     } catch (e) {
@@ -201,8 +221,14 @@ class GroupProvider extends ChangeNotifier {
     }
   }
 
-  /// 招待を承諾
+  /// 招待を承諾（単一グループ制限）
   Future<bool> acceptInvitation(String invitationId) async {
+    // 既にグループに参加している場合は承諾を拒否
+    if (_currentGroup != null) {
+      _setError('既にグループに参加しています。1つのグループのみ参加可能です。');
+      return false;
+    }
+
     _setLoading(true);
     _clearError();
 
@@ -316,7 +342,7 @@ class GroupProvider extends ChangeNotifier {
     }
   }
 
-  /// グループから脱退
+  /// グループから脱退（単一グループ対応）
   Future<bool> leaveGroup(String groupId) async {
     _setLoading(true);
     _clearError();
@@ -372,6 +398,14 @@ class GroupProvider extends ChangeNotifier {
     return group.isLeader(currentUser.uid);
   }
 
+  /// 現在のユーザーがcurrentGroupのリーダーかどうかをチェック（単一グループ対応）
+  bool isCurrentUserLeaderOfCurrentGroup() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null || _currentGroup == null) return false;
+
+    return _currentGroup!.isLeader(currentUser.uid);
+  }
+
   /// 現在のユーザーが指定されたグループのメンバーかどうかをチェック
   bool isCurrentUserMember(String groupId) {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -381,6 +415,14 @@ class GroupProvider extends ChangeNotifier {
     if (group == null) return false;
 
     return group.isMember(currentUser.uid);
+  }
+
+  /// 現在のユーザーがcurrentGroupのメンバーかどうかをチェック（単一グループ対応）
+  bool isCurrentUserMemberOfCurrentGroup() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null || _currentGroup == null) return false;
+
+    return _currentGroup!.isMember(currentUser.uid);
   }
 
   /// グループのデータを同期
@@ -447,6 +489,46 @@ class GroupProvider extends ChangeNotifier {
     );
   }
 
+  /// Firestoreのグループドキュメントをリアルタイム監視し、変更があれば即時反映
+  void watchGroup(String groupId) {
+    if (_groupWatchers.containsKey(groupId)) return;
+    final sub = FirebaseFirestore.instance
+        .collection('groups')
+        .doc(groupId)
+        .snapshots()
+        .listen((doc) {
+          if (doc.exists) {
+            final updated = Group.fromJson(doc.data()!);
+            final idx = _groups.indexWhere((g) => g.id == groupId);
+            if (idx != -1) {
+              _groups[idx] = updated;
+            } else {
+              _groups.add(updated);
+            }
+            if (_currentGroup?.id == groupId) {
+              _currentGroup = updated;
+            }
+            notifyListeners();
+          }
+        });
+    _groupWatchers[groupId] = sub;
+  }
+
+  /// Firestoreのグループ監視を解除
+  void unwatchGroup(String groupId) {
+    _groupWatchers[groupId]?.cancel();
+    _groupWatchers.remove(groupId);
+  }
+
+  @override
+  void dispose() {
+    for (final sub in _groupWatchers.values) {
+      sub.cancel();
+    }
+    _groupWatchers.clear();
+    super.dispose();
+  }
+
   // Private methods
   void _setLoading(bool loading) {
     _loading = loading;
@@ -500,27 +582,27 @@ class GroupProvider extends ChangeNotifier {
     return _currentGroup!.getMemberRole(currentUser.uid);
   }
 
-  /// 現在のグループの設定を取得
+  /// 現在のグループの設定を取得（単一グループ対応）
   GroupSettings? getCurrentGroupSettings() {
-    // 最初のグループを使用（_currentGroupが設定されていない場合）
-    final group = _currentGroup ?? (_groups.isNotEmpty ? _groups.first : null);
-    if (group == null) {
-      print('GroupProvider: グループがnullのため設定を取得できません');
+    if (_currentGroup == null) {
+      print('GroupProvider: currentGroupがnullのため設定を取得できません');
       return null;
     }
 
     try {
-      print('GroupProvider: グループ設定を取得中 - グループID: ${group.id}');
-      print('GroupProvider: グループ設定データ: ${group.settings}');
-      print('GroupProvider: グループ設定データの型: ${group.settings.runtimeType}');
+      print('GroupProvider: グループ設定を取得中 - グループID: ${_currentGroup!.id}');
+      print('GroupProvider: グループ設定データ: ${_currentGroup!.settings}');
+      print(
+        'GroupProvider: グループ設定データの型: ${_currentGroup!.settings.runtimeType}',
+      );
 
       // 設定が存在しない場合はデフォルト設定を使用
-      if (group.settings.isEmpty) {
+      if (_currentGroup!.settings.isEmpty) {
         print('GroupProvider: 設定が空のためデフォルト設定を使用');
         return GroupSettings.defaultSettings();
       }
 
-      final settings = GroupSettings.fromJson(group.settings);
+      final settings = GroupSettings.fromJson(_currentGroup!.settings);
       print('GroupProvider: グループ設定取得成功: $settings');
       print('GroupProvider: データ権限設定: ${settings.dataPermissions}');
       return settings;
@@ -564,13 +646,13 @@ class GroupProvider extends ChangeNotifier {
     });
   }
 
-  /// グループデータをローカルに適用
+  /// グループデータをローカルに適用（単一グループ対応）
   Future<void> applyGroupDataToLocal() async {
-    if (_groups.isEmpty) return;
+    if (_currentGroup == null) return;
 
     try {
       print('GroupProvider: グループデータをローカルに適用開始');
-      await GroupDataSyncService.applyGroupDataToLocal(_groups.first.id);
+      await GroupDataSyncService.applyGroupDataToLocal(_currentGroup!.id);
       print('GroupProvider: グループデータをローカルに適用完了');
       _safeNotifyListeners();
     } catch (e) {
@@ -668,10 +750,10 @@ class GroupProvider extends ChangeNotifier {
     return _groupStatistics[groupId];
   }
 
-  /// すべてのグループの統計情報を取得
+  /// すべてのグループの統計情報を取得（単一グループ対応）
   Future<void> loadAllGroupStatistics() async {
-    for (final group in _groups) {
-      await loadGroupStatistics(group.id);
+    if (_currentGroup != null) {
+      await loadGroupStatistics(_currentGroup!.id);
     }
   }
 }

@@ -7,6 +7,10 @@ import '../../models/group_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import '../../services/experience_manager.dart';
+import '../../models/gamification_provider.dart';
+import '../../widgets/lottie_animation_widget.dart';
+import '../../models/dashboard_stats_provider.dart';
 
 class RoastRecordPage extends StatefulWidget {
   const RoastRecordPage({super.key});
@@ -474,18 +478,29 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
       for (final record in newRecords) {
         if (!mounted) return;
 
-        if (groupProvider.groups.isNotEmpty) {
+        if (groupProvider.hasGroup) {
           // グループに参加している場合はグループに記録を追加
           await RoastRecordFirestoreService.addGroupRecord(
-            groupProvider.groups.first.id,
+            groupProvider.currentGroup!.id,
             record,
           );
         } else {
           // グループに参加していない場合は個人の記録を追加
           await RoastRecordFirestoreService.addRecord(record);
         }
+
+        // 焙煎記録からXPを加算
+        await _addRoastingExperience(record);
       }
+
+      // 統計データを更新
       if (mounted) {
+        final statsProvider = Provider.of<DashboardStatsProvider>(
+          context,
+          listen: false,
+        );
+        await statsProvider.onRoastRecordAdded();
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${newRecords.length}件の記録を保存しました')),
         );
@@ -512,6 +527,75 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
           context,
         ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
       }
+    }
+  }
+
+  /// 焙煎記録からXPを加算
+  Future<void> _addRoastingExperience(RoastRecord record) async {
+    try {
+      // 焙煎時間を分に変換
+      final timeParts = record.time.split(':');
+      if (timeParts.length != 2) return;
+
+      final minutes = int.tryParse(timeParts[0]) ?? 0;
+      final seconds = int.tryParse(timeParts[1]) ?? 0;
+      final totalMinutes = minutes + (seconds / 60.0);
+
+      if (totalMinutes <= 0) return;
+
+      // ExperienceManagerでXPを加算
+      final result = await ExperienceManager.instance.addRoastingExperience(
+        roastTimeMinutes: totalMinutes,
+        beanName: record.bean,
+        roastDate: record.timestamp,
+      );
+
+      if (mounted && result.success) {
+        // GamificationProviderに通知
+        final gamificationProvider = context.read<GamificationProvider>();
+        gamificationProvider.refreshFromExperienceManager();
+
+        // 成果表示
+        _showExperienceGainResult(result);
+      }
+    } catch (e) {
+      debugPrint('焙煎XP加算エラー: $e');
+    }
+  }
+
+  /// XP獲得結果を表示（Lottieアニメーション付き）
+  void _showExperienceGainResult(ExperienceGainResult result) {
+    if (!mounted) return;
+
+    // レベルアップした場合はレベルアップアニメーションを優先
+    if (result.leveledUp) {
+      final badgeNames = result.newBadges.map((b) => b.name).toList();
+
+      AnimationHelper.showLevelUpAnimation(
+        context,
+        oldLevel: result.oldProfile.level,
+        newLevel: result.newLevel,
+        newBadges: badgeNames,
+        onComplete: () {
+          // アニメーション完了後の処理
+          if (mounted) {
+            // 状態更新は既にExperienceManager内で完了している
+          }
+        },
+      );
+    } else if (result.xpGained > 0) {
+      // 経験値獲得アニメーションを表示
+      AnimationHelper.showExperienceGainAnimation(
+        context,
+        xpGained: result.xpGained,
+        description: result.description,
+        onComplete: () {
+          // アニメーション完了後の処理
+          if (mounted) {
+            // 必要に応じて追加の処理
+          }
+        },
+      );
     }
   }
 

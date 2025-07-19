@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/group_data_sync_service.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../services/schedule_firestore_service.dart';

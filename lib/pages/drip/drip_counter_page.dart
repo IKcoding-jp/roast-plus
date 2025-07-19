@@ -5,6 +5,10 @@ import 'package:bysnapp/pages/drip/DripPackRecordListPage.dart';
 import '../../services/drip_counter_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../models/gamification_provider.dart';
+import '../../services/experience_manager.dart';
+import '../../widgets/lottie_animation_widget.dart';
+import '../../models/dashboard_stats_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -798,10 +802,102 @@ class DripCounterPageState extends State<DripCounterPage>
         timestamp: now,
       );
     } catch (_) {}
+
+    // ドリップパック作成の経験値を追加
+    await _addDripPackExperience(count, bean, now);
+
+    // 統計データを更新
+    if (mounted) {
+      final statsProvider = Provider.of<DashboardStatsProvider>(
+        context,
+        listen: false,
+      );
+      await statsProvider.onDripPackAdded();
+    }
+
+    // UIをリセット
     setState(() {
-      _counter = 0;
+      _beanController.clear();
       _selectedRoast = null;
+      _counter = 0;
     });
-    _beanController.clear();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${count}袋の記録を保存しました'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  /// ドリップパック作成からXPを加算
+  Future<void> _addDripPackExperience(
+    int count,
+    String bean,
+    DateTime createDate,
+  ) async {
+    try {
+      // ExperienceManagerでXPを加算
+      final result = await ExperienceManager.instance.addDripPackExperience(
+        packCount: count,
+        createDate: createDate,
+      );
+
+      if (mounted && result.success) {
+        // GamificationProviderに通知
+        final gamificationProvider = context.read<GamificationProvider>();
+        gamificationProvider.refreshFromExperienceManager();
+
+        // 成果表示
+        _showDripPackExperienceResult(result, count, bean);
+      }
+    } catch (e) {
+      print('ドリップパックXP加算エラー: $e');
+    }
+  }
+
+  /// ドリップパックXP獲得結果を表示（Lottieアニメーション付き）
+  void _showDripPackExperienceResult(
+    ExperienceGainResult result,
+    int count,
+    String bean,
+  ) {
+    if (!mounted) return;
+
+    // 少し遅延させてからアニメーションを表示（記録保存のSnackBarの後）
+    Future.delayed(Duration(milliseconds: 800), () {
+      if (!mounted) return;
+
+      // レベルアップした場合はレベルアップアニメーションを優先
+      if (result.leveledUp) {
+        final badgeNames = result.newBadges.map((b) => b.name).toList();
+
+        AnimationHelper.showLevelUpAnimation(
+          context,
+          oldLevel: result.oldProfile.level,
+          newLevel: result.newLevel,
+          newBadges: badgeNames,
+          onComplete: () {
+            // アニメーション完了後の処理
+            if (mounted) {
+              // 状態更新は既にExperienceManager内で完了している
+            }
+          },
+        );
+      } else if (result.xpGained > 0) {
+        // 経験値獲得アニメーションを表示
+        AnimationHelper.showExperienceGainAnimation(
+          context,
+          xpGained: result.xpGained,
+          description: '${bean} ${count}袋作成',
+          onComplete: () {
+            // アニメーション完了後の処理
+            if (mounted) {
+              // 必要に応じて追加の処理
+            }
+          },
+        );
+      }
+    });
   }
 }
