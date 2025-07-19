@@ -7,8 +7,8 @@ import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 
-class RoastAdvisorPage extends StatelessWidget {
-  const RoastAdvisorPage({super.key});
+class RoastAnalysisPage extends StatelessWidget {
+  const RoastAnalysisPage({super.key});
 
   int _parseTimeToSeconds(String time) {
     final parts = time.split(':');

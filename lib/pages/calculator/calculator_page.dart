@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
-import 'dart:math' as math;
 
 class CalculatorPage extends StatefulWidget {
   const CalculatorPage({super.key});
@@ -184,7 +183,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
           ),
         ),
         backgroundColor: themeSettings.appBarColor,
-        iconTheme: IconThemeData(color: themeSettings.iconColor),
+        iconTheme: IconThemeData(color: themeSettings.calculatorColor),
       ),
       body: SafeArea(
         child: Column(
@@ -200,7 +199,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                   color: themeSettings.backgroundColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: themeSettings.iconColor.withOpacity(0.3),
+                    color: themeSettings.calculatorColor.withOpacity(0.3),
                     width: 2,
                   ),
                 ),

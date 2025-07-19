@@ -60,28 +60,30 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   void setAssignmentMembersFromFirestore(Map<String, dynamic> members) {
     print('AssignmentBoard: setAssignmentMembersFromFirestore 呼び出し');
     print('AssignmentBoard: 受信データ: $members');
-    setState(() {
-      // 新しい形式（teams）または古い形式（aMembers, bMembers）に対応
-      if (members['teams'] != null) {
-        final teamsList = members['teams'] as List;
-        teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
-      } else {
-        // 古い形式の場合は新しい形式に変換
-        final aMembers = List<String>.from(members['aMembers'] ?? []);
-        final bMembers = List<String>.from(members['bMembers'] ?? []);
-        teams = [
-          Team(id: 'team_a', name: 'A班', members: aMembers),
-          Team(id: 'team_b', name: 'B班', members: bMembers),
-        ];
-      }
+    if (mounted) {
+      setState(() {
+        // 新しい形式（teams）または古い形式（aMembers, bMembers）に対応
+        if (members['teams'] != null) {
+          final teamsList = members['teams'] as List;
+          teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
+        } else {
+          // 古い形式の場合は新しい形式に変換
+          final aMembers = List<String>.from(members['aMembers'] ?? []);
+          final bMembers = List<String>.from(members['bMembers'] ?? []);
+          teams = [
+            Team(id: 'team_a', name: 'A班', members: aMembers),
+            Team(id: 'team_b', name: 'B班', members: bMembers),
+          ];
+        }
 
-      if ((members['leftLabels'] as List?)?.isNotEmpty ?? false) {
-        leftLabels = List<String>.from(members['leftLabels']);
-      }
-      if ((members['rightLabels'] as List?)?.isNotEmpty ?? false) {
-        rightLabels = List<String>.from(members['rightLabels']);
-      }
-    });
+        if ((members['leftLabels'] as List?)?.isNotEmpty ?? false) {
+          leftLabels = List<String>.from(members['leftLabels']);
+        }
+        if ((members['rightLabels'] as List?)?.isNotEmpty ?? false) {
+          rightLabels = List<String>.from(members['rightLabels']);
+        }
+      });
+    }
 
     // ローカルデータも更新
     _updateLocalData();
@@ -113,21 +115,23 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   }
 
   void setAssignmentHistoryFromFirestore(List<String> history) {
-    setState(() {
-      if (history.isNotEmpty &&
-          history.length == leftLabels.length &&
-          teams.length >= 2) {
-        // 履歴を各チームに分配
-        for (int i = 0; i < teams.length; i++) {
-          final teamMembers = history.map((e) => e.split('-')[i]).toList();
-          teams[i] = teams[i].copyWith(members: teamMembers);
+    if (mounted) {
+      setState(() {
+        if (history.isNotEmpty &&
+            history.length == leftLabels.length &&
+            teams.length >= 2) {
+          // 履歴を各チームに分配
+          for (int i = 0; i < teams.length; i++) {
+            final teamMembers = history.map((e) => e.split('-')[i]).toList();
+            teams[i] = teams[i].copyWith(members: teamMembers);
+          }
+          isAssignedToday = true;
+        } else {
+          // 履歴が空または無効な場合は決定済みフラグをリセット
+          isAssignedToday = false;
         }
-        isAssignedToday = true;
-      } else {
-        // 履歴が空または無効な場合は決定済みフラグをリセット
-        isAssignedToday = false;
-      }
-    });
+      });
+    }
   }
 
   @override
@@ -151,20 +155,26 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   /// 今日の出勤退勤記録を読み込み
   Future<void> _loadTodayAttendance() async {
     try {
-      setState(() {
-        _isAttendanceLoading = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isAttendanceLoading = true;
+        });
+      }
 
       final attendance = await AttendanceFirestoreService.getTodayAttendance();
-      setState(() {
-        _todayAttendance = attendance;
-        _isAttendanceLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _todayAttendance = attendance;
+          _isAttendanceLoading = false;
+        });
+      }
     } catch (e) {
       print('AssignmentBoard: 出勤退勤記録読み込みエラー: $e');
-      setState(() {
-        _isAttendanceLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isAttendanceLoading = false;
+        });
+      }
     }
   }
 
@@ -388,6 +398,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   /// リアルタイムで権限をチェック（Consumer内で使用）
   void _checkEditPermissionRealtime(GroupProvider groupProvider) {
+    if (!mounted) return; // ウィジェットが破棄されている場合は処理しない
+
     if (groupProvider.hasGroup) {
       final group = groupProvider.currentGroup!;
       GroupFirestoreService.canEditDataType(
@@ -499,9 +511,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     // グループ状態ならグループデータのみ監視・利用
     if (groupProvider.groups.isNotEmpty) {
       // グループ監視はinitStateで既に開始されているため、ここでは何もしない
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       return;
     }
     // 個人データ取得
@@ -518,9 +532,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         if (assignmentHistory != null && assignmentHistory.isNotEmpty) {
           setAssignmentHistoryFromFirestore(assignmentHistory);
         }
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
         return;
       }
     } catch (e) {
@@ -567,13 +583,15 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       }
     }
 
-    setState(() {
-      // ラベルは常に保存値を反映（メンバーが空でも消さない）
-      leftLabels = loadedLeft;
-      rightLabels = loadedRight;
-      isAssignedToday = wasAssigned && !_isWeekend();
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        // ラベルは常に保存値を反映（メンバーが空でも消さない）
+        leftLabels = loadedLeft;
+        rightLabels = loadedRight;
+        isAssignedToday = wasAssigned && !_isWeekend();
+        _isLoading = false;
+      });
+    }
   }
 
   String _todayKey() => DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -815,9 +833,13 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         }
 
         // 権限チェックを実行
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _checkEditPermissionRealtime(groupProvider);
-        });
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _checkEditPermissionRealtime(groupProvider);
+            }
+          });
+        }
 
         if (_isLoading) {
           return Scaffold(body: Center(child: CircularProgressIndicator()));

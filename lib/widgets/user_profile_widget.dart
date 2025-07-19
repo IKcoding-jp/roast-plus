@@ -388,7 +388,7 @@ class UserProfileWidget extends StatelessWidget {
     final profile = provider.userProfile;
     final earnedBadges = profile.badges.length;
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: () {

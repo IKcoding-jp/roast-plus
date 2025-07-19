@@ -15,11 +15,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'models/theme_settings.dart';
 import 'models/group_provider.dart';
-import 'models/dashboard_stats_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'services/data_sync_service.dart';
 import 'services/assignment_firestore_service.dart';
+import 'services/group_firestore_service.dart';
+
+import 'pages/group/group_required_page.dart';
+import 'pages/tasting/tasting_record_page.dart';
+import 'pages/calendar/calendar_page.dart';
+import 'pages/roast/roast_record_list_page.dart';
+import 'pages/roast/roast_record_page.dart';
+import 'pages/roast/roast_analysis_page.dart';
+import 'pages/calculator/calculator_page.dart';
+import 'pages/work_progress/work_progress_page.dart';
+import 'pages/group/group_list_page.dart';
+import 'pages/help/usage_guide_page.dart';
+import 'settings/app_settings_page.dart';
+import 'pages/group/group_info_page.dart';
+import 'pages/group/group_qr_generate_page.dart';
+import 'pages/group/group_qr_scanner_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'utils/app_performance_config.dart';
 // navigatorKeyが定義されているファイルをimport
@@ -156,11 +171,34 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
           home: AuthGate(
             child: PasscodeGate(
               child: MainScaffold(
+                key: mainScaffoldKey,
                 // ログイン直後に全データ同期
                 // ここではなくAuthGateで呼ぶのがベスト
               ),
             ),
           ),
+          routes: {
+            '/roast': (context) => RoastTimerPage(),
+            '/roast_record': (context) => RoastRecordPage(),
+            '/roast_record_list': (context) => RoastRecordListPage(),
+            '/roast_analysis': (context) => RoastAnalysisPage(), // 焙煎分析ページ
+            '/drip': (context) => DripCounterPage(),
+            '/tasting': (context) => TastingRecordPage(),
+            '/work_progress': (context) => WorkProgressPage(),
+            '/calendar': (context) => CalendarPage(),
+            '/group': (context) => GroupListPage(),
+            '/badges': (context) => BadgeListPage(),
+            '/help': (context) => UsageGuidePage(),
+            '/settings': (context) => AppSettingsPage(),
+            '/assignment_board': (context) => AssignmentBoard(),
+            '/group_info': (context) => GroupInfoPage(),
+            '/analytics': (context) => DashboardPage(),
+            '/todo': (context) => TodoPage(),
+            '/calculator': (context) => CalculatorPage(),
+            '/group_required': (context) => const GroupRequiredPage(),
+            '/group_qr_generate': (context) => const GroupQRGeneratePage(),
+            '/group_qr_scanner': (context) => const GroupQRScannerPage(),
+          },
         );
       },
     );
@@ -183,14 +221,82 @@ class AuthGate extends StatelessWidget {
         if (!snapshot.hasData) {
           return GoogleSignInScreen();
         }
-        // ★ ログイン直後に全データ同期を実行
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          // すでに同期済みなら何もしないようにしてもOK
-          await syncAllFirestoreData(context);
-        });
-        return child;
+
+        // ログイン後はグループ参加チェックを行う
+        return GroupRequiredWrapper(child: child);
       },
     );
+  }
+}
+
+/// グループ参加必須のラッパー
+class GroupRequiredWrapper extends StatefulWidget {
+  final Widget child;
+
+  const GroupRequiredWrapper({super.key, required this.child});
+
+  @override
+  State<GroupRequiredWrapper> createState() => _GroupRequiredWrapperState();
+}
+
+class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
+  bool _isLoading = true;
+  bool _hasGroup = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkGroupMembership();
+  }
+
+  Future<void> _checkGroupMembership() async {
+    try {
+      final groups = await GroupFirestoreService.getUserGroups();
+
+      if (mounted) {
+        setState(() {
+          _hasGroup = groups.isNotEmpty;
+          _isLoading = false;
+        });
+
+        // グループに参加している場合は全データ同期を実行
+        if (_hasGroup) {
+          await syncAllFirestoreData(context);
+        }
+      }
+    } catch (e) {
+      print('グループ参加チェックエラー: $e');
+      if (mounted) {
+        setState(() {
+          _hasGroup = false;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('グループ情報を確認中...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!_hasGroup) {
+      return const GroupRequiredPage();
+    }
+
+    return widget.child;
   }
 }
 
@@ -563,6 +669,10 @@ class _PasscodeInputScreenState extends State<PasscodeInputScreen> {
   }
 }
 
+// MainScaffoldのグローバルキー
+final GlobalKey<_MainScaffoldState> mainScaffoldKey =
+    GlobalKey<_MainScaffoldState>();
+
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
 
@@ -706,6 +816,11 @@ class _MainScaffoldState extends State<MainScaffold> {
     );
   }
 
+  // 外部からタブ切り替えを可能にするpublicメソッド
+  void switchToTab(int index) {
+    _onItemTapped(index);
+  }
+
   void _onDrawerItemSelected(int index) {
     Navigator.pop(context);
     setState(() {
@@ -715,109 +830,128 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            SizedBox(width: 8),
-            Text(
-                              'ローストプラス',
-              style: TextStyle(
-                color: Provider.of<ThemeSettings>(context).appBarTextColor,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return Consumer<GroupProvider>(
+      builder: (context, groupProvider, child) {
+        // グループに参加していない場合はGroupRequiredPageを表示
+        if (!groupProvider.hasGroup) {
+          return const GroupRequiredPage();
+        }
 
-      body: Stack(
-        children: [
-          FutureBuilder<bool>(
-            future: isDonorUser(),
-            builder: (context, snapshot) {
-              final isDonor = snapshot.data == true;
-              final bottomPadding = isDonor
-                  ? 0.0
-                  : (_isBannerAdLoaded ? _bannerHeight : 0.0);
-              return Padding(
-                padding: EdgeInsets.only(bottom: bottomPadding),
-                child: PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                  children: _pages,
+        return Scaffold(
+          appBar: AppBar(
+            title: Row(
+              children: [
+                SizedBox(width: 8),
+                Text(
+                  'ローストプラス',
+                  style: TextStyle(
+                    color: Provider.of<ThemeSettings>(context).appBarTextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          body: Stack(
+            children: [
+              FutureBuilder<bool>(
+                future: isDonorUser(),
+                builder: (context, snapshot) {
+                  final isDonor = snapshot.data == true;
+                  final bottomPadding = isDonor
+                      ? 0.0
+                      : (_isBannerAdLoaded ? _bannerHeight : 0.0);
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: bottomPadding),
+                    child: PageView(
+                      controller: _pageController,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _selectedIndex = index;
+                        });
+                      },
+                      children: _pages,
+                    ),
+                  );
+                },
+              ),
+              FutureBuilder<bool>(
+                future: isDonorUser(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return SizedBox.shrink();
+                  }
+                  if (snapshot.data == true) return SizedBox.shrink();
+                  if (_isBannerAdLoaded && _bannerAd != null) {
+                    return Align(
+                      alignment: Alignment.bottomCenter,
+                      child: SizedBox(
+                        width: _bannerAd!.size.width.toDouble(),
+                        height: _bannerAd!.size.height.toDouble(),
+                        child: AdWidget(ad: _bannerAd!),
+                      ),
+                    );
+                  }
+                  return SizedBox.shrink();
+                },
+              ),
+            ],
+          ),
+          bottomNavigationBar: Consumer<ThemeSettings>(
+            builder: (context, themeSettings, child) {
+              final fontSize = (12 * themeSettings.fontSizeScale).clamp(
+                8.0,
+                14.0,
+              );
+              final barHeight = (56 + (themeSettings.fontSizeScale - 1.0) * 20)
+                  .clamp(56.0, 80.0);
+
+              return SizedBox(
+                height: barHeight,
+                child: BottomNavigationBar(
+                  type: BottomNavigationBarType.fixed,
+                  currentIndex: _selectedIndex,
+                  onTap: _onItemTapped,
+                  backgroundColor: themeSettings.bottomNavigationColor,
+                  selectedItemColor:
+                      themeSettings.bottomNavigationSelectedColor,
+                  unselectedItemColor: Colors.white,
+                  selectedLabelStyle: TextStyle(
+                    fontSize: fontSize,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: fontSize,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.local_fire_department),
+                      label: '焙煎タイマー',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.schedule),
+                      label: 'スケジュール',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.home),
+                      label: 'ホーム',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.local_cafe),
+                      label: 'カウンター',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.group),
+                      label: '担当表',
+                    ),
+                  ],
                 ),
               );
             },
           ),
-          FutureBuilder<bool>(
-            future: isDonorUser(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return SizedBox.shrink();
-              }
-              if (snapshot.data == true) return SizedBox.shrink();
-              if (_isBannerAdLoaded && _bannerAd != null) {
-                return Align(
-                  alignment: Alignment.bottomCenter,
-                  child: SizedBox(
-                    width: _bannerAd!.size.width.toDouble(),
-                    height: _bannerAd!.size.height.toDouble(),
-                    child: AdWidget(ad: _bannerAd!),
-                  ),
-                );
-              }
-              return SizedBox.shrink();
-            },
-          ),
-        ],
-      ),
-      bottomNavigationBar: Consumer<ThemeSettings>(
-        builder: (context, themeSettings, child) {
-          final fontSize = (12 * themeSettings.fontSizeScale).clamp(8.0, 14.0);
-          final barHeight = (56 + (themeSettings.fontSizeScale - 1.0) * 20)
-              .clamp(56.0, 80.0);
-
-          return SizedBox(
-            height: barHeight,
-            child: BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-              backgroundColor: themeSettings.bottomNavigationColor,
-              selectedItemColor: themeSettings.bottomNavigationSelectedColor,
-              unselectedItemColor: Colors.white,
-              selectedLabelStyle: TextStyle(
-                fontSize: fontSize,
-                fontFamily: themeSettings.fontFamily,
-              ),
-              unselectedLabelStyle: TextStyle(
-                fontSize: fontSize,
-                fontFamily: themeSettings.fontFamily,
-              ),
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.local_fire_department),
-                  label: '焙煎タイマー',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.schedule),
-                  label: 'スケジュール',
-                ),
-                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.local_cafe),
-                  label: 'カウンター',
-                ),
-                BottomNavigationBarItem(icon: Icon(Icons.group), label: '担当表'),
-              ],
-            ),
-          );
-        },
-      ),
+        );
+      },
     );
   }
 }

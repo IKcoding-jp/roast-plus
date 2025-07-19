@@ -27,6 +27,12 @@ class ThemeSettings extends ChangeNotifier {
   String fontFamily; // フォントファミリー
   Color? customBottomNavigationSelectedColor;
 
+  // 機能別の色設定
+  Color calculatorColor; // 電卓機能の色
+  Color settingsColor; // 設定機能の色
+  Color todoColor; // TODO機能の色
+  Color tastingColor; // テイスティング機能の色
+
   // Firestoreリスナー用
   Stream<DocumentSnapshot>? _fontSettingsStream;
   StreamSubscription? _fontSettingsSubscription;
@@ -146,6 +152,10 @@ class ThemeSettings extends ChangeNotifier {
     required this.fontFamily,
     Color? bottomNavigationSelectedColor,
     this.customBottomNavigationSelectedColor,
+    required this.calculatorColor,
+    required this.settingsColor,
+    required this.todoColor,
+    required this.tastingColor,
   }) : inputTextColor = inputTextColor ?? fontColor1,
        _bottomNavigationSelectedColor = bottomNavigationSelectedColor;
 
@@ -753,6 +763,13 @@ class ThemeSettings extends ChangeNotifier {
         ),
         bottomNavigationSelectedColor:
             cloudTheme['bottomNavigationSelectedColor'],
+        calculatorColor:
+            cloudTheme['calculatorColor'] ?? Color(0xFF1565C0), // 計算機らしい深い青
+        settingsColor:
+            cloudTheme['settingsColor'] ?? Color(0xFF6A1B9A), // 設定らしい深い紫
+        todoColor: cloudTheme['todoColor'] ?? Color(0xFF2E7D32), // タスクらしい深い緑
+        tastingColor:
+            cloudTheme['tastingColor'] ?? Color(0xFFD84315), // コーヒーらしい深いオレンジ
       );
     } else {
       // ローカル設定
@@ -798,6 +815,10 @@ class ThemeSettings extends ChangeNotifier {
           prefs.getString(_fontFamilyKey) ?? 'Noto Sans JP',
         ),
         bottomNavigationSelectedColor: preset?['bottomNavigationSelectedColor'],
+        calculatorColor: Color(0xFF1565C0), // 計算機らしい深い青
+        settingsColor: Color(0xFF6A1B9A), // 設定らしい深い紫
+        todoColor: Color(0xFF2E7D32), // タスクらしい深い緑
+        tastingColor: Color(0xFFD84315), // コーヒーらしい深いオレンジ
       );
     }
   }

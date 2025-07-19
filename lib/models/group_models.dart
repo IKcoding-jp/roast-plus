@@ -212,6 +212,7 @@ class Group {
   final Map<String, dynamic> settings;
   final String? iconName; // グループアイコン名
   final String? imageUrl; // グループ画像URL
+  final String inviteCode; // 招待コード
 
   Group({
     required this.id,
@@ -224,6 +225,7 @@ class Group {
     required this.settings,
     this.iconName,
     this.imageUrl,
+    required this.inviteCode,
   });
 
   Map<String, dynamic> toJson() {
@@ -238,6 +240,7 @@ class Group {
       'settings': settings,
       'iconName': iconName,
       'imageUrl': imageUrl,
+      'inviteCode': inviteCode,
     };
   }
 
@@ -261,6 +264,7 @@ class Group {
       settings: json['settings'] as Map<String, dynamic>? ?? {},
       iconName: json['iconName'] as String?,
       imageUrl: json['imageUrl'] as String?,
+      inviteCode: json['inviteCode'] as String? ?? '',
     );
   }
 
@@ -310,6 +314,7 @@ class Group {
     Map<String, dynamic>? settings,
     String? iconName,
     String? imageUrl,
+    String? inviteCode,
   }) {
     return Group(
       id: id ?? this.id,
@@ -322,6 +327,7 @@ class Group {
       settings: settings ?? this.settings,
       iconName: iconName ?? this.iconName,
       imageUrl: imageUrl ?? this.imageUrl,
+      inviteCode: inviteCode ?? this.inviteCode,
     );
   }
 }

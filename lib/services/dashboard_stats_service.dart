@@ -103,7 +103,7 @@ class DashboardStatsService {
         final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
         if (cacheAge < Duration(hours: 1).inMilliseconds) {
           // 1時間キャッシュ
-          print('DashboardStatsService: 焙煎時間をキャッシュから取得: ${cachedTime}分');
+          print('DashboardStatsService: 焙煎時間をキャッシュから取得: $cachedTime分');
           return cachedTime;
         }
       }
@@ -129,7 +129,7 @@ class DashboardStatsService {
           DateTime.now().millisecondsSinceEpoch,
         );
 
-        print('DashboardStatsService: 焙煎時間を計算: ${totalMinutes}分');
+        print('DashboardStatsService: 焙煎時間を計算: $totalMinutes分');
       } catch (e) {
         print('Firestore焙煎記録取得エラー: $e');
         // フォールバック: ローカルデータから取得
@@ -155,7 +155,7 @@ class DashboardStatsService {
         final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
         if (cacheAge < Duration(hours: 6).inMilliseconds) {
           // 6時間キャッシュ
-          print('DashboardStatsService: 出勤日数をキャッシュから取得: ${cachedDays}日');
+          print('DashboardStatsService: 出勤日数をキャッシュから取得: $cachedDays日');
           return cachedDays;
         }
       }
@@ -195,7 +195,7 @@ class DashboardStatsService {
           DateTime.now().millisecondsSinceEpoch,
         );
 
-        print('DashboardStatsService: 出勤日数を計算: ${result}日');
+        print('DashboardStatsService: 出勤日数を計算: $result日');
         return result;
       } catch (e) {
         print('Firestore出勤記録取得エラー: $e');
@@ -219,7 +219,7 @@ class DashboardStatsService {
         final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
         if (cacheAge < Duration(hours: 1).inMilliseconds) {
           // 1時間キャッシュ
-          print('DashboardStatsService: ドリップパック数をキャッシュから取得: ${cachedCount}袋');
+          print('DashboardStatsService: ドリップパック数をキャッシュから取得: $cachedCount袋');
           return cachedCount;
         }
       }
@@ -262,7 +262,7 @@ class DashboardStatsService {
           DateTime.now().millisecondsSinceEpoch,
         );
 
-        print('DashboardStatsService: ドリップパック数を計算: ${totalCount}袋');
+        print('DashboardStatsService: ドリップパック数を計算: $totalCount袋');
       } catch (e) {
         print('Firestoreドリップパック記録取得エラー: $e');
         totalCount = await _getDripPackCountFromLocal(prefs);
@@ -432,9 +432,9 @@ class DashboardStatsService {
     final minutes = totalMinutes % 60;
 
     if (hours > 0) {
-      return '${hours}時間${minutes}分';
+      return '$hours時間$minutes分';
     } else {
-      return '${minutes}分';
+      return '$minutes分';
     }
   }
 

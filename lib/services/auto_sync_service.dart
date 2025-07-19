@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'group_data_sync_service.dart';
 import 'group_firestore_service.dart';
+import 'gamification_firestore_service.dart';
 import '../models/group_models.dart';
 import 'dart:async'; // Timerを追加
 
@@ -151,9 +152,15 @@ class AutoSyncService {
         }
       }
 
+      // データタイプに応じた同期を実行
+      if (dataType == 'gamification') {
+        // ゲーミフィケーション専用同期
+        await GamificationFirestoreService.syncGamificationData();
+      } else {
       // 全データ同期を実行
       await GroupDataSyncService.syncAllDataToGroup(currentGroup.id);
       await GroupDataSyncService.applyGroupDataToLocal(currentGroup.id);
+      }
 
       _lastSyncTime = DateTime.now();
       print('AutoSyncService: $dataType の自動同期が完了しました');
@@ -172,6 +179,29 @@ class AutoSyncService {
     _isInitialized = false;
     _isSyncing = false;
     print('AutoSyncService: リソース解放完了');
+  }
+
+  /// ゲーミフィケーション専用の軽量同期
+  static Future<void> triggerGamificationSync() async {
+    if (!_isInitialized) {
+      print('AutoSyncService: 初期化されていません');
+      return;
+    }
+
+    // ユーザーがログインしているかチェック
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('AutoSyncService: ユーザーがログインしていません');
+      return;
+    }
+
+    try {
+      print('AutoSyncService: ゲーミフィケーション同期を開始します');
+      await GamificationFirestoreService.syncGamificationData();
+      print('AutoSyncService: ゲーミフィケーション同期が完了しました');
+    } catch (e) {
+      print('AutoSyncService: ゲーミフィケーション同期に失敗しました: $e');
+    }
   }
 
   /// 同期状態を取得

@@ -53,7 +53,7 @@ class TodoPageState extends State<TodoPage>
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(Icons.check_circle_outline, color: themeSettings.iconColor),
+            Icon(Icons.check_circle_outline, color: themeSettings.todoColor),
             SizedBox(width: 8),
             Text(
               'メモ・TODO',
@@ -67,7 +67,7 @@ class TodoPageState extends State<TodoPage>
           ],
         ),
         backgroundColor: themeSettings.appBarColor,
-        iconTheme: IconThemeData(color: themeSettings.iconColor),
+        iconTheme: IconThemeData(color: themeSettings.todoColor),
         actions: [
           // メモタブが選択されている時のみメモ一覧アイコンを表示
           if (_tabController.index == 0)
@@ -123,7 +123,7 @@ class TodoPageState extends State<TodoPage>
               ],
               labelColor: themeSettings.fontColor1,
               unselectedLabelColor: themeSettings.fontColor1.withOpacity(0.7),
-              indicatorColor: themeSettings.buttonColor,
+              indicatorColor: themeSettings.todoColor,
               indicatorWeight: 3,
             ),
           ),

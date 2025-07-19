@@ -15,6 +15,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/tasting_models.dart';
 import '../models/work_progress_models.dart';
+import '../models/gamification_provider.dart';
+import '../services/gamification_storage.dart';
 
 // TodoPage用のグローバルKeyを用意
 final GlobalKey<TodoPageState> todoListPageKey = GlobalKey<TodoPageState>();
@@ -203,5 +205,20 @@ Future<void> syncAllFirestoreData(BuildContext context) async {
     );
   } catch (e) {
     print('同期エラー: $e');
+  }
+
+  // 10. ゲーミフィケーションデータ
+  try {
+    final gamificationProvider = Provider.of<GamificationProvider>(
+      context,
+      listen: false,
+    );
+    // Firestoreからデータを読み込んでローカルと同期
+    await GamificationStorage.migrateDataIfNeeded();
+    // プロバイダーを初期化（最新データで更新）
+    await gamificationProvider.initialize();
+    print('ゲーミフィケーションデータの同期完了');
+  } catch (e) {
+    print('ゲーミフィケーション同期エラー: $e');
   }
 }

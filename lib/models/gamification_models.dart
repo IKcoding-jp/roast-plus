@@ -253,7 +253,7 @@ class UserStats {
 }
 
 /// 活動の種類
-enum ActivityType { attendance, roasting, dripPack }
+enum ActivityType { attendance, roasting, dripPack, tasting, workProgress }
 
 /// 活動による経験値獲得
 class ActivityReward {
@@ -272,6 +272,8 @@ class ActivityReward {
     ActivityType.attendance: 10, // 出勤1日 = 10XP
     ActivityType.roasting: 40, // 焙煎30分 = 20XP（後で時間で調整）
     ActivityType.dripPack: 5, // ドリップパック1個 = 5XP
+    ActivityType.tasting: 5, // テイスティング1回 = 5XP
+    ActivityType.workProgress: 3, // 作業進捗更新1回 = 3XP
   };
 
   /// 焙煎時間に応じた経験値を計算
@@ -304,7 +306,7 @@ class ActivityReward {
     return ActivityReward(
       type: ActivityType.dripPack,
       experiencePoints: xp,
-      description: 'ドリップパック${count}個で${xp}XP獲得',
+      description: 'ドリップパック$count個で${xp}XP獲得',
     );
   }
 }

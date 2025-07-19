@@ -824,7 +824,7 @@ class DripCounterPageState extends State<DripCounterPage>
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${count}袋の記録を保存しました'),
+        content: Text('$count袋の記録を保存しました'),
         backgroundColor: Colors.green,
       ),
     );
@@ -889,7 +889,7 @@ class DripCounterPageState extends State<DripCounterPage>
         AnimationHelper.showExperienceGainAnimation(
           context,
           xpGained: result.xpGained,
-          description: '${bean} ${count}袋作成',
+          description: '$bean $count袋作成',
           onComplete: () {
             // アニメーション完了後の処理
             if (mounted) {

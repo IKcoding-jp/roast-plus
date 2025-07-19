@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_models.dart';
 
+import 'dart:math';
+
 class GroupFirestoreService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
@@ -18,6 +20,18 @@ class GroupFirestoreService {
 
   static String? get _displayName => _auth.currentUser?.displayName;
   static String? get _photoUrl => _auth.currentUser?.photoURL;
+
+  /// 招待コードを生成
+  static String _generateInviteCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    return String.fromCharCodes(
+      Iterable.generate(
+        8,
+        (_) => chars.codeUnitAt(random.nextInt(chars.length)),
+      ),
+    );
+  }
 
   /// グループを作成
   static Future<Group> createGroup({
@@ -43,6 +57,9 @@ class GroupFirestoreService {
     // デフォルト設定を作成
     final defaultSettings = GroupSettings.defaultSettings();
 
+    // 招待コードを生成（8文字のランダム文字列）
+    final inviteCode = _generateInviteCode();
+
     final group = Group(
       id: groupId,
       name: name,
@@ -52,6 +69,7 @@ class GroupFirestoreService {
       updatedAt: now,
       members: [creator],
       settings: defaultSettings.toJson(),
+      inviteCode: inviteCode,
     );
 
     await _firestore.collection('groups').doc(groupId).set(group.toJson());
@@ -249,6 +267,66 @@ class GroupFirestoreService {
     await _firestore.collection('invitations').doc(invitationId).update({
       'isAccepted': true,
     });
+  }
+
+  /// 招待コードでグループに参加
+  static Future<void> joinGroupByInviteCode(String inviteCode) async {
+    if (_uid == null || _uid!.isEmpty) throw Exception('未ログイン');
+    if (_email == null || _email!.isEmpty) throw Exception('メールアドレスが取得できません');
+
+    // 招待コードでグループを検索
+    final groupsSnapshot = await _firestore
+        .collection('groups')
+        .where('inviteCode', isEqualTo: inviteCode)
+        .get();
+
+    if (groupsSnapshot.docs.isEmpty) {
+      throw Exception('招待コードが無効です');
+    }
+
+    final groupDoc = groupsSnapshot.docs.first;
+    final group = Group.fromJson(groupDoc.data());
+
+    // 既にメンバーかチェック
+    if (group.members.any((m) => m.uid == _uid)) {
+      throw Exception('既にグループのメンバーです');
+    }
+
+    // メンバーを追加
+    final newMember = GroupMember(
+      uid: _uid!,
+      email: _email!,
+      displayName: _displayName ?? 'Unknown User',
+      photoUrl: _photoUrl,
+      role: GroupRole.member, // 招待コードで参加したメンバーはメンバーとして扱う
+      joinedAt: DateTime.now(),
+      lastActiveAt: DateTime.now(),
+    );
+
+    final updatedMembers = [...group.members, newMember];
+    final updatedGroup = group.copyWith(
+      members: updatedMembers,
+      updatedAt: DateTime.now(),
+    );
+
+    // グループを更新
+    await _firestore
+        .collection('groups')
+        .doc(group.id)
+        .update(updatedGroup.toJson());
+
+    // ユーザーのグループ参加情報を保存
+    await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('userGroups')
+        .doc(group.id)
+        .set({
+          'groupId': group.id,
+          'groupName': group.name,
+          'role': GroupRole.member.name,
+          'joinedAt': DateTime.now().toIso8601String(),
+        });
   }
 
   /// 招待を拒否

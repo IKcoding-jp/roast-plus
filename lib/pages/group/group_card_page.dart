@@ -352,7 +352,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
                         Text(
                           group.description,
                           style: TextStyle(
-                            color: themeSettings.fontColor1?.withOpacity(0.7),
+                            color: themeSettings.fontColor1.withOpacity(0.7),
                             fontSize: 14 * themeSettings.fontSizeScale,
                             fontFamily: themeSettings.fontFamily,
                           ),
@@ -546,7 +546,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
                 Text(
                   label,
                   style: TextStyle(
-                    color: themeSettings.fontColor1?.withOpacity(0.7),
+                    color: themeSettings.fontColor1.withOpacity(0.7),
                     fontSize: 12 * themeSettings.fontSizeScale,
                     fontFamily: themeSettings.fontFamily,
                   ),

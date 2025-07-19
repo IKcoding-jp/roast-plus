@@ -1,4 +1,7 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive",
-    "cursor.general.disableHttp2": false
+  "dart.projectSearchDepth": 10,
+  "dart.flutterSdkPath": null,
+  "dart.analyzeAngularTemplates": false,
+  "dart.previewFlutterUiGuides": true,
+  "dart.previewFlutterUiGuidesCustomTracking": true
 }

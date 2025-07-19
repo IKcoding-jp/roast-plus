@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
 import '../../models/theme_settings.dart';
+import '../../app.dart';
 
 class GroupCreatePage extends StatefulWidget {
   const GroupCreatePage({super.key});
@@ -86,7 +87,11 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
     );
 
     if (success && mounted) {
-      Navigator.pop(context);
+      // ホーム画面に遷移（全ての画面をクリアしてメインアプリに戻る）
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const WorkAssignmentApp()),
+        (route) => false,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('グループを作成しました'), backgroundColor: Colors.green),
       );

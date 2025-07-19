@@ -4,7 +4,10 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/gamification_models.dart';
+import '../models/group_gamification_provider.dart';
+import '../models/group_provider.dart';
 import 'gamification_service.dart';
+import 'group_gamification_service.dart';
 
 /// 経験値管理の中核サービスクラス
 /// 30年以上の継続利用を想定した設計
@@ -78,7 +81,7 @@ class ExperienceManager {
     final result = await _addExperience(
       xpGained,
       ActivityType.roasting,
-      '焙煎 ${roastTimeMinutes.toStringAsFixed(1)}分 (${beanName})',
+      '焙煎 ${roastTimeMinutes.toStringAsFixed(1)}分 ($beanName)',
       roastDate,
     );
 
@@ -109,7 +112,7 @@ class ExperienceManager {
     final result = await _addExperience(
       _xpPerAttendance,
       ActivityType.attendance,
-      '出勤 (${dateKey})',
+      '出勤 ($dateKey)',
       attendanceDate,
     );
 
@@ -137,12 +140,50 @@ class ExperienceManager {
     final result = await _addExperience(
       xpGained,
       ActivityType.dripPack,
-      'ドリップパック ${packCount}個作成',
+      'ドリップパック $packCount個作成',
       createDate,
     );
 
     // ドリップパック統計を更新
     await _updateDripPackStats(packCount, createDate);
+
+    return result;
+  }
+
+  /// テイスティング記録からXPを加算
+  Future<ExperienceGainResult> addTastingExperience({
+    required DateTime tastingDate,
+  }) async {
+    final xpGained = ActivityReward.baseRewards[ActivityType.tasting] ?? 5;
+
+    final result = await _addExperience(
+      xpGained,
+      ActivityType.tasting,
+      'テイスティング記録',
+      tastingDate,
+    );
+
+    // テイスティング統計を更新
+    await _updateTastingStats(tastingDate);
+
+    return result;
+  }
+
+  /// 作業進捗更新からXPを加算
+  Future<ExperienceGainResult> addWorkProgressExperience({
+    required DateTime workDate,
+  }) async {
+    final xpGained = ActivityReward.baseRewards[ActivityType.workProgress] ?? 3;
+
+    final result = await _addExperience(
+      xpGained,
+      ActivityType.workProgress,
+      '作業進捗更新',
+      workDate,
+    );
+
+    // 作業進捗統計を更新
+    await _updateWorkProgressStats(workDate);
 
     return result;
   }
@@ -174,6 +215,9 @@ class ExperienceManager {
       );
     }
 
+    // グループのゲーミフィケーションシステムにも通知
+    await _notifyGroupGamification(activityType, xpGained, description);
+
     // 非同期保存
     _debouncedSave();
 
@@ -190,6 +234,64 @@ class ExperienceManager {
       oldProfile: oldProfile,
       newProfile: _cachedProfile!,
     );
+  }
+
+  /// グループのゲーミフィケーションシステムに通知
+  Future<void> _notifyGroupGamification(
+    ActivityType activityType,
+    int xpGained,
+    String description,
+  ) async {
+    try {
+      // 現在のグループIDを取得（GroupProviderから）
+      final groupProvider = GroupProvider();
+      await groupProvider.loadUserGroups();
+      final groups = groupProvider.groups;
+
+      if (groups.isEmpty) {
+        // グループに参加していない場合は何もしない
+        return;
+      }
+
+      final currentGroup = groups.first;
+
+      // アクティビティタイプに応じてグループのゲーミフィケーションシステムに通知
+      switch (activityType) {
+        case ActivityType.attendance:
+          await GroupGamificationService.recordAttendance(currentGroup.id);
+          break;
+        case ActivityType.roasting:
+          // 焙煎時間をXPから逆算（XP = 分数）
+          final roastMinutes = xpGained.toDouble();
+          await GroupGamificationService.recordRoasting(
+            currentGroup.id,
+            roastMinutes,
+          );
+          break;
+        case ActivityType.dripPack:
+          // ドリップパック数をXPから逆算（XP = count * 0.5）
+          final packCount = (xpGained / 0.5).round();
+          await GroupGamificationService.recordDripPack(
+            currentGroup.id,
+            packCount,
+          );
+          break;
+        case ActivityType.tasting:
+          await GroupGamificationService.recordTasting(currentGroup.id);
+          break;
+        case ActivityType.workProgress:
+          await GroupGamificationService.recordWorkProgress(currentGroup.id);
+          break;
+        default:
+          // その他のアクティビティは無視
+          break;
+      }
+
+      print('ExperienceManager: グループゲーミフィケーションに通知完了 - $description');
+    } catch (e) {
+      print('ExperienceManager: グループゲーミフィケーション通知エラー: $e');
+      // エラーが発生しても個人の経験値獲得は継続
+    }
   }
 
   /// レベル計算（対数的成長）
@@ -284,6 +386,22 @@ class ExperienceManager {
         dripPackCount: stats.dripPackCount + count,
         lastActivityDate: date,
       ),
+    );
+  }
+
+  /// テイスティング統計を更新
+  Future<void> _updateTastingStats(DateTime date) async {
+    final stats = _cachedProfile!.stats;
+    _cachedProfile = _cachedProfile!.copyWith(
+      stats: stats.copyWith(lastActivityDate: date),
+    );
+  }
+
+  /// 作業進捗統計を更新
+  Future<void> _updateWorkProgressStats(DateTime date) async {
+    final stats = _cachedProfile!.stats;
+    _cachedProfile = _cachedProfile!.copyWith(
+      stats: stats.copyWith(lastActivityDate: date),
     );
   }
 

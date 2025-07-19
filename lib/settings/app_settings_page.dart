@@ -47,7 +47,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.person_outline,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   'アカウント情報',
@@ -80,7 +80,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.lock_outline,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   'パスコードロック設定',
@@ -116,7 +116,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.volunteer_activism,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   '寄付で応援する',
@@ -155,7 +155,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.color_lens_outlined,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   'テーマを変更する',
@@ -189,7 +189,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.text_fields,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   'フォント設定',
@@ -224,7 +224,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.label,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   '豆のシール設定',
@@ -265,7 +265,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.volume_up,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   'サウンド設定',
@@ -305,7 +305,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.feedback,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   'フィードバック',
@@ -337,7 +337,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.message,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   '制作者からのメッセージ',

@@ -156,12 +156,12 @@ class DashboardStatsProvider extends ChangeNotifier {
 
     if (hours > 0) {
       if (minutes > 0) {
-        return '${hours}時間${minutes}分';
+        return '$hours時間$minutes分';
       } else {
-        return '${hours}時間';
+        return '$hours時間';
       }
     } else {
-      return '${minutes}分';
+      return '$minutes分';
     }
   }
 

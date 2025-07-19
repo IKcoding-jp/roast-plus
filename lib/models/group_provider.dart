@@ -255,6 +255,37 @@ class GroupProvider extends ChangeNotifier {
     }
   }
 
+  /// 招待コードでグループに参加（単一グループ制限）
+  Future<bool> joinGroupByInviteCode(String inviteCode) async {
+    // 既にグループに参加している場合は参加を拒否
+    if (_currentGroup != null) {
+      _setError('既にグループに参加しています。1つのグループのみ参加可能です。');
+      return false;
+    }
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      await GroupFirestoreService.joinGroupByInviteCode(inviteCode);
+
+      // グループリストを再読み込み
+      await loadUserGroups();
+
+      _safeNotifyListeners();
+      return true;
+    } catch (e) {
+      if (e.toString().contains('未ログイン')) {
+        _setError('ログインすることで、グループ機能を使うことができます');
+      } else {
+        _setError('グループの参加に失敗しました: $e');
+      }
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// 招待を拒否
   Future<bool> declineInvitation(String invitationId) async {
     _setLoading(true);

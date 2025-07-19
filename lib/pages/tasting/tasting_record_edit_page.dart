@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/tasting_models.dart';
 import '../../models/theme_settings.dart';
+import '../../services/experience_manager.dart';
 
 class TastingRecordEditPage extends StatefulWidget {
   final TastingRecord? tastingRecord;
@@ -304,9 +305,24 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
         ).showSnackBar(SnackBar(content: Text('試飲感想記録を更新しました')));
       } else {
         await tastingProvider.addTastingRecord(tastingRecord);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('試飲感想記録を保存しました')));
+
+        // 新規作成時のみ経験値を獲得
+        final result = await ExperienceManager.instance.addTastingExperience(
+          tastingDate: _selectedDate,
+        );
+
+        if (result.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('試飲感想記録を保存しました (+${result.xpGained}XP)'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('試飲感想記録を保存しました')));
+        }
       }
       Navigator.pop(context);
     } catch (e) {

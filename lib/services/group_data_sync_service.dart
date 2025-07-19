@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_models.dart';
+import '../models/gamification_models.dart';
 import 'group_firestore_service.dart';
+import 'gamification_firestore_service.dart';
+import 'gamification_storage.dart';
 
 class GroupDataSyncService {
   static final _firestore = FirebaseFirestore.instance;
@@ -568,6 +571,60 @@ class GroupDataSyncService {
     );
   }
 
+  /// グループのゲーミフィケーションデータを同期
+  static Future<void> syncGamificationData(
+    String groupId,
+    UserProfile profile,
+  ) async {
+    print('GroupDataSyncService: ゲーミフィケーションデータの同期権限チェック開始');
+    
+    // 同期権限チェック
+    final canSync = await GroupFirestoreService.canSyncDataType(
+      groupId: groupId,
+      dataType: 'gamification',
+    );
+
+    if (!canSync) {
+      print('GroupDataSyncService: ゲーミフィケーションデータの同期権限がありません');
+      throw Exception('ゲーミフィケーションデータの同期権限がありません');
+    }
+    print('GroupDataSyncService: ゲーミフィケーションデータの同期権限チェック完了');
+
+    print('GroupDataSyncService: ゲーミフィケーションデータをFirestoreに保存中...');
+    await GamificationFirestoreService.saveGroupGamificationData(
+      groupId,
+      profile.toJson(),
+    );
+    print('GroupDataSyncService: ゲーミフィケーションデータの保存完了');
+  }
+
+  /// グループのゲーミフィケーションデータを取得
+  static Future<UserProfile?> getGroupGamificationData(
+    String groupId,
+    String userId,
+  ) async {
+    try {
+      final data = await GamificationFirestoreService.loadGroupGamificationData(
+        groupId,
+        userId,
+      );
+      if (data == null) return null;
+      return UserProfile.fromJson(data);
+    } catch (e) {
+      print('グループゲーミフィケーションデータ取得エラー: $e');
+      return null;
+    }
+  }
+
+  /// グループメンバー全員のゲーミフィケーションデータを取得
+  static Future<List<UserProfile>> getGroupMembersGamificationData(
+    String groupId,
+  ) async {
+    return await GamificationFirestoreService.loadGroupMembersGamificationData(
+      groupId,
+    );
+  }
+
   /// グループのアプリ設定の変更を監視
   static Stream<Map<String, dynamic>?> watchGroupAppSettings(String groupId) {
     return GroupFirestoreService.watchGroupData(
@@ -853,6 +910,16 @@ class GroupDataSyncService {
       } else {
         print('GroupDataSyncService: アプリ設定データがありません');
       }
+
+      // ゲーミフィケーションデータを同期
+      try {
+        print('GroupDataSyncService: ゲーミフィケーションデータ同期を開始');
+        final profile = await GamificationStorage.loadUserProfile();
+        await syncGamificationData(groupId, profile);
+        print('GroupDataSyncService: ゲーミフィケーションデータの同期完了');
+      } catch (e) {
+        print('GroupDataSyncService: ゲーミフィケーションデータ同期エラー: $e');
+      }
     } catch (e) {
       throw Exception('データの同期に失敗しました: $e');
     }
@@ -936,6 +1003,7 @@ class GroupDataSyncService {
         getGroupTastingRecords(groupId),
         getGroupWorkProgress(groupId),
         getGroupAppSettings(groupId),
+        getGroupMembersGamificationData(groupId),
       ]);
 
       data['roast_records'] = futures[0];
@@ -951,6 +1019,7 @@ class GroupDataSyncService {
       data['tasting_records'] = futures[10];
       data['work_progress'] = futures[11];
       data['app_settings'] = futures[12];
+      data['gamification'] = futures[13];
 
       return data;
     } catch (e) {

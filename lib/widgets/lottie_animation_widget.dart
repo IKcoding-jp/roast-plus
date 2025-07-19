@@ -101,7 +101,7 @@ class _ExperienceGainAnimationState extends State<ExperienceGainAnimation>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Lottieアニメーション
-                    Container(
+                    SizedBox(
                       width: 200,
                       height: 200,
                       child: Lottie.asset(
@@ -290,7 +290,7 @@ class _LevelUpAnimationState extends State<LevelUpAnimation>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Lottieアニメーション
-                    Container(
+                    SizedBox(
                       width: 180,
                       height: 180,
                       child: Lottie.asset(

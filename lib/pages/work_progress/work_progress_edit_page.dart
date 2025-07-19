@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/work_progress_models.dart';
 import '../../models/theme_settings.dart';
+import '../../services/experience_manager.dart';
 
 class WorkProgressEditPage extends StatefulWidget {
   final WorkProgress? workProgress;
@@ -96,9 +97,23 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
 
       if (widget.workProgress == null) {
         await workProgressProvider.addWorkProgress(workProgress);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('作業状況記録を作成しました')));
+
+        // 新規作成時のみ経験値を獲得
+        final result = await ExperienceManager.instance
+            .addWorkProgressExperience(workDate: now);
+
+        if (result.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('作業状況記録を作成しました (+${result.xpGained}XP)'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('作業状況記録を作成しました')));
+        }
       } else {
         await workProgressProvider.updateWorkProgress(workProgress);
         ScaffoldMessenger.of(

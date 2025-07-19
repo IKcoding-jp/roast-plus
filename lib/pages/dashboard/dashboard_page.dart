@@ -7,7 +7,7 @@ import '../../services/dashboard_stats_service.dart';
 import '../../models/dashboard_stats_provider.dart';
 import '../../pages/roast/roast_record_page.dart';
 import '../../pages/roast/roast_record_list_page.dart';
-import '../../pages/roast/roast_advisor_page.dart';
+import '../../pages/roast/roast_analysis_page.dart';
 import '../../pages/work_progress/work_progress_page.dart';
 import '../../pages/tasting/tasting_record_page.dart';
 import '../../pages/calculator/calculator_page.dart';
@@ -17,6 +17,10 @@ import '../../pages/gamification/badge_list_page.dart';
 import '../../pages/help/usage_guide_page.dart';
 import '../../settings/app_settings_page.dart';
 import '../../pages/todo/todo_page.dart';
+import '../../models/group_gamification_provider.dart';
+import 'group_dashboard_page.dart';
+import '../../pages/drip/drip_counter_page.dart';
+import '../../pages/home/AssignmentBoard.dart';
 
 import 'dart:async';
 
@@ -210,61 +214,31 @@ class _DashboardPageState extends State<DashboardPage>
 
     if (hours > 0) {
       if (minutes > 0) {
-        return '${hours}時間${minutes}分';
+        return '$hours時間$minutes分';
       } else {
-        return '${hours}時間';
+        return '$hours時間';
       }
     } else {
-      return '${minutes}分';
+      return '$minutes分';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeSettings = Provider.of<ThemeSettings>(context);
-
-    return Scaffold(
-      backgroundColor: themeSettings.backgroundColor,
-      body: SafeArea(
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _loadData,
-                child: SingleChildScrollView(
-                  physics: AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ヘッダー部分
-                      _buildHeader(themeSettings),
-                      SizedBox(height: 24),
-
-                      // 成長情報カード
-                      _buildGrowthCard(themeSettings),
-                      SizedBox(height: 16),
-
-                      // 機能カードリンク
-                      _buildFeatureCards(themeSettings),
-                      SizedBox(height: 16),
-
-                      // その他の機能
-                      _buildOtherFeatures(themeSettings),
-                      SizedBox(height: 16),
-
-                      // 統計情報カード
-                      _buildStatsCards(themeSettings),
-                      SizedBox(height: 16),
-
-                      // 最近のバッジ
-                      _buildRecentBadges(themeSettings),
-                      SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-              ),
-      ),
+    final groupGamificationProvider = Provider.of<GroupGamificationProvider>(
+      context,
+      listen: false,
     );
+
+    // グループに参加していない場合は初期化を試行
+    if (!groupGamificationProvider.hasGroup) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await groupGamificationProvider.autoInitialize();
+      });
+    }
+
+    // グループ中心のダッシュボードページにリダイレクト
+    return GroupDashboardPage();
   }
 
   Widget _buildHeader(ThemeSettings themeSettings) {
@@ -667,7 +641,7 @@ class _DashboardPageState extends State<DashboardPage>
                       ),
                     )
                   else
-                    Container(
+                    SizedBox(
                       height: 100,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
@@ -734,7 +708,8 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildFeatureCards(ThemeSettings themeSettings) {
+  // 新しい機能セクション構造
+  Widget _buildFeatureSections(ThemeSettings themeSettings) {
     return AnimatedBuilder(
       animation: _slideAnimation,
       builder: (context, child) {
@@ -743,107 +718,170 @@ class _DashboardPageState extends State<DashboardPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '主要機能',
-                style: TextStyle(
-                  fontSize: 18 * themeSettings.fontSizeScale,
-                  fontWeight: FontWeight.bold,
-                  color: themeSettings.fontColor1,
-                  fontFamily: themeSettings.fontFamily,
-                ),
-              ),
-              SizedBox(height: 12),
-
-              // 焙煎関連機能
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      '焙煎記録',
-                      '新しい焙煎を記録',
-                      Icons.edit,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => RoastRecordPage()),
-                      ),
+              // 業務機能セクション
+              _buildFeatureSection(
+                themeSettings,
+                '業務機能',
+                Icons.work,
+                Colors.orange.shade600,
+                [
+                  _buildFeatureCard(
+                    themeSettings,
+                    '焙煎記録',
+                    Icons.edit,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => RoastRecordPage()),
                     ),
                   ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      '記録一覧',
-                      '過去の記録を確認',
-                      Icons.list,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RoastRecordListPage(),
-                        ),
-                      ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    '記録一覧',
+                    Icons.list,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => RoastRecordListPage()),
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: 12),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      '焙煎分析',
-                      'データ分析と改善',
-                      Icons.analytics,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => RoastAdvisorPage()),
-                      ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    '焙煎分析',
+                    Icons.analytics,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => RoastAnalysisPage()),
                     ),
                   ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      '作業記録',
-                      '作業状況を管理',
-                      Icons.work_outline,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => WorkProgressPage()),
-                      ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    '作業記録',
+                    Icons.work_outline,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => WorkProgressPage()),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 12),
+              SizedBox(height: 24),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      '試飲記録',
-                      'テイスティング評価',
-                      Icons.coffee,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => TastingRecordPage()),
-                      ),
+              // 分析・記録セクション
+              _buildFeatureSection(
+                themeSettings,
+                '分析・記録',
+                Icons.assessment,
+                Colors.blue.shade600,
+                [
+                  _buildFeatureCard(
+                    themeSettings,
+                    '試飲記録',
+                    Icons.coffee,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => TastingRecordPage()),
                     ),
                   ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      'グループ',
-                      'チーム機能',
-                      Icons.group_work,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => GroupCardPage()),
-                      ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    'カウンター',
+                    Icons.local_drink,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => DripCounterPage()),
+                    ),
+                  ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    'カレンダー',
+                    Icons.calendar_month,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => CalendarPage()),
+                    ),
+                  ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    '担当表',
+                    Icons.group,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AssignmentBoard()),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24),
+
+              // 成長と実績セクション
+              _buildFeatureSection(
+                themeSettings,
+                '成長と実績',
+                Icons.emoji_events,
+                Colors.purple.shade600,
+                [
+                  _buildFeatureCard(
+                    themeSettings,
+                    'グループ',
+                    Icons.group_work,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => GroupCardPage()),
+                    ),
+                  ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    'バッジ',
+                    Icons.military_tech,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => BadgeListPage()),
+                    ),
+                  ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    'メモ・TODO',
+                    Icons.edit_note,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => TodoPage()),
+                    ),
+                  ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    '電卓',
+                    Icons.calculate,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => CalculatorPage()),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24),
+
+              // サポート・設定セクション
+              _buildFeatureSection(
+                themeSettings,
+                'サポート・設定',
+                Icons.settings,
+                Colors.grey.shade600,
+                [
+                  _buildFeatureCard(
+                    themeSettings,
+                    '使い方',
+                    Icons.help_outline,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => UsageGuidePage()),
+                    ),
+                  ),
+                  _buildFeatureCard(
+                    themeSettings,
+                    '設定',
+                    Icons.settings,
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AppSettingsPage()),
                     ),
                   ),
                 ],
@@ -855,38 +893,36 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildFeatureCard(
+  // 機能セクションのヘッダー
+  Widget _buildFeatureSection(
     ThemeSettings themeSettings,
     String title,
-    String subtitle,
     IconData icon,
-    VoidCallback onTap,
+    Color accentColor,
+    List<Widget> children,
   ) {
-    return Card(
-      elevation: 4,
-      color: themeSettings.backgroundColor2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // セクションヘッダー
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                themeSettings.buttonColor.withOpacity(0.1),
-                themeSettings.buttonColor.withOpacity(0.05),
-              ],
-            ),
+            color: accentColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Icon(icon, color: themeSettings.iconColor, size: 28),
-              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: accentColor, size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
                 title,
                 style: TextStyle(
@@ -896,126 +932,66 @@ class _DashboardPageState extends State<DashboardPage>
                   fontFamily: themeSettings.fontFamily,
                 ),
               ),
-              SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12 * themeSettings.fontSizeScale,
-                  color: themeSettings.fontColor1.withOpacity(0.7),
-                  fontFamily: themeSettings.fontFamily,
-                ),
-              ),
             ],
           ),
         ),
-      ),
+        SizedBox(height: 16),
+
+        // 機能カードグリッド
+        Wrap(spacing: 12, runSpacing: 12, children: children),
+      ],
     );
   }
 
-  Widget _buildOtherFeatures(ThemeSettings themeSettings) {
-    return AnimatedBuilder(
-      animation: _fadeAnimation,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _fadeAnimation.value,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'その他の機能',
-                style: TextStyle(
-                  fontSize: 18 * themeSettings.fontSizeScale,
-                  fontWeight: FontWeight.bold,
-                  color: themeSettings.fontColor1,
-                  fontFamily: themeSettings.fontFamily,
+  // 機能カード（新しいデザイン）
+  Widget _buildFeatureCard(
+    ThemeSettings themeSettings,
+    String title,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return Expanded(
+      child: Container(
+        height: 100,
+        child: Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          color: themeSettings.backgroundColor2,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: themeSettings.iconColor.withOpacity(0.2),
+                  width: 1,
                 ),
               ),
-              SizedBox(height: 12),
-
-              Row(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      '電卓',
-                      '計算ツール',
-                      Icons.calculate,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => CalculatorPage()),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      'カレンダー',
-                      'スケジュール管理',
-                      Icons.calendar_month,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => CalendarPage()),
-                      ),
+                  Icon(icon, color: themeSettings.iconColor, size: 28),
+                  SizedBox(height: 8),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14 * themeSettings.fontSizeScale,
+                      fontWeight: FontWeight.w600,
+                      color: themeSettings.fontColor1,
+                      fontFamily: themeSettings.fontFamily,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 12),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      'メモ・TODO',
-                      'メモとタスク管理',
-                      Icons.edit_note,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => TodoPage()),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      '使い方',
-                      'アプリの説明',
-                      Icons.help_outline,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => UsageGuidePage()),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 12),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildFeatureCard(
-                      themeSettings,
-                      '設定',
-                      'アプリ設定',
-                      Icons.settings,
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => AppSettingsPage()),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(child: Container()), // 空のスペース
-                ],
-              ),
-            ],
+            ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

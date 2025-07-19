@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bysnapp/pages/roast/roast_timer_settings_page.dart';
 import 'package:bysnapp/pages/roast/roast_record_page.dart';
-import 'package:bysnapp/pages/roast/roast_advisor_page.dart';
+import 'package:bysnapp/pages/roast/roast_analysis_page.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../utils/sound_utils.dart';
@@ -222,7 +222,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
   void _goToAdvisor() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => RoastAdvisorPage()), // 必要に応じて調整
+      MaterialPageRoute(builder: (_) => RoastAnalysisPage()), // 必要に応じて調整
     );
   }
 

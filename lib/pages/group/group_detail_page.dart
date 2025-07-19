@@ -10,6 +10,7 @@ import 'group_settings_page.dart';
 import 'group_edit_page.dart';
 import 'group_leave_complete_page.dart';
 import 'group_list_page.dart';
+import 'group_delete_complete_page.dart';
 
 class GroupDetailPage extends StatefulWidget {
   final Group group;
@@ -694,12 +695,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                 widget.group.id,
               );
               if (success && mounted) {
-                Navigator.pop(context);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('グループを削除しました'),
-                    backgroundColor: Colors.green,
+                Navigator.pop(context); // ダイアログを閉じる
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GroupDeleteCompletePage(),
                   ),
                 );
               }

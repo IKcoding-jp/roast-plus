@@ -210,7 +210,9 @@ class _TastingRecordPageState extends State<TastingRecordPage>
         builder: (context, tastingProvider, child) {
           if (tastingProvider.isLoading) {
             return Center(
-              child: CircularProgressIndicator(color: themeSettings.iconColor),
+              child: CircularProgressIndicator(
+                color: themeSettings.tastingColor,
+              ),
             );
           }
 
@@ -222,7 +224,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                   Icon(
                     Icons.coffee,
                     size: 64,
-                    color: themeSettings.iconColor.withOpacity(0.5),
+                    color: themeSettings.tastingColor.withOpacity(0.5),
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -419,7 +421,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                               ],
                               child: Icon(
                                 Icons.more_vert,
-                                color: themeSettings.iconColor,
+                                color: themeSettings.tastingColor,
                               ),
                             ),
                           ],

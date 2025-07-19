@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../models/theme_settings.dart';
+import 'group_qr_scanner_page.dart';
 
 class GroupInvitationsPage extends StatefulWidget {
   const GroupInvitationsPage({super.key});
@@ -26,6 +27,10 @@ class _GroupInvitationsPageState extends State<GroupInvitationsPage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: themeSettings.iconColor),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(
           '招待一覧',
           style: TextStyle(
@@ -37,6 +42,20 @@ class _GroupInvitationsPageState extends State<GroupInvitationsPage> {
         ),
         backgroundColor: themeSettings.appBarColor,
         iconTheme: IconThemeData(color: themeSettings.iconColor),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.qr_code_scanner, color: themeSettings.iconColor),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const GroupQRScannerPage(),
+                ),
+              );
+            },
+            tooltip: 'QRコード読み取り',
+          ),
+        ],
       ),
       body: Consumer<GroupProvider>(
         builder: (context, groupProvider, child) {
@@ -68,13 +87,78 @@ class _GroupInvitationsPageState extends State<GroupInvitationsPage> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    '新しい招待が届くとここに表示されます',
+                    '新しい招待が届くとここに表示されます\nまたは、QRコードを読み取ってグループに参加しましょう',
                     style: TextStyle(
                       color: themeSettings.fontColor1,
                       fontSize: 14 * themeSettings.fontSizeScale,
                       fontFamily: themeSettings.fontFamily,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 24),
+                  Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: themeSettings.backgroundColor2 ?? Colors.white,
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.qr_code_scanner,
+                            size: 48,
+                            color: themeSettings.buttonColor,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'QRコードでグループ参加',
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize: 16 * themeSettings.fontSizeScale,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '他のメンバーからQRコードをもらって\nグループに参加できます',
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize: 14 * themeSettings.fontSizeScale,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const GroupQRScannerPage(),
+                                ),
+                              );
+                            },
+                            icon: Icon(Icons.qr_code_scanner),
+                            label: Text('QRコードを読み取る'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: themeSettings.buttonColor,
+                              foregroundColor: themeSettings.fontColor2,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -83,10 +167,11 @@ class _GroupInvitationsPageState extends State<GroupInvitationsPage> {
 
           return RefreshIndicator(
             onRefresh: () => groupProvider.loadInvitations(),
-            child: ListView.builder(
+            child: ListView(
               padding: EdgeInsets.all(16),
-              itemCount: groupProvider.invitations.length,
-              itemBuilder: (context, index) {
+              children: [
+                // 招待リスト
+                ...List.generate(groupProvider.invitations.length, (index) {
                 final invitation = groupProvider.invitations[index];
                 return Card(
                   margin: EdgeInsets.only(bottom: 16),
@@ -253,9 +338,87 @@ class _GroupInvitationsPageState extends State<GroupInvitationsPage> {
                         ],
                       ],
                     ),
+                    ),
+                  );
+                }),
+                // QRコード読み取りオプション
+                SizedBox(height: 16),
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  color: themeSettings.backgroundColor2 ?? Colors.white,
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.qr_code_scanner,
+                              size: 32,
+                              color: themeSettings.buttonColor,
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'QRコードでグループ参加',
+                                    style: TextStyle(
+                                      color: themeSettings.fontColor1,
+                                      fontSize:
+                                          16 * themeSettings.fontSizeScale,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: themeSettings.fontFamily,
+                                    ),
+                                  ),
+                                  Text(
+                                    '他のメンバーからQRコードをもらって参加',
+                                    style: TextStyle(
+                                      color: themeSettings.fontColor1,
+                                      fontSize:
+                                          14 * themeSettings.fontSizeScale,
+                                      fontFamily: themeSettings.fontFamily,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const GroupQRScannerPage(),
                   ),
                 );
               },
+                          icon: Icon(Icons.qr_code_scanner),
+                          label: Text('QRコードを読み取る'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: themeSettings.buttonColor,
+                            foregroundColor: themeSettings.fontColor2,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
