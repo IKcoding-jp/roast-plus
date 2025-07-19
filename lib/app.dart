@@ -721,7 +721,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           children: [
             SizedBox(width: 8),
             Text(
-              'ローストプラス+',
+                              'ローストプラス',
               style: TextStyle(
                 color: Provider.of<ThemeSettings>(context).appBarTextColor,
               ),

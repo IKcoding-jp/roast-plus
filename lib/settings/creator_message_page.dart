@@ -49,7 +49,7 @@ class CreatorMessagePage extends StatelessWidget {
                           ),
                           SizedBox(width: 12),
                           Text(
-                            'ローストプラス+について',
+                            'ローストプラスについて',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
