@@ -23,9 +23,12 @@ class ThemeSettings extends ChangeNotifier {
   Color dialogBackgroundColor; // ダイアログの背景色
   Color dialogTextColor; // ダイアログの文字色
   Color inputTextColor; // 入力欄の文字色
+  Color cardBackgroundColor; // カードの背景色
+  Color borderColor; // ボーダーの色
   double fontSizeScale; // フォントサイズのスケール（1.0が標準）
   String fontFamily; // フォントファミリー
   Color? customBottomNavigationSelectedColor;
+  Color? customBottomNavigationUnselectedColor;
 
   // 機能別の色設定
   Color calculatorColor; // 電卓機能の色
@@ -38,10 +41,56 @@ class ThemeSettings extends ChangeNotifier {
   StreamSubscription? _fontSettingsSubscription;
   StreamSubscription? _themeSettingsSubscription;
 
+  // 初期インストール時にデフォルトテーマを適用
+  Future<void> initializeDefaultTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isFirstInstall = prefs.getBool('isFirstInstall') ?? true;
+
+    if (isFirstInstall) {
+      print('ThemeSettings: 初期インストール - デフォルトテーマを適用');
+
+      // デフォルトテーマを適用
+      final defaultTheme = presets['デフォルト']!;
+      appBarColor = defaultTheme['appBarColor']!;
+      backgroundColor = defaultTheme['backgroundColor']!;
+      buttonColor = defaultTheme['buttonColor']!;
+      backgroundColor2 = defaultTheme['backgroundColor2']!;
+      fontColor1 = defaultTheme['fontColor1']!;
+      fontColor2 = defaultTheme['fontColor2']!;
+      iconColor = defaultTheme['iconColor']!; // オレンジ色
+      timerCircleColor = defaultTheme['timerCircleColor']!;
+      bottomNavigationColor = defaultTheme['bottomNavigationColor']!;
+      inputBackgroundColor = defaultTheme['inputBackgroundColor']!;
+      memberBackgroundColor = defaultTheme['memberBackgroundColor']!;
+      appBarTextColor = defaultTheme['appBarTextColor']!;
+      bottomNavigationTextColor = defaultTheme['bottomNavigationTextColor']!;
+      dialogBackgroundColor = defaultTheme['dialogBackgroundColor']!;
+      dialogTextColor = defaultTheme['dialogTextColor']!;
+      inputTextColor = defaultTheme['inputTextColor']!;
+      cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
+      borderColor = defaultTheme['borderColor']!;
+      customBottomNavigationSelectedColor =
+          defaultTheme['bottomNavigationSelectedColor']!;
+      settingsColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
+      fontSizeScale = 1.0;
+      fontFamily = 'ZenMaruGothic';
+
+      // 設定を保存
+      save();
+
+      // 初回インストールフラグを設定
+      await prefs.setBool('isFirstInstall', false);
+
+      notifyListeners();
+      print('ThemeSettings: デフォルトテーマ適用完了');
+    }
+  }
+
   // Firestoreからテーマ設定を一度だけ取得して反映
   Future<void> loadThemeFromFirestore() async {
     final themeData = await ThemeCloudService.getThemeFromCloud();
     if (themeData != null) {
+      print('ThemeSettings: Firestoreから取得したテーマデータ: $themeData');
       appBarColor = themeData['appBarColor'] ?? appBarColor;
       backgroundColor = themeData['backgroundColor'] ?? backgroundColor;
       buttonColor = themeData['buttonColor'] ?? buttonColor;
@@ -63,6 +112,19 @@ class ThemeSettings extends ChangeNotifier {
           themeData['dialogBackgroundColor'] ?? dialogBackgroundColor;
       dialogTextColor = themeData['dialogTextColor'] ?? dialogTextColor;
       inputTextColor = themeData['inputTextColor'] ?? inputTextColor;
+      customBottomNavigationSelectedColor =
+          themeData['customBottomNavigationSelectedColor'];
+      customBottomNavigationUnselectedColor =
+          themeData['customBottomNavigationUnselectedColor'];
+      settingsColor = themeData['settingsColor'] ?? settingsColor;
+      print('ThemeSettings: 更新後のiconColor: $iconColor');
+      print(
+        'ThemeSettings: 更新後のcustomBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
+      );
+      print(
+        'ThemeSettings: 更新後のcustomBottomNavigationUnselectedColor: $customBottomNavigationUnselectedColor',
+      );
+      print('ThemeSettings: 更新後のsettingsColor: $settingsColor');
       notifyListeners();
     }
   }
@@ -111,6 +173,19 @@ class ThemeSettings extends ChangeNotifier {
                   themeData['dialogBackgroundColor'] ?? dialogBackgroundColor;
               dialogTextColor = themeData['dialogTextColor'] ?? dialogTextColor;
               inputTextColor = themeData['inputTextColor'] ?? inputTextColor;
+              customBottomNavigationSelectedColor =
+                  themeData['customBottomNavigationSelectedColor'];
+              customBottomNavigationUnselectedColor =
+                  themeData['customBottomNavigationUnselectedColor'];
+              settingsColor = themeData['settingsColor'] ?? settingsColor;
+              print('ThemeSettings: 更新後のiconColor: $iconColor');
+              print(
+                'ThemeSettings: 更新後のcustomBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
+              );
+              print(
+                'ThemeSettings: 更新後のcustomBottomNavigationUnselectedColor: $customBottomNavigationUnselectedColor',
+              );
+              print('ThemeSettings: 更新後のsettingsColor: $settingsColor');
               notifyListeners();
             }
           }
@@ -127,6 +202,14 @@ class ThemeSettings extends ChangeNotifier {
       return customBottomNavigationSelectedColor!;
     }
     return _bottomNavigationSelectedColor ?? Color(0xFFFF9800);
+  }
+
+  Color get bottomNavigationUnselectedColor {
+    if (customBottomNavigationUnselectedColor != null) {
+      return customBottomNavigationUnselectedColor!;
+    }
+    // デフォルトは薄いグレー
+    return Color(0xFF9E9E9E);
   }
 
   Color? _bottomNavigationSelectedColor;
@@ -148,10 +231,13 @@ class ThemeSettings extends ChangeNotifier {
     required this.dialogBackgroundColor,
     required this.dialogTextColor,
     Color? inputTextColor,
+    required this.cardBackgroundColor,
+    required this.borderColor,
     required this.fontSizeScale,
     required this.fontFamily,
     Color? bottomNavigationSelectedColor,
     this.customBottomNavigationSelectedColor,
+    this.customBottomNavigationUnselectedColor,
     required this.calculatorColor,
     required this.settingsColor,
     required this.todoColor,
@@ -163,23 +249,27 @@ class ThemeSettings extends ChangeNotifier {
   static const Map<String, Map<String, Color>> presets = {
     // 基本
     'デフォルト': {
-      'appBarColor': Color(0xFF2C1810), // より深いコーヒー色
-      'backgroundColor': Color(0xFFFFFBF5), // よりクリーンな背景
-      'buttonColor': Color(0xFF8D6E63), // 洗練されたブラウン
-      'backgroundColor2': Color(0xFFFFFFFF),
-      'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFFFFFFFF),
-      'timerCircleColor': Color(0xFF8D6E63),
-      'bottomNavigationColor': Color(0xFF2C1810),
-      'inputBackgroundColor': Color(0xFFF7F3F0),
-      'iconColor': Color(0xFFE67E22), // 温かみのあるオレンジ
-      'memberBackgroundColor': Color(0xFFF1F8E9),
-      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF),
-      'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'bottomNavigationSelectedColor': Color(0xFFE67E22),
+      'appBarColor': Color(0xFF2C1810), // 深いローストコーヒー色
+      'backgroundColor': Color(0xFFFFFBF0), // フレッシュミルクのような純白
+      'buttonColor': Color(0xFF8B4513), // リッチなコーヒーブラウン
+      'backgroundColor2': Color(0xFFFFFFFF), // 純粋なミルク色
+      'fontColor1': Color(0xFF2C1810), // 深いローストコーヒー色の文字
+      'fontColor2': Color(0xFFFFFFFF), // ミルク色の文字
+      'timerCircleColor': Color(0xFF8B4513), // リッチなコーヒーブラウン
+      'bottomNavigationColor': Color(0xFF2C1810), // 深いローストコーヒー色
+      'inputBackgroundColor': Color(0xFFFFF8F0), // スチームミルクのような温かみのある白
+      'iconColor': Color(0xFFD2691E), // ゴールデンクリーム色（砂糖の色）
+      'memberBackgroundColor': Color(0xFFFFF5E6), // ラテアートのようなクリーム色
+      'appBarTextColor': Color(0xFFFFFFFF), // ミルク色の文字
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ミルク色の文字
+      'dialogBackgroundColor': Color(0xFFFFFFFF), // ミルク色の背景
+      'dialogTextColor': Color(0xFF2C1810), // 深いローストコーヒー色の文字
+      'inputTextColor': Color(0xFF2C1810), // 深いローストコーヒー色の文字
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ミルク色の背景
+      'borderColor': Color(0xFFE6D7C3), // キャラメル色の境界線
+      'bottomNavigationSelectedColor': Color(0xFFD2691E), // ゴールデンクリーム色
+      'bottomNavigationUnselectedColor': Color(0xFFBDBDBD), // 薄いグレー
+      'settingsColor': Color(0xFF8B4513), // リッチなコーヒーブラウン
     },
     'ダーク': {
       'appBarColor': Color(0xFF121212), // より深い黒
@@ -198,17 +288,21 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFF2A2A2A),
       'dialogTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
       'inputTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
+      'cardBackgroundColor': Color(0xFF2A2A2A),
+      'borderColor': Color(0xFF424242),
       'bottomNavigationSelectedColor': Color(0xFF81C784),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF2E7D32), // ダークグリーン
     },
     'ライト': {
       'appBarColor': Color(0xFFFAFAFA), // より純粋な白
       'backgroundColor': Color(0xFFFFFFFF),
-      'buttonColor': Color(0xFFE0E0E0), // より濃いグレーでコントラスト改善
+      'buttonColor': Color(0xFF2196F3), // クリーンなブルー
       'backgroundColor2': Color(0xFFFFFFFF),
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFF424242), // ボタンテキストを濃いグレーに
-      'timerCircleColor': Color(0xFF757575),
-      'bottomNavigationColor': Color(0xFFFAFAFA),
+      'fontColor2': Color(0xFFFFFFFF), // ボタンテキストを白色に変更してコントラスト確保
+      'timerCircleColor': Color(0xFF2196F3), // クリーンなブルー
+      'bottomNavigationColor': Color(0xFFF5F5F5), // より濃いグレーでコントラスト改善
       'inputBackgroundColor': Color(0xFFF8F8F8),
       'iconColor': Color(0xFF2196F3), // クリーンなブルー
       'memberBackgroundColor': Color(0xFFF0F4FF),
@@ -217,27 +311,13 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF2196F3),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF1976D2), // ダークブルー
     },
-    'ライトグレー': {
-      'appBarColor': Color(0xFF37474F), // よりモダンなブルーグレー
-      'backgroundColor': Color(0xFFF7F9FA),
-      'buttonColor': Color(0xFF78909C), // より濃いグレーでコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
-      'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFFFFFFFF), // 白色に変更してコントラスト確保
-      'timerCircleColor': Color(0xFF78909C),
-      'bottomNavigationColor': Color(0xFF37474F),
-      'inputBackgroundColor': Color(0xFFF5F7F8),
-      'iconColor': Color(0xFF607D8B),
-      'memberBackgroundColor': Color(0xFFECEFF1),
-      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF),
-      'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'bottomNavigationSelectedColor': Color(0xFFFF7043),
-    },
+
     // ブラウン系（コーヒーテーマ強化）
     'ブラウン': {
       'appBarColor': Color(0xFF3E2723),
@@ -256,7 +336,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFD7CCC8),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF5D4037), // ダークブラウン
     },
     'ベージュ': {
       'appBarColor': Color(0xFF8D6E63), // より濃い色でコントラスト改善
@@ -275,7 +359,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFE4C441),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF8D6E63), // ダークベージュ
     },
     'エスプレッソ': {
       // 新追加
@@ -295,7 +383,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFD4AF37),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF3E2723), // ダークブラウン
     },
     'カプチーノ': {
       // 新追加
@@ -315,7 +407,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFCD853F),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF6D4C41), // ダークブラウン
     },
     // 赤・ピンク系（より洗練された色調）
     'サクラ': {
@@ -336,7 +432,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFF80AB),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFFC2185B), // ダークピンク
     },
     // グリーン系（自然で現代的）
     'フォレスト': {
@@ -357,7 +457,10 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF81C784),
+      'settingsColor': Color(0xFF2E7D32), // ダークグリーン
     },
     'ティール': {
       // 新追加
@@ -377,7 +480,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF80CBC4),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF00695C), // ダークティール
     },
     'ミントグリーン': {
       // 新追加
@@ -397,7 +504,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF4DB6AC),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF00796B), // ダークミントグリーン
     },
     // ブルー系（クリーンで現代的）
     'オーシャン': {
@@ -418,7 +529,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF4FC3F7),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF0277BD), // ダークオーシャン
     },
     'ネイビー': {
       'appBarColor': Color(0xFF1A237E), // より深いネイビー
@@ -437,7 +552,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF7986CB),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF1A237E), // ダークネイビー
     },
     // パープル系（エレガント）
     'ラベンダー': {
@@ -458,7 +577,59 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFCE93D8),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF7B1FA2), // ダークラベンダー
+    },
+    // ゴールド系（エレガント）
+    'ゴールド': {
+      'appBarColor': Color(0xFFB8860B), // ダークゴールド
+      'backgroundColor': Color(0xFFFFFDF0), // 非常に薄いゴールド
+      'buttonColor': Color(0xFFDAA520), // ゴールデンロッド
+      'backgroundColor2': Color(0xFFFFFFFF),
+      'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
+      'timerCircleColor': Color(0xFFDAA520),
+      'bottomNavigationColor': Color(0xFFB8860B),
+      'inputBackgroundColor': Color(0xFFFFFEF8),
+      'iconColor': Color(0xFFFFD700), // ゴールド
+      'memberBackgroundColor': Color(0xFFFFF8DC), // コーンフラワー
+      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
+      'dialogBackgroundColor': Color(0xFFFFFFFF),
+      'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFFFF8DC), // 薄いゴールドの境界線
+      'bottomNavigationSelectedColor': Color(0xFFFFD700),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFFB8860B), // ダークゴールド
+    },
+    // シルバー系（エレガント）
+    'シルバー': {
+      'appBarColor': Color(0xFF696969), // ディムグレー
+      'backgroundColor': Color(0xFFFAFAFA), // 非常に薄いグレー
+      'buttonColor': Color(0xFF808080), // グレー
+      'backgroundColor2': Color(0xFFFFFFFF),
+      'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
+      'timerCircleColor': Color(0xFF808080),
+      'bottomNavigationColor': Color(0xFF696969),
+      'inputBackgroundColor': Color(0xFFFCFCFC),
+      'iconColor': Color(0xFFC0C0C0), // シルバー
+      'memberBackgroundColor': Color(0xFFF5F5F5), // ホワイトスモーク
+      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
+      'dialogBackgroundColor': Color(0xFFFFFFFF),
+      'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE8E8E8), // 薄いグレーの境界線
+      'bottomNavigationSelectedColor': Color(0xFFC0C0C0),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF696969), // ダークグレー
     },
     // レッド・オレンジ系テーマ
     'レッド': {
@@ -478,7 +649,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFEF5350),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFFC62828), // ダークレッド
     },
     'オレンジ': {
       // 新追加
@@ -498,7 +673,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFB74D),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFFE65100), // ダークオレンジ
     },
     'タンジェリン': {
       // 新追加
@@ -518,6 +697,8 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFCC02),
     },
     'アンバー': {
@@ -599,7 +780,150 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFAB91),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFFD84315), // ダークオレンジ
+    },
+    // パステル系テーマ
+    'ピンク': {
+      'appBarColor': Color(0xFFFFB3D9), // 優しいピンク
+      'backgroundColor': Color(0xFFFFF0F8), // 非常に薄いピンク
+      'buttonColor': Color(0xFFFF80AB), // パステルピンク
+      'backgroundColor2': Color(0xFFFFFFFF),
+      'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
+      'timerCircleColor': Color(0xFFFF80AB),
+      'bottomNavigationColor': Color(0xFFFFB3D9),
+      'inputBackgroundColor': Color(0xFFFFF8FC),
+      'iconColor': Color(0xFFF48FB1), // パステルピンク
+      'memberBackgroundColor': Color(0xFFFFE1F2),
+      'appBarTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'bottomNavigationTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'dialogBackgroundColor': Color(0xFFFFFFFF),
+      'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFFFE1F2), // 薄いピンクの境界線
+      'bottomNavigationSelectedColor': Color(0xFFF48FB1),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFFE91E63), // ダークピンク
+    },
+    'ブルー': {
+      'appBarColor': Color(0xFFB3E5FC), // 優しいブルー
+      'backgroundColor': Color(0xFFF0FBFF), // 非常に薄いブルー
+      'buttonColor': Color(0xFF81D4FA), // パステルブルー
+      'backgroundColor2': Color(0xFFFFFFFF),
+      'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
+      'timerCircleColor': Color(0xFF81D4FA),
+      'bottomNavigationColor': Color(0xFFB3E5FC),
+      'inputBackgroundColor': Color(0xFFF8FCFF),
+      'iconColor': Color(0xFF4FC3F7), // パステルブルー
+      'memberBackgroundColor': Color(0xFFE1F5FE),
+      'appBarTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'bottomNavigationTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'dialogBackgroundColor': Color(0xFFFFFFFF),
+      'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE1F5FE), // 薄いブルーの境界線
+      'bottomNavigationSelectedColor': Color(0xFF4FC3F7),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF0277BD), // ダークブルー
+    },
+    'グリーン': {
+      'appBarColor': Color(0xFFC8E6C9), // 優しいグリーン
+      'backgroundColor': Color(0xFFF1F8E9), // 非常に薄いグリーン
+      'buttonColor': Color(0xFFA5D6A7), // パステルグリーン
+      'backgroundColor2': Color(0xFFFFFFFF),
+      'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
+      'timerCircleColor': Color(0xFFA5D6A7),
+      'bottomNavigationColor': Color(0xFFC8E6C9),
+      'inputBackgroundColor': Color(0xFFF8FCF0),
+      'iconColor': Color(0xFF81C784), // パステルグリーン
+      'memberBackgroundColor': Color(0xFFE8F5E8),
+      'appBarTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'bottomNavigationTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'dialogBackgroundColor': Color(0xFFFFFFFF),
+      'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE8F5E8), // 薄いグリーンの境界線
+      'bottomNavigationSelectedColor': Color(0xFF81C784),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF388E3C), // ダークグリーン
+    },
+    'イエロー': {
+      'appBarColor': Color(0xFFFFF9C4), // 優しいイエロー
+      'backgroundColor': Color(0xFFFFFDE7), // 非常に薄いイエロー
+      'buttonColor': Color(0xFFFFF59D), // パステルイエロー
+      'backgroundColor2': Color(0xFFFFFFFF),
+      'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'fontColor2': Color(0xFF2C1810), // 明るいボタンなので黒文字
+      'timerCircleColor': Color(0xFFFFF59D),
+      'bottomNavigationColor': Color(0xFFFFF9C4),
+      'inputBackgroundColor': Color(0xFFFFFEF0),
+      'iconColor': Color(0xFFFFF176), // パステルイエロー
+      'memberBackgroundColor': Color(0xFFFFF8E1),
+      'appBarTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'bottomNavigationTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'dialogBackgroundColor': Color(0xFFFFFFFF),
+      'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFFFF8E1), // 薄いイエローの境界線
+      'bottomNavigationSelectedColor': Color(0xFFFFF176),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFFF57F17), // ダークイエロー
+    },
+    'パープル': {
+      'appBarColor': Color(0xFFE1BEE7), // 優しいパープル
+      'backgroundColor': Color(0xFFFAF4FF), // 非常に薄いパープル
+      'buttonColor': Color(0xFFCE93D8), // パステルパープル
+      'backgroundColor2': Color(0xFFFFFFFF),
+      'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
+      'timerCircleColor': Color(0xFFCE93D8),
+      'bottomNavigationColor': Color(0xFFE1BEE7),
+      'inputBackgroundColor': Color(0xFFF7F1FF),
+      'iconColor': Color(0xFFBA68C8), // パステルパープル
+      'memberBackgroundColor': Color(0xFFF3E5F5),
+      'appBarTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'bottomNavigationTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'dialogBackgroundColor': Color(0xFFFFFFFF),
+      'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFF3E5F5), // 薄いパープルの境界線
+      'bottomNavigationSelectedColor': Color(0xFFBA68C8),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFF8E24AA), // ダークパープル
+    },
+    'ピーチ': {
+      'appBarColor': Color(0xFFFFCCBC), // 優しいピーチ
+      'backgroundColor': Color(0xFFFFF8F5), // 非常に薄いピーチ
+      'buttonColor': Color(0xFFFFAB91), // パステルピーチ
+      'backgroundColor2': Color(0xFFFFFFFF),
+      'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
+      'timerCircleColor': Color(0xFFFFAB91),
+      'bottomNavigationColor': Color(0xFFFFCCBC),
+      'inputBackgroundColor': Color(0xFFFFFCF8),
+      'iconColor': Color(0xFFFF8A65), // パステルピーチ
+      'memberBackgroundColor': Color(0xFFFFE0B2),
+      'appBarTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'bottomNavigationTextColor': Color(0xFF2C1810), // 明るい背景なので黒文字
+      'dialogBackgroundColor': Color(0xFFFFFFFF),
+      'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFFFE0B2), // 薄いピーチの境界線
+      'bottomNavigationSelectedColor': Color(0xFFFF8A65),
+      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'settingsColor': Color(0xFFD84315), // ダークピーチ
     },
 
     // 個性派
@@ -757,6 +1081,12 @@ class ThemeSettings extends ChangeNotifier {
         inputTextColor:
             cloudTheme['inputTextColor'] ??
             Color(prefs.getInt('theme_inputTextColor') ?? 0xFF000000),
+        cardBackgroundColor:
+            cloudTheme['cardBackgroundColor'] ??
+            Color(prefs.getInt('theme_cardBackgroundColor') ?? 0xFFFFFFFF),
+        borderColor:
+            cloudTheme['borderColor'] ??
+            Color(prefs.getInt('theme_borderColor') ?? 0xFFE0E0E0),
         fontSizeScale: prefs.getDouble(_fontSizeScaleKey) ?? 1.0,
         fontFamily: _getValidFontFamily(
           prefs.getString(_fontFamilyKey) ?? 'Noto Sans JP',
@@ -766,10 +1096,14 @@ class ThemeSettings extends ChangeNotifier {
         calculatorColor:
             cloudTheme['calculatorColor'] ?? Color(0xFF1565C0), // 計算機らしい深い青
         settingsColor:
-            cloudTheme['settingsColor'] ?? Color(0xFF6A1B9A), // 設定らしい深い紫
+            cloudTheme['settingsColor'] ?? Color(0xFFE67E22), // オレンジ色
         todoColor: cloudTheme['todoColor'] ?? Color(0xFF2E7D32), // タスクらしい深い緑
         tastingColor:
             cloudTheme['tastingColor'] ?? Color(0xFFD84315), // コーヒーらしい深いオレンジ
+        customBottomNavigationSelectedColor:
+            cloudTheme['customBottomNavigationSelectedColor'],
+        customBottomNavigationUnselectedColor:
+            cloudTheme['customBottomNavigationUnselectedColor'],
       );
     } else {
       // ローカル設定
@@ -810,15 +1144,23 @@ class ThemeSettings extends ChangeNotifier {
         inputTextColor: Color(
           prefs.getInt('theme_inputTextColor') ?? 0xFF000000,
         ),
+        cardBackgroundColor: Color(
+          prefs.getInt('theme_cardBackgroundColor') ?? 0xFFFFFFFF,
+        ),
+        borderColor: Color(prefs.getInt('theme_borderColor') ?? 0xFFE0E0E0),
         fontSizeScale: prefs.getDouble(_fontSizeScaleKey) ?? 1.0,
         fontFamily: _getValidFontFamily(
           prefs.getString(_fontFamilyKey) ?? 'Noto Sans JP',
         ),
         bottomNavigationSelectedColor: preset?['bottomNavigationSelectedColor'],
         calculatorColor: Color(0xFF1565C0), // 計算機らしい深い青
-        settingsColor: Color(0xFF6A1B9A), // 設定らしい深い紫
+        settingsColor: Color(0xFFE67E22), // オレンジ色
         todoColor: Color(0xFF2E7D32), // タスクらしい深い緑
         tastingColor: Color(0xFFD84315), // コーヒーらしい深いオレンジ
+        customBottomNavigationSelectedColor:
+            preset?['bottomNavigationSelectedColor'],
+        customBottomNavigationUnselectedColor:
+            preset?['bottomNavigationUnselectedColor'],
       );
     }
   }
@@ -872,7 +1214,25 @@ class ThemeSettings extends ChangeNotifier {
         'dialogBackgroundColor': dialogBackgroundColor,
         'dialogTextColor': dialogTextColor,
         'inputTextColor': inputTextColor,
+        'cardBackgroundColor': cardBackgroundColor,
+        'borderColor': borderColor,
+        'bottomNavigationSelectedColor': bottomNavigationSelectedColor,
+        'settingsColor': settingsColor,
+        if (customBottomNavigationSelectedColor != null)
+          'customBottomNavigationSelectedColor':
+              customBottomNavigationSelectedColor!,
+        if (customBottomNavigationUnselectedColor != null)
+          'customBottomNavigationUnselectedColor':
+              customBottomNavigationUnselectedColor!,
       };
+      print('ThemeSettings: Firestoreに保存するテーマデータ: $themeData');
+      print(
+        'ThemeSettings: customBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
+      );
+      print(
+        'ThemeSettings: customBottomNavigationUnselectedColor: $customBottomNavigationUnselectedColor',
+      );
+      print('ThemeSettings: settingsColor: $settingsColor');
       await ThemeCloudService.saveThemeToCloud(themeData);
     } catch (e) {
       // クラウド保存に失敗してもローカル保存は成功しているので、エラーを無視
@@ -920,6 +1280,14 @@ class ThemeSettings extends ChangeNotifier {
 
   void updateIconColor(Color color) {
     iconColor = color;
+    // 設定アイコンの色も同時に更新
+    settingsColor = color;
+    notifyListeners();
+    save();
+  }
+
+  void updateSettingsColor(Color color) {
+    settingsColor = color;
     notifyListeners();
     save();
   }
@@ -991,24 +1359,31 @@ class ThemeSettings extends ChangeNotifier {
   }
 
   void resetToDefault() {
-    appBarColor = Color(0xFF2C1D17);
-    backgroundColor = Color(0xFFFFF8E1);
-    buttonColor = Color(0xFF000000);
-    backgroundColor2 = Color(0xFFFFFFFF);
-    fontColor1 = Color(0xFF000000);
-    fontColor2 = Color(0xFFFFFFFF);
-    iconColor = Color(0xFFBDBDBD);
-    timerCircleColor = Color(0xFF795548);
-    bottomNavigationColor = Color(0xFF2C1D17);
-    inputBackgroundColor = Color(0xFFF5F5F5);
-    memberBackgroundColor = Color(0xFFFFFFFF);
-    appBarTextColor = Color(0xFF000000);
-    bottomNavigationTextColor = Color(0xFF000000);
-    dialogBackgroundColor = Color(0xFFFFFFFF);
-    dialogTextColor = Color(0xFF000000);
-    inputTextColor = Color(0xFF000000);
+    // デフォルトテーマのプリセットを適用
+    final defaultTheme = presets['デフォルト']!;
+    appBarColor = defaultTheme['appBarColor']!;
+    backgroundColor = defaultTheme['backgroundColor']!;
+    buttonColor = defaultTheme['buttonColor']!;
+    backgroundColor2 = defaultTheme['backgroundColor2']!;
+    fontColor1 = defaultTheme['fontColor1']!;
+    fontColor2 = defaultTheme['fontColor2']!;
+    iconColor = defaultTheme['iconColor']!; // オレンジ色
+    timerCircleColor = defaultTheme['timerCircleColor']!;
+    bottomNavigationColor = defaultTheme['bottomNavigationColor']!;
+    inputBackgroundColor = defaultTheme['inputBackgroundColor']!;
+    memberBackgroundColor = defaultTheme['memberBackgroundColor']!;
+    appBarTextColor = defaultTheme['appBarTextColor']!;
+    bottomNavigationTextColor = defaultTheme['bottomNavigationTextColor']!;
+    dialogBackgroundColor = defaultTheme['dialogBackgroundColor']!;
+    dialogTextColor = defaultTheme['dialogTextColor']!;
+    inputTextColor = defaultTheme['inputTextColor']!;
+    cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
+    borderColor = defaultTheme['borderColor']!;
+    customBottomNavigationSelectedColor =
+        defaultTheme['bottomNavigationSelectedColor']!;
+    settingsColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
     fontSizeScale = 1.0;
-    fontFamily = 'Noto Sans JP';
+    fontFamily = 'ZenMaruGothic';
     notifyListeners();
     save();
   }
@@ -1033,8 +1408,11 @@ class ThemeSettings extends ChangeNotifier {
       dialogBackgroundColor = preset['dialogBackgroundColor']!;
       dialogTextColor = preset['dialogTextColor']!;
       inputTextColor = preset['inputTextColor']!;
-      _bottomNavigationSelectedColor =
-          preset['bottomNavigationSelectedColor'] ?? preset['buttonColor'];
+      cardBackgroundColor = preset['cardBackgroundColor']!;
+      borderColor = preset['borderColor']!;
+      customBottomNavigationSelectedColor =
+          preset['bottomNavigationSelectedColor']!;
+      settingsColor = preset['iconColor']!; // アイコンの色と同じ値に設定
       // ここで一度だけ通知
       notifyListeners();
       save();
@@ -1126,9 +1504,11 @@ class ThemeSettings extends ChangeNotifier {
   static Future<void> renameCustomTheme(String oldName, String newName) async {
     final customThemes = await getCustomThemes();
     if (customThemes.containsKey(oldName)) {
-      final themeData = customThemes[oldName]!;
-      await deleteCustomTheme(oldName);
-      await saveCustomTheme(newName, themeData);
+      final themeData = customThemes[oldName];
+      if (themeData != null) {
+        await deleteCustomTheme(oldName);
+        await saveCustomTheme(newName, themeData);
+      }
     }
   }
 
@@ -1161,6 +1541,16 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': dialogBackgroundColor,
       'dialogTextColor': dialogTextColor,
       'inputTextColor': inputTextColor,
+      'cardBackgroundColor': cardBackgroundColor,
+      'borderColor': borderColor,
+      'bottomNavigationSelectedColor': bottomNavigationSelectedColor,
+      'settingsColor': settingsColor,
+      if (customBottomNavigationSelectedColor != null)
+        'customBottomNavigationSelectedColor':
+            customBottomNavigationSelectedColor!,
+      if (customBottomNavigationUnselectedColor != null)
+        'customBottomNavigationUnselectedColor':
+            customBottomNavigationUnselectedColor!,
     };
 
     final name = await getNextCustomThemeName();
@@ -1172,23 +1562,43 @@ class ThemeSettings extends ChangeNotifier {
     final customThemes = await getCustomThemes();
     final themeData = customThemes[name];
     if (themeData != null) {
-      appBarColor = themeData['appBarColor']!;
-      backgroundColor = themeData['backgroundColor']!;
-      buttonColor = themeData['buttonColor']!;
-      backgroundColor2 = themeData['backgroundColor2']!;
-      fontColor1 = themeData['fontColor1']!;
-      fontColor2 = themeData['fontColor2']!;
-      iconColor = themeData['iconColor']!;
-      timerCircleColor = themeData['timerCircleColor']!;
-      bottomNavigationColor = themeData['bottomNavigationColor']!;
-      inputBackgroundColor = themeData['inputBackgroundColor']!;
-      memberBackgroundColor = themeData['memberBackgroundColor']!;
-      appBarTextColor = themeData['appBarTextColor']!;
-      bottomNavigationTextColor = themeData['bottomNavigationTextColor']!;
+      appBarColor = themeData['appBarColor'] ?? Color(0xFF2C1810);
+      backgroundColor = themeData['backgroundColor'] ?? Color(0xFFFFFBF5);
+      buttonColor = themeData['buttonColor'] ?? Color(0xFF8D6E63);
+      backgroundColor2 = themeData['backgroundColor2'] ?? Color(0xFFFFFFFF);
+      fontColor1 = themeData['fontColor1'] ?? Color(0xFF000000);
+      fontColor2 = themeData['fontColor2'] ?? Color(0xFFFFFFFF);
+      iconColor = themeData['iconColor'] ?? Color(0xFFE67E22);
+      timerCircleColor = themeData['timerCircleColor'] ?? Color(0xFF8D6E63);
+      bottomNavigationColor =
+          themeData['bottomNavigationColor'] ?? Color(0xFF2C1810);
+      inputBackgroundColor =
+          themeData['inputBackgroundColor'] ?? Color(0xFFF7F3F0);
+      memberBackgroundColor =
+          themeData['memberBackgroundColor'] ?? Color(0xFFF1F8E9);
+      appBarTextColor = themeData['appBarTextColor'] ?? Color(0xFFFFFFFF);
+      bottomNavigationTextColor =
+          themeData['bottomNavigationTextColor'] ?? Color(0xFFFFFFFF);
       dialogBackgroundColor =
           themeData['dialogBackgroundColor'] ?? Color(0xFFFFFFFF);
       dialogTextColor = themeData['dialogTextColor'] ?? Color(0xFF000000);
       inputTextColor = themeData['inputTextColor'] ?? Color(0xFF000000);
+      cardBackgroundColor =
+          themeData['cardBackgroundColor'] ?? Color(0xFFFFFFFF);
+      borderColor = themeData['borderColor'] ?? Color(0xFFE0E0E0);
+      customBottomNavigationSelectedColor =
+          themeData['customBottomNavigationSelectedColor'] ??
+          themeData['bottomNavigationSelectedColor'] ??
+          themeData['buttonColor'] ??
+          Color(0xFFE67E22); // デフォルトのオレンジ色
+      customBottomNavigationUnselectedColor =
+          themeData['customBottomNavigationUnselectedColor'] ??
+          themeData['bottomNavigationTextColor'] ??
+          Color(0xFF000000); // デフォルトの黒色
+      settingsColor =
+          themeData['settingsColor'] ??
+          themeData['iconColor'] ??
+          Color(0xFFE67E22); // アイコンの色と同じ値に設定
       // ここで一度だけ通知
       notifyListeners();
       save();
@@ -1205,16 +1615,18 @@ class ThemeSettings extends ChangeNotifier {
         .doc('font_size')
         .snapshots();
     _fontSettingsSubscription?.cancel();
-    _fontSettingsSubscription = _fontSettingsStream!.listen((doc) {
-      if (doc.exists && doc.data() != null) {
-        final data = doc.data() as Map<String, dynamic>;
-        if (data['fontSize'] != null && data['fontFamily'] != null) {
-          fontSizeScale = (data['fontSize'] as num).toDouble();
-          fontFamily = data['fontFamily'] as String;
-          notifyListeners();
+    if (_fontSettingsStream != null) {
+      _fontSettingsSubscription = _fontSettingsStream!.listen((doc) {
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data() as Map<String, dynamic>;
+          if (data['fontSize'] != null && data['fontFamily'] != null) {
+            fontSizeScale = (data['fontSize'] as num).toDouble();
+            fontFamily = data['fontFamily'] as String;
+            notifyListeners();
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   void disposeFontSettingsListener() {

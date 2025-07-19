@@ -22,15 +22,13 @@ class AutoSyncService {
     print('AutoSyncService: 初期化開始');
     _isInitialized = true;
 
-    // 初回同期を実行
-    await _performSync();
-
-    // 定期的な同期を開始（5分間隔）
+    // 初回同期はスキップ（グループ作成直後は重すぎるため）
+    // 代わりに定期的な同期のみ開始
     _syncTimer = Timer.periodic(Duration(minutes: 5), (timer) async {
       await _performSync();
     });
 
-    print('AutoSyncService: 初期化完了');
+    print('AutoSyncService: 初期化完了（初回同期はスキップ）');
   }
 
   static Future<void> _performSync() async {
@@ -43,46 +41,14 @@ class AutoSyncService {
     try {
       print('AutoSyncService: 同期開始');
 
-      // ユーザーがログインしているかチェック
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        print('AutoSyncService: ユーザーがログインしていません');
-        return;
-      }
-      print('AutoSyncService: ユーザーID: ${user.uid}');
-
-      // グループに参加しているかチェック
-      final groups = await GroupFirestoreService.getUserGroups();
-      if (groups.isEmpty) {
-        print('AutoSyncService: グループに参加していません');
-        return;
-      }
-      print('AutoSyncService: 参加グループ数: ${groups.length}');
-
-      // 現在のグループを取得
-      final currentGroup = groups.first; // 最初のグループを使用（複数グループ対応は後で実装）
-      print(
-        'AutoSyncService: 現在のグループ: ${currentGroup.name} (${currentGroup.id})',
+      // タイムアウト付きで同期を実行
+      await _performSyncInternal().timeout(
+        Duration(seconds: 30),
+        onTimeout: () {
+          print('AutoSyncService: 同期がタイムアウトしました');
+          throw TimeoutException('同期がタイムアウトしました');
+        },
       );
-
-      // グループ設定を取得して同期権限をチェック
-      final groupSettings = await GroupFirestoreService.getGroupSettings(
-        currentGroup.id,
-      );
-      if (groupSettings != null && !groupSettings.allowMemberDataSync) {
-        final memberRole = currentGroup.getMemberRole(user.uid);
-        if (memberRole != GroupRole.leader && memberRole != GroupRole.admin) {
-          print('AutoSyncService: データ同期の権限がありません - メンバーは同期できません');
-          return;
-        }
-      }
-      print('AutoSyncService: 同期権限チェック完了 - 同期可能');
-
-      // データ同期を実行
-      print('AutoSyncService: グループへのデータ同期を開始');
-      await GroupDataSyncService.syncAllDataToGroup(currentGroup.id);
-      print('AutoSyncService: ローカルへのデータ同期を開始');
-      await GroupDataSyncService.applyGroupDataToLocal(currentGroup.id);
 
       _lastSyncTime = DateTime.now();
       print('AutoSyncService: 自動同期が完了しました');
@@ -91,6 +57,49 @@ class AutoSyncService {
     } finally {
       _isSyncing = false;
     }
+  }
+
+  static Future<void> _performSyncInternal() async {
+    // ユーザーがログインしているかチェック
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('AutoSyncService: ユーザーがログインしていません');
+      return;
+    }
+    print('AutoSyncService: ユーザーID: ${user.uid}');
+
+    // グループに参加しているかチェック
+    final groups = await GroupFirestoreService.getUserGroups();
+    if (groups.isEmpty) {
+      print('AutoSyncService: グループに参加していません');
+      return;
+    }
+    print('AutoSyncService: 参加グループ数: ${groups.length}');
+
+    // 現在のグループを取得
+    final currentGroup = groups.first; // 最初のグループを使用（複数グループ対応は後で実装）
+    print(
+      'AutoSyncService: 現在のグループ: ${currentGroup.name} (${currentGroup.id})',
+    );
+
+    // グループ設定を取得して同期権限をチェック
+    final groupSettings = await GroupFirestoreService.getGroupSettings(
+      currentGroup.id,
+    );
+    if (groupSettings != null && !groupSettings.allowMemberDataSync) {
+      final memberRole = currentGroup.getMemberRole(user.uid);
+      if (memberRole != GroupRole.leader && memberRole != GroupRole.admin) {
+        print('AutoSyncService: データ同期の権限がありません - メンバーは同期できません');
+        return;
+      }
+    }
+    print('AutoSyncService: 同期権限チェック完了 - 同期可能');
+
+    // データ同期を実行
+    print('AutoSyncService: グループへのデータ同期を開始');
+    await GroupDataSyncService.syncAllDataToGroup(currentGroup.id);
+    print('AutoSyncService: ローカルへのデータ同期を開始');
+    await GroupDataSyncService.applyGroupDataToLocal(currentGroup.id);
   }
 
   /// 特定のデータタイプの変更時に自動同期を実行
@@ -157,9 +166,9 @@ class AutoSyncService {
         // ゲーミフィケーション専用同期
         await GamificationFirestoreService.syncGamificationData();
       } else {
-      // 全データ同期を実行
-      await GroupDataSyncService.syncAllDataToGroup(currentGroup.id);
-      await GroupDataSyncService.applyGroupDataToLocal(currentGroup.id);
+        // 全データ同期を実行
+        await GroupDataSyncService.syncAllDataToGroup(currentGroup.id);
+        await GroupDataSyncService.applyGroupDataToLocal(currentGroup.id);
       }
 
       _lastSyncTime = DateTime.now();

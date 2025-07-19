@@ -1,12 +1,16 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'group_models.dart';
+import 'group_gamification_models.dart';
 import '../services/group_firestore_service.dart';
 import '../services/group_data_sync_service.dart';
 import '../services/auto_sync_service.dart';
 import '../services/group_statistics_service.dart';
+import '../services/group_gamification_service.dart';
+import '../widgets/group_celebration_helper.dart';
 
 class GroupProvider extends ChangeNotifier {
   List<Group> _groups = [];
@@ -19,6 +23,11 @@ class GroupProvider extends ChangeNotifier {
   final GroupStatisticsService _statisticsService = GroupStatisticsService();
   final Map<String, StreamSubscription<DocumentSnapshot>> _groupWatchers = {};
 
+  // ゲーミフィケーション関連
+  final Map<String, GroupGamificationProfile> _groupGamificationProfiles = {};
+  final Map<String, StreamSubscription<GroupGamificationProfile>>
+  _gamificationWatchers = {};
+
   // Getters
   List<Group> get groups => _groups;
   List<GroupInvitation> get invitations => _invitations;
@@ -28,17 +37,42 @@ class GroupProvider extends ChangeNotifier {
   String? get error => _error;
   Map<String, Map<String, dynamic>> get groupStatistics => _groupStatistics;
 
+  // ゲーミフィケーション関連のgetter
+  Map<String, GroupGamificationProfile> get groupGamificationProfiles =>
+      _groupGamificationProfiles;
+
   // 単一グループ対応のための追加getter
   bool get hasGroup => _currentGroup != null;
   Group? get singleGroup => _currentGroup;
 
   /// ユーザーが参加しているグループを取得（単一グループ対応）
   Future<void> loadUserGroups() async {
+    // 既に読み込み中またはデータがある場合はスキップ
+    if (_loading) {
+      print('GroupProvider: 既に読み込み中です');
+      return;
+    }
+
+    if (_groups.isNotEmpty) {
+      print('GroupProvider: 既にグループデータが存在します');
+      return;
+    }
+
     _setLoading(true);
     _clearError();
 
     try {
-      _groups = await GroupFirestoreService.getUserGroups();
+      print('GroupProvider: グループ読み込み開始');
+
+      // タイムアウト付きでグループ読み込みを実行
+      _groups = await GroupFirestoreService.getUserGroups().timeout(
+        Duration(seconds: 20),
+        onTimeout: () {
+          print('GroupProvider: グループ読み込みがタイムアウトしました');
+          throw TimeoutException('グループ読み込みがタイムアウトしました');
+        },
+      );
+
       print('GroupProvider: グループ読み込み完了 - グループ数: ${_groups.length}');
 
       // 単一グループ制限: 最初のグループのみをcurrentGroupに設定
@@ -46,17 +80,19 @@ class GroupProvider extends ChangeNotifier {
         _currentGroup = _groups.first;
         print('GroupProvider: currentGroupを設定: ${_currentGroup!.name}');
 
-        // AutoSyncServiceの初期化
-        print('GroupProvider: AutoSyncServiceの初期化を開始');
-        await _initializeAutoSyncService();
+        // グループに参加している場合はデータ同期の準備完了
+        print('GroupProvider: データ同期の準備完了');
       } else {
         _currentGroup = null;
       }
 
       _safeNotifyListeners();
     } catch (e) {
+      print('GroupProvider: グループ読み込みエラー: $e');
       if (e.toString().contains('未ログイン')) {
         _setError('ログインすることで、グループ機能を使うことができます');
+      } else if (e.toString().contains('タイムアウト')) {
+        _setError('ネットワーク接続が不安定です。しばらく待ってから再試行してください。');
       } else {
         _setError('グループの取得に失敗しました: $e');
       }
@@ -65,21 +101,40 @@ class GroupProvider extends ChangeNotifier {
     }
   }
 
-  /// AutoSyncServiceを初期化
-  Future<void> _initializeAutoSyncService() async {
+  /// グループ作成後の初期化処理
+  void _initializeGroupAfterCreation(String groupId) {
+    // グループ作成直後は初期化処理をスキップ（クラッシュ防止のため）
+    print('GroupProvider: グループ作成後の初期化をスキップ（クラッシュ防止）: $groupId');
+  }
+
+  /// 基本的な統計データの初期化
+  Future<void> _initializeBasicStats(String groupId) async {
     try {
-      // AutoSyncServiceをインポートして初期化
-      await _initializeAutoSync();
-      print('GroupProvider: AutoSyncServiceの初期化完了');
+      print('GroupProvider: 基本統計データの初期化開始: $groupId');
+
+      // 初期プロフィールを作成（統計計算は後で実行）
+      final initialProfile = GroupGamificationProfile.initial(groupId);
+      _groupGamificationProfiles[groupId] = initialProfile;
+
+      print('GroupProvider: 基本統計データの初期化完了: $groupId');
     } catch (e) {
-      print('GroupProvider: AutoSyncServiceの初期化に失敗: $e');
+      print('GroupProvider: 基本統計データの初期化エラー: $e');
+      // エラーが発生しても初期プロフィールは作成する
+      try {
+        final fallbackProfile = GroupGamificationProfile.initial(groupId);
+        _groupGamificationProfiles[groupId] = fallbackProfile;
+        print('GroupProvider: フォールバックプロフィールを作成: $groupId');
+      } catch (fallbackError) {
+        print('GroupProvider: フォールバックプロフィールの作成にも失敗: $fallbackError');
+      }
     }
   }
 
-  /// AutoSyncServiceの初期化
-  Future<void> _initializeAutoSync() async {
-    // AutoSyncServiceを初期化
-    await AutoSyncService.initialize();
+  /// グループ作成成功後の処理
+  void _postGroupCreationSuccess(String groupId) {
+    print('GroupProvider: グループ作成成功後の処理開始: $groupId');
+    // グループ作成直後は処理をスキップ（クラッシュ防止のため）
+    print('GroupProvider: グループ作成成功後の処理をスキップ（クラッシュ防止）: $groupId');
   }
 
   /// 招待一覧を取得
@@ -116,16 +171,30 @@ class GroupProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      print('GroupProvider: グループ作成開始');
+
       final newGroup = await GroupFirestoreService.createGroup(
         name: name,
         description: description,
       );
+
+      print('GroupProvider: Firestoreでのグループ作成完了: ${newGroup.id}');
+
       _groups.clear(); // 他のグループがあれば削除
       _groups.add(newGroup);
       _currentGroup = newGroup; // 新しいグループをcurrentGroupに設定
+
+      print('GroupProvider: ローカル状態の更新完了');
+
       _safeNotifyListeners();
+      print('GroupProvider: グループ作成完了');
+
+      // グループ作成成功後の処理を非同期で実行（軽量化）
+      _postGroupCreationSuccess(newGroup.id);
+
       return true;
     } catch (e) {
+      print('GroupProvider: グループ作成エラー: $e');
       if (e.toString().contains('未ログイン')) {
         _setError('ログインすることで、グループ機能を使うことができます');
       } else {
@@ -149,9 +218,14 @@ class GroupProvider extends ChangeNotifier {
       final index = _groups.indexWhere((g) => g.id == group.id);
       if (index != -1) {
         _groups[index] = group;
-        _safeNotifyListeners();
       }
 
+      // 現在のグループが更新された場合、currentGroupも更新
+      if (_currentGroup?.id == group.id) {
+        _currentGroup = group;
+      }
+
+      _safeNotifyListeners();
       return true;
     } catch (e) {
       if (e.toString().contains('未ログイン')) {
@@ -553,10 +627,18 @@ class GroupProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    // 既存の監視を停止
     for (final sub in _groupWatchers.values) {
       sub.cancel();
     }
     _groupWatchers.clear();
+
+    // ゲーミフィケーション監視を停止
+    for (final watcher in _gamificationWatchers.values) {
+      watcher.cancel();
+    }
+    _gamificationWatchers.clear();
+
     super.dispose();
   }
 
@@ -785,6 +867,266 @@ class GroupProvider extends ChangeNotifier {
   Future<void> loadAllGroupStatistics() async {
     if (_currentGroup != null) {
       await loadGroupStatistics(_currentGroup!.id);
+    }
+  }
+
+  /// グループのゲーミフィケーションプロフィールを取得
+  Future<void> loadGroupGamificationProfile(String groupId) async {
+    // 既に読み込まれている場合はスキップ
+    if (_groupGamificationProfiles.containsKey(groupId)) {
+      return;
+    }
+
+    try {
+      print('GroupProvider: ゲーミフィケーションプロフィールを読み込み中: $groupId');
+      final profile = await GroupGamificationService.getGroupProfile(groupId);
+      _groupGamificationProfiles[groupId] = profile;
+      _safeNotifyListeners();
+      print('GroupProvider: ゲーミフィケーションプロフィール読み込み完了: $groupId');
+    } catch (e) {
+      print('GroupProvider: ゲーミフィケーションプロフィールの取得に失敗: $e');
+      // エラーの場合は初期プロフィールを設定
+      _groupGamificationProfiles[groupId] = GroupGamificationProfile.initial(
+        groupId,
+      );
+      _safeNotifyListeners();
+    }
+  }
+
+  /// 特定のグループのゲーミフィケーションプロフィールを取得
+  GroupGamificationProfile? getGroupGamificationProfile(String groupId) {
+    return _groupGamificationProfiles[groupId];
+  }
+
+  /// すべてのグループのゲーミフィケーションプロフィールを取得
+  Future<void> loadAllGroupGamificationProfiles() async {
+    for (final group in _groups) {
+      await loadGroupGamificationProfile(group.id);
+    }
+  }
+
+  /// グループのゲーミフィケーションプロフィールを監視開始
+  void watchGroupGamificationProfile(String groupId) {
+    try {
+      if (_gamificationWatchers.containsKey(groupId)) {
+        return; // 既に監視中
+      }
+
+      print('GroupProvider: ゲーミフィケーションプロフィール監視開始: $groupId');
+
+      final subscription = GroupGamificationService.watchGroupProfile(groupId)
+          .listen(
+            (profile) {
+              try {
+                _groupGamificationProfiles[groupId] = profile;
+                _safeNotifyListeners();
+              } catch (e) {
+                print('GroupProvider: プロフィール更新エラー: $e');
+              }
+            },
+            onError: (e) {
+              print('GroupProvider: ゲーミフィケーションプロフィール監視エラー: $e');
+              // エラーが発生した場合は監視を停止
+              _gamificationWatchers.remove(groupId);
+            },
+          );
+
+      _gamificationWatchers[groupId] = subscription;
+      print('GroupProvider: ゲーミフィケーションプロフィール監視開始完了: $groupId');
+    } catch (e) {
+      print('GroupProvider: ゲーミフィケーションプロフィール監視開始エラー: $e');
+    }
+  }
+
+  /// グループのゲーミフィケーションプロフィールの監視を停止
+  void unwatchGroupGamificationProfile(String groupId) {
+    final subscription = _gamificationWatchers[groupId];
+    if (subscription != null) {
+      subscription.cancel();
+      _gamificationWatchers.remove(groupId);
+    }
+  }
+
+  /// グループの出勤記録を処理（新しいバッジシステム対応）
+  Future<void> processGroupAttendance(
+    String groupId, {
+    BuildContext? context,
+  }) async {
+    try {
+      final result = await GroupGamificationService.recordAttendance(groupId);
+
+      if (result.success) {
+        // プロフィールを更新
+        final profile = await GroupGamificationService.getGroupProfile(groupId);
+        _groupGamificationProfiles[groupId] = profile;
+        _safeNotifyListeners();
+
+        // 演出を表示（contextが提供されている場合）
+        if (context != null && context.mounted) {
+          await GroupCelebrationHelper.showCompleteCelebration(
+            context,
+            xpGained: result.experienceGained,
+            newLevel: result.levelUp ? result.newLevel : null,
+            newBadges: result.newBadges,
+          );
+        }
+
+        if (result.newBadges.isNotEmpty) {
+          print(
+            'グループ出勤バッジ獲得: ${result.newBadges.map((b) => b.name).join(', ')}',
+          );
+        }
+      }
+    } catch (e) {
+      print('グループ出勤処理エラー: $e');
+    }
+  }
+
+  /// グループの焙煎記録を処理（新しいバッジシステム対応）
+  Future<void> processGroupRoasting(
+    String groupId,
+    double minutes, {
+    BuildContext? context,
+  }) async {
+    try {
+      final result = await GroupGamificationService.recordRoasting(
+        groupId,
+        minutes,
+      );
+
+      if (result.success) {
+        // プロフィールを更新
+        final profile = await GroupGamificationService.getGroupProfile(groupId);
+        _groupGamificationProfiles[groupId] = profile;
+        _safeNotifyListeners();
+
+        // 演出を表示（contextが提供されている場合）
+        if (context != null && context.mounted) {
+          await GroupCelebrationHelper.showCompleteCelebration(
+            context,
+            xpGained: result.experienceGained,
+            newLevel: result.levelUp ? result.newLevel : null,
+            newBadges: result.newBadges,
+          );
+        }
+
+        if (result.newBadges.isNotEmpty) {
+          print(
+            'グループ焙煎バッジ獲得: ${result.newBadges.map((b) => b.name).join(', ')}',
+          );
+        }
+      }
+    } catch (e) {
+      print('グループ焙煎処理エラー: $e');
+    }
+  }
+
+  /// グループのドリップパック記録を処理（新しいバッジシステム対応）
+  Future<void> processGroupDripPack(
+    String groupId,
+    int count, {
+    BuildContext? context,
+  }) async {
+    try {
+      final result = await GroupGamificationService.recordDripPack(
+        groupId,
+        count,
+      );
+
+      if (result.success) {
+        // プロフィールを更新
+        final profile = await GroupGamificationService.getGroupProfile(groupId);
+        _groupGamificationProfiles[groupId] = profile;
+        _safeNotifyListeners();
+
+        // 演出を表示（contextが提供されている場合）
+        if (context != null && context.mounted) {
+          await GroupCelebrationHelper.showCompleteCelebration(
+            context,
+            xpGained: result.experienceGained,
+            newLevel: result.levelUp ? result.newLevel : null,
+            newBadges: result.newBadges,
+          );
+        }
+
+        if (result.newBadges.isNotEmpty) {
+          print(
+            'グループドリップバッジ獲得: ${result.newBadges.map((b) => b.name).join(', ')}',
+          );
+        }
+      }
+    } catch (e) {
+      print('グループドリップ処理エラー: $e');
+    }
+  }
+
+  /// グループのテイスティング記録を処理（新しいバッジシステム対応）
+  Future<void> processGroupTasting(
+    String groupId, {
+    BuildContext? context,
+  }) async {
+    try {
+      final result = await GroupGamificationService.recordTasting(groupId);
+
+      if (result.success) {
+        // プロフィールを更新
+        final profile = await GroupGamificationService.getGroupProfile(groupId);
+        _groupGamificationProfiles[groupId] = profile;
+        _safeNotifyListeners();
+
+        // 演出を表示（contextが提供されている場合）
+        if (context != null && context.mounted) {
+          await GroupCelebrationHelper.showCompleteCelebration(
+            context,
+            xpGained: result.experienceGained,
+            newLevel: result.levelUp ? result.newLevel : null,
+            newBadges: result.newBadges,
+          );
+        }
+
+        if (result.newBadges.isNotEmpty) {
+          print(
+            'グループテイスティングバッジ獲得: ${result.newBadges.map((b) => b.name).join(', ')}',
+          );
+        }
+      }
+    } catch (e) {
+      print('グループテイスティング処理エラー: $e');
+    }
+  }
+
+  /// グループの作業進捗記録を処理（新しいバッジシステム対応）
+  Future<void> processGroupWorkProgress(
+    String groupId, {
+    BuildContext? context,
+  }) async {
+    try {
+      final result = await GroupGamificationService.recordWorkProgress(groupId);
+
+      if (result.success) {
+        // プロフィールを更新
+        final profile = await GroupGamificationService.getGroupProfile(groupId);
+        _groupGamificationProfiles[groupId] = profile;
+        _safeNotifyListeners();
+
+        // 演出を表示（contextが提供されている場合）
+        if (context != null && context.mounted) {
+          await GroupCelebrationHelper.showCompleteCelebration(
+            context,
+            xpGained: result.experienceGained,
+            newLevel: result.levelUp ? result.newLevel : null,
+            newBadges: result.newBadges,
+          );
+        }
+
+        if (result.newBadges.isNotEmpty) {
+          print(
+            'グループ作業進捗バッジ獲得: ${result.newBadges.map((b) => b.name).join(', ')}',
+          );
+        }
+      }
+    } catch (e) {
+      print('グループ作業進捗処理エラー: $e');
     }
   }
 }

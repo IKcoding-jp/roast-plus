@@ -661,19 +661,30 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     );
   }
 
-  /// 焙煎完了時に経験値を記録
+  /// グループレベルシステムで焙煎完了を処理
   Future<void> _recordRoastingExperience() async {
     try {
-      final gamificationProvider = context.read<GamificationProvider>();
       final roastTimeMinutes = _totalSeconds / 60.0;
-      final result = await gamificationProvider.recordRoasting(
-        roastTimeMinutes,
-      );
-      if (mounted) {
-        gamificationProvider.showActivityResult(context, result);
+      await _processRoastingForGroup(roastTimeMinutes);
+    } catch (e) {
+      print('焙煎記録処理エラー: $e');
+    }
+  }
+
+  /// グループレベルシステムで焙煎記録を処理
+  Future<void> _processRoastingForGroup(double roastTimeMinutes) async {
+    try {
+      // グループプロバイダーを取得
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+
+        // グループのゲーミフィケーションシステムに通知
+        await groupProvider.processGroupRoasting(groupId, roastTimeMinutes, context: context);
       }
     } catch (e) {
-      print('焙煎経験値記録エラー: $e');
+      print('焙煎記録処理エラー: $e');
     }
   }
 

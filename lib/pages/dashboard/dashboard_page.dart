@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/gamification_provider.dart';
-import '../../services/experience_manager.dart';
+
 import '../../services/dashboard_stats_service.dart';
 import '../../models/dashboard_stats_provider.dart';
 import '../../pages/roast/roast_record_page.dart';
@@ -173,15 +173,7 @@ class _DashboardPageState extends State<DashboardPage>
       // バックグラウンドで必要なデータを初期化
       final futures = <Future>[];
 
-      // ExperienceManagerを軽量初期化
-      futures.add(() async {
-        try {
-          final experienceManager = ExperienceManager.instance;
-          await experienceManager.initialize();
-        } catch (e) {
-          print('ExperienceManager初期化エラー: $e');
-        }
-      }());
+      // グループゲーミフィケーションシステムの初期化はGroupProviderで管理
 
       // 統計データProviderを軽量初期化
       futures.add(() async {
@@ -304,143 +296,95 @@ class _DashboardPageState extends State<DashboardPage>
       builder: (context, child) {
         return SlideTransition(
           position: _slideAnimation,
-          child: Consumer<GamificationProvider>(
-            builder: (context, gamificationProvider, child) {
-              final profile = gamificationProvider.userProfile;
-              final level = profile.level;
-              final currentXP = profile.experiencePoints;
-              final progress = profile.levelProgress;
-
-              return Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+          child: Card(
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            color: themeSettings.backgroundColor2,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    themeSettings.iconColor.withOpacity(0.1),
+                    themeSettings.buttonColor.withOpacity(0.1),
+                  ],
                 ),
-                color: themeSettings.backgroundColor2,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        themeSettings.iconColor.withOpacity(0.1),
-                        themeSettings.buttonColor.withOpacity(0.1),
-                      ],
-                    ),
-                  ),
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.emoji_events,
-                            color: themeSettings.iconColor,
-                            size: 28,
-                          ),
-                          SizedBox(width: 12),
-                          Text(
-                            'あなたの成長',
-                            style: TextStyle(
-                              fontSize: 20 * themeSettings.fontSizeScale,
-                              fontWeight: FontWeight.bold,
-                              color: themeSettings.fontColor1,
-                              fontFamily: themeSettings.fontFamily,
-                            ),
-                          ),
-                        ],
+                      Icon(
+                        Icons.emoji_events,
+                        color: themeSettings.iconColor,
+                        size: 28,
                       ),
-                      SizedBox(height: 16),
-
-                      // レベル表示
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'レベル $level',
-                                style: TextStyle(
-                                  fontSize: 24 * themeSettings.fontSizeScale,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.amber.shade700,
-                                  fontFamily: themeSettings.fontFamily,
-                                ),
-                              ),
-                              Text(
-                                '総XP: $currentXP',
-                                style: TextStyle(
-                                  fontSize: 14 * themeSettings.fontSizeScale,
-                                  color: themeSettings.fontColor1.withOpacity(
-                                    0.7,
-                                  ),
-                                  fontFamily: themeSettings.fontFamily,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: themeSettings.buttonColor.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.trending_up,
-                              color: themeSettings.buttonColor,
-                              size: 30,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      SizedBox(height: 16),
-
-                      // XPプログレスバー
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '次のレベルまで',
-                                style: TextStyle(
-                                  fontSize: 14 * themeSettings.fontSizeScale,
-                                  color: themeSettings.fontColor1,
-                                  fontFamily: themeSettings.fontFamily,
-                                ),
-                              ),
-                              Text(
-                                '${profile.experienceToNextLevel} XP',
-                                style: TextStyle(
-                                  fontSize: 14 * themeSettings.fontSizeScale,
-                                  color: themeSettings.fontColor1,
-                                  fontFamily: themeSettings.fontFamily,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          LinearProgressIndicator(
-                            value: progress,
-                            backgroundColor: themeSettings.inputBackgroundColor,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              themeSettings.iconColor,
-                            ),
-                            minHeight: 8,
-                          ),
-                        ],
+                      SizedBox(width: 12),
+                      Text(
+                        'バッジ・実績',
+                        style: TextStyle(
+                          fontSize: 20 * themeSettings.fontSizeScale,
+                          fontWeight: FontWeight.bold,
+                          color: themeSettings.fontColor1,
+                          fontFamily: themeSettings.fontFamily,
+                        ),
                       ),
                     ],
                   ),
-                ),
-              );
-            },
+                  SizedBox(height: 16),
+                  Text(
+                    'グループの活動実績に基づいてバッジを獲得できます',
+                    style: TextStyle(
+                      fontSize: 14 * themeSettings.fontSizeScale,
+                      color: themeSettings.fontColor2,
+                      fontFamily: themeSettings.fontFamily,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BadgeListPage(),
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.emoji_events, color: Colors.white),
+                      label: Text(
+                        'バッジ一覧を見る',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14 * themeSettings.fontSizeScale,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeSettings.buttonColor,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -575,139 +519,6 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildRecentBadges(ThemeSettings themeSettings) {
-    return AnimatedBuilder(
-      animation: _fadeAnimation,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _fadeAnimation.value,
-          child: Consumer<GamificationProvider>(
-            builder: (context, gamificationProvider, child) {
-              final earnedBadges = gamificationProvider.userProfile.badges;
-              final recentBadges = earnedBadges.take(5).toList();
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '最近の称号',
-                        style: TextStyle(
-                          fontSize: 18 * themeSettings.fontSizeScale,
-                          fontWeight: FontWeight.bold,
-                          color: themeSettings.fontColor1,
-                          fontFamily: themeSettings.fontFamily,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => BadgeListPage()),
-                          );
-                        },
-                        child: Text(
-                          'すべて見る',
-                          style: TextStyle(
-                            color: Colors.blue.shade600,
-                            fontFamily: themeSettings.fontFamily,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-
-                  if (recentBadges.isEmpty)
-                    Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Container(
-                        padding: EdgeInsets.all(20),
-                        child: Center(
-                          child: Text(
-                            'まだ称号がありません\n活動を続けて称号を獲得しましょう！',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: themeSettings.fontColor1.withOpacity(0.6),
-                              fontFamily: themeSettings.fontFamily,
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      height: 100,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: recentBadges.length,
-                        itemBuilder: (context, index) {
-                          final badge = recentBadges[index];
-                          return Container(
-                            width: 80,
-                            margin: EdgeInsets.only(right: 12),
-                            child: Card(
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.amber.shade100,
-                                      Colors.amber.shade50,
-                                    ],
-                                  ),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.emoji_events,
-                                      color: Colors.amber.shade600,
-                                      size: 24,
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      badge.name,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize:
-                                            10 * themeSettings.fontSizeScale,
-                                        fontWeight: FontWeight.bold,
-                                        color: themeSettings.fontColor1,
-                                        fontFamily: themeSettings.fontFamily,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
   // 新しい機能セクション構造
   Widget _buildFeatureSections(ThemeSettings themeSettings) {
     return AnimatedBuilder(
@@ -821,16 +632,7 @@ class _DashboardPageState extends State<DashboardPage>
                 [
                   _buildFeatureCard(
                     themeSettings,
-                    'グループ',
-                    Icons.group_work,
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => GroupCardPage()),
-                    ),
-                  ),
-                  _buildFeatureCard(
-                    themeSettings,
-                    'バッジ',
+                    'バッジ・実績',
                     Icons.military_tech,
                     () => Navigator.push(
                       context,

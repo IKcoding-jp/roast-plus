@@ -30,21 +30,42 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
   //
-  // メモリ使用量の最適化
+  // システムUIの設定
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       systemNavigationBarColor: Colors.transparent,
+      // キーボードイベントの処理を改善
+      systemNavigationBarDividerColor: Colors.transparent,
     ),
   );
 
-  // オーバーフローエラーを非表示にする
+  // キーボードイベントの処理を改善
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge,
+    overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+  );
+
+  // エラーハンドリングを設定
   FlutterError.onError = (FlutterErrorDetails details) {
+    // キーボードイベントのエラーを無視
+    if (details.exception.toString().contains('KeyUpEvent') ||
+        details.exception.toString().contains('physical key is not pressed') ||
+        details.exception.toString().contains('_pressedKeys.containsKey') ||
+        details.exception.toString().contains('HardwareKeyboard') ||
+        details.exception.toString().contains('KeyUpEvent#') ||
+        details.exception.toString().contains('PhysicalKeyboardKey#')) {
+      print('キーボードイベントエラーを無視: ${details.exception}');
+      return;
+    }
+
+    // オーバーフローエラーを非表示にする
     if (details.exception is FlutterError &&
         details.exception.toString().contains('overflowed')) {
       // オーバーフローエラーは無視
       return;
     }
+
     // その他のエラーは通常通り処理
     FlutterError.presentError(details);
   };
@@ -52,6 +73,9 @@ void main() async {
   await Firebase.initializeApp();
   await initializeDateFormatting('ja_JP', null);
   final themeSettings = await ThemeSettings.load();
+
+  // 初期インストール時にデフォルトテーマを適用
+  await themeSettings.initializeDefaultTheme();
 
   // 焙煎タイマー通知サービスを初期化
   await RoastTimerNotificationService.initialize();
@@ -130,6 +154,17 @@ class LifecycleEventHandler extends WidgetsBindingObserver {
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     switch (state) {
+      case AppLifecycleState.resumed:
+        // アプリが再開された時にキーボード状態をリセット
+        try {
+          await SystemChrome.setEnabledSystemUIMode(
+            SystemUiMode.edgeToEdge,
+            overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+          );
+        } catch (e) {
+          print('システムUI設定エラー: $e');
+        }
+        break;
       case AppLifecycleState.detached:
         if (detachedCallBack != null) {
           await detachedCallBack!();

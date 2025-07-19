@@ -371,7 +371,7 @@ class AppSettingsPage extends StatelessWidget {
               child: ListTile(
                 leading: Icon(
                   Icons.update,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
+                  color: Provider.of<ThemeSettings>(context).settingsColor,
                 ),
                 title: Text(
                   '今後アップデートで追加予定の機能',

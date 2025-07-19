@@ -16,8 +16,6 @@ import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../models/gamification_provider.dart';
-import '../../services/experience_manager.dart';
-import '../../widgets/lottie_animation_widget.dart';
 import '../../models/dashboard_stats_provider.dart';
 import '../../models/attendance_models.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -235,59 +233,40 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   /// 出勤記録からXPを加算
   Future<void> _addAttendanceExperience() async {
     try {
-      // ExperienceManagerでXPを加算
-      final result = await ExperienceManager.instance.addAttendanceExperience(
-        attendanceDate: DateTime.now(),
-        isCheckIn: true,
-      );
+      // グループレベルシステムで出勤記録を処理
+      await _processAttendanceForGroup();
 
-      if (mounted && result.success) {
-        // GamificationProviderに通知
-        final gamificationProvider = context.read<GamificationProvider>();
-        gamificationProvider.refreshFromExperienceManager();
-
-        // 成果表示
-        _showAttendanceExperienceResult(result);
-      }
+      // 成果表示（グループレベルシステム用に簡略化）
+      _showGroupAttendanceResult();
     } catch (e) {
-      print('出勤XP加算エラー: $e');
+      print('出勤記録処理エラー: $e');
     }
   }
 
-  /// 出勤XP獲得結果を表示（Lottieアニメーション付き）
-  void _showAttendanceExperienceResult(ExperienceGainResult result) {
+  /// グループレベルシステムで出勤記録を処理
+  Future<void> _processAttendanceForGroup() async {
+    try {
+      // グループプロバイダーを取得
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+
+        // グループのゲーミフィケーションシステムに通知
+        await groupProvider.processGroupAttendance(groupId, context: context);
+      }
+    } catch (e) {
+      print('グループレベルシステム処理エラー: $e');
+    }
+  }
+
+  /// グループレベルシステム用の出勤結果表示
+  void _showGroupAttendanceResult() {
     if (!mounted) return;
 
-    // レベルアップした場合はレベルアップアニメーションを優先
-    if (result.leveledUp) {
-      final badgeNames = result.newBadges.map((b) => b.name).toList();
-
-      AnimationHelper.showLevelUpAnimation(
-        context,
-        oldLevel: result.oldProfile.level,
-        newLevel: result.newLevel,
-        newBadges: badgeNames,
-        onComplete: () {
-          // アニメーション完了後の処理
-          if (mounted) {
-            // 状態更新は既にExperienceManager内で完了している
-          }
-        },
-      );
-    } else if (result.xpGained > 0) {
-      // 経験値獲得アニメーションを表示
-      AnimationHelper.showExperienceGainAnimation(
-        context,
-        xpGained: result.xpGained,
-        description: '出勤記録',
-        onComplete: () {
-          // アニメーション完了後の処理
-          if (mounted) {
-            // 必要に応じて追加の処理
-          }
-        },
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('出勤記録を保存しました'), backgroundColor: Colors.green),
+    );
   }
 
   /// グループ監視の初期化

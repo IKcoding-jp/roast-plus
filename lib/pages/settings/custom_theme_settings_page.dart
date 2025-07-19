@@ -182,7 +182,7 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
             ),
             const SizedBox(height: 16),
             _ColorPickerTile(
-              label: '画面下部の選択済みの文字色',
+              label: '画面下部の選択済みの色',
               color:
                   themeSettings.customBottomNavigationSelectedColor ??
                   themeSettings.bottomNavigationSelectedColor,
@@ -192,6 +192,19 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
                 });
               },
             ),
+            const SizedBox(height: 16),
+            _ColorPickerTile(
+              label: '画面下部の未選択の色',
+              color:
+                  themeSettings.customBottomNavigationUnselectedColor ??
+                  themeSettings.bottomNavigationUnselectedColor,
+              onColorChanged: (color) {
+                setState(() {
+                  themeSettings.customBottomNavigationUnselectedColor = color;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
             _ColorPickerTile(
               label: 'ボタンの文字色',
               color: themeSettings.fontColor2,
@@ -252,7 +265,11 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
             _ColorPickerTile(
               label: 'アイコンの色',
               color: themeSettings.iconColor,
-              onColorChanged: themeSettings.updateIconColor,
+              onColorChanged: (color) {
+                themeSettings.updateIconColor(color);
+                // 設定アイコンの色も同時に更新
+                themeSettings.updateSettingsColor(color);
+              },
             ),
             const SizedBox(height: 16),
             _ColorPickerTile(
@@ -458,6 +475,18 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
                   'dialogBackgroundColor': themeSettings.dialogBackgroundColor,
                   'dialogTextColor': themeSettings.dialogTextColor,
                   'inputTextColor': themeSettings.inputTextColor,
+                  'cardBackgroundColor': themeSettings.cardBackgroundColor,
+                  'borderColor': themeSettings.borderColor,
+                  'bottomNavigationSelectedColor':
+                      themeSettings.bottomNavigationSelectedColor,
+                  'settingsColor': themeSettings.settingsColor,
+                  if (themeSettings.customBottomNavigationSelectedColor != null)
+                    'customBottomNavigationSelectedColor':
+                        themeSettings.customBottomNavigationSelectedColor!,
+                  if (themeSettings.customBottomNavigationUnselectedColor !=
+                      null)
+                    'customBottomNavigationUnselectedColor':
+                        themeSettings.customBottomNavigationUnselectedColor!,
                 };
                 await ThemeSettings.saveCustomTheme(themeName, themeData);
                 Navigator.pop(context, true);

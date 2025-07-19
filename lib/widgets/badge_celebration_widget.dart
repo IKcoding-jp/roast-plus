@@ -1,435 +1,209 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
-import '../models/gamification_models.dart';
+import '../models/group_gamification_models.dart';
 import '../models/theme_settings.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
-/// バッジ獲得時のお祝いウィジェット
 class BadgeCelebrationWidget extends StatefulWidget {
-  final List<UserBadge> newBadges;
-  final ThemeSettings themeSettings;
-  final VoidCallback onComplete;
+  final List<GroupBadge> badges;
+  final VoidCallback? onTap;
 
-  const BadgeCelebrationWidget({
-    super.key,
-    required this.newBadges,
-    required this.themeSettings,
-    required this.onComplete,
-  });
+  const BadgeCelebrationWidget({super.key, required this.badges, this.onTap});
 
   @override
   State<BadgeCelebrationWidget> createState() => _BadgeCelebrationWidgetState();
 }
 
-class _BadgeCelebrationWidgetState extends State<BadgeCelebrationWidget>
-    with TickerProviderStateMixin {
-  late AnimationController _mainController;
-  late AnimationController _confettiController;
-  late AnimationController _badgeController;
-
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _rotationAnimation;
-
-  List<ConfettiParticle> _confettiParticles = [];
-  final int _particleCount = 50;
+class _BadgeCelebrationWidgetState extends State<BadgeCelebrationWidget> {
+  late PageController _pageController;
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
-
-    _mainController = AnimationController(
-      duration: Duration(milliseconds: 3000),
-      vsync: this,
-    );
-
-    _confettiController = AnimationController(
-      duration: Duration(milliseconds: 2000),
-      vsync: this,
-    );
-
-    _badgeController = AnimationController(
-      duration: Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _badgeController, curve: Curves.elasticOut),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: Interval(0.0, 0.3, curve: Curves.easeIn),
-      ),
-    );
-
-    _rotationAnimation = Tween<double>(begin: 0.0, end: 2.0).animate(
-      CurvedAnimation(parent: _badgeController, curve: Curves.easeInOut),
-    );
-
-    _initializeConfetti();
-    _startAnimations();
-  }
-
-  void _initializeConfetti() {
-    final random = math.Random();
-    _confettiParticles = List.generate(_particleCount, (index) {
-      return ConfettiParticle(
-        x: random.nextDouble(),
-        y: -0.1,
-        velocityX: (random.nextDouble() - 0.5) * 2,
-        velocityY: random.nextDouble() * 2 + 1,
-        color: _getRandomColor(),
-        size: random.nextDouble() * 8 + 4,
-        rotation: random.nextDouble() * 2 * math.pi,
-        rotationSpeed: (random.nextDouble() - 0.5) * 0.2,
-      );
-    });
-  }
-
-  Color _getRandomColor() {
-    final colors = [
-      Colors.amber,
-      Colors.orange,
-      Colors.red,
-      Colors.pink,
-      Colors.purple,
-      Colors.blue,
-      Colors.green,
-      Colors.yellow,
-    ];
-    return colors[math.Random().nextInt(colors.length)];
-  }
-
-  void _startAnimations() {
-    _mainController.forward();
-
-    Future.delayed(Duration(milliseconds: 500), () {
-      _badgeController.forward();
-    });
-
-    Future.delayed(Duration(milliseconds: 800), () {
-      _confettiController.forward();
-    });
-
-    Future.delayed(Duration(milliseconds: 3500), () {
-      widget.onComplete();
-    });
+    _pageController = PageController();
   }
 
   @override
   void dispose() {
-    _mainController.dispose();
-    _confettiController.dispose();
-    _badgeController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black.withOpacity(0.8),
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Stack(
-          children: [
-            // 背景のグラデーション
-            Container(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [Colors.amber.withOpacity(0.3), Colors.transparent],
-                  center: Alignment.center,
-                  radius: 1.0,
+    final themeSettings = Provider.of<ThemeSettings>(context);
+
+    if (widget.badges.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    // 最新3個のバッジを取得
+    final recentBadges = widget.badges.take(3).toList();
+
+    return Container(
+      height: 120,
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        children: [
+          // ヘッダー
+          Row(
+            children: [
+              Icon(Icons.emoji_events, color: Colors.amber.shade600, size: 20),
+              SizedBox(width: 8),
+              Text(
+                '最新獲得バッジ',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: themeSettings.fontColor1,
+                ),
+              ),
+              Spacer(),
+              if (recentBadges.length > 1) ...[
+                Text(
+                  '${_currentPage + 1}/${recentBadges.length}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: themeSettings.fontColor2,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: 8),
+
+          // バッジスライダー
+          Expanded(
+            child: GestureDetector(
+              onTap: widget.onTap,
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemCount: recentBadges.length,
+                itemBuilder: (context, index) {
+                  final badge = recentBadges[index];
+                  return _buildBadgeCard(badge, themeSettings);
+                },
+              ),
+            ),
+          ),
+
+          // ページインジケーター
+          if (recentBadges.length > 1) ...[
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                recentBadges.length,
+                (index) => Container(
+                  width: 8,
+                  height: 8,
+                  margin: EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: index == _currentPage
+                        ? Colors.amber.shade600
+                        : Colors.grey.shade300,
+                  ),
                 ),
               ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
 
-            // コンフェッティ
-            AnimatedBuilder(
-              animation: _confettiController,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: ConfettiPainter(
-                    particles: _confettiParticles,
-                    progress: _confettiController.value,
+  Widget _buildBadgeCard(GroupBadge badge, ThemeSettings themeSettings) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: themeSettings.cardBackgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: themeSettings.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: badge.color.withOpacity(0.2),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // バッジアイコン
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: badge.color,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: badge.color.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
                   ),
-                  size: Size.infinite,
-                );
-              },
+                ],
+              ),
+              child: Icon(badge.icon, color: Colors.white, size: 24),
             ),
+            SizedBox(width: 12),
 
-            // メインコンテンツ
-            Center(
+            // バッジ情報
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // タイトル
-                  ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.amber, Colors.orange],
-                        ),
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.amber.withOpacity(0.5),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.celebration,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                          SizedBox(width: 12),
-                          Text(
-                            '新しい称号獲得！',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24 * widget.themeSettings.fontSizeScale,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: widget.themeSettings.fontFamily,
-                            ),
-                          ),
-                        ],
-                      ),
+                  Text(
+                    badge.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: themeSettings.fontColor1,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-
-                  SizedBox(height: 40),
-
-                  // バッジ表示
-                  ...widget.newBadges.map((badge) => _buildBadgeDisplay(badge)),
-
-                  SizedBox(height: 40),
-
-                  // 閉じるボタン
-                  ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: ElevatedButton.icon(
-                      onPressed: widget.onComplete,
-                      icon: Icon(Icons.emoji_events, color: Colors.white),
-                      label: Text(
-                        'おめでとうございます！',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16 * widget.themeSettings.fontSizeScale,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: widget.themeSettings.fontFamily,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.brown.shade600,
-                        foregroundColor: Colors.white,
-                        elevation: 8,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
+                  SizedBox(height: 4),
+                  Text(
+                    badge.description,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: themeSettings.fontColor2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '獲得日: ${DateFormat('MM/dd').format(badge.earnedAt)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: themeSettings.fontColor2,
                     ),
                   ),
                 ],
               ),
             ),
+
+            // 矢印アイコン
+            Icon(
+              Icons.chevron_right,
+              color: themeSettings.fontColor2,
+              size: 20,
+            ),
           ],
         ),
       ),
     );
-  }
-
-  Widget _buildBadgeDisplay(UserBadge badge) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: RotationTransition(
-          turns: _rotationAnimation,
-          child: Container(
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: badge.color.withOpacity(0.3),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // バッジアイコン
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [badge.color.withOpacity(0.8), badge.color],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: badge.color.withOpacity(0.4),
-                        blurRadius: 15,
-                        spreadRadius: 3,
-                      ),
-                    ],
-                  ),
-                  child: Icon(badge.icon, color: Colors.white, size: 40),
-                ),
-
-                SizedBox(width: 20),
-
-                // バッジ情報
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      badge.name,
-                      style: TextStyle(
-                        color: widget.themeSettings.fontColor1,
-                        fontSize: 20 * widget.themeSettings.fontSizeScale,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: widget.themeSettings.fontFamily,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      badge.description,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 14 * widget.themeSettings.fontSizeScale,
-                        fontFamily: widget.themeSettings.fontFamily,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// コンフェッティパーティクル
-class ConfettiParticle {
-  double x;
-  double y;
-  double velocityX;
-  double velocityY;
-  Color color;
-  double size;
-  double rotation;
-  double rotationSpeed;
-
-  ConfettiParticle({
-    required this.x,
-    required this.y,
-    required this.velocityX,
-    required this.velocityY,
-    required this.color,
-    required this.size,
-    required this.rotation,
-    required this.rotationSpeed,
-  });
-
-  void update(double deltaTime) {
-    x += velocityX * deltaTime;
-    y += velocityY * deltaTime;
-    rotation += rotationSpeed * deltaTime;
-    velocityY += 0.5 * deltaTime; // 重力
-  }
-}
-
-/// コンフェッティペインター
-class ConfettiPainter extends CustomPainter {
-  final List<ConfettiParticle> particles;
-  final double progress;
-
-  ConfettiPainter({required this.particles, required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final particle in particles) {
-      // プログレスに基づいてパーティクルを更新
-      final updatedParticle = ConfettiParticle(
-        x: particle.x + particle.velocityX * progress,
-        y: particle.y + particle.velocityY * progress,
-        velocityX: particle.velocityX,
-        velocityY: particle.velocityY + 0.5 * progress, // 重力効果
-        color: particle.color,
-        size: particle.size,
-        rotation: particle.rotation + particle.rotationSpeed * progress,
-        rotationSpeed: particle.rotationSpeed,
-      );
-
-      // 画面外のパーティクルはスキップ
-      if (updatedParticle.y > 1.2) continue;
-
-      final paint = Paint()
-        ..color = updatedParticle.color.withOpacity(1.0 - progress * 0.5)
-        ..style = PaintingStyle.fill;
-
-      final center = Offset(
-        updatedParticle.x * size.width,
-        updatedParticle.y * size.height,
-      );
-
-      canvas.save();
-      canvas.translate(center.dx, center.dy);
-      canvas.rotate(updatedParticle.rotation);
-
-      // 星型のパーティクル
-      _drawStar(canvas, paint, updatedParticle.size);
-
-      canvas.restore();
-    }
-  }
-
-  void _drawStar(Canvas canvas, Paint paint, double size) {
-    final path = Path();
-    final points = 5;
-    final angle = 2 * math.pi / points;
-    final radius = size / 2;
-    final innerRadius = radius * 0.4;
-
-    for (int i = 0; i < points * 2; i++) {
-      final currentAngle = i * angle / 2;
-      final currentRadius = i.isEven ? radius : innerRadius;
-      final x = math.cos(currentAngle) * currentRadius;
-      final y = math.sin(currentAngle) * currentRadius;
-
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(ConfettiPainter oldDelegate) {
-    return oldDelegate.progress != progress;
   }
 }

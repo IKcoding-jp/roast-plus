@@ -6,6 +6,8 @@ import '../../models/group_gamification_provider.dart';
 import '../../models/group_gamification_models.dart';
 import '../../services/attendance_firestore_service.dart';
 import '../../models/attendance_models.dart';
+
+import '../gamification/badge_list_page.dart';
 import '../../app.dart' show mainScaffoldKey;
 
 /// グループ中心の新しいダッシュボード画面
@@ -38,8 +40,8 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
         listen: false,
       );
 
-      // 初回読み込み
-      if (_isLoading) {
+      // 初回読み込み（一度だけ）
+      if (_isLoading && _groupProvider?.hasGroup == true) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _loadDetailedStats();
         });
@@ -84,17 +86,72 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
 
     return Consumer2<GroupProvider, GroupGamificationProvider>(
       builder: (context, groupProvider, gamificationProvider, child) {
-        // プロバイダーが利用可能でない場合
-        if (!groupProvider.hasGroup) {
+        // データ読み込み中の場合はローディング画面を表示
+        if (groupProvider.loading) {
           return Scaffold(
-            appBar: AppBar(title: Text('ホーム')),
+            appBar: AppBar(
+              title: Text('ホーム'),
+              backgroundColor: themeSettings.appBarColor,
+              foregroundColor: themeSettings.appBarTextColor,
+            ),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        themeSettings.iconColor,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    '読み込み中...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: themeSettings.fontColor2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // グループに参加していない場合
+        if (!groupProvider.hasGroup) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text('ホーム'),
+              backgroundColor: themeSettings.appBarColor,
+              foregroundColor: themeSettings.appBarTextColor,
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.groups_outlined,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
                   SizedBox(height: 16),
-                  Text('グループ情報を読み込み中...'),
+                  Text(
+                    'グループに参加すると\nホーム画面が表示されます',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                  ),
+                  SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/group_list');
+                    },
+                    child: Text('グループ一覧へ'),
+                  ),
                 ],
               ),
             ),
@@ -225,15 +282,24 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
                 SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: profile.levelProgress,
-                    backgroundColor: themeSettings.backgroundColor.withOpacity(
-                      0.3,
+                  child: TweenAnimationBuilder<double>(
+                    duration: Duration(milliseconds: 800),
+                    curve: Curves.easeOutCubic,
+                    tween: Tween<double>(
+                      begin: 0.0,
+                      end: profile.levelProgress,
                     ),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      profile.levelColor,
-                    ),
-                    minHeight: 12,
+                    builder: (context, value, child) {
+                      return LinearProgressIndicator(
+                        value: value,
+                        backgroundColor: themeSettings.backgroundColor
+                            .withOpacity(0.3),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          profile.levelColor,
+                        ),
+                        minHeight: 12,
+                      );
+                    },
                   ),
                 ),
               ],
@@ -360,108 +426,6 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 最近獲得したバッジカード
-  Widget _buildRecentBadgesCard(
-    BuildContext context,
-    ThemeSettings themeSettings,
-    GroupGamificationProfile profile,
-  ) {
-    final recentBadges = profile.badges.take(3).toList();
-
-    return Card(
-      color: themeSettings.backgroundColor2,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '最近のバッジ',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: themeSettings.fontColor1,
-                  ),
-                ),
-                Text(
-                  '${profile.badges.length}個獲得',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: themeSettings.fontColor2,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-
-            if (recentBadges.isEmpty)
-              Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'まだバッジを獲得していません',
-                    style: TextStyle(
-                      color: themeSettings.fontColor2,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              )
-            else
-              SizedBox(
-                height: 80,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: recentBadges.length,
-                  itemBuilder: (context, index) {
-                    final badge = recentBadges[index];
-                    return _buildBadgeItem(context, themeSettings, badge);
-                  },
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// バッジアイテム
-  Widget _buildBadgeItem(
-    BuildContext context,
-    ThemeSettings themeSettings,
-    GroupBadge badge,
-  ) {
-    return Container(
-      width: 80,
-      margin: EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: badge.color.withOpacity(0.2),
-              shape: BoxShape.circle,
-              border: Border.all(color: badge.color, width: 2),
-            ),
-            child: Icon(badge.icon, color: badge.color, size: 24),
-          ),
-          SizedBox(height: 4),
-          Text(
-            badge.name,
-            style: TextStyle(fontSize: 10, color: themeSettings.fontColor2),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -927,6 +891,10 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
     BuildContext context,
     ThemeSettings themeSettings,
   ) {
+    final gamificationProvider = Provider.of<GroupGamificationProvider>(
+      context,
+      listen: false,
+    );
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1087,7 +1055,7 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
                 themeSettings,
                 'バッジ',
                 Icons.military_tech,
-                () => Navigator.pushNamed(context, '/badges'),
+                () => Navigator.pushNamed(context, '/badge_list'),
               ),
             ],
           ),

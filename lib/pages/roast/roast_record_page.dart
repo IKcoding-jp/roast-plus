@@ -7,10 +7,11 @@ import '../../models/group_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-import '../../services/experience_manager.dart';
+
 import '../../models/gamification_provider.dart';
 import '../../widgets/lottie_animation_widget.dart';
 import '../../models/dashboard_stats_provider.dart';
+import '../../services/group_gamification_service.dart';
 
 class RoastRecordPage extends StatefulWidget {
   const RoastRecordPage({super.key});
@@ -490,7 +491,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
         }
 
         // 焙煎記録からXPを加算
-        await _addRoastingExperience(record);
+        await _processRoastingForGroup(record);
       }
 
       // 統計データを更新
@@ -530,72 +531,77 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     }
   }
 
-  /// 焙煎記録からXPを加算
-  Future<void> _addRoastingExperience(RoastRecord record) async {
+  /// グループレベルシステムで焙煎記録を処理
+  Future<void> _processRoastingForGroup(RoastRecord record) async {
     try {
-      // 焙煎時間を分に変換
-      final timeParts = record.time.split(':');
-      if (timeParts.length != 2) return;
+      // グループプロバイダーを取得
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
 
-      final minutes = int.tryParse(timeParts[0]) ?? 0;
-      final seconds = int.tryParse(timeParts[1]) ?? 0;
-      final totalMinutes = minutes + (seconds / 60.0);
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
 
-      if (totalMinutes <= 0) return;
+        // 焙煎時間を分に変換
+        final timeParts = record.time.split(':');
+        if (timeParts.length == 2) {
+          final minutes = int.tryParse(timeParts[0]) ?? 0;
+          final seconds = int.tryParse(timeParts[1]) ?? 0;
+          final totalMinutes = minutes + (seconds / 60.0);
 
-      // ExperienceManagerでXPを加算
-      final result = await ExperienceManager.instance.addRoastingExperience(
-        roastTimeMinutes: totalMinutes,
-        beanName: record.bean,
-        roastDate: record.timestamp,
-      );
+          if (totalMinutes > 0) {
+            // グループのゲーミフィケーションシステムに通知
+            await groupProvider.processGroupRoasting(
+              groupId,
+              totalMinutes,
+              context: context,
+            );
 
-      if (mounted && result.success) {
-        // GamificationProviderに通知
-        final gamificationProvider = context.read<GamificationProvider>();
-        gamificationProvider.refreshFromExperienceManager();
+            // 新しい焙煎時間バッジのチェック（別途実行）
+            try {
+              final result = await GroupGamificationService.recordRoasting(
+                groupId,
+                totalMinutes,
+              );
 
-        // 成果表示
-        _showExperienceGainResult(result);
+              if (result.success && result.newBadges.isNotEmpty) {
+                // 焙煎時間バッジをフィルタリング
+                final roastTimeBadges = result.newBadges
+                    .where((badge) => badge.id.startsWith('roast_time_'))
+                    .toList();
+
+                if (roastTimeBadges.isNotEmpty) {
+                  // バッジ獲得通知を表示
+                  for (final badge in roastTimeBadges) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              Icon(badge.icon, color: badge.color, size: 20),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '焙煎バッジ獲得: ${badge.name}',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: Colors.green.shade100,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              print('焙煎時間バッジチェックエラー: $e');
+            }
+          }
+        }
       }
     } catch (e) {
-      debugPrint('焙煎XP加算エラー: $e');
-    }
-  }
-
-  /// XP獲得結果を表示（Lottieアニメーション付き）
-  void _showExperienceGainResult(ExperienceGainResult result) {
-    if (!mounted) return;
-
-    // レベルアップした場合はレベルアップアニメーションを優先
-    if (result.leveledUp) {
-      final badgeNames = result.newBadges.map((b) => b.name).toList();
-
-      AnimationHelper.showLevelUpAnimation(
-        context,
-        oldLevel: result.oldProfile.level,
-        newLevel: result.newLevel,
-        newBadges: badgeNames,
-        onComplete: () {
-          // アニメーション完了後の処理
-          if (mounted) {
-            // 状態更新は既にExperienceManager内で完了している
-          }
-        },
-      );
-    } else if (result.xpGained > 0) {
-      // 経験値獲得アニメーションを表示
-      AnimationHelper.showExperienceGainAnimation(
-        context,
-        xpGained: result.xpGained,
-        description: result.description,
-        onComplete: () {
-          // アニメーション完了後の処理
-          if (mounted) {
-            // 必要に応じて追加の処理
-          }
-        },
-      );
+      print('グループレベルシステム処理エラー: $e');
     }
   }
 

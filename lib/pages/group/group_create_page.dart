@@ -81,33 +81,68 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
     setState(() {
       _isCreating = true;
     });
-    final success = await groupProvider.createGroup(
-      name: _nameController.text.trim(),
-      description: _descriptionController.text.trim(),
-    );
 
-    if (success && mounted) {
-      // ホーム画面に遷移（全ての画面をクリアしてメインアプリに戻る）
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const WorkAssignmentApp()),
-        (route) => false,
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('グループを作成しました'), backgroundColor: Colors.green),
-      );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(groupProvider.error ?? 'グループの作成に失敗しました'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    try {
+      print('GroupCreatePage: グループ作成開始');
 
-    if (mounted) {
-      setState(() {
-        _isCreating = false;
-      });
+      final success = await groupProvider.createGroup(
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
+      );
+
+      print('GroupCreatePage: グループ作成結果: $success');
+
+      if (success && mounted) {
+        print('GroupCreatePage: ホーム画面に遷移開始');
+
+        // 成功メッセージを先に表示
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('グループを作成しました'), backgroundColor: Colors.green),
+        );
+
+        // 少し待ってからホーム画面に遷移（初期化処理の完了を待つ）
+        await Future.delayed(Duration(milliseconds: 3000));
+
+        if (mounted) {
+          print('GroupCreatePage: ホーム画面遷移開始');
+
+          try {
+            // 前の画面に戻る（グループ作成が完了したため、自動的にホーム画面に遷移する）
+            Navigator.of(context).pop();
+            print('GroupCreatePage: ホーム画面遷移完了');
+          } catch (e) {
+            print('GroupCreatePage: 遷移エラー: $e');
+            // エラーが発生した場合は前の画面に戻る
+            if (mounted) {
+              Navigator.of(context).pop();
+            }
+          }
+        }
+      } else if (mounted) {
+        print('GroupCreatePage: グループ作成失敗: ${groupProvider.error}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(groupProvider.error ?? 'グループの作成に失敗しました'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('GroupCreatePage: グループ作成中にエラーが発生: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('グループの作成中にエラーが発生しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCreating = false;
+        });
+      }
     }
   }
 

@@ -31,40 +31,47 @@ final GlobalKey<RoastTimerSettingsPageState> roastTimerSettingsPageKey =
     GlobalKey<RoastTimerSettingsPageState>();
 
 /// Firestoreから全データを取得し、各ProviderやStateに反映する共通同期関数
-Future<void> syncAllFirestoreData(BuildContext context) async {
-  // 1. TODOリスト
-  try {
-    final todos = await ScheduleFirestoreService.loadTodayTodoList();
-    if (todos != null && todoListPageKey.currentState != null) {
-      todoListPageKey.currentState!.setTodosFromFirestore(todos);
+Future<void> syncAllFirestoreData(
+  BuildContext context, {
+  bool isLightSync = false,
+}) async {
+  // 1. TODOリスト（軽量同期の場合はスキップ）
+  if (!isLightSync) {
+    try {
+      final todos = await ScheduleFirestoreService.loadTodayTodoList();
+      if (todos != null && todoListPageKey.currentState != null) {
+        todoListPageKey.currentState!.setTodosFromFirestore(todos);
+      }
+      // ローカルにも保存
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        'todoList',
+        todos?.map((e) => TodoItem.fromMap(e).toStorageString()).toList() ?? [],
+      );
+    } catch (e) {
+      print('同期エラー: $e');
     }
-    // ローカルにも保存
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-      'todoList',
-      todos?.map((e) => TodoItem.fromMap(e).toStorageString()).toList() ?? [],
-    );
-  } catch (e) {
-    print('同期エラー: $e');
   }
 
-  // 2. 本日のスケジュール（内容・ラベル）
-  try {
-    final todaySchedule =
-        await ScheduleFirestoreService.loadTodayTodoSchedule();
-    if (todaySchedule != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'todaySchedule_labels',
-        json.encode(todaySchedule['labels'] ?? []),
-      );
-      await prefs.setString(
-        'todaySchedule_contents',
-        json.encode(todaySchedule['contents'] ?? {}),
-      );
+  // 2. 本日のスケジュール（内容・ラベル）（軽量同期の場合はスキップ）
+  if (!isLightSync) {
+    try {
+      final todaySchedule =
+          await ScheduleFirestoreService.loadTodayTodoSchedule();
+      if (todaySchedule != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          'todaySchedule_labels',
+          json.encode(todaySchedule['labels'] ?? []),
+        );
+        await prefs.setString(
+          'todaySchedule_contents',
+          json.encode(todaySchedule['contents'] ?? {}),
+        );
+      }
+    } catch (e) {
+      print('同期エラー: $e');
     }
-  } catch (e) {
-    print('同期エラー: $e');
   }
 
   // 3. 本日のスケジュールの時間ラベル

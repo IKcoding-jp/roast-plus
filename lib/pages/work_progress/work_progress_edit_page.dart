@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/work_progress_models.dart';
 import '../../models/theme_settings.dart';
-import '../../services/experience_manager.dart';
+import '../../models/group_provider.dart';
 
 class WorkProgressEditPage extends StatefulWidget {
   final WorkProgress? workProgress;
@@ -98,22 +98,15 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
       if (widget.workProgress == null) {
         await workProgressProvider.addWorkProgress(workProgress);
 
-        // 新規作成時のみ経験値を獲得
-        final result = await ExperienceManager.instance
-            .addWorkProgressExperience(workDate: now);
+        // グループレベルシステムで作業進捗を処理
+        await _processWorkProgressForGroup();
 
-        if (result.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('作業状況記録を作成しました (+${result.xpGained}XP)'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('作業状況記録を作成しました')));
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('作業状況記録を作成しました'),
+            backgroundColor: Colors.green,
+          ),
+        );
       } else {
         await workProgressProvider.updateWorkProgress(workProgress);
         ScaffoldMessenger.of(
@@ -134,6 +127,23 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  /// グループレベルシステムで作業進捗を処理
+  Future<void> _processWorkProgressForGroup() async {
+    try {
+      // グループプロバイダーを取得
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+
+        // グループのゲーミフィケーションシステムに通知
+        await groupProvider.processGroupWorkProgress(groupId, context: context);
+      }
+    } catch (e) {
+      print('グループレベルシステム処理エラー: $e');
     }
   }
 

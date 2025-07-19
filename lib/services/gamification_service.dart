@@ -10,7 +10,7 @@ class GamificationService {
     // 焙煎時間関連バッジ（6段階）
     BadgeCondition(
       badgeId: 'roast_1h',
-      name: '新人ロースター',
+      name: '焙煎スタート',
       description: '焙煎時間1時間達成',
       icon: Icons.local_fire_department_outlined,
       color: Colors.orange.shade300,
@@ -18,7 +18,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'roast_5h',
-      name: '焙煎見習い',
+      name: '焙煎初心者',
       description: '焙煎時間5時間達成',
       icon: Icons.local_fire_department,
       color: Colors.orange.shade500,
@@ -26,7 +26,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'roast_20h',
-      name: '焙煎職人',
+      name: '焙煎継続者',
       description: '焙煎時間20時間達成',
       icon: Icons.whatshot,
       color: Colors.deepOrange.shade600,
@@ -34,7 +34,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'roast_50h',
-      name: '焙煎マスター',
+      name: '焙煎達人',
       description: '焙煎時間50時間達成',
       icon: Icons.fireplace,
       color: Colors.red.shade700,
@@ -42,7 +42,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'roast_150h',
-      name: '焙煎クラフター',
+      name: '焙煎名人',
       description: '焙煎時間150時間達成',
       icon: Icons.auto_awesome,
       color: Colors.purple.shade600,
@@ -50,7 +50,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'roast_500h',
-      name: '焙煎レジェンド',
+      name: '焙煎マスター',
       description: '焙煎時間500時間達成',
       icon: Icons.military_tech,
       color: Colors.amber.shade700,
@@ -60,7 +60,7 @@ class GamificationService {
     // ドリップパック作成数バッジ（6段階）
     BadgeCondition(
       badgeId: 'drip_300',
-      name: 'パック組立員',
+      name: 'ドリップスタート',
       description: '300個作成達成',
       icon: Icons.coffee_outlined,
       color: Colors.brown.shade300,
@@ -68,7 +68,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'drip_1000',
-      name: 'ドリップメーカー',
+      name: 'ドリップ初心者',
       description: '1000個作成達成',
       icon: Icons.coffee,
       color: Colors.brown.shade500,
@@ -76,7 +76,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'drip_5000',
-      name: 'パック職人',
+      name: 'ドリップ継続者',
       description: '5000個作成達成',
       icon: Icons.local_cafe,
       color: Colors.brown.shade700,
@@ -84,7 +84,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'drip_15000',
-      name: '生産ラインの王',
+      name: 'ドリップ達人',
       description: '15000個作成達成',
       icon: Icons.emoji_food_beverage,
       color: Colors.indigo.shade600,
@@ -92,7 +92,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'drip_50000',
-      name: 'ドリップマスター',
+      name: 'ドリップ名人',
       description: '50000個作成達成',
       icon: Icons.local_drink,
       color: Colors.purple.shade700,
@@ -100,67 +100,99 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'drip_150000',
-      name: '永久ドリッパー',
+      name: 'ドリップマスター',
       description: '150000個作成達成',
       icon: Icons.stars,
       color: Colors.amber.shade800,
       checkCondition: (profile) => profile.stats.dripPackCount >= 150000,
     ),
 
-    // 出勤バッジ（6段階）
+    // 出勤バッジ（10段階）
     BadgeCondition(
       badgeId: 'work_5',
-      name: '新入りスタッフ',
+      name: '出勤スタート',
       description: '5日出勤達成',
       icon: Icons.person_add_outlined,
       color: Colors.green.shade300,
       checkCondition: (profile) => profile.stats.attendanceDays >= 5,
     ),
     BadgeCondition(
-      badgeId: 'work_20',
-      name: '月間皆勤賞',
-      description: '20日出勤達成',
+      badgeId: 'work_10',
+      name: '出勤初心者',
+      description: '10日出勤達成',
       icon: Icons.person,
+      color: Colors.green.shade400,
+      checkCondition: (profile) => profile.stats.attendanceDays >= 10,
+    ),
+    BadgeCondition(
+      badgeId: 'work_20',
+      name: '出勤継続者',
+      description: '20日出勤達成',
+      icon: Icons.star_border,
       color: Colors.blue.shade400,
       checkCondition: (profile) => profile.stats.attendanceDays >= 20,
     ),
     BadgeCondition(
       badgeId: 'work_60',
-      name: 'ロースター常連',
+      name: '出勤常連',
       description: '60日出勤達成',
-      icon: Icons.star_border,
+      icon: Icons.star_half,
       color: Colors.cyan.shade600,
       checkCondition: (profile) => profile.stats.attendanceDays >= 60,
     ),
     BadgeCondition(
-      badgeId: 'work_200',
-      name: '出勤王',
-      description: '200日出勤達成',
+      badgeId: 'work_100',
+      name: '出勤達人',
+      description: '100日出勤達成',
       icon: Icons.star,
+      color: Colors.blue.shade600,
+      checkCondition: (profile) => profile.stats.attendanceDays >= 100,
+    ),
+    BadgeCondition(
+      badgeId: 'work_200',
+      name: '出勤名人',
+      description: '200日出勤達成',
+      icon: Icons.workspace_premium,
       color: Colors.orange.shade600,
       checkCondition: (profile) => profile.stats.attendanceDays >= 200,
     ),
     BadgeCondition(
-      badgeId: 'work_500',
-      name: '勤務の化身',
-      description: '500日出勤達成',
-      icon: Icons.workspace_premium,
+      badgeId: 'work_365',
+      name: '出勤マスター',
+      description: '365日出勤達成',
+      icon: Icons.emoji_events,
       color: Colors.purple.shade600,
+      checkCondition: (profile) => profile.stats.attendanceDays >= 365,
+    ),
+    BadgeCondition(
+      badgeId: 'work_500',
+      name: '出勤エキスパート',
+      description: '500日出勤達成',
+      icon: Icons.auto_awesome,
+      color: Colors.deepPurple.shade600,
       checkCondition: (profile) => profile.stats.attendanceDays >= 500,
+    ),
+    BadgeCondition(
+      badgeId: 'work_1000',
+      name: '出勤レジェンド',
+      description: '1000日出勤達成',
+      icon: Icons.military_tech,
+      color: Colors.amber.shade700,
+      checkCondition: (profile) => profile.stats.attendanceDays >= 1000,
     ),
     BadgeCondition(
       badgeId: 'work_2000',
       name: '出勤神',
       description: '2000日出勤達成',
-      icon: Icons.emoji_events,
-      color: Colors.amber.shade700,
+      icon: Icons.whatshot,
+      color: Colors.red.shade700,
       checkCondition: (profile) => profile.stats.attendanceDays >= 2000,
     ),
 
-    // 総合バッジ（新設）
+    // 総合バッジ（3段階）
     BadgeCondition(
       badgeId: 'balanced_starter',
-      name: 'バランス新人',
+      name: '総合スタート',
       description: '出勤20日、焙煎10時間、ドリップ500個を全て達成',
       icon: Icons.balance,
       color: Colors.teal.shade500,
@@ -171,7 +203,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'balanced_master',
-      name: 'バランスマスター',
+      name: '総合達人',
       description: '出勤100日、焙煎50時間、ドリップ5000個を全て達成',
       icon: Icons.all_inclusive,
       color: Colors.indigo.shade600,
@@ -182,7 +214,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'coffee_legend',
-      name: 'コーヒーレジェンド',
+      name: '総合マスター',
       description: '出勤500日、焙煎200時間、ドリップ25000個を全て達成',
       icon: Icons.auto_awesome,
       color: Colors.amber.shade800,
@@ -192,10 +224,10 @@ class GamificationService {
           profile.stats.dripPackCount >= 25000,
     ),
 
-    // レベル関連バッジ（拡張）
+    // レベル関連バッジ（6段階）
     BadgeCondition(
       badgeId: 'level_5',
-      name: 'レベル5到達',
+      name: 'レベルスタート',
       description: 'レベル5に到達',
       icon: Icons.trending_up,
       color: Colors.lightGreen,
@@ -203,7 +235,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'level_10',
-      name: 'レベル10到達',
+      name: 'レベル初心者',
       description: 'レベル10に到達',
       icon: Icons.trending_up,
       color: Colors.teal,
@@ -211,7 +243,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'level_25',
-      name: 'レベル25到達',
+      name: 'レベル継続者',
       description: 'レベル25に到達',
       icon: Icons.trending_up,
       color: Colors.cyan,
@@ -219,7 +251,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'level_50',
-      name: 'レベル50到達',
+      name: 'レベル達人',
       description: 'レベル50に到達',
       icon: Icons.trending_up,
       color: Colors.pink,
@@ -227,7 +259,7 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'level_100',
-      name: 'レベル100到達',
+      name: 'レベル名人',
       description: 'レベル100に到達',
       icon: Icons.trending_up,
       color: Colors.deepPurple,
@@ -235,14 +267,14 @@ class GamificationService {
     ),
     BadgeCondition(
       badgeId: 'level_200',
-      name: 'レベル200到達',
+      name: 'レベルマスター',
       description: 'レベル200に到達',
       icon: Icons.trending_up,
       color: Colors.amber,
       checkCondition: (profile) => profile.level >= 200,
     ),
 
-    // 特別バッジ（時間効率系）
+    // 特別バッジ（2段階）
     BadgeCondition(
       badgeId: 'early_bird',
       name: '早起きロースター',

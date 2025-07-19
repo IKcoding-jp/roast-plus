@@ -279,4 +279,80 @@ class RoastRecordFirestoreService {
       rethrow;
     }
   }
+
+  /// 焙煎時間文字列を分単位に変換
+  static int parseRoastTimeToMinutes(String timeString) {
+    try {
+      // "10:30" 形式の時間文字列を分に変換
+      final parts = timeString.split(':');
+      if (parts.length == 2) {
+        final minutes = int.tryParse(parts[0]) ?? 0;
+        final seconds = int.tryParse(parts[1]) ?? 0;
+        return minutes + (seconds / 60).round();
+      }
+      // 数値のみの場合は分として扱う
+      return int.tryParse(timeString) ?? 0;
+    } catch (e) {
+      print('焙煎時間パースエラー: $e');
+      return 0;
+    }
+  }
+
+  /// グループの累積焙煎時間を計算（分単位）
+  static Future<double> calculateGroupTotalRoastTime(String groupId) async {
+    try {
+      final records = await getGroupRecords(groupId);
+      double totalMinutes = 0.0;
+
+      for (final record in records) {
+        final minutes = parseRoastTimeToMinutes(record.time);
+        totalMinutes += minutes;
+      }
+
+      print('グループ $groupId の累積焙煎時間: ${totalMinutes.toStringAsFixed(1)}分');
+      return totalMinutes;
+    } catch (e) {
+      print('累積焙煎時間計算エラー: $e');
+      return 0.0;
+    }
+  }
+
+  /// グループの焙煎統計を再計算
+  static Future<Map<String, dynamic>> recalculateGroupRoastStats(
+    String groupId,
+  ) async {
+    try {
+      final records = await getGroupRecords(groupId);
+      double totalMinutes = 0.0;
+      Set<String> roastDays = {};
+
+      for (final record in records) {
+        final minutes = parseRoastTimeToMinutes(record.time);
+        totalMinutes += minutes;
+
+        // 焙煎日を記録（1日最大3回としてカウント）
+        final dateKey =
+            '${record.timestamp.year}-${record.timestamp.month.toString().padLeft(2, '0')}-${record.timestamp.day.toString().padLeft(2, '0')}';
+        roastDays.add(dateKey);
+      }
+
+      final stats = {
+        'totalRoastTimeMinutes': totalMinutes,
+        'totalRoastDays': roastDays.length,
+        'totalRoastSessions': records.length,
+        'lastCalculated': DateTime.now().toIso8601String(),
+      };
+
+      print('グループ $groupId の焙煎統計再計算完了: $stats');
+      return stats;
+    } catch (e) {
+      print('焙煎統計再計算エラー: $e');
+      return {
+        'totalRoastTimeMinutes': 0.0,
+        'totalRoastDays': 0,
+        'totalRoastSessions': 0,
+        'lastCalculated': DateTime.now().toIso8601String(),
+      };
+    }
+  }
 }

@@ -3,7 +3,11 @@ import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../models/theme_settings.dart';
+import '../../models/group_gamification_provider.dart';
+import '../../models/group_gamification_models.dart';
+import '../../services/group_gamification_service.dart';
 import '../../settings/account_info_page.dart';
+import '../gamification/badge_list_page.dart';
 import 'group_create_page.dart';
 import 'group_detail_page.dart';
 import 'group_invitations_page.dart';
@@ -22,8 +26,14 @@ class _GroupListPageState extends State<GroupListPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final groupProvider = context.read<GroupProvider>();
       await groupProvider.refresh();
-      // 統計情報も読み込む
+      // 統計情報とゲーミフィケーション情報も読み込む
       await groupProvider.loadAllGroupStatistics();
+      await groupProvider.loadAllGroupGamificationProfiles();
+
+      // ゲーミフィケーション監視を開始
+      for (final group in groupProvider.groups) {
+        groupProvider.watchGroupGamificationProfile(group.id);
+      }
     });
   }
 
@@ -36,6 +46,7 @@ class _GroupListPageState extends State<GroupListPage> {
       if (groupProvider.groups.isNotEmpty) {
         await groupProvider.loadUserGroups();
         await groupProvider.loadAllGroupStatistics();
+        await groupProvider.loadAllGroupGamificationProfiles();
       }
     });
   }
@@ -145,6 +156,7 @@ class _GroupListPageState extends State<GroupListPage> {
             onRefresh: () async {
               await groupProvider.refresh();
               await groupProvider.loadAllGroupStatistics();
+              await groupProvider.loadAllGroupGamificationProfiles();
             },
             child: CustomScrollView(
               slivers: [
@@ -461,6 +473,11 @@ class _GroupListPageState extends State<GroupListPage> {
                                 ),
                               ],
                             ),
+
+                            SizedBox(height: 8),
+
+                            // バッジ情報
+                            _buildBadgeInfo(context, themeSettings, group.id),
                           ],
                         ),
                         trailing: Icon(
@@ -594,5 +611,119 @@ class _GroupListPageState extends State<GroupListPage> {
     // リーダーの場合はスターアイコン、メンバーの場合はグループアイコンを表示
     IconData iconData = isLeader ? Icons.star : Icons.group;
     return Icon(iconData, color: Colors.white);
+  }
+
+  /// バッジ情報を表示
+  Widget _buildBadgeInfo(
+    BuildContext context,
+    ThemeSettings themeSettings,
+    String groupId,
+  ) {
+    return Consumer<GroupProvider>(
+      builder: (context, groupProvider, child) {
+        final profile = groupProvider.getGroupGamificationProfile(groupId);
+
+        if (profile == null) {
+          return Container(
+            height: 20,
+            child: Center(
+              child: SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 1),
+              ),
+            ),
+          );
+        }
+
+        final badges = profile.badges;
+
+        return Row(
+          children: [
+            // バッジアイコン
+            Icon(Icons.emoji_events, size: 14, color: Colors.amber.shade600),
+            SizedBox(width: 4),
+
+            // バッジ数
+            Text(
+              '${badges.length}個のバッジ',
+              style: TextStyle(
+                color: themeSettings.fontColor2,
+                fontSize: 12 * themeSettings.fontSizeScale,
+                fontFamily: themeSettings.fontFamily,
+              ),
+            ),
+
+            Spacer(),
+
+            // 最新バッジ（最大3個）
+            if (badges.isNotEmpty) ...[
+              ...badges
+                  .take(3)
+                  .map(
+                    (badge) => Container(
+                      margin: EdgeInsets.only(left: 4),
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: badge.color,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(badge.icon, color: Colors.white, size: 10),
+                    ),
+                  ),
+
+              // バッジ一覧ボタン
+              Container(
+                margin: EdgeInsets.only(left: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BadgeListPage()),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Text(
+                      '詳細',
+                      style: TextStyle(
+                        color: Colors.amber.shade700,
+                        fontSize: 10 * themeSettings.fontSizeScale,
+                        fontWeight: FontWeight.w500,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              // バッジがない場合
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Text(
+                  'バッジなし',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 10 * themeSettings.fontSizeScale,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
   }
 }

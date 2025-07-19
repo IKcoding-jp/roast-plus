@@ -4,7 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../models/theme_settings.dart';
+import '../../models/group_gamification_provider.dart';
+import '../../models/group_gamification_models.dart';
+import '../../services/group_gamification_service.dart';
 import '../../services/group_data_sync_service.dart';
+import '../gamification/badge_list_page.dart';
 import 'group_member_invite_page.dart';
 import 'group_settings_page.dart';
 import 'group_edit_page.dart';
@@ -26,13 +30,17 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<GroupProvider>().watchGroup(widget.group.id);
+      final groupProvider = context.read<GroupProvider>();
+      groupProvider.watchGroup(widget.group.id);
+      groupProvider.watchGroupGamificationProfile(widget.group.id);
     });
   }
 
   @override
   void dispose() {
-    context.read<GroupProvider>().unwatchGroup(widget.group.id);
+    final groupProvider = context.read<GroupProvider>();
+    groupProvider.unwatchGroup(widget.group.id);
+    groupProvider.unwatchGroupGamificationProfile(widget.group.id);
     super.dispose();
   }
 
@@ -426,6 +434,11 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       ),
                     ),
                   ),
+
+                // バッジセクション
+                SliverToBoxAdapter(
+                  child: _buildBadgeSection(context, themeSettings),
+                ),
 
                 // データ同期セクション
                 SliverToBoxAdapter(
@@ -1041,5 +1054,239 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   }) {
     // シンプルにグループアイコンを表示
     return Icon(Icons.group, color: themeSettings.iconColor, size: size);
+  }
+
+  /// バッジセクションを表示
+  Widget _buildBadgeSection(BuildContext context, ThemeSettings themeSettings) {
+    return Consumer<GroupProvider>(
+      builder: (context, groupProvider, child) {
+        final profile = groupProvider.getGroupGamificationProfile(
+          widget.group.id,
+        );
+
+        if (profile == null) {
+          return Card(
+            margin: EdgeInsets.all(12),
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            color: themeSettings.backgroundColor2 ?? Colors.white,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: themeSettings.iconColor,
+                ),
+              ),
+            ),
+          );
+        }
+
+        final badges = profile.badges;
+
+        return Card(
+          margin: EdgeInsets.all(12),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          color: themeSettings.backgroundColor2 ?? Colors.white,
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.emoji_events,
+                          color: Colors.amber.shade600,
+                          size: 24,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'グループバッジ',
+                          style: TextStyle(
+                            color: themeSettings.fontColor1,
+                            fontSize: 18 * themeSettings.fontSizeScale,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '${badges.length}個獲得',
+                      style: TextStyle(
+                        color: themeSettings.fontColor2,
+                        fontSize: 14 * themeSettings.fontSizeScale,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+
+                // グループレベル情報
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: profile.levelColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: profile.levelColor.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.trending_up,
+                        color: profile.levelColor,
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profile.displayTitle,
+                              style: TextStyle(
+                                color: profile.levelColor,
+                                fontSize: 14 * themeSettings.fontSizeScale,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: themeSettings.fontFamily,
+                              ),
+                            ),
+                            Text(
+                              'レベル ${profile.level} (${profile.experiencePoints} XP)',
+                              style: TextStyle(
+                                color: themeSettings.fontColor2,
+                                fontSize: 12 * themeSettings.fontSizeScale,
+                                fontFamily: themeSettings.fontFamily,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16),
+
+                // 最新バッジ（最大3個）
+                if (badges.isNotEmpty) ...[
+                  Text(
+                    '最新獲得バッジ',
+                    style: TextStyle(
+                      color: themeSettings.fontColor1,
+                      fontSize: 14 * themeSettings.fontSizeScale,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: themeSettings.fontFamily,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      ...badges
+                          .take(3)
+                          .map(
+                            (badge) => Container(
+                              margin: EdgeInsets.only(right: 8),
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: badge.color.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: badge.color.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    badge.icon,
+                                    color: badge.color,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    badge.name,
+                                    style: TextStyle(
+                                      color: badge.color,
+                                      fontSize:
+                                          12 * themeSettings.fontSizeScale,
+                                      fontWeight: FontWeight.w500,
+                                      fontFamily: themeSettings.fontFamily,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                ] else ...[
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.emoji_events_outlined,
+                          color: Colors.grey.shade400,
+                          size: 24,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'まだバッジを獲得していません\n活動を続けてバッジを獲得しましょう！',
+                            style: TextStyle(
+                              color: themeSettings.fontColor2,
+                              fontSize: 14 * themeSettings.fontSizeScale,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                ],
+
+                // バッジ一覧ボタン
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BadgeListPage()),
+                    );
+                  },
+                  icon: Icon(Icons.list),
+                  label: Text('バッジ一覧を見る'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber.shade600,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

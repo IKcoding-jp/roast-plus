@@ -11,6 +11,7 @@ import '../../services/gamification_service.dart';
 import '../../services/group_statistics_service.dart';
 import '../../services/group_data_sync_service.dart';
 import '../../services/group_firestore_service.dart';
+import '../../services/group_gamification_service.dart';
 import 'group_qr_generate_page.dart';
 
 class GroupInfoPage extends StatefulWidget {
@@ -205,6 +206,12 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       final groupProvider = context.read<GroupProvider>();
       final currentGroup = groupProvider.currentGroup!;
 
+      print('GroupInfoPage: グループ更新開始');
+      print('GroupInfoPage: 現在の名前: ${currentGroup.name}');
+      print('GroupInfoPage: 新しい名前: ${_nameController.text.trim()}');
+      print('GroupInfoPage: 現在の説明: ${currentGroup.description}');
+      print('GroupInfoPage: 新しい説明: ${_descriptionController.text.trim()}');
+
       final updatedGroup = currentGroup.copyWith(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
@@ -212,6 +219,8 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       );
 
       final success = await groupProvider.updateGroup(updatedGroup);
+
+      print('GroupInfoPage: 更新結果: $success');
 
       if (success && mounted) {
         await groupProvider.loadUserGroups();
@@ -224,6 +233,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             backgroundColor: Colors.green,
           ),
         );
+        print('GroupInfoPage: グループ更新完了');
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -231,8 +241,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             backgroundColor: Colors.red,
           ),
         );
+        print('GroupInfoPage: グループ更新失敗: ${groupProvider.error}');
       }
     } catch (e) {
+      print('GroupInfoPage: グループ更新エラー: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -556,95 +568,67 @@ class _GroupInfoPageState extends State<GroupInfoPage>
   }
 
   Widget _buildGroupInfoView(ThemeSettings themeSettings, Group group) {
-    return CustomScrollView(
-      physics: BouncingScrollPhysics(),
-      slivers: [
-        // グループ基本情報セクション
-        SliverToBoxAdapter(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: _buildGroupBasicInfo(themeSettings, group),
-            ),
-          ),
-        ),
+    final size = MediaQuery.of(context).size;
+    final stats = _groupProfile?.stats;
+    final badgeCount = _groupProfile?.badges.length ?? 0;
+    final allBadgeCount = GamificationService.badgeConditions.length;
 
-        // レベル・経験値セクション
-        SliverToBoxAdapter(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: _buildLevelSection(themeSettings),
-            ),
-          ),
-        ),
+    // メンバー情報を計算
+    final memberCount = group.members.length;
 
-        // 統計情報セクション
-        SliverToBoxAdapter(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: _buildStatsSection(themeSettings),
-            ),
+    return Center(
+      child: Container(
+        width: size.width > 500 ? 500 : size.width * 0.99,
+        margin: EdgeInsets.symmetric(vertical: 24),
+        child: Card(
+          elevation: 16,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(32),
           ),
-        ),
-
-        // バッジセクション
-        SliverToBoxAdapter(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: _buildBadgeSection(themeSettings),
+          color: themeSettings.backgroundColor2,
+          shadowColor: themeSettings.buttonColor.withOpacity(0.25),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  themeSettings.buttonColor.withOpacity(0.10),
+                  themeSettings.buttonColor.withOpacity(0.03),
+                ],
+              ),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGroupBasicInfo(ThemeSettings themeSettings, Group group) {
-    return Container(
-      margin: EdgeInsets.all(16),
-      child: Card(
-        elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: themeSettings.backgroundColor2,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                themeSettings.buttonColor.withOpacity(0.1),
-                themeSettings.buttonColor.withOpacity(0.05),
-              ],
-            ),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Form(
-              key: _formKey,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 28, vertical: 28),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 基本情報
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                        width: 60,
-                        height: 60,
+                        width: 56,
+                        height: 56,
                         decoration: BoxDecoration(
-                          color: themeSettings.buttonColor,
-                          borderRadius: BorderRadius.circular(30),
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              themeSettings.buttonColor,
+                              themeSettings.buttonColor.withOpacity(0.7),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: themeSettings.buttonColor.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
+                              color: themeSettings.buttonColor.withOpacity(
+                                0.18,
+                              ),
+                              blurRadius: 16,
+                              offset: Offset(0, 8),
                             ),
                           ],
                         ),
@@ -654,112 +638,418 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                           size: 32,
                         ),
                       ),
-                      SizedBox(width: 16),
+                      SizedBox(width: 20),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_isEditing) ...[
-                              TextFormField(
-                                controller: _nameController,
-                                style: TextStyle(
-                                  fontSize: 20 * themeSettings.fontSizeScale,
-                                  fontWeight: FontWeight.bold,
-                                  color: themeSettings.fontColor1,
-                                  fontFamily: themeSettings.fontFamily,
-                                ),
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_isEditing) ...[
+                                TextFormField(
+                                  controller: _nameController,
+                                  style: TextStyle(
+                                    fontSize: 20 * themeSettings.fontSizeScale,
+                                    fontWeight: FontWeight.bold,
+                                    color: themeSettings.fontColor1,
+                                    fontFamily: themeSettings.fontFamily,
                                   ),
-                                  labelText: 'グループ名',
-                                  filled: true,
-                                  fillColor: Colors.white.withOpacity(0.8),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
+                                  decoration: InputDecoration(
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    labelText: 'グループ名',
+                                    filled: true,
+                                    fillColor: Colors.white.withOpacity(0.8),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'グループ名を入力してください';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 8),
+                                TextFormField(
+                                  controller: _descriptionController,
+                                  style: TextStyle(
+                                    fontSize: 14 * themeSettings.fontSizeScale,
+                                    color: themeSettings.fontColor1,
+                                    fontFamily: themeSettings.fontFamily,
+                                  ),
+                                  decoration: InputDecoration(
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    labelText: 'グループ説明',
+                                    filled: true,
+                                    fillColor: Colors.white.withOpacity(0.8),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  maxLines: 2,
+                                ),
+                              ] else ...[
+                                Text(
+                                  group.name,
+                                  style: TextStyle(
+                                    fontSize: 20 * themeSettings.fontSizeScale,
+                                    fontWeight: FontWeight.bold,
+                                    color: themeSettings.fontColor1,
+                                    fontFamily: themeSettings.fontFamily,
                                   ),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'グループ名を入力してください';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              SizedBox(height: 8),
-                              TextFormField(
-                                controller: _descriptionController,
-                                style: TextStyle(
-                                  fontSize: 14 * themeSettings.fontSizeScale,
-                                  color: themeSettings.fontColor1,
-                                  fontFamily: themeSettings.fontFamily,
-                                ),
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                SizedBox(height: 4),
+                                Text(
+                                  group.description,
+                                  style: TextStyle(
+                                    fontSize: 14 * themeSettings.fontSizeScale,
+                                    color: themeSettings.fontColor1.withOpacity(
+                                      0.7,
+                                    ),
+                                    fontFamily: themeSettings.fontFamily,
                                   ),
-                                  labelText: 'グループ説明',
-                                  filled: true,
-                                  fillColor: Colors.white.withOpacity(0.8),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 2,
-                              ),
-                            ] else ...[
-                              Text(
-                                group.name,
-                                style: TextStyle(
-                                  fontSize: 24 * themeSettings.fontSizeScale,
-                                  fontWeight: FontWeight.bold,
-                                  color: themeSettings.fontColor1,
-                                  fontFamily: themeSettings.fontFamily,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                group.description,
-                                style: TextStyle(
-                                  fontSize: 14 * themeSettings.fontSizeScale,
-                                  color: themeSettings.fontColor1.withOpacity(
-                                    0.7,
-                                  ),
-                                  fontFamily: themeSettings.fontFamily,
-                                ),
-                              ),
+                              ],
                             ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  Row(
+                    children: [
+                      // メンバーアイコン
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Text(
+                              'メンバー',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: themeSettings.fontColor1.withOpacity(
+                                  0.6,
+                                ),
+                                fontFamily: themeSettings.fontFamily,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            // メンバーのアイコンを表示（最大5人まで）
+                            ...group.members
+                                .take(5)
+                                .map(
+                                  (member) => Container(
+                                    margin: EdgeInsets.only(right: 4),
+                                    child: CircleAvatar(
+                                      radius: 12,
+                                      backgroundColor: themeSettings.buttonColor
+                                          .withOpacity(0.1),
+                                      backgroundImage: member.photoUrl != null
+                                          ? NetworkImage(member.photoUrl!)
+                                          : null,
+                                      child: member.photoUrl == null
+                                          ? Text(
+                                              member.displayName.isNotEmpty
+                                                  ? member.displayName[0]
+                                                        .toUpperCase()
+                                                  : '?',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    themeSettings.buttonColor,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                            // 残りのメンバー数
+                            if (group.members.length > 5)
+                              Container(
+                                margin: EdgeInsets.only(left: 4),
+                                child: Text(
+                                  '+${group.members.length - 5}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: themeSettings.fontColor1.withOpacity(
+                                      0.6,
+                                    ),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      // メンバー数
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: themeSettings.buttonColor.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: themeSettings.buttonColor.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.people,
+                              color: themeSettings.buttonColor,
+                              size: 16,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              '$memberCount人',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: themeSettings.buttonColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ],
                   ),
-
-                  SizedBox(height: 20),
-
-                  // グループ詳細情報
-                  _buildInfoRow(
-                    themeSettings,
-                    Icons.fingerprint,
-                    'グループID',
-                    group.id,
-                    onTap: () => _copyToClipboard(group.id, 'グループIDをコピーしました'),
+                  SizedBox(height: 16),
+                  // 焙煎時間バッジ再計算ボタン
+                  Container(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _recalculateRoastTimeBadges(context),
+                      icon: Icon(Icons.refresh, size: 18),
+                      label: Text(
+                        '焙煎時間バッジを再計算',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade100,
+                        foregroundColor: Colors.orange.shade800,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                    ),
                   ),
                   SizedBox(height: 12),
-                  _buildInfoRow(
-                    themeSettings,
-                    Icons.people,
-                    '所属人数',
-                    '${group.members.length}人',
+                  // ドリップパックバッジ再計算ボタン
+                  Container(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _recalculateDripPackBadges(context),
+                      icon: Icon(Icons.refresh, size: 18),
+                      label: Text(
+                        'ドリップパックバッジを再計算',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.brown.shade100,
+                        foregroundColor: Colors.brown.shade800,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Divider(height: 32, thickness: 1.2),
+                  // レベル・経験値
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: themeSettings.buttonColor,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: themeSettings.buttonColor.withOpacity(
+                                    0.18,
+                                  ),
+                                  blurRadius: 12,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Lv.${_groupProfile?.level ?? 1}',
+                                style: TextStyle(
+                                  fontSize: 20 * themeSettings.fontSizeScale,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontFamily: themeSettings.fontFamily,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_groupProfile?.experiencePoints ?? 0} XP',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: themeSettings.fontColor1,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: themeSettings.fontFamily,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                '次まで${_groupProfile?.experienceToNextLevel ?? 0} XP',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: themeSettings.fontColor1.withOpacity(
+                                    0.6,
+                                  ),
+                                  fontFamily: themeSettings.fontFamily,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      // バッジ数をラベル風に
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: themeSettings.buttonColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.emoji_events,
+                              color: themeSettings.buttonColor,
+                              size: 20,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              '$badgeCount / $allBadgeCount',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: themeSettings.buttonColor,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: themeSettings.fontFamily,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  // 経験値バー
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: (_groupProfile?.levelProgress ?? 0.0).clamp(
+                        0.0,
+                        1.0,
+                      ),
+                      minHeight: 12,
+                      backgroundColor: themeSettings.fontColor1.withOpacity(
+                        0.08,
+                      ),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        themeSettings.buttonColor,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  // 統計
+                  Container(
+                    decoration: BoxDecoration(
+                      color: themeSettings.backgroundColor.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _miniStat(
+                          themeSettings,
+                          Icons.work,
+                          '出勤',
+                          '${stats?.attendanceDays ?? 0}日',
+                          big: true,
+                        ),
+                        _miniStat(
+                          themeSettings,
+                          Icons.local_fire_department,
+                          '焙煎',
+                          '${stats?.totalRoastTimeHours.toStringAsFixed(1) ?? '0.0'}h',
+                          big: true,
+                        ),
+                        _miniStat(
+                          themeSettings,
+                          Icons.local_cafe,
+                          'パック',
+                          '${stats?.dripPackCount ?? 0}個',
+                          big: true,
+                        ),
+                        _miniStat(
+                          themeSettings,
+                          Icons.emoji_events,
+                          'バッジ',
+                          '$badgeCount',
+                          big: true,
+                        ),
+                      ],
+                    ),
                   ),
                   SizedBox(height: 12),
-                  _buildInfoRow(
-                    themeSettings,
-                    Icons.calendar_today,
-                    '作成日',
-                    '${group.createdAt.year}/${group.createdAt.month}/${group.createdAt.day}',
+                  // 作成日
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: themeSettings.fontColor1.withOpacity(0.6),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        '作成日: ${group.createdAt.year}/${group.createdAt.month}/${group.createdAt.day}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: themeSettings.fontColor1.withOpacity(0.6),
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -767,6 +1057,45 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _miniStat(
+    ThemeSettings theme,
+    IconData icon,
+    String label,
+    String value, {
+    bool big = false,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: big ? 38 : 28,
+          height: big ? 38 : 28,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: theme.buttonColor.withOpacity(0.13),
+          ),
+          child: Icon(icon, color: theme.buttonColor, size: big ? 22 : 16),
+        ),
+        SizedBox(height: 6),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: big ? 18 : 13,
+            color: theme.fontColor1,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: big ? 13 : 11,
+            color: theme.fontColor1.withOpacity(0.7),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1560,5 +1889,180 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     );
     _updateGroupSettings(updatedSettings);
   }
+
+  Widget _infoChip(
+    ThemeSettings theme,
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.buttonColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.buttonColor.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: theme.buttonColor, size: 20),
+          SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: theme.fontColor1,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: theme.fontColor1.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(ThemeSettings theme, String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: theme.fontColor1.withOpacity(0.6),
+          ),
+        ),
+        SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: theme.fontColor1,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _calculateGrowthRate() {
+    // 簡易的な成長率計算（実際の実装では過去データと比較）
+    final stats = _groupProfile?.stats;
+    if (stats == null) return '0.0';
+
+    final totalActivity =
+        stats.attendanceDays +
+        stats.dripPackCount +
+        (stats.totalRoastTimeHours / 10).round();
+    if (totalActivity == 0) return '0.0';
+
+    // 仮の成長率計算
+    return (totalActivity * 0.5).clamp(0.0, 100.0).toStringAsFixed(1);
+  }
+
+  /// 焙煎時間バッジを再計算
+  Future<void> _recalculateRoastTimeBadges(BuildContext context) async {
+    try {
+      // ローディング表示
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('焙煎時間バッジを再計算中...'),
+            ],
+          ),
+        ),
+      );
+
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+        await GroupGamificationService.recalculateRoastTimeFromExistingRecords(
+          groupId,
+        );
+
+        // プロフィールを更新
+        await groupProvider.loadGroupGamificationProfile(groupId);
+      }
+
+      // ローディングを閉じる
+      Navigator.pop(context);
+
+      // 成功メッセージを表示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('焙煎時間バッジの再計算が完了しました'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // ローディングを閉じる
+      Navigator.pop(context);
+
+      // エラーメッセージを表示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('再計算に失敗しました: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  /// ドリップパックバッジを再計算
+  Future<void> _recalculateDripPackBadges(BuildContext context) async {
+    try {
+      // ローディング表示
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('ドリップパックバッジを再計算中...'),
+            ],
+          ),
+        ),
+      );
+
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+        await GroupGamificationService.recalculateDripPackFromExistingRecords(
+          groupId,
+        );
+
+        // プロフィールを更新
+        await groupProvider.loadGroupGamificationProfile(groupId);
+      }
+
+      // ローディングを閉じる
+      Navigator.pop(context);
+
+      // 成功メッセージを表示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ドリップパックバッジの再計算が完了しました'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // ローディングを閉じる
+      Navigator.pop(context);
+
+      // エラーメッセージを表示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('再計算に失敗しました: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
 }
- 

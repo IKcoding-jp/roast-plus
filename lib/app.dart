@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:bysnapp/pages/home/AssignmentBoard.dart';
 import 'package:bysnapp/pages/roast/roast_timer_page.dart';
 import 'package:bysnapp/pages/todo/todo_page.dart';
@@ -6,7 +7,6 @@ import 'package:bysnapp/pages/drip/drip_counter_page.dart';
 import 'package:bysnapp/pages/schedule/schedule_page.dart';
 import 'package:bysnapp/pages/dashboard/dashboard_page.dart';
 import 'models/gamification_provider.dart';
-import 'services/experience_manager.dart';
 import 'pages/gamification/badge_list_page.dart';
 import 'services/sync_firestore_all.dart';
 import 'services/auto_sync_service.dart';
@@ -57,6 +57,17 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
 
     // 通知からアプリが起動された時の処理
     _handleNotificationLaunch();
+
+    // デフォルトテーマの初期化
+    _initializeDefaultTheme();
+  }
+
+  /// デフォルトテーマの初期化
+  void _initializeDefaultTheme() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+      themeSettings.initializeDefaultTheme();
+    });
   }
 
   /// 通知からアプリが起動された時の処理
@@ -72,6 +83,22 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
     return Consumer<ThemeSettings>(
       builder: (context, themeSettings, child) {
         return MaterialApp(
+          // キーボードイベントのエラーを防ぐための設定
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                // キーボードイベントの処理を改善
+                viewInsets: MediaQuery.of(context).viewInsets,
+              ),
+              child: GestureDetector(
+                // キーボードイベントのエラーを防ぐため、タップでキーボードを閉じる
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                },
+                child: child!,
+              ),
+            );
+          },
           navigatorKey: _navigatorKey,
           title: 'BYSN業務アプリ',
           theme: ThemeData(
@@ -188,6 +215,7 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
             '/calendar': (context) => CalendarPage(),
             '/group': (context) => GroupListPage(),
             '/badges': (context) => BadgeListPage(),
+            '/badge_list': (context) => BadgeListPage(),
             '/help': (context) => UsageGuidePage(),
             '/settings': (context) => AppSettingsPage(),
             '/assignment_board': (context) => AssignmentBoard(),
@@ -240,63 +268,89 @@ class GroupRequiredWrapper extends StatefulWidget {
 }
 
 class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
-  bool _isLoading = true;
-  bool _hasGroup = false;
+  bool _hasPerformedInitialSync = false;
+  bool _isPerformingSync = false;
 
   @override
   void initState() {
     super.initState();
-    _checkGroupMembership();
+    // GroupProviderの初期化を開始（一度だけ）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      // データがなく、読み込み中でもない場合のみ初期化
+      if (groupProvider.groups.isEmpty && !groupProvider.loading) {
+        groupProvider.loadUserGroups();
+      }
+    });
   }
 
-  Future<void> _checkGroupMembership() async {
+  /// データ同期を実行
+  Future<void> _performDataSync() async {
+    if (_isPerformingSync) {
+      print('GroupRequiredWrapper: データ同期は既に実行中です');
+      return;
+    }
+
+    _isPerformingSync = true;
     try {
-      final groups = await GroupFirestoreService.getUserGroups();
+      print('GroupRequiredWrapper: 全データ同期を開始');
 
-      if (mounted) {
-        setState(() {
-          _hasGroup = groups.isNotEmpty;
-          _isLoading = false;
-        });
+      // タイムアウト付きでデータ同期を実行（軽量同期を使用）
+      await syncAllFirestoreData(context, isLightSync: true).timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          print('GroupRequiredWrapper: データ同期がタイムアウトしました');
+          throw TimeoutException('データ同期がタイムアウトしました');
+        },
+      );
 
-        // グループに参加している場合は全データ同期を実行
-        if (_hasGroup) {
-          await syncAllFirestoreData(context);
-        }
-      }
+      print('GroupRequiredWrapper: 全データ同期完了');
+      _hasPerformedInitialSync = true;
     } catch (e) {
-      print('グループ参加チェックエラー: $e');
-      if (mounted) {
-        setState(() {
-          _hasGroup = false;
-          _isLoading = false;
-        });
-      }
+      print('GroupRequiredWrapper: 全データ同期に失敗: $e');
+      // エラーが発生してもアプリの動作を継続
+    } finally {
+      _isPerformingSync = false;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('グループ情報を確認中...'),
-            ],
-          ),
-        ),
-      );
-    }
+    return Consumer<GroupProvider>(
+      builder: (context, groupProvider, child) {
+        // データ読み込み中の場合はローディング画面を表示
+        if (groupProvider.loading) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    '読み込み中...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
-    if (!_hasGroup) {
-      return const GroupRequiredPage();
-    }
+        // グループに参加していない場合はグループ参加ページを表示
+        if (!groupProvider.hasGroup) {
+          return const GroupRequiredPage();
+        }
 
-    return widget.child;
+        // グループに参加している場合はメイン画面を表示
+        // データ同期は後で自動的に実行されるため、ここでは実行しない
+        return widget.child;
+      },
+    );
   }
 }
 
@@ -778,31 +832,19 @@ class _MainScaffoldState extends State<MainScaffold> {
   }
 
   Future<void> _initializeAutoSync() async {
-    // 少し遅延を入れてから初期化（アプリの起動が完了してから）
-    await Future.delayed(Duration(seconds: 2));
-    await AutoSyncService.initialize();
+    // グループ作成直後はAutoSyncServiceの初期化をスキップ（クラッシュ防止のため）
+    print('MainScaffold: AutoSyncServiceの初期化をスキップ（グループ作成直後）');
 
-    // ExperienceManagerを初期化
-    try {
-      await ExperienceManager.instance.initialize();
-    } catch (e) {
-      print('ExperienceManager初期化エラー: $e');
-    }
-
-    // GroupProviderを初期化してグループデータの監視を開始
+    // GroupProviderを初期化（グループデータの監視は後で開始）
     if (mounted) {
       final groupProvider = context.read<GroupProvider>();
       await groupProvider.loadUserGroups();
-      if (groupProvider.hasGroup && mounted) {
-        groupProvider.startWatchingGroupData();
-      }
+      // グループデータの監視は後で開始（クラッシュ防止のため）
+      print('MainScaffold: グループデータ監視は後で開始');
     }
 
-    // GamificationProviderを初期化
-    if (mounted) {
-      final gamificationProvider = context.read<GamificationProvider>();
-      await gamificationProvider.initialize();
-    }
+    // GamificationProviderの初期化は後で実行（クラッシュ防止のため）
+    print('MainScaffold: GamificationProviderの初期化は後で実行');
   }
 
   void _onItemTapped(int index) {
@@ -915,7 +957,8 @@ class _MainScaffoldState extends State<MainScaffold> {
                   backgroundColor: themeSettings.bottomNavigationColor,
                   selectedItemColor:
                       themeSettings.bottomNavigationSelectedColor,
-                  unselectedItemColor: Colors.white,
+                  unselectedItemColor:
+                      themeSettings.bottomNavigationUnselectedColor,
                   selectedLabelStyle: TextStyle(
                     fontSize: fontSize,
                     fontFamily: themeSettings.fontFamily,

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as Math;
 import '../../models/theme_settings.dart';
 import '../../models/gamification_provider.dart';
 import '../../models/gamification_models.dart';
+import '../../models/group_provider.dart';
+import '../../models/group_gamification_models.dart';
 import '../../services/gamification_service.dart';
 
 class BadgeListPage extends StatefulWidget {
@@ -17,12 +20,14 @@ class _BadgeListPageState extends State<BadgeListPage>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   String _selectedCategory = 'all';
+  bool _isLoading = true;
+  GroupGamificationProfile? _cachedProfile;
 
   final Map<String, String> _categories = {
     'all': 'すべて',
     'attendance': '出勤',
     'roasting': '焙煎',
-    'drip': 'ドリップ',
+    'dripPack': 'ドリップパック',
     'level': 'レベル',
     'special': '特別',
   };
@@ -38,12 +43,65 @@ class _BadgeListPageState extends State<BadgeListPage>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
+
+    // プロフィールを事前読み込み
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _preloadProfile();
+    });
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+
+    // プロフィールの監視を停止
+    try {
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+        groupProvider.unwatchGroupGamificationProfile(groupId);
+      }
+    } catch (e) {
+      // エラーは無視（dispose中なので）
+    }
+
     super.dispose();
+  }
+
+  /// プロフィールを事前読み込み
+  Future<void> _preloadProfile() async {
+    try {
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+
+        // プロフィールの監視を開始（バックグラウンドで更新される）
+        groupProvider.watchGroupGamificationProfile(groupId);
+
+        final profile = groupProvider.getGroupGamificationProfile(groupId);
+
+        if (profile != null) {
+          setState(() {
+            _cachedProfile = profile;
+            _isLoading = false;
+          });
+        } else {
+          // プロフィールがキャッシュされていない場合は非同期で読み込み
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('プロフィール事前読み込みエラー: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -71,11 +129,57 @@ class _BadgeListPageState extends State<BadgeListPage>
         iconTheme: IconThemeData(color: themeSettings.iconColor),
         elevation: 0,
       ),
-      body: Consumer<GamificationProvider>(
-        builder: (context, gamificationProvider, child) {
-          if (!gamificationProvider.isInitialized) {
+      body: Consumer<GroupProvider>(
+        builder: (context, groupProvider, child) {
+          if (!groupProvider.hasGroup) {
             return Center(
-              child: CircularProgressIndicator(color: themeSettings.iconColor),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.groups_outlined,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'グループに参加すると\nバッジを確認できます',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade600,
+                      fontFamily: themeSettings.fontFamily,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final groupId = groupProvider.currentGroup!.id;
+
+          // キャッシュされたプロフィールを優先使用
+          GroupGamificationProfile? profile = _cachedProfile;
+          if (profile == null) {
+            profile = groupProvider.getGroupGamificationProfile(groupId);
+          }
+
+          if (profile == null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: themeSettings.iconColor),
+                  SizedBox(height: 16),
+                  Text(
+                    'バッジ情報を読み込み中...',
+                    style: TextStyle(
+                      color: themeSettings.fontColor2,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             );
           }
 
@@ -83,103 +187,15 @@ class _BadgeListPageState extends State<BadgeListPage>
             opacity: _fadeAnimation,
             child: Column(
               children: [
-                // ユーザー統計ヘッダー
-                _buildStatsHeader(gamificationProvider, themeSettings),
-
                 // カテゴリフィルター
                 _buildCategoryFilter(themeSettings),
 
                 // バッジグリッド
-                Expanded(
-                  child: _buildBadgeGrid(gamificationProvider, themeSettings),
-                ),
+                Expanded(child: _buildBadgeGrid(profile, themeSettings)),
               ],
             ),
           );
         },
-      ),
-    );
-  }
-
-  /// 統計ヘッダー
-  Widget _buildStatsHeader(
-    GamificationProvider provider,
-    ThemeSettings themeSettings,
-  ) {
-    final profile = provider.userProfile;
-    final earnedBadges = profile.badges.length;
-    final totalBadges = GamificationService.badgeConditions.length;
-
-    return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.amber.shade400, Colors.orange.shade600],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.amber.withOpacity(0.3),
-            blurRadius: 15,
-            spreadRadius: 2,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // バッジアイコン
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.3),
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-            child: Icon(Icons.emoji_events, color: Colors.white, size: 30),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'バッジコレクション',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18 * themeSettings.fontSizeScale,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: themeSettings.fontFamily,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '$earnedBadges / $totalBadges 獲得',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14 * themeSettings.fontSizeScale,
-                    fontFamily: themeSettings.fontFamily,
-                  ),
-                ),
-                SizedBox(height: 8),
-                // 進捗バー
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: earnedBadges / totalBadges,
-                    backgroundColor: Colors.white.withOpacity(0.3),
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    minHeight: 6,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -230,11 +246,11 @@ class _BadgeListPageState extends State<BadgeListPage>
 
   /// バッジグリッド
   Widget _buildBadgeGrid(
-    GamificationProvider provider,
+    GroupGamificationProfile profile,
     ThemeSettings themeSettings,
   ) {
     final filteredBadges = _getFilteredBadges();
-    final earnedBadgeIds = provider.userProfile.badges.map((b) => b.id).toSet();
+    final earnedBadgeIds = profile.badges.map((b) => b.id).toSet();
 
     return Padding(
       padding: EdgeInsets.all(16),
@@ -249,11 +265,9 @@ class _BadgeListPageState extends State<BadgeListPage>
         itemBuilder: (context, index) {
           final condition = filteredBadges[index];
           final isEarned = earnedBadgeIds.contains(condition.badgeId);
-          final progress = provider.getBadgeProgress(condition);
+          final progress = _calculateBadgeProgress(condition, profile);
           final earnedBadge = isEarned
-              ? provider.userProfile.badges.firstWhere(
-                  (b) => b.id == condition.badgeId,
-                )
+              ? profile.badges.firstWhere((b) => b.id == condition.badgeId)
               : null;
 
           return AnimatedContainer(
@@ -273,9 +287,157 @@ class _BadgeListPageState extends State<BadgeListPage>
     );
   }
 
+  /// バッジ進捗を計算
+  double _calculateBadgeProgress(
+    GroupBadgeCondition condition,
+    GroupGamificationProfile profile,
+  ) {
+    // グループの統計データに基づいて進捗を計算
+    final stats = profile.stats;
+
+    switch (condition.badgeId) {
+      // 出勤バッジの進捗率
+      case 'group_attendance_10':
+        return (stats.totalAttendanceDays / 10).clamp(0.0, 1.0);
+      case 'group_attendance_25':
+        return (stats.totalAttendanceDays / 25).clamp(0.0, 1.0);
+      case 'group_attendance_50':
+        return (stats.totalAttendanceDays / 50).clamp(0.0, 1.0);
+      case 'group_attendance_100':
+        return (stats.totalAttendanceDays / 100).clamp(0.0, 1.0);
+      case 'group_attendance_200':
+        return (stats.totalAttendanceDays / 200).clamp(0.0, 1.0);
+      case 'group_attendance_300':
+        return (stats.totalAttendanceDays / 300).clamp(0.0, 1.0);
+      case 'group_attendance_500':
+        return (stats.totalAttendanceDays / 500).clamp(0.0, 1.0);
+      case 'group_attendance_800':
+        return (stats.totalAttendanceDays / 800).clamp(0.0, 1.0);
+      case 'group_attendance_1000':
+        return (stats.totalAttendanceDays / 1000).clamp(0.0, 1.0);
+      case 'group_attendance_2000':
+        return (stats.totalAttendanceDays / 2000).clamp(0.0, 1.0);
+      case 'group_attendance_3000':
+        return (stats.totalAttendanceDays / 3000).clamp(0.0, 1.0);
+      case 'group_attendance_5000':
+        return (stats.totalAttendanceDays / 5000).clamp(0.0, 1.0);
+
+      // 焙煎時間バッジの進捗率（新システム）
+      case 'roast_time_10min':
+        return (stats.totalRoastTimeMinutes / 10).clamp(0.0, 1.0);
+      case 'roast_time_30min':
+        return (stats.totalRoastTimeMinutes / 30).clamp(0.0, 1.0);
+      case 'roast_time_1h':
+        return (stats.totalRoastTimeMinutes / 60).clamp(0.0, 1.0);
+      case 'roast_time_3h':
+        return (stats.totalRoastTimeMinutes / 180).clamp(0.0, 1.0);
+      case 'roast_time_6h':
+        return (stats.totalRoastTimeMinutes / 360).clamp(0.0, 1.0);
+      case 'roast_time_12h':
+        return (stats.totalRoastTimeMinutes / 720).clamp(0.0, 1.0);
+      case 'roast_time_25h':
+        return (stats.totalRoastTimeMinutes / 1500).clamp(0.0, 1.0);
+      case 'roast_time_50h':
+        return (stats.totalRoastTimeMinutes / 3000).clamp(0.0, 1.0);
+      case 'roast_time_100h':
+        return (stats.totalRoastTimeMinutes / 6000).clamp(0.0, 1.0);
+      case 'roast_time_166h':
+        return (stats.totalRoastTimeMinutes / 10000).clamp(0.0, 1.0);
+
+      // ドリップパックバッジの進捗率（新システム）
+      case 'drip_pack_50':
+        return (stats.totalDripPackCount / 50).clamp(0.0, 1.0);
+      case 'drip_pack_150':
+        return (stats.totalDripPackCount / 150).clamp(0.0, 1.0);
+      case 'drip_pack_500':
+        return (stats.totalDripPackCount / 500).clamp(0.0, 1.0);
+      case 'drip_pack_1000':
+        return (stats.totalDripPackCount / 1000).clamp(0.0, 1.0);
+      case 'drip_pack_2000':
+        return (stats.totalDripPackCount / 2000).clamp(0.0, 1.0);
+      case 'drip_pack_5000':
+        return (stats.totalDripPackCount / 5000).clamp(0.0, 1.0);
+      case 'drip_pack_8000':
+        return (stats.totalDripPackCount / 8000).clamp(0.0, 1.0);
+      case 'drip_pack_12000':
+        return (stats.totalDripPackCount / 12000).clamp(0.0, 1.0);
+      case 'drip_pack_16000':
+        return (stats.totalDripPackCount / 16000).clamp(0.0, 1.0);
+      case 'drip_pack_20000':
+        return (stats.totalDripPackCount / 20000).clamp(0.0, 1.0);
+      case 'drip_pack_25000':
+        return (stats.totalDripPackCount / 25000).clamp(0.0, 1.0);
+      case 'drip_pack_30000':
+        return (stats.totalDripPackCount / 30000).clamp(0.0, 1.0);
+      case 'drip_pack_50000':
+        return (stats.totalDripPackCount / 50000).clamp(0.0, 1.0);
+
+      // レベルバッジの進捗率
+      case 'group_level_5':
+        return _calculateLevelProgress(stats, 5);
+      case 'group_level_10':
+        return _calculateLevelProgress(stats, 10);
+      case 'group_level_20':
+        return _calculateLevelProgress(stats, 20);
+      case 'group_level_50':
+        return _calculateLevelProgress(stats, 50);
+      case 'group_level_100':
+        return _calculateLevelProgress(stats, 100);
+
+      // 特殊バッジの進捗率
+      case 'group_tasting_100':
+        return (stats.totalTastingRecords / 100).clamp(0.0, 1.0);
+
+      default:
+        return 0.0;
+    }
+  }
+
+  /// レベル進捗を計算
+  double _calculateLevelProgress(GroupStats stats, int requiredLevel) {
+    // 実際のグループレベルを使用（統計から推定するのではなく）
+    try {
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+        final profile = groupProvider.getGroupGamificationProfile(groupId);
+        if (profile != null) {
+          return (profile.level / requiredLevel).clamp(0.0, 1.0);
+        }
+      }
+    } catch (e) {
+      print('レベル進捗計算エラー: $e');
+    }
+
+    // フォールバック: 統計から経験値を推定してレベルを計算
+    final estimatedXP =
+        (stats.totalAttendanceDays * 10) +
+        (stats.totalRoastTimeMinutes.toInt() * 1) +
+        (stats.totalDripPackCount * 5) +
+        (stats.totalTastingRecords * 20);
+
+    final estimatedLevel = _calculateLevelFromXP(estimatedXP);
+    return (estimatedLevel / requiredLevel).clamp(0.0, 1.0);
+  }
+
+  /// 経験値からレベルを計算
+  int _calculateLevelFromXP(int experiencePoints) {
+    int level = 1;
+    while (experiencePoints >= _calculateRequiredXP(level + 1)) {
+      level++;
+    }
+    return level;
+  }
+
+  /// レベルに必要な経験値を計算
+  int _calculateRequiredXP(int level) {
+    if (level <= 1) return 0;
+    return (50 * level * Math.pow(level, 0.5)).round();
+  }
+
   /// フィルタリングされたバッジリスト
-  List<BadgeCondition> _getFilteredBadges() {
-    final allBadges = GamificationService.badgeConditions;
+  List<GroupBadgeCondition> _getFilteredBadges() {
+    final allBadges = GroupBadgeConditions.conditions;
 
     if (_selectedCategory == 'all') {
       return allBadges;
@@ -284,49 +446,15 @@ class _BadgeListPageState extends State<BadgeListPage>
     return allBadges.where((badge) {
       switch (_selectedCategory) {
         case 'attendance':
-          return [
-            'work_5',
-            'work_20',
-            'work_60',
-            'work_200',
-            'work_500',
-            'work_2000',
-          ].contains(badge.badgeId);
+          return badge.category == BadgeCategory.attendance;
         case 'roasting':
-          return [
-            'roast_1h',
-            'roast_5h',
-            'roast_20h',
-            'roast_50h',
-            'roast_150h',
-            'roast_500h',
-          ].contains(badge.badgeId);
-        case 'drip':
-          return [
-            'drip_300',
-            'drip_1000',
-            'drip_5000',
-            'drip_15000',
-            'drip_50000',
-            'drip_150000',
-          ].contains(badge.badgeId);
+          return badge.category == BadgeCategory.roasting;
+        case 'dripPack':
+          return badge.category == BadgeCategory.dripPack;
         case 'level':
-          return [
-            'level_5',
-            'level_10',
-            'level_25',
-            'level_50',
-            'level_100',
-            'level_200',
-          ].contains(badge.badgeId);
+          return badge.category == BadgeCategory.level;
         case 'special':
-          return [
-            'balanced_starter',
-            'balanced_master',
-            'coffee_legend',
-            'early_bird',
-            'consistent_worker',
-          ].contains(badge.badgeId);
+          return badge.category == BadgeCategory.special;
         default:
           return false;
       }
@@ -336,10 +464,10 @@ class _BadgeListPageState extends State<BadgeListPage>
 
 /// 個別バッジカードウィジェット
 class BadgeCard extends StatefulWidget {
-  final BadgeCondition condition;
+  final GroupBadgeCondition condition;
   final bool isEarned;
   final double progress;
-  final UserBadge? earnedBadge;
+  final GroupBadge? earnedBadge;
   final ThemeSettings themeSettings;
   final int animationDelay;
 
@@ -515,8 +643,30 @@ class _BadgeCardState extends State<BadgeCard>
                   ),
                 ),
 
-                // 進捗テキスト
-                if (!widget.isEarned)
+                // 進捗ゲージとテキスト
+                if (!widget.isEarned) ...[
+                  SizedBox(height: 8),
+                  // 進捗バー
+                  Container(
+                    width: double.infinity,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: widget.progress,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: widget.condition.color,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  // 進捗テキスト
                   Text(
                     '${(widget.progress * 100).toInt()}%',
                     style: TextStyle(
@@ -526,6 +676,7 @@ class _BadgeCardState extends State<BadgeCard>
                       fontFamily: widget.themeSettings.fontFamily,
                     ),
                   ),
+                ],
 
                 // 獲得日時
                 if (widget.isEarned && widget.earnedBadge != null)

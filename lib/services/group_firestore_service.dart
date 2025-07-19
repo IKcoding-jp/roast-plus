@@ -3,14 +3,42 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_models.dart';
 
 import 'dart:math';
+import 'dart:async';
 
 class GroupFirestoreService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
 
+  // リトライ設定
+  static const int _maxRetries = 3;
+  static const Duration _retryDelay = Duration(seconds: 2);
+  static const Duration _timeout = Duration(seconds: 30);
+
   static String? get _uid {
     final uid = _auth.currentUser?.uid;
     return uid != null && uid.isNotEmpty ? uid : null;
+  }
+
+  /// リトライ機能付きの操作実行
+  static Future<T> _retryOperation<T>(Future<T> Function() operation) async {
+    int retryCount = 0;
+    while (true) {
+      try {
+        return await operation().timeout(_timeout);
+      } catch (e) {
+        retryCount++;
+        print('GroupFirestoreService: 操作失敗 (試行 $retryCount/$_maxRetries): $e');
+
+        if (retryCount >= _maxRetries) {
+          print('GroupFirestoreService: 最大リトライ回数に達しました');
+          rethrow;
+        }
+
+        // リトライ前に少し待機
+        await Future.delayed(_retryDelay);
+        print('GroupFirestoreService: リトライ中...');
+      }
+    }
   }
 
   static String? get _email {
@@ -38,78 +66,114 @@ class GroupFirestoreService {
     required String name,
     required String description,
   }) async {
-    if (_uid == null) throw Exception('未ログイン');
-    if (_email == null) throw Exception('メールアドレスが取得できません');
+    return _retryOperation(() async {
+      try {
+        print('GroupFirestoreService: グループ作成開始');
 
-    final now = DateTime.now();
-    final groupId = _firestore.collection('groups').doc().id;
+        if (_uid == null) throw Exception('未ログイン');
+        if (_email == null) throw Exception('メールアドレスが取得できません');
 
-    final creator = GroupMember(
-      uid: _uid!,
-      email: _email!,
-      displayName: _displayName ?? 'Unknown User',
-      photoUrl: _photoUrl,
-      role: GroupRole.admin, // グループ作成者は管理者として扱う
-      joinedAt: now,
-      lastActiveAt: now,
-    );
+        final now = DateTime.now();
+        final groupId = _firestore.collection('groups').doc().id;
 
-    // デフォルト設定を作成
-    final defaultSettings = GroupSettings.defaultSettings();
+        print('GroupFirestoreService: グループID生成: $groupId');
 
-    // 招待コードを生成（8文字のランダム文字列）
-    final inviteCode = _generateInviteCode();
+        final creator = GroupMember(
+          uid: _uid!,
+          email: _email!,
+          displayName: _displayName ?? 'Unknown User',
+          photoUrl: _photoUrl,
+          role: GroupRole.admin, // グループ作成者は管理者として扱う
+          joinedAt: now,
+          lastActiveAt: now,
+        );
 
-    final group = Group(
-      id: groupId,
-      name: name,
-      description: description,
-      createdBy: _uid!,
-      createdAt: now,
-      updatedAt: now,
-      members: [creator],
-      settings: defaultSettings.toJson(),
-      inviteCode: inviteCode,
-    );
+        // デフォルト設定を作成
+        final defaultSettings = GroupSettings.defaultSettings();
 
-    await _firestore.collection('groups').doc(groupId).set(group.toJson());
+        // 招待コードを生成（8文字のランダム文字列）
+        final inviteCode = _generateInviteCode();
 
-    // ユーザーのグループ参加情報も保存
-    await _firestore
-        .collection('users')
-        .doc(_uid)
-        .collection('userGroups')
-        .doc(groupId)
-        .set({
-          'groupId': groupId,
-          'groupName': name,
-          'role': GroupRole.admin.name,
-          'joinedAt': now.toIso8601String(),
-        });
+        print('GroupFirestoreService: 招待コード生成: $inviteCode');
 
-    return group;
+        final group = Group(
+          id: groupId,
+          name: name,
+          description: description,
+          createdBy: _uid!,
+          createdAt: now,
+          updatedAt: now,
+          members: [creator],
+          settings: defaultSettings.toJson(),
+          inviteCode: inviteCode,
+        );
+
+        print('GroupFirestoreService: グループドキュメント保存開始');
+        await _firestore
+            .collection('groups')
+            .doc(groupId)
+            .set(group.toJson())
+            .timeout(_timeout);
+        print('GroupFirestoreService: グループドキュメント保存完了');
+
+        // ユーザーのグループ参加情報も保存
+        print('GroupFirestoreService: ユーザーグループ情報保存開始');
+        await _firestore
+            .collection('users')
+            .doc(_uid)
+            .collection('userGroups')
+            .doc(groupId)
+            .set({
+              'groupId': groupId,
+              'groupName': name,
+              'role': GroupRole.admin.name,
+              'joinedAt': now.toIso8601String(),
+            })
+            .timeout(_timeout);
+        print('GroupFirestoreService: ユーザーグループ情報保存完了');
+
+        print('GroupFirestoreService: グループ作成完了');
+        return group;
+      } catch (e) {
+        print('GroupFirestoreService: グループ作成エラー: $e');
+        rethrow;
+      }
+    });
   }
 
   /// ユーザーが参加しているグループを取得
   static Future<List<Group>> getUserGroups() async {
-    if (_uid == null || _uid!.isEmpty) throw Exception('未ログイン');
+    return _retryOperation(() async {
+      if (_uid == null || _uid!.isEmpty) throw Exception('未ログイン');
 
-    final userGroupsSnapshot = await _firestore
-        .collection('users')
-        .doc(_uid)
-        .collection('userGroups')
-        .get();
+      final userGroupsSnapshot = await _firestore
+          .collection('users')
+          .doc(_uid)
+          .collection('userGroups')
+          .get()
+          .timeout(_timeout);
 
-    final groups = <Group>[];
-    for (final doc in userGroupsSnapshot.docs) {
-      final groupId = doc.data()['groupId'] as String;
-      final groupDoc = await _firestore.collection('groups').doc(groupId).get();
-      if (groupDoc.exists) {
-        groups.add(Group.fromJson(groupDoc.data()!));
+      if (userGroupsSnapshot.docs.isEmpty) {
+        return [];
       }
-    }
 
-    return groups;
+      // 並列でグループ情報を取得（読み込み時間を短縮）
+      final futures = userGroupsSnapshot.docs.map((doc) async {
+        final groupId = doc.data()['groupId'] as String;
+        final groupDoc = await _firestore
+            .collection('groups')
+            .doc(groupId)
+            .get()
+            .timeout(_timeout);
+        if (groupDoc.exists) {
+          return Group.fromJson(groupDoc.data()!);
+        }
+        return null;
+      });
+
+      final results = await Future.wait(futures);
+      return results.whereType<Group>().toList();
+    });
   }
 
   /// グループの詳細を取得
@@ -130,11 +194,20 @@ class GroupFirestoreService {
       throw Exception('リーダーのみグループを更新できます');
     }
 
+    // 更新日時を現在時刻に設定
     final updatedGroup = group.copyWith(updatedAt: DateTime.now());
+
+    print('GroupFirestoreService: グループ更新開始');
+    print('GroupFirestoreService: グループID: ${group.id}');
+    print('GroupFirestoreService: 新しい名前: ${updatedGroup.name}');
+    print('GroupFirestoreService: 新しい説明: ${updatedGroup.description}');
+
     await _firestore
         .collection('groups')
         .doc(group.id)
         .update(updatedGroup.toJson());
+
+    print('GroupFirestoreService: グループ更新完了');
   }
 
   /// グループを削除

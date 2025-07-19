@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/tasting_models.dart';
 import '../../models/theme_settings.dart';
-import '../../services/experience_manager.dart';
+import '../../models/group_provider.dart';
 
 class TastingRecordEditPage extends StatefulWidget {
   final TastingRecord? tastingRecord;
@@ -306,29 +306,38 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
       } else {
         await tastingProvider.addTastingRecord(tastingRecord);
 
-        // 新規作成時のみ経験値を獲得
-        final result = await ExperienceManager.instance.addTastingExperience(
-          tastingDate: _selectedDate,
-        );
+        // グループレベルシステムで試飲記録を処理
+        await _processTastingForGroup();
 
-        if (result.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('試飲感想記録を保存しました (+${result.xpGained}XP)'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('試飲感想記録を保存しました')));
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('試飲感想記録を保存しました'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('保存に失敗しました')));
+    }
+  }
+
+  /// グループレベルシステムで試飲記録を処理
+  Future<void> _processTastingForGroup() async {
+    try {
+      // グループプロバイダーを取得
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+
+        // グループのゲーミフィケーションシステムに通知
+        await groupProvider.processGroupTasting(groupId, context: context);
+      }
+    } catch (e) {
+      print('グループレベルシステム処理エラー: $e');
     }
   }
 

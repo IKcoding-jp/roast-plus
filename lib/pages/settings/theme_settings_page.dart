@@ -97,41 +97,19 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       ),
       body: _isDonorUser == null
           ? Center(child: CircularProgressIndicator())
-          : _isDonorUser != true
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.volunteer_activism, size: 48, color: Colors.amber),
-                  SizedBox(height: 16),
-                  Text(
-                    'この機能は寄付者限定です',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '300円以上の寄付でテーマカスタマイズが解放されます',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const DonationPage()),
-                    ),
-                    child: Text('寄付して応援する'),
-                  ),
-                ],
-              ),
-            )
           : Container(
               color: themeSettings.backgroundColor,
               padding: const EdgeInsets.all(16),
               child: ListView(
                 children: [
                   _buildPresetSection(context, themeSettings),
-                  const SizedBox(height: 24),
-                  _buildCustomThemesSection(context, themeSettings),
+                  if (_isDonorUser == true) ...[
+                    const SizedBox(height: 24),
+                    _buildCustomThemesSection(context, themeSettings),
+                  ] else ...[
+                    const SizedBox(height: 24),
+                    _buildDonationSection(context, themeSettings),
+                  ],
                 ],
               ),
             ),
@@ -168,7 +146,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             const SizedBox(height: 16),
 
             // 基本テーマ
-            _buildThemeCategory(context, themeSettings, '基本', [
+            _buildThemeCategory(context, themeSettings, '基本 ⚙️', [
               'デフォルト',
               'ダーク',
               'ライト',
@@ -176,14 +154,15 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
             const SizedBox(height: 16),
 
-            // コーヒー系テーマ
-            _buildThemeCategory(context, themeSettings, 'コーヒー ☕', [
-              'ブラウン',
-              'ベージュ',
-              'エスプレッソ',
-              'カプチーノ',
-              'キャラメル',
-            ], Icons.local_cafe),
+            // パステル系テーマ
+            _buildPastelThemeCategory(context, themeSettings, 'パステル 🌸', [
+              'ピンク',
+              'ブルー',
+              'グリーン',
+              'イエロー',
+              'パープル',
+              'ピーチ',
+            ], Icons.brush),
 
             const SizedBox(height: 16),
 
@@ -210,18 +189,24 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
             const SizedBox(height: 16),
 
+            // コーヒー系テーマ
+            _buildThemeCategory(context, themeSettings, 'コーヒー ☕', [
+              'ブラウン',
+              'ベージュ',
+              'エスプレッソ',
+              'カプチーノ',
+              'キャラメル',
+            ], Icons.local_cafe),
+
+            const SizedBox(height: 16),
+
             // エレガント系テーマ
             _buildThemeCategory(context, themeSettings, 'エレガント 💎', [
               'サクラ',
               'ラベンダー',
+              'ゴールド',
+              'シルバー',
             ], Icons.auto_awesome),
-
-            const SizedBox(height: 16),
-
-            // シンプル系テーマ
-            _buildThemeCategory(context, themeSettings, 'シンプル ⚪', [
-              'ライトグレー',
-            ], Icons.circle_outlined),
           ],
         ),
       ),
@@ -229,6 +214,47 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   Widget _buildThemeCategory(
+    BuildContext context,
+    ThemeSettings themeSettings,
+    String categoryName,
+    List<String> themeNames,
+    IconData categoryIcon,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(categoryIcon, size: 20, color: themeSettings.iconColor),
+            const SizedBox(width: 8),
+            Text(
+              categoryName,
+              style: TextStyle(
+                fontSize: 16 * themeSettings.fontSizeScale,
+                fontWeight: FontWeight.w600,
+                color: themeSettings.fontColor1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: themeNames.map((presetName) {
+            return _PresetButton(
+              presetName: presetName,
+              onPressed: () {
+                themeSettings.applyPreset(presetName);
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPastelThemeCategory(
     BuildContext context,
     ThemeSettings themeSettings,
     String categoryName,
@@ -284,7 +310,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.save, color: themeSettings.iconColor),
+                Icon(Icons.folder, color: themeSettings.iconColor),
                 const SizedBox(width: 8),
                 Text(
                   'カスタムテーマ',
@@ -300,10 +326,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             if (_customThemes.isEmpty)
               Center(
                 child: Text(
-                  '保存されたカスタムテーマはありません',
+                  'カスタムテーマがありません',
                   style: TextStyle(
-                    color: themeSettings.fontColor1.withOpacity(0.6),
-                    fontStyle: FontStyle.italic,
+                    color: themeSettings.fontColor1,
+                    fontSize: 16,
                   ),
                 ),
               )
@@ -314,15 +340,81 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 children: _customThemes.keys.map((themeName) {
                   return _CustomThemeButton(
                     themeName: themeName,
-                    themeData: _customThemes[themeName]!,
-                    onPressed: () async {
-                      await themeSettings.applyCustomTheme(themeName);
+                    onPressed: () {
+                      themeSettings.applyCustomTheme(themeName);
                     },
-                    onLongPress: () =>
-                        _showCustomThemeOptions(context, themeName),
+                    onDelete: () async {
+                      await ThemeSettings.deleteCustomTheme(themeName);
+                      await _loadCustomThemes();
+                    },
                   );
                 }).toList(),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDonationSection(
+    BuildContext context,
+    ThemeSettings themeSettings,
+  ) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: themeSettings.backgroundColor2 ?? Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.volunteer_activism, color: Colors.amber),
+                const SizedBox(width: 8),
+                Text(
+                  'カスタムテーマ機能',
+                  style: TextStyle(
+                    fontSize: 18 * themeSettings.fontSizeScale,
+                    fontWeight: FontWeight.bold,
+                    color: themeSettings.fontColor1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'この機能は寄付者限定です',
+              style: TextStyle(
+                fontSize: 16 * themeSettings.fontSizeScale,
+                fontWeight: FontWeight.bold,
+                color: themeSettings.fontColor1,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '300円以上の寄付でテーマカスタマイズが解放されます',
+              style: TextStyle(
+                fontSize: 14 * themeSettings.fontSizeScale,
+                color: themeSettings.fontColor1,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DonationPage()),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: themeSettings.buttonColor,
+                  foregroundColor: themeSettings.fontColor2,
+                ),
+                child: const Text('寄付して応援する'),
+              ),
+            ),
           ],
         ),
       ),
@@ -687,8 +779,12 @@ class _PresetButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: preset?['buttonColor'] ?? Colors.grey,
-          foregroundColor: preset?['fontColor2'] ?? Colors.white,
+          backgroundColor: isLight
+              ? Colors.white
+              : (preset?['buttonColor'] ?? Colors.grey),
+          foregroundColor: isLight
+              ? Colors.black87
+              : (preset?['fontColor2'] ?? Colors.white),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
@@ -746,8 +842,6 @@ class _PresetButton extends StatelessWidget {
         return Icons.dark_mode;
       case 'ライト':
         return Icons.light_mode;
-      case 'ライトグレー':
-        return Icons.contrast;
       case 'ブラウン':
         return Icons.coffee;
       case 'ベージュ':
@@ -783,8 +877,25 @@ class _PresetButton extends StatelessWidget {
         return Icons.local_florist;
       case 'ラベンダー':
         return Icons.auto_awesome;
+      case 'ゴールド':
+        return Icons.star;
+      case 'シルバー':
+        return Icons.star_border;
       case 'サンセット':
         return Icons.wb_sunny;
+
+      case 'ピンク':
+        return Icons.favorite_border;
+      case 'ブルー':
+        return Icons.water_drop;
+      case 'グリーン':
+        return Icons.eco;
+      case 'イエロー':
+        return Icons.wb_sunny_outlined;
+      case 'パープル':
+        return Icons.auto_awesome_outlined;
+      case 'ピーチ':
+        return Icons.local_florist_outlined;
 
       default:
         return Icons.palette;
@@ -835,27 +946,24 @@ class _ColorPickerTile extends StatelessWidget {
 
 class _CustomThemeButton extends StatelessWidget {
   final String themeName;
-  final Map<String, Color> themeData;
   final VoidCallback onPressed;
-  final VoidCallback onLongPress;
+  final VoidCallback onDelete;
 
   const _CustomThemeButton({
     required this.themeName,
-    required this.themeData,
     required this.onPressed,
-    required this.onLongPress,
+    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final paletteColor = (themeName == 'ライト') ? Colors.black : Colors.white;
     return GestureDetector(
-      onLongPress: onLongPress,
+      onLongPress: onDelete,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: themeData['buttonColor'] ?? Colors.grey,
-          foregroundColor: themeData['fontColor2'] ?? Colors.white,
+          backgroundColor: Colors.grey.shade300,
+          foregroundColor: Colors.black87,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -864,7 +972,7 @@ class _CustomThemeButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.palette, color: paletteColor, size: 20),
+            Icon(Icons.palette, color: Colors.black87, size: 20),
             const SizedBox(width: 8),
             Text(
               themeName,
