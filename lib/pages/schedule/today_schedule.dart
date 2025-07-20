@@ -12,6 +12,7 @@ import '../../models/group_models.dart';
 import '../../services/schedule_firestore_service.dart' as ScheduleService;
 import '../../services/user_settings_firestore_service.dart';
 import '../schedule/schedule_time_label_edit_page.dart';
+import '../../services/group_firestore_service.dart';
 
 // ▼▼▼ 範囲管理用クラスを追加 ▼▼▼
 class _ArrowRange {
@@ -38,7 +39,7 @@ class _TodayScheduleState extends State<TodaySchedule> {
   List<String> _scheduleLabels = [''];
   Map<String, String> _scheduleContents = {};
   bool _canEditTodaySchedule = true;
-  bool _canEditTimeLabels = true;
+  // time_labelsの権限は削除 - today_scheduleと一本化
 
   // ▼▼▼ 複数範囲用 ▼▼▼
   final List<_ArrowRange> _arrowRanges = [];
@@ -58,6 +59,7 @@ class _TodayScheduleState extends State<TodaySchedule> {
   StreamSubscription? _timeLabelsSubscription;
   StreamSubscription? _groupTimeLabelsSubscription;
   StreamSubscription? _groupTodayScheduleSubscription;
+  StreamSubscription? _groupSettingsSubscription;
 
   // ラベル追加・削除・初期化時にコントローラを管理
   void _initScheduleControllers() {
@@ -165,15 +167,19 @@ class _TodayScheduleState extends State<TodaySchedule> {
   @override
   void initState() {
     super.initState();
+    print('TodaySchedule: initState開始');
     _loadSchedules();
     _loadArrowRanges(); // ← 追加
     _setupGroupDataListener();
-    _checkEditPermissions();
     _setupFirestoreListener();
 
     // GroupProviderのグループ読み込みを確認
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final groupProvider = context.read<GroupProvider>();
+      print(
+        'TodaySchedule: GroupProvider確認 - グループ数: ${groupProvider.groups.length}, 読み込み中: ${groupProvider.loading}',
+      );
+
       if (groupProvider.groups.isEmpty && !groupProvider.loading) {
         print('TodaySchedule: グループが読み込まれていないため、読み込みを開始します');
         groupProvider.loadUserGroups();
@@ -181,7 +187,26 @@ class _TodayScheduleState extends State<TodaySchedule> {
         print('TodaySchedule: グループが既に読み込まれています - グループデータ監視を開始');
         _startGroupDataWatching(groupProvider);
         _setupGroupTimeLabelsListener();
+        // グループが既に読み込まれている場合は権限チェックを実行
+        _checkEditPermissions();
+        // グループデータの初期読み込み
+        _loadGroupData();
       }
+    });
+
+    // 初期権限チェックを実行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkEditPermissions();
+    });
+
+    // グループ監視を確実に設定
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupGroupTimeLabelsListener();
+    });
+
+    // グループデータの初期読み込み
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadGroupData();
     });
   }
 
@@ -192,11 +217,22 @@ class _TodayScheduleState extends State<TodaySchedule> {
     _timeLabelsSubscription?.cancel();
     _groupTimeLabelsSubscription?.cancel();
     _groupTodayScheduleSubscription?.cancel();
+    _groupSettingsSubscription?.cancel();
 
     // テキストコントローラーを破棄
     for (final c in _scheduleControllers.values) {
       c.dispose();
     }
+    _scheduleControllers.clear();
+
+    // GroupProviderのリスナーを解除
+    try {
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      groupProvider.removeListener(() {});
+    } catch (e) {
+      // dispose中なのでエラーは無視
+    }
+
     super.dispose();
   }
 
@@ -219,38 +255,55 @@ class _TodayScheduleState extends State<TodaySchedule> {
         );
       }
 
-      setState(() {
-        _scheduleLabels = loadedLabels;
-        _scheduleContents = loadedContents;
-      });
-      _initScheduleControllers();
-      await _loadArrowRanges(); // ← 追加
-      setState(() {}); // _arrowRangesの反映
+      if (mounted) {
+        setState(() {
+          _scheduleLabels = loadedLabels;
+          _scheduleContents = loadedContents;
+        });
+        _initScheduleControllers();
+        await _loadArrowRanges(); // ← 追加
+        if (mounted) {
+          setState(() {}); // _arrowRangesの反映
+        }
+      }
     } catch (_) {
-      setState(() {
-        _scheduleLabels = [];
-        _scheduleContents = {};
-      });
-      _initScheduleControllers();
-      _arrowRanges.clear();
-      setState(() {});
+      if (mounted) {
+        setState(() {
+          _scheduleLabels = [];
+          _scheduleContents = {};
+        });
+        _initScheduleControllers();
+        _arrowRanges.clear();
+        if (mounted) {
+          setState(() {});
+        }
+      }
     }
   }
 
-  // ラベル編集後やスケジュールロード後にもコントローラを再初期化
+  // 時間ラベル編集後やスケジュールロード後にもコントローラを再初期化
   void _openLabelEdit() async {
+    // 権限がない場合は編集を許可しない
+    if (!_canEditTodaySchedule) {
+      print('TodaySchedule: 時間ラベル編集権限がないため、編集を許可しません');
+      return;
+    }
+
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ScheduleTimeLabelEditPage(
           labels: _scheduleLabels,
-          onLabelsChanged: (newLabels) {
+          onLabelsChanged: (newLabels) async {
+            print('TodaySchedule: 時間ラベル変更検知: $newLabels');
             setState(() {
               _scheduleLabels = List.from(newLabels);
               // _scheduleContents からは値を消さずに残す（ラベルが復活したときに内容も復活するため）
               _initScheduleControllers();
             });
-            _saveSchedules();
+
+            // 時間ラベルを保存（グループ同期も含む）
+            await _saveTimeLabels(newLabels);
           },
         ),
       ),
@@ -314,28 +367,69 @@ class _TodayScheduleState extends State<TodaySchedule> {
     }
   }
 
+  // 時間ラベルのグループ同期を実行
+  Future<void> _triggerGroupTimeLabelsSync(List<String> labels) async {
+    try {
+      print('TodaySchedule: 時間ラベルグループ同期を開始');
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+
+        // today_scheduleデータタイプで時間ラベルを同期
+        await GroupDataSyncService.syncTodaySchedule(group.id, {
+          'labels': labels,
+          'contents': _scheduleContents, // 既存の内容も含める
+          'savedAt': DateTime.now().toIso8601String(),
+        });
+        print('TodaySchedule: 時間ラベルグループ同期完了');
+      }
+    } catch (e) {
+      print('TodaySchedule: 時間ラベルグループ同期エラー: $e');
+    }
+  }
+
   // 時間ラベル保存用のメソッドを追加
   Future<void> _saveTimeLabels(List<String> labels) async {
     try {
+      print('TodaySchedule: 時間ラベル保存開始: $labels');
+
+      // ローカル保存
       await UserSettingsFirestoreService.saveSetting(
         'todaySchedule_labels',
         labels,
       );
-      setState(() {
-        _scheduleLabels = List.from(labels);
-        _initScheduleControllers();
-      });
+
+      if (mounted) {
+        setState(() {
+          _scheduleLabels = List.from(labels);
+          _initScheduleControllers();
+        });
+      }
+
       final groupProvider = context.read<GroupProvider>();
       final isNoGroup = groupProvider.groups.isEmpty;
-      if (_canEditTimeLabels || isNoGroup) {
+
+      // グループ未参加時 or 編集権限がある場合はFirestoreに保存
+      if (_canEditTodaySchedule || isNoGroup) {
         try {
+          print('TodaySchedule: 時間ラベルFirestore保存開始');
           await ScheduleService.ScheduleFirestoreService.saveTimeLabels(labels);
+          print('TodaySchedule: 時間ラベルFirestore保存完了');
+
+          // グループ参加時のみグループ同期
+          if (!isNoGroup) {
+            await _triggerGroupTimeLabelsSync(labels);
+          }
         } catch (e) {
           print('TodaySchedule: 時間ラベルFirestore保存エラー: $e');
         }
+      } else {
+        print('TodaySchedule: メンバーのため、ローカル保存のみ実行');
       }
+
+      print('TodaySchedule: 時間ラベル保存完了');
     } catch (e) {
-      print('時間ラベル保存エラー: $e');
+      print('TodaySchedule: 時間ラベル保存エラー: $e');
     }
   }
 
@@ -375,7 +469,7 @@ class _TodayScheduleState extends State<TodaySchedule> {
       }
 
       // 時間ラベルの変更を監視（メンバーのみ）
-      if (!_canEditTimeLabels) {
+      if (!_canEditTodaySchedule) {
         _timeLabelsSubscription = FirebaseFirestore.instance
             .collection('users')
             .doc(FirebaseAuth.instance.currentUser?.uid)
@@ -406,14 +500,72 @@ class _TodayScheduleState extends State<TodaySchedule> {
   // グループの時間ラベル変更を監視
   void _setupGroupTimeLabelsListener() {
     try {
+      print('TodaySchedule: グループ時間ラベルリスナー設定開始');
+
+      // 既存の監視をキャンセル
+      _groupTimeLabelsSubscription?.cancel();
+      _groupTodayScheduleSubscription?.cancel();
+      _groupSettingsSubscription?.cancel();
+
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.groups.isNotEmpty) {
         final group = groupProvider.groups.first;
+        print(
+          'TodaySchedule: グループ監視設定 - グループID: ${group.id}, 編集権限: $_canEditTodaySchedule',
+        );
+
+        // グループ設定の変更を監視
+        _groupSettingsSubscription =
+            GroupFirestoreService.watchGroupSettings(group.id).listen((
+              groupSettings,
+            ) {
+              if (!mounted) return;
+              print('TodaySchedule: グループ設定変更検知: $groupSettings');
+
+              if (groupSettings != null) {
+                final currentUser = FirebaseAuth.instance.currentUser;
+                if (currentUser != null) {
+                  final userRole = group.getMemberRole(currentUser.uid);
+                  if (userRole != null) {
+                    print('TodaySchedule: 設定変更時の権限チェック - ユーザーロール: $userRole');
+                    print(
+                      'TodaySchedule: 設定変更時のグループ設定: ${groupSettings.dataPermissions}',
+                    );
+
+                    final canEditTodaySchedule = groupSettings.canEditDataType(
+                      'today_schedule',
+                      userRole,
+                    );
+
+                    print(
+                      'TodaySchedule: 設定変更による権限チェック - today_schedule: $canEditTodaySchedule',
+                    );
+
+                    if (mounted) {
+                      setState(() {
+                        _canEditTodaySchedule = canEditTodaySchedule;
+                      });
+                      print('TodaySchedule: 設定変更によるsetState実行完了');
+
+                      // 権限変更後にグループ監視を再設定
+                      _setupGroupTimeLabelsListener();
+                    }
+                  } else {
+                    print('TodaySchedule: 設定変更時 - ユーザーロールがnull');
+                  }
+                } else {
+                  print('TodaySchedule: 設定変更時 - 現在のユーザーがnull');
+                }
+              } else {
+                print('TodaySchedule: 設定変更時 - グループ設定がnull');
+              }
+            });
 
         // グループの時間ラベル変更を監視（メンバーのみ）
-        if (!_canEditTimeLabels) {
+        if (!_canEditTodaySchedule) {
+          print('TodaySchedule: 時間ラベル監視を開始（メンバー）');
           _groupTimeLabelsSubscription =
-              GroupDataSyncService.watchGroupTimeLabels(group.id).listen((
+              GroupDataSyncService.watchGroupTodaySchedule(group.id).listen((
                 data,
               ) {
                 if (!mounted) return; // mountedチェックを追加
@@ -429,10 +581,13 @@ class _TodayScheduleState extends State<TodaySchedule> {
                   }
                 }
               });
+        } else {
+          print('TodaySchedule: 時間ラベル監視をスキップ（編集権限あり）');
         }
 
         // グループの本日のスケジュール変更を監視（メンバーのみ）
         if (!_canEditTodaySchedule) {
+          print('TodaySchedule: 本日のスケジュール監視を開始（メンバー）');
           _groupTodayScheduleSubscription =
               GroupDataSyncService.watchGroupTodaySchedule(group.id).listen((
                 data,
@@ -453,7 +608,13 @@ class _TodayScheduleState extends State<TodaySchedule> {
                   }
                 }
               });
+        } else {
+          print('TodaySchedule: 本日のスケジュール監視をスキップ（編集権限あり）');
         }
+
+        print('TodaySchedule: グループ時間ラベルリスナー設定完了');
+      } else {
+        print('TodaySchedule: グループが存在しないため監視を設定しません');
       }
     } catch (e) {
       print('TodaySchedule: グループ時間ラベルリスナー設定エラー: $e');
@@ -500,6 +661,61 @@ class _TodayScheduleState extends State<TodaySchedule> {
     }
   }
 
+  // グループデータの初期読み込み
+  Future<void> _loadGroupData() async {
+    try {
+      print('TodaySchedule: グループデータ初期読み込み開始');
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+
+        // 権限をチェック
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser != null) {
+          final userRole = group.getMemberRole(currentUser.uid);
+          final groupSettings = await GroupFirestoreService.getGroupSettings(
+            group.id,
+          );
+
+          if (groupSettings != null) {
+            final canEditTodaySchedule = groupSettings.canEditDataType(
+              'today_schedule',
+              userRole ?? GroupRole.member,
+            );
+
+            print('TodaySchedule: 初期権限チェック - 編集権限: $canEditTodaySchedule');
+
+            // 編集権限がない場合はグループデータを読み込み
+            if (!canEditTodaySchedule) {
+              print('TodaySchedule: メンバーのため、グループデータを読み込みます');
+
+              // 本日のスケジュールを読み込み（時間ラベルも含む）
+              final todayScheduleData =
+                  await GroupDataSyncService.getGroupTodaySchedule(group.id);
+              if (todayScheduleData != null) {
+                final labels = todayScheduleData['labels'] as List<dynamic>?;
+                final contents =
+                    todayScheduleData['contents'] as Map<String, dynamic>?;
+                if (labels != null && labels.isNotEmpty) {
+                  print('TodaySchedule: グループから本日のスケジュールを読み込み: $labels');
+                  _updateFromGroupData(
+                    List<String>.from(labels),
+                    contents != null ? Map<String, String>.from(contents) : {},
+                  );
+                }
+              }
+            } else {
+              print('TodaySchedule: 編集権限があるため、グループデータ読み込みをスキップ');
+            }
+          }
+        }
+      }
+      print('TodaySchedule: グループデータ初期読み込み完了');
+    } catch (e) {
+      print('TodaySchedule: グループデータ初期読み込みエラー: $e');
+    }
+  }
+
   // 編集権限をチェック
   Future<void> _checkEditPermissions() async {
     try {
@@ -509,110 +725,176 @@ class _TodayScheduleState extends State<TodaySchedule> {
 
       if (groupProvider.groups.isNotEmpty) {
         final group = groupProvider.groups.first;
+        print('TodaySchedule: グループ情報 - ID: ${group.id}, 名前: ${group.name}');
         final currentUser = FirebaseAuth.instance.currentUser;
         print('TodaySchedule: 現在のユーザー: ${currentUser?.uid}');
 
         if (currentUser != null) {
           final userRole = group.getMemberRole(currentUser.uid);
           print('TodaySchedule: ユーザーロール: $userRole');
-          final groupSettings = groupProvider.getCurrentGroupSettings();
+          print(
+            'TodaySchedule: グループメンバー: ${group.members.map((m) => '${m.uid}:${m.role}').toList()}',
+          );
+
+          // GroupFirestoreServiceから直接グループ設定を取得
+          print('TodaySchedule: グループ設定を取得中...');
+          final groupSettings = await GroupFirestoreService.getGroupSettings(
+            group.id,
+          );
           print('TodaySchedule: グループ設定: $groupSettings');
 
           if (groupSettings != null) {
-            // 本日のスケジュールの編集権限をチェック
+            print('TodaySchedule: グループ設定の詳細:');
+            print(
+              'TodaySchedule: - dataPermissions: ${groupSettings.dataPermissions}',
+            );
+
+            // 本日のスケジュールの編集権限をチェック（時間ラベルも含む）
             final canEditTodaySchedule = groupSettings.canEditDataType(
               'today_schedule',
-              userRole ?? GroupRole.member,
-            );
-            // 時間ラベルの編集権限をチェック
-            final canEditTimeLabels = groupSettings.canEditDataType(
-              'time_labels',
               userRole ?? GroupRole.member,
             );
 
             print('TodaySchedule: 権限チェック結果:');
             print('TodaySchedule: - today_schedule: $canEditTodaySchedule');
-            print('TodaySchedule: - time_labels: $canEditTimeLabels');
 
             // 現在の権限と比較して変更があったかチェック
-            final hasChanged =
-                _canEditTodaySchedule != canEditTodaySchedule ||
-                _canEditTimeLabels != canEditTimeLabels;
+            final hasChanged = _canEditTodaySchedule != canEditTodaySchedule;
 
             if (hasChanged) {
               print('TodaySchedule: 権限に変更を検知しました！');
               print(
-                'TodaySchedule: 変更前 - today_schedule: $_canEditTodaySchedule, time_labels: $_canEditTimeLabels',
+                'TodaySchedule: 変更前 - today_schedule: $_canEditTodaySchedule',
               );
               print(
-                'TodaySchedule: 変更後 - today_schedule: $canEditTodaySchedule, time_labels: $canEditTimeLabels',
+                'TodaySchedule: 変更後 - today_schedule: $canEditTodaySchedule',
               );
             }
 
-            setState(() {
-              _canEditTodaySchedule = canEditTodaySchedule;
-              _canEditTimeLabels = canEditTimeLabels;
-            });
+            if (mounted) {
+              setState(() {
+                _canEditTodaySchedule = canEditTodaySchedule;
+              });
+              print('TodaySchedule: setState実行完了');
+
+              // 権限変更後にグループデータを読み込み
+              await _loadGroupData();
+
+              // 権限変更後にグループ監視を再設定
+              _setupGroupTimeLabelsListener();
+            }
 
             print('TodaySchedule: 編集権限チェック完了');
             print('TodaySchedule: 本日のスケジュール編集可能: $_canEditTodaySchedule');
-            print('TodaySchedule: 時間ラベル編集可能: $_canEditTimeLabels');
+            print('TodaySchedule: 時間ラベル編集可能: $_canEditTodaySchedule');
           } else {
             print('TodaySchedule: グループ設定がnullです');
+            // デフォルト設定を使用
+            final defaultSettings = GroupSettings.defaultSettings();
+            print(
+              'TodaySchedule: デフォルト設定を使用: ${defaultSettings.dataPermissions}',
+            );
+            final canEditTodaySchedule = defaultSettings.canEditDataType(
+              'today_schedule',
+              userRole ?? GroupRole.member,
+            );
+
+            if (mounted) {
+              setState(() {
+                _canEditTodaySchedule = canEditTodaySchedule;
+              });
+            }
+            print(
+              'TodaySchedule: デフォルト設定を使用 - today_schedule: $canEditTodaySchedule',
+            );
           }
         } else {
           print('TodaySchedule: 現在のユーザーがnullです');
         }
       } else {
         print('TodaySchedule: グループがありません');
+        // グループがない場合は編集可能にする
+        if (mounted) {
+          setState(() {
+            _canEditTodaySchedule = true;
+            // _canEditTimeLabels = true; // 削除
+          });
+        }
+        print('TodaySchedule: グループなし - 編集可能に設定');
       }
     } catch (e) {
       print('TodaySchedule: 編集権限チェックエラー: $e');
       print('TodaySchedule: エラーの詳細: ${e.toString()}');
+      // エラーの場合は編集可能にする
+      if (mounted) {
+        setState(() {
+          _canEditTodaySchedule = true;
+          // _canEditTimeLabels = true; // 削除
+        });
+      }
+      print('TodaySchedule: エラー時 - 編集可能に設定');
     }
   }
 
   // Firestore同期用setter
   void setScheduleFromFirestore(Map<String, dynamic> schedule) {
-    setState(() {
-      _scheduleLabels = List<String>.from(schedule['labels'] ?? []);
-      _scheduleContents = Map<String, String>.from(schedule['contents'] ?? {});
-      _initScheduleControllers();
-    });
+    if (mounted) {
+      setState(() {
+        _scheduleLabels = List<String>.from(schedule['labels'] ?? []);
+        _scheduleContents = Map<String, String>.from(
+          schedule['contents'] ?? {},
+        );
+        _initScheduleControllers();
+      });
+    }
   }
 
   void setTimeLabelsFromFirestore(List<String> labels) {
-    setState(() {
-      _scheduleLabels = labels;
-      _initScheduleControllers();
-    });
+    if (mounted) {
+      setState(() {
+        _scheduleLabels = labels;
+        _initScheduleControllers();
+      });
+    }
   }
 
   // 範囲選択の追加・削除時に保存
   void _onTapLabel(int i) {
-    setState(() {
-      final removeIndex = _arrowRanges.indexWhere(
-        (r) => r.isStart(i) || r.isEnd(i),
-      );
-      if (removeIndex != -1) {
-        _arrowRanges.removeAt(removeIndex);
-        _saveArrowRanges();
-        return;
-      }
-      if (_tempStartIndex == null) {
-        _tempStartIndex = i;
-      } else if (_tempStartIndex != i) {
-        _arrowRanges.add(_ArrowRange(_tempStartIndex!, i));
-        _tempStartIndex = null;
-        _saveArrowRanges();
-      } else {
-        _tempStartIndex = null;
-      }
-    });
+    // 権限がない場合は範囲選択を許可しない
+    if (!_canEditTodaySchedule) {
+      print('TodaySchedule: 時間ラベル編集権限がないため、範囲選択を許可しません');
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        final removeIndex = _arrowRanges.indexWhere(
+          (r) => r.isStart(i) || r.isEnd(i),
+        );
+        if (removeIndex != -1) {
+          _arrowRanges.removeAt(removeIndex);
+          _saveArrowRanges();
+          return;
+        }
+        if (_tempStartIndex == null) {
+          _tempStartIndex = i;
+        } else if (_tempStartIndex != i) {
+          _arrowRanges.add(_ArrowRange(_tempStartIndex!, i));
+          _tempStartIndex = null;
+          _saveArrowRanges();
+        } else {
+          _tempStartIndex = null;
+        }
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    print(
+      'TodaySchedule: build実行 - 権限状態: today_schedule=$_canEditTodaySchedule',
+    );
+
     return Consumer<GroupProvider>(
       builder: (context, groupProvider, child) {
         // グループデータの監視状態を確認
@@ -627,6 +909,13 @@ class _TodayScheduleState extends State<TodaySchedule> {
         // 権限チェックを実行
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _checkEditPermissions();
+        });
+
+        // グループ監視の確認
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (groupProvider.groups.isNotEmpty) {
+            _setupGroupTimeLabelsListener();
+          }
         });
 
         return Padding(
@@ -680,6 +969,8 @@ class _TodayScheduleState extends State<TodaySchedule> {
                               color: Colors.blue.shade700,
                             ),
                           ),
+                        Spacer(),
+                        // 時間ラベル編集アイコンは削除 - ラベルマークのみ使用
                       ],
                     ),
                     SizedBox(height: 16),
@@ -775,7 +1066,7 @@ class _TodayScheduleState extends State<TodaySchedule> {
               SizedBox(width: 4),
               // 時間ラベル（左）
               GestureDetector(
-                onTap: () => _onTapLabel(i),
+                onTap: _canEditTodaySchedule ? () => _onTapLabel(i) : null,
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -787,6 +1078,10 @@ class _TodayScheduleState extends State<TodaySchedule> {
                         ? Colors.transparent
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
+                    // 権限がない場合は薄いグレーのボーダーを追加
+                    border: !_canEditTodaySchedule
+                        ? Border.all(color: Colors.grey.shade300, width: 1)
+                        : null,
                   ),
                   child: Text(
                     _scheduleLabels[i],
@@ -795,6 +1090,8 @@ class _TodayScheduleState extends State<TodaySchedule> {
                       fontWeight: FontWeight.bold,
                       color: inAnyRange
                           ? Colors.grey.shade700
+                          : !_canEditTodaySchedule
+                          ? Colors.grey.shade600
                           : Provider.of<ThemeSettings>(context).fontColor1,
                     ),
                   ),

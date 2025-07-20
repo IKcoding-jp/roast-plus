@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../models/theme_settings.dart';
+import '../../utils/permission_utils.dart';
 
 class RoastEditPage extends StatefulWidget {
   final Map<String, dynamic> initialData;
@@ -20,6 +21,8 @@ class _RoastEditPageState extends State<RoastEditPage> {
   late String _selectedRoast;
   late String _selectedWeight;
   late String _timestamp;
+  bool _canEdit = true;
+  bool _isCheckingPermissions = true;
 
   @override
   void initState() {
@@ -40,40 +43,44 @@ class _RoastEditPageState extends State<RoastEditPage> {
     );
     _timestamp =
         widget.initialData['timestamp'] ?? DateTime.now().toIso8601String();
+
+    // 権限チェックを実行
+    _checkPermissions();
   }
 
-  // グループ権限チェック
-  bool _canEditRoastRecords(BuildContext context) {
-    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
-    final currentGroup = groupProvider.currentGroup;
+  // 権限チェック
+  Future<void> _checkPermissions() async {
+    try {
+      print('RoastEditPage: 権限チェック開始');
 
-    if (currentGroup == null) {
-      // グループに参加していない場合は編集可能
-      return true;
-    }
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      if (groupProvider.hasGroup) {
+        print('RoastEditPage: グループに参加中 - 権限チェック実行');
 
-    final memberRole = groupProvider.getCurrentUserRole();
-    final groupSettings = groupProvider.getCurrentGroupSettings();
+        final canEdit = await PermissionUtils.canEditDataType(
+          groupId: groupProvider.currentGroup!.id,
+          dataType: 'roastRecords',
+        );
 
-    if (groupSettings == null) {
-      // 設定がない場合はリーダーのみ編集可能
-      return memberRole == GroupRole.leader;
-    }
+        print('RoastEditPage: 権限チェック結果 - 編集: $canEdit');
 
-    final roastRecordPermission = groupSettings.getPermissionForDataType(
-      'roast_records',
-    );
-
-    switch (roastRecordPermission) {
-      case DataPermission.adminOnly:
-        // 管理者のみ編集可能
-        return memberRole == GroupRole.admin;
-      case DataPermission.leaderOnly:
-        // リーダーのみ編集可能
-        return memberRole == GroupRole.leader || memberRole == GroupRole.admin;
-      case DataPermission.memberOnly:
-        // メンバーも編集可能
-        return true;
+        setState(() {
+          _canEdit = canEdit;
+          _isCheckingPermissions = false;
+        });
+      } else {
+        print('RoastEditPage: グループに参加していないため、編集可能');
+        setState(() {
+          _canEdit = true;
+          _isCheckingPermissions = false;
+        });
+      }
+    } catch (e) {
+      print('RoastEditPage: 権限チェックエラー: $e');
+      setState(() {
+        _canEdit = false;
+        _isCheckingPermissions = false;
+      });
     }
   }
 
@@ -87,17 +94,22 @@ class _RoastEditPageState extends State<RoastEditPage> {
       message = 'グループに参加していません';
     } else {
       final groupSettings = groupProvider.getCurrentGroupSettings();
-      if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.adminOnly) {
-        message = '管理者のみ編集可能です';
-      } else if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.leaderOnly) {
-        message = 'リーダーのみ編集可能です';
-      } else if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.memberOnly) {
-        message = 'メンバーも編集可能です';
-      } else {
-        message = '権限がありません';
+      final permission = groupSettings?.getPermissionForDataType(
+        'roastRecords',
+      );
+
+      switch (permission) {
+        case AccessLevel.admin_only:
+          message = '管理者のみ編集可能です';
+          break;
+        case AccessLevel.admin_leader:
+          message = '管理者・リーダーのみ編集可能です';
+          break;
+        case AccessLevel.all_members:
+          message = '全メンバーが編集可能です';
+          break;
+        default:
+          message = '権限がありません';
       }
     }
 
@@ -112,7 +124,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
 
   void _saveChanges() {
     // 権限チェック
-    if (!_canEditRoastRecords(context)) {
+    if (!_canEdit) {
       _showPermissionError();
       return;
     }
@@ -133,7 +145,45 @@ class _RoastEditPageState extends State<RoastEditPage> {
   Widget build(BuildContext context) {
     return Consumer<GroupProvider>(
       builder: (context, groupProvider, child) {
-        final canEdit = _canEditRoastRecords(context);
+        final canEdit = _canEdit;
+
+        // 権限チェック中
+        if (_isCheckingPermissions) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.edit_note,
+                    color: Provider.of<ThemeSettings>(context).iconColor,
+                  ),
+                  SizedBox(width: 8),
+                  Text('記録の編集'),
+                ],
+              ),
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Provider.of<ThemeSettings>(context).buttonColor,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    '権限を確認中...',
+                    style: TextStyle(
+                      color: Provider.of<ThemeSettings>(context).fontColor1,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
         return Scaffold(
           appBar: AppBar(

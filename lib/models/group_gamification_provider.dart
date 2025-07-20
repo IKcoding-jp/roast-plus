@@ -47,7 +47,7 @@ class GroupGamificationProvider extends ChangeNotifier {
     try {
       // ユーザーが参加しているグループを取得
       final groups = await GroupFirestoreService.getUserGroups();
-      
+
       if (groups.isEmpty) {
         // グループに参加していない
         _isInitialized = false;
@@ -83,12 +83,17 @@ class GroupGamificationProvider extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      final result = await GroupGamificationService.recordAttendance(_currentGroupId!);
-      
+      final result = await GroupGamificationService.recordAttendance(
+        _currentGroupId!,
+      );
+
       if (result.success) {
+        // 即座にUIを更新
+        notifyListeners();
+
         // プロフィールを更新
         await _refreshProfile();
-        
+
         // UI効果を表示
         await _showActivityResult(result);
       }
@@ -124,9 +129,15 @@ class GroupGamificationProvider extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      final result = await GroupGamificationService.recordRoasting(_currentGroupId!, minutes);
-      
+      final result = await GroupGamificationService.recordRoasting(
+        _currentGroupId!,
+        minutes,
+      );
+
       if (result.success) {
+        // 即座にUIを更新
+        notifyListeners();
+
         await _refreshProfile();
         await _showActivityResult(result);
       }
@@ -162,9 +173,15 @@ class GroupGamificationProvider extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      final result = await GroupGamificationService.recordDripPack(_currentGroupId!, count);
-      
+      final result = await GroupGamificationService.recordDripPack(
+        _currentGroupId!,
+        count,
+      );
+
       if (result.success) {
+        // 即座にUIを更新
+        notifyListeners();
+
         await _refreshProfile();
         await _showActivityResult(result);
       }
@@ -200,9 +217,14 @@ class GroupGamificationProvider extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      final result = await GroupGamificationService.recordTasting(_currentGroupId!);
-      
+      final result = await GroupGamificationService.recordTasting(
+        _currentGroupId!,
+      );
+
       if (result.success) {
+        // 即座にUIを更新
+        notifyListeners();
+
         await _refreshProfile();
         await _showActivityResult(result);
       }
@@ -238,9 +260,14 @@ class GroupGamificationProvider extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      final result = await GroupGamificationService.recordWorkProgress(_currentGroupId!);
-      
+      final result = await GroupGamificationService.recordWorkProgress(
+        _currentGroupId!,
+      );
+
       if (result.success) {
+        // 即座にUIを更新
+        notifyListeners();
+
         await _refreshProfile();
         await _showActivityResult(result);
       }
@@ -266,8 +293,18 @@ class GroupGamificationProvider extends ChangeNotifier {
     if (!hasGroup) return;
 
     try {
-      _profile = await GroupGamificationService.getGroupProfile(_currentGroupId!);
+      _profile = await GroupGamificationService.getGroupProfile(
+        _currentGroupId!,
+      );
+      // 即座にUIを更新
       notifyListeners();
+
+      // 少し遅延して再度更新（非同期処理の完了を確実にするため）
+      Future.delayed(Duration(milliseconds: 100), () {
+        if (hasGroup) {
+          notifyListeners();
+        }
+      });
     } catch (e) {
       print('プロフィール更新エラー: $e');
     }
@@ -275,24 +312,53 @@ class GroupGamificationProvider extends ChangeNotifier {
 
   /// アクティビティ結果のUI効果を表示
   Future<void> _showActivityResult(GroupActivityResult result) async {
+    // 即座にUIを更新
+    notifyListeners();
+
     // レベルアップアニメーション
     if (result.levelUp) {
-      // TODO: レベルアップアニメーションを表示
       print('🎉 レベルアップ！ レベル ${result.newLevel} に上がりました！');
+      // レベルアップの視覚的フィードバック
+      _showLevelUpFeedback(result.newLevel);
     }
 
     // バッジ獲得アニメーション
     if (result.newBadges.isNotEmpty) {
       for (final badge in result.newBadges) {
-        // TODO: バッジ獲得アニメーションを表示
         print('🏆 新しいバッジを獲得しました: ${badge.name}');
       }
+      // バッジ獲得の視覚的フィードバック
+      _showBadgeAcquisitionFeedback(result.newBadges);
     }
 
     // 経験値獲得表示
     if (result.experienceGained > 0) {
       print('✨ +${result.experienceGained}XP 獲得！');
     }
+
+    // 最終的なUI更新
+    Future.delayed(Duration(milliseconds: 200), () {
+      if (hasGroup) {
+        notifyListeners();
+      }
+    });
+  }
+
+  /// レベルアップの視覚的フィードバック
+  void _showLevelUpFeedback(int newLevel) {
+    // レベルアップ時の特別な処理
+    // 必要に応じてアニメーションや通知を追加
+  }
+
+  /// バッジ獲得の視覚的フィードバック
+  void _showBadgeAcquisitionFeedback(List<GroupBadge> newBadges) {
+    // バッジ獲得時の特別な処理
+    // 必要に応じてアニメーションや通知を追加
+    print('バッジ獲得フィードバック: ${newBadges.length}個のバッジを獲得');
+
+    // バッジ獲得のお祝い表示をスケジュール
+    // 注意: このメソッドはUIコンテキストがないため、実際のダイアログ表示は
+    // 呼び出し元（例：home_page.dart）で行う必要があります
   }
 
   /// 次の獲得可能なバッジを取得
@@ -310,9 +376,11 @@ class GroupGamificationProvider extends ChangeNotifier {
   /// グループの詳細統計を取得
   Future<Map<String, dynamic>> getDetailedStats() async {
     if (!hasGroup) return {};
-    
+
     try {
-      return await GroupGamificationService.getGroupDetailedStats(_currentGroupId!);
+      return await GroupGamificationService.getGroupDetailedStats(
+        _currentGroupId!,
+      );
     } catch (e) {
       print('詳細統計取得エラー: $e');
       return {};
@@ -330,13 +398,24 @@ class GroupGamificationProvider extends ChangeNotifier {
   /// プロフィールのリアルタイム監視を開始
   Stream<GroupGamificationProfile> watchProfile() {
     if (!hasGroup) return Stream.value(GroupGamificationProfile.initial(''));
-    
-    return GroupGamificationService.watchGroupProfile(_currentGroupId!)
-      .map((profile) {
+
+    return GroupGamificationService.watchGroupProfile(_currentGroupId!).map((
+      profile,
+    ) {
+      // プロフィールが更新された場合のみnotifyListenersを呼び出す
+      if (_profile.level != profile.level ||
+          _profile.badges.length != profile.badges.length ||
+          _profile.experiencePoints != profile.experiencePoints) {
+        print(
+          'プロフィール更新検知: レベル=${profile.level}, バッジ数=${profile.badges.length}, 経験値=${profile.experiencePoints}',
+        );
         _profile = profile;
         notifyListeners();
-        return profile;
-      });
+      } else {
+        _profile = profile;
+      }
+      return profile;
+    });
   }
 
   /// ローディング状態を設定
@@ -373,7 +452,7 @@ class GroupGamificationProvider extends ChangeNotifier {
       print('=== グループゲーミフィケーション（未参加） ===');
       return;
     }
-    
+
     await GroupGamificationService.debugPrintGroupProfile(_currentGroupId!);
   }
 
@@ -399,4 +478,4 @@ class GroupGamificationProvider extends ChangeNotifier {
 
   /// 最新のバッジを取得
   GroupBadge? get latestBadge => _profile.latestBadge;
-} 
+}

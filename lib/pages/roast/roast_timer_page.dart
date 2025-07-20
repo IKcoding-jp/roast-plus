@@ -209,7 +209,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     });
   }
 
-  // 通知権限とバッテリー最適化除外を初期化
+  // 通知権限を初期化
   Future<void> _initializePermissions() async {
     try {
       // 通知権限をリクエスト
@@ -218,54 +218,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       if (!notificationGranted) {
         print('通知権限が拒否されました');
       }
-
-      // バッテリー最適化の除外をリクエスト（Android 6.0以降）
-      if (mounted) {
-        // バッテリー最適化除外のダイアログを表示（条件付き）
-        await _checkAndShowBatteryOptimizationDialog();
-      }
     } catch (e) {
       print('権限初期化エラー: $e');
-    }
-  }
-
-  // バッテリー最適化除外のダイアログを表示（条件付き）
-  Future<void> _checkAndShowBatteryOptimizationDialog() async {
-    try {
-      // ダイアログ表示履歴をチェック
-      final dialogShown =
-          await UserSettingsFirestoreService.getSetting(
-            'battery_optimization_dialog_shown',
-          ) ??
-          false;
-
-      // 既にダイアログを表示済みの場合はスキップ
-      if (dialogShown) {
-        print('バッテリー最適化ダイアログは既に表示済みです');
-        return;
-      }
-
-      // Android 6.0以降かチェック
-      final deviceInfo = DeviceInfoPlugin();
-      final androidInfo = await deviceInfo.androidInfo;
-      final sdkInt = androidInfo.version.sdkInt;
-
-      if (sdkInt < 23) {
-        // Android 6.0未満の場合はスキップ
-        print('Android 6.0未満のため、バッテリー最適化ダイアログをスキップします');
-        return;
-      }
-
-      // ダイアログを表示
-      _showBatteryOptimizationDialog();
-
-      // ダイアログ表示履歴を保存
-      await UserSettingsFirestoreService.saveSetting(
-        'battery_optimization_dialog_shown',
-        true,
-      );
-    } catch (e) {
-      print('バッテリー最適化ダイアログチェックエラー: $e');
     }
   }
 
@@ -324,59 +278,6 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     }
   }
 
-  // バッテリー最適化除外のダイアログを表示
-  void _showBatteryOptimizationDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('バッテリー最適化の設定'),
-        content: Text(
-          '焙煎タイマーがバックグラウンドでも正確に動作するように、'
-          'バッテリー最適化の除外設定を行ってください。\n\n'
-          '設定画面が開きますので、「無制限」を選択してください。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('後で'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _openBatteryOptimizationSettings();
-            },
-            child: Text('設定を開く'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // バッテリー最適化設定画面を開く
-  void _openBatteryOptimizationSettings() async {
-    try {
-      final packageInfo = await PackageInfo.fromPlatform();
-      final AndroidIntent intent = AndroidIntent(
-        action: 'android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
-        data: 'package:${packageInfo.packageName}',
-      );
-      await intent.launch();
-    } catch (e) {
-      print('バッテリー最適化設定画面を開けませんでした: $e');
-      // フォールバック: 一般的な設定画面を開く
-      try {
-        final packageInfo = await PackageInfo.fromPlatform();
-        final AndroidIntent intent = AndroidIntent(
-          action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
-          data: 'package:${packageInfo.packageName}',
-        );
-        await intent.launch();
-      } catch (e2) {
-        print('設定画面を開けませんでした: $e2');
-      }
-    }
-  }
-
   // おすすめ焙煎画面に遷移する際にデータを再読み込み
   void _refreshRecommendOptions() {
     _loadRecommendOptions();
@@ -415,7 +316,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     final useRoast =
         await UserSettingsFirestoreService.getSetting('useRoast') ?? true;
     final useCooling =
-        await UserSettingsFirestoreService.getSetting('useCooling') ?? true;
+        await UserSettingsFirestoreService.getSetting('useCooling') ??
+        false; // デフォルトをオフに変更
     if (!useRoast) {
       // 焙煎タイマーをスキップ
       if (useCooling) {
@@ -446,7 +348,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     final useRoast =
         await UserSettingsFirestoreService.getSetting('useRoast') ?? true;
     final useCooling =
-        await UserSettingsFirestoreService.getSetting('useCooling') ?? true;
+        await UserSettingsFirestoreService.getSetting('useCooling') ??
+        false; // デフォルトをオフに変更
     if (!useRoast) {
       // 焙煎タイマーをスキップ
       if (useCooling) {
@@ -671,8 +574,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
               } else if (_mode == RoastMode.cooling) {
                 _showCoolingDialog();
               } else {
-                // 焙煎完了時に経験値を追加
-                _recordRoastingExperience();
+                // 焙煎完了時（経験値獲得は焙煎記録入力でのみ）
                 _showAfterRoastDialog();
               }
             },
@@ -686,37 +588,6 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     );
   }
 
-  /// グループレベルシステムで焙煎完了を処理
-  Future<void> _recordRoastingExperience() async {
-    try {
-      final roastTimeMinutes = _totalSeconds / 60.0;
-      await _processRoastingForGroup(roastTimeMinutes);
-    } catch (e) {
-      print('焙煎記録処理エラー: $e');
-    }
-  }
-
-  /// グループレベルシステムで焙煎記録を処理
-  Future<void> _processRoastingForGroup(double roastTimeMinutes) async {
-    try {
-      // グループプロバイダーを取得
-      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
-
-      if (groupProvider.hasGroup) {
-        final groupId = groupProvider.currentGroup!.id;
-
-        // グループのゲーミフィケーションシステムに通知
-        await groupProvider.processGroupRoasting(
-          groupId,
-          roastTimeMinutes,
-          context: context,
-        );
-      }
-    } catch (e) {
-      print('焙煎記録処理エラー: $e');
-    }
-  }
-
   void _showAfterRoastDialog() {
     showDialog(
       context: context,
@@ -725,10 +596,10 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
           final result = await UserSettingsFirestoreService.getSetting(
             'useCooling',
           );
-          return (result as bool?) ?? true;
+          return (result as bool?) ?? false; // デフォルトをオフに変更
         })(),
         builder: (context, snapshot) {
-          final useCooling = snapshot.data ?? true;
+          final useCooling = snapshot.data ?? false; // デフォルトをオフに変更
           return AlertDialog(
             backgroundColor: Provider.of<ThemeSettings>(
               context,
@@ -768,7 +639,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                       await UserSettingsFirestoreService.getSetting(
                         'useCooling',
                       ) ??
-                      true;
+                      false; // デフォルトをオフに変更
                   if (useCooling) {
                     _startBeanCooling(); // 豆冷ましタイマーを開始
                   } else {
@@ -851,7 +722,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                     await UserSettingsFirestoreService.getSetting(
                       'useCooling',
                     ) ??
-                    true;
+                    false; // デフォルトをオフに変更
                 if (!usePreheat && !useRoast && useCooling) {
                   setState(() {
                     _mode = RoastMode.idle;
@@ -1521,7 +1392,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       final useCooling =
           (await UserSettingsFirestoreService.getSetting('useCooling')
               as bool?) ??
-          true;
+          false; // デフォルトをオフに変更
       return [usePreheat, useRoast, useCooling];
     })();
 
@@ -1621,7 +1492,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 : true;
                             final useCooling = snapshot.data != null
                                 ? snapshot.data![2]
-                                : true;
+                                : false; // デフォルトをオフに変更
                             if (_mode == RoastMode.idle) {
                               if (_justFinishedPreheat &&
                                   !useRoast &&

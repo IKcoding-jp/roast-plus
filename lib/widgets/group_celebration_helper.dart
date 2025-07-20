@@ -278,14 +278,14 @@ class _UnifiedBadgeCelebrationDialogState
       animation: _animationController,
       builder: (context, child) {
         return Dialog(
-          insetPadding: EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           backgroundColor: Colors.transparent,
           child: FadeTransition(
             opacity: _fadeAnimation,
             child: ScaleTransition(
               scale: _scaleAnimation,
               child: Container(
-                padding: EdgeInsets.all(24),
+                padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(20),
@@ -321,10 +321,52 @@ class _UnifiedBadgeCelebrationDialogState
                     ),
                     SizedBox(height: 20),
 
-                    // バッジ一覧
-                    ...widget.badges
-                        .map((badge) => _buildBadgeItem(badge, theme))
-                        .toList(),
+                    // バッジ一覧（スクロール可能）
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight:
+                            MediaQuery.of(context).size.height *
+                            0.5, // 画面の50%まで
+                        minHeight: 100, // 最小高さ
+                      ),
+                      child: Column(
+                        children: [
+                          if (widget.badges.length > 3) ...[
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withOpacity(
+                                  0.1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${widget.badges.length}個のバッジを獲得！',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                          ],
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Column(
+                                children: widget.badges
+                                    .map(
+                                      (badge) => _buildBadgeItem(badge, theme),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                     SizedBox(height: 16),
                     Text(
@@ -345,8 +387,8 @@ class _UnifiedBadgeCelebrationDialogState
 
   Widget _buildBadgeItem(GroupBadge badge, ThemeData theme) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: badge.color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -356,11 +398,11 @@ class _UnifiedBadgeCelebrationDialogState
         children: [
           // バッジアイコン
           Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: badge.color,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
                   color: badge.color.withOpacity(0.3),
@@ -369,7 +411,7 @@ class _UnifiedBadgeCelebrationDialogState
                 ),
               ],
             ),
-            child: Icon(badge.icon, color: Colors.white, size: 24),
+            child: Icon(badge.icon, color: Colors.white, size: 20),
           ),
           SizedBox(width: 12),
 
@@ -383,22 +425,25 @@ class _UnifiedBadgeCelebrationDialogState
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.onSurface,
+                    fontSize: 14,
                   ),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 2),
                 Text(
                   badge.description,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withOpacity(0.8),
+                    fontSize: 12,
                   ),
                 ),
                 if (badge.earnedByUserName.isNotEmpty) ...[
-                  SizedBox(height: 4),
+                  SizedBox(height: 2),
                   Text(
                     'by ${badge.earnedByUserName}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                       fontStyle: FontStyle.italic,
+                      fontSize: 11,
                     ),
                   ),
                 ],

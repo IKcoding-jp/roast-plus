@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:bysnapp/models/roast_record.dart';
-import 'package:bysnapp/services/roast_record_firestore_service.dart';
-import 'package:provider/provider.dart';
-import '../../models/theme_settings.dart';
-import '../../models/group_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-
+import '../../models/roast_record.dart';
+import '../../models/theme_settings.dart';
+import '../../models/group_provider.dart';
+import '../../services/roast_record_firestore_service.dart';
+import '../../utils/permission_utils.dart';
+import '../../widgets/permission_denied_page.dart';
 import '../../models/gamification_provider.dart';
 import '../../widgets/lottie_animation_widget.dart';
 import '../../models/dashboard_stats_provider.dart';
@@ -37,6 +38,10 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
 
   List<RoastRecord> _records = [];
   StreamSubscription? _roastRecordsSubscription;
+  bool _canCreateRoastRecords = true;
+  bool _isCheckingPermission = true;
+  StreamSubscription<bool>? _permissionSubscription;
+
   void _startRoastRecordsListener() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -50,15 +55,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
         .listen((snapshot) {
           _records = snapshot.docs.map((doc) {
             final data = doc.data();
-            return RoastRecord(
-              id: doc.id,
-              bean: data['bean'] ?? '',
-              weight: data['weight'] ?? 0,
-              roast: data['roast'] ?? '',
-              time: data['time'] ?? '',
-              memo: data['memo'] ?? '',
-              timestamp: (data['timestamp'] as Timestamp).toDate(),
-            );
+            return RoastRecord.fromMap(data, id: doc.id);
           }).toList();
           setState(() {});
         });
@@ -69,6 +66,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     super.initState();
     _loadRoastRecordsFromFirestore();
     _startRoastRecordsListener();
+    _startPermissionListener();
   }
 
   Future<void> _loadRoastRecordsFromFirestore() async {
@@ -93,6 +91,56 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
       );
     }).toList();
     setState(() {});
+  }
+
+  Future<void> _checkCreatePermission() async {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.hasGroup) {
+        final canCreate = await PermissionUtils.canCreateDataType(
+          groupId: groupProvider.currentGroup!.id,
+          dataType: 'roastRecordInput',
+        );
+        setState(() {
+          _canCreateRoastRecords = canCreate;
+          _isCheckingPermission = false;
+        });
+      } else {
+        setState(() {
+          _canCreateRoastRecords = true;
+          _isCheckingPermission = false;
+        });
+      }
+    } catch (e) {
+      print('焙煎記録作成権限チェックエラー: $e');
+      setState(() {
+        _canCreateRoastRecords = false;
+        _isCheckingPermission = false;
+      });
+    }
+  }
+
+  void _startPermissionListener() {
+    final groupProvider = context.read<GroupProvider>();
+    if (groupProvider.hasGroup) {
+      _permissionSubscription?.cancel();
+      _permissionSubscription = PermissionUtils.listenForPermissionChange(
+        groupId: groupProvider.currentGroup!.id,
+        dataType: 'roastRecordInput',
+        onPermissionChange: (canCreate) {
+          setState(() {
+            _canCreateRoastRecords = canCreate;
+            _isCheckingPermission = false;
+          });
+        },
+      );
+    } else {
+      _permissionSubscription?.cancel();
+      setState(() {
+        _canCreateRoastRecords = true;
+        _isCheckingPermission = false;
+      });
+    }
   }
 
   Widget _buildRoastForm({
@@ -464,71 +512,83 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     }
     if (newRecords.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('どちらかの記録を入力してください')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('入力内容を確認してください'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
       return;
     }
 
     try {
-      if (!mounted) return;
-
       final groupProvider = context.read<GroupProvider>();
-
-      for (final record in newRecords) {
-        if (!mounted) return;
-
-        if (groupProvider.hasGroup) {
-          // グループに参加している場合はグループに記録を追加
+      if (groupProvider.hasGroup) {
+        // グループに参加している場合はグループの記録を保存
+        for (final record in newRecords) {
           await RoastRecordFirestoreService.addGroupRecord(
             groupProvider.currentGroup!.id,
             record,
           );
-        } else {
-          // グループに参加していない場合は個人の記録を追加
-          await RoastRecordFirestoreService.addRecord(record);
         }
 
-        // 焙煎記録からXPを加算
-        await _processRoastingForGroup(record);
+        // グループレベルシステムで経験値処理
+        await _processMultipleRoastingForGroup(newRecords);
+      } else {
+        // グループに参加していない場合は個人の記録を保存
+        for (final record in newRecords) {
+          await RoastRecordFirestoreService.addRecord(record);
+        }
+        // 個人ゲーミフィケーション（経験値加算）
+        final gamificationProvider = context.read<GamificationProvider>();
+        double totalMinutes = 0;
+        for (final record in newRecords) {
+          final timeParts = record.time.split(':');
+          if (timeParts.length == 2) {
+            final minutes = int.tryParse(timeParts[0]) ?? 0;
+            final seconds = int.tryParse(timeParts[1]) ?? 0;
+            totalMinutes += minutes + (seconds / 60.0);
+          }
+        }
+        if (totalMinutes > 0) {
+          // recordRoastingで経験値加算
+          await gamificationProvider.recordRoasting(totalMinutes);
+        }
       }
 
-      // 統計データを更新
-      if (mounted) {
-        final statsProvider = Provider.of<DashboardStatsProvider>(
-          context,
-          listen: false,
-        );
-        await statsProvider.onRoastRecordAdded();
+      // 入力フィールドをクリア
+      _clearInputFields();
 
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${newRecords.length}件の記録を保存しました')),
+          SnackBar(content: Text('焙煎記録を保存しました'), backgroundColor: Colors.green),
         );
-      }
-
-      _beanAController.clear();
-      _weightAController.clear();
-      _minuteAController.clear();
-      _secondAController.clear();
-      _roastLevelA = null;
-
-      _beanBController.clear();
-      _weightBController.clear();
-      _minuteBController.clear();
-      _secondBController.clear();
-      _roastLevelB = null;
-
-      if (mounted) {
-        setState(() {});
       }
     } catch (e) {
+      print('焙煎記録保存エラー: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存に失敗しました: $e'), backgroundColor: Colors.red),
+        );
       }
     }
+  }
+
+  void _clearInputFields() {
+    _beanAController.clear();
+    _weightAController.clear();
+    _minuteAController.clear();
+    _secondAController.clear();
+    _roastLevelA = null;
+
+    _beanBController.clear();
+    _weightBController.clear();
+    _minuteBController.clear();
+    _secondBController.clear();
+    _roastLevelB = null;
+
+    setState(() {});
   }
 
   /// グループレベルシステムで焙煎記録を処理
@@ -562,6 +622,45 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     }
   }
 
+  /// 複数の焙煎記録をまとめて処理（グループレベルシステム）
+  Future<void> _processMultipleRoastingForGroup(
+    List<RoastRecord> records,
+  ) async {
+    try {
+      // グループプロバイダーを取得
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+        List<double> minutesList = [];
+
+        // すべての記録の焙煎時間をリストに追加
+        for (final record in records) {
+          final timeParts = record.time.split(':');
+          if (timeParts.length == 2) {
+            final minutes = int.tryParse(timeParts[0]) ?? 0;
+            final seconds = int.tryParse(timeParts[1]) ?? 0;
+            final totalMinutes = minutes + (seconds / 60.0);
+            if (totalMinutes > 0) {
+              minutesList.add(totalMinutes);
+            }
+          }
+        }
+
+        if (minutesList.isNotEmpty) {
+          // グループのゲーミフィケーションシステムに通知（複数記録対応）
+          await groupProvider.processMultipleGroupRoasting(
+            groupId,
+            minutesList,
+            context: context,
+          );
+        }
+      }
+    } catch (e) {
+      print('複数焙煎記録のグループレベルシステム処理エラー: $e');
+    }
+  }
+
   @override
   void dispose() {
     // コントローラーを適切に破棄
@@ -574,11 +673,61 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     _minuteBController.dispose();
     _secondBController.dispose();
     _roastRecordsSubscription?.cancel();
+    _permissionSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // 権限チェック中
+    if (_isCheckingPermission) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Row(
+            children: [
+              Icon(
+                Icons.edit_note,
+                color: Provider.of<ThemeSettings>(context).iconColor,
+              ),
+              SizedBox(width: 8),
+              Text('焙煎記録入力'),
+            ],
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Provider.of<ThemeSettings>(context).buttonColor,
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                '権限を確認中...',
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 権限がない場合
+    if (!_canCreateRoastRecords) {
+      return PermissionDeniedPage(
+        title: '焙煎記録入力',
+        message: '焙煎記録を入力するには、管理者またはリーダーの権限が必要です。',
+        additionalInfo:
+            'メンバーが焙煎記録を入力できる設定が有効になっている場合は、管理者またはリーダーに設定の確認を依頼してください。',
+        customIcon: Icons.edit_note,
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -592,70 +741,95 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
           ],
         ),
       ),
-      body: Container(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
+      body: SafeArea(
+        child: Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
           child: Column(
             children: [
-              // A台の記録
-              _buildRoastForm(
-                title: 'A台の記録',
-                beanController: _beanAController,
-                weightController: _weightAController,
-                minController: _minuteAController,
-                secController: _secondAController,
-                roastLevel: _roastLevelA,
-                onRoastLevelChanged: (val) {
-                  if (val != null) setState(() => _roastLevelA = val);
-                },
-              ),
-              SizedBox(height: 20),
+              // スクロール可能なコンテンツ部分
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // A台の記録
+                      _buildRoastForm(
+                        title: 'A台の記録',
+                        beanController: _beanAController,
+                        weightController: _weightAController,
+                        minController: _minuteAController,
+                        secController: _secondAController,
+                        roastLevel: _roastLevelA,
+                        onRoastLevelChanged: (val) {
+                          if (val != null) setState(() => _roastLevelA = val);
+                        },
+                      ),
+                      SizedBox(height: 20),
 
-              // B台の記録
-              _buildRoastForm(
-                title: 'B台の記録',
-                beanController: _beanBController,
-                weightController: _weightBController,
-                minController: _minuteBController,
-                secController: _secondBController,
-                roastLevel: _roastLevelB,
-                onRoastLevelChanged: (val) {
-                  if (val != null) setState(() => _roastLevelB = val);
-                },
-              ),
-              SizedBox(height: 32),
-
-              // 保存ボタン
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _saveBothRoasts,
-                  icon: Icon(Icons.save, size: 20),
-                  label: Text(
-                    '記録を保存',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      // B台の記録
+                      _buildRoastForm(
+                        title: 'B台の記録',
+                        beanController: _beanBController,
+                        weightController: _weightBController,
+                        minController: _minuteBController,
+                        secController: _secondBController,
+                        roastLevel: _roastLevelB,
+                        onRoastLevelChanged: (val) {
+                          if (val != null) setState(() => _roastLevelB = val);
+                        },
+                      ),
+                      SizedBox(height: 20), // 保存ボタンとの間隔を調整
+                    ],
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Theme.of(context)
-                            .elevatedButtonTheme
-                            .style
-                            ?.backgroundColor
-                            ?.resolve({}) ??
-                        Theme.of(context).colorScheme.primary,
-                    foregroundColor:
-                        Theme.of(context)
-                            .elevatedButtonTheme
-                            .style
-                            ?.foregroundColor
-                            ?.resolve({}) ??
-                        Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+
+              // 保存ボタン（下部に固定）
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: Offset(0, -2),
                     ),
-                    elevation: 4,
+                  ],
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _saveBothRoasts,
+                    icon: Icon(Icons.save, size: 20),
+                    label: Text(
+                      '記録を保存',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(context)
+                              .elevatedButtonTheme
+                              .style
+                              ?.backgroundColor
+                              ?.resolve({}) ??
+                          Theme.of(context).colorScheme.primary,
+                      foregroundColor:
+                          Theme.of(context)
+                              .elevatedButtonTheme
+                              .style
+                              ?.foregroundColor
+                              ?.resolve({}) ??
+                          Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 4,
+                    ),
                   ),
                 ),
               ),

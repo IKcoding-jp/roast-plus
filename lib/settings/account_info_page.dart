@@ -9,6 +9,9 @@ import '../services/user_settings_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../models/theme_settings.dart';
 import '../utils/app_performance_config.dart';
+import '../models/group_provider.dart';
+import '../models/gamification_provider.dart';
+import '../models/dashboard_stats_provider.dart';
 
 // ダミーのアカウント情報ページ
 class AccountInfoPage extends StatefulWidget {
@@ -536,6 +539,28 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                         : () async {
                                             setState(() => _loading = true);
                                             try {
+                                              // GroupProviderの情報をクリア
+                                              final groupProvider =
+                                                  Provider.of<GroupProvider>(
+                                                    context,
+                                                    listen: false,
+                                                  );
+                                              groupProvider.clearOnLogout();
+
+                                              final gamificationProvider =
+                                                  Provider.of<
+                                                    GamificationProvider
+                                                  >(context, listen: false);
+                                              gamificationProvider
+                                                  .clearOnLogout();
+
+                                              final dashboardStatsProvider =
+                                                  Provider.of<
+                                                    DashboardStatsProvider
+                                                  >(context, listen: false);
+                                              dashboardStatsProvider
+                                                  .clearOnLogout();
+
                                               await GoogleSignIn().signOut();
                                               await FirebaseAuth.instance
                                                   .signOut();
@@ -625,6 +650,28 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                             if (confirm != true) return;
                                             setState(() => _loading = true);
                                             try {
+                                              // GroupProviderの情報をクリア
+                                              final groupProvider =
+                                                  Provider.of<GroupProvider>(
+                                                    context,
+                                                    listen: false,
+                                                  );
+                                              groupProvider.clearOnLogout();
+
+                                              final gamificationProvider =
+                                                  Provider.of<
+                                                    GamificationProvider
+                                                  >(context, listen: false);
+                                              gamificationProvider
+                                                  .clearOnLogout();
+
+                                              final dashboardStatsProvider =
+                                                  Provider.of<
+                                                    DashboardStatsProvider
+                                                  >(context, listen: false);
+                                              dashboardStatsProvider
+                                                  .clearOnLogout();
+
                                               // Firestoreデータ削除
                                               await DataSyncService.deleteAllUserData();
                                               // ローカルデータ削除

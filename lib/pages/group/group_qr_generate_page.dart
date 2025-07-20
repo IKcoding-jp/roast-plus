@@ -3,6 +3,11 @@ import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
 import '../../models/theme_settings.dart';
 import '../../services/qr_code_service.dart';
+import '../../services/group_firestore_service.dart';
+import '../../models/group_models.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import '../../utils/permission_utils.dart';
 
 class GroupQRGeneratePage extends StatefulWidget {
   const GroupQRGeneratePage({super.key});
@@ -14,11 +19,115 @@ class GroupQRGeneratePage extends StatefulWidget {
 class _GroupQRGeneratePageState extends State<GroupQRGeneratePage> {
   String? _qrData;
   bool _isGenerating = false;
+  bool _hasPermission = true;
+  bool _isCheckingPermission = true;
+  StreamSubscription<GroupSettings?>? _permissionSubscription;
 
   @override
   void initState() {
     super.initState();
+    _startPermissionListener();
+  }
+
+  Future<void> _checkPermission() async {
+    setState(() {
+      _isCheckingPermission = true;
+    });
+
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      final group = groupProvider.currentGroup;
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (group == null || user == null) {
+        setState(() {
+          _hasPermission = false;
+          _isCheckingPermission = false;
+        });
+        return;
+      }
+
+      // ユーザーのロールを取得
+      final userRole = group.getMemberRole(user.uid);
+
+      // 管理者またはリーダーは常に許可
+      if (userRole == GroupRole.admin || userRole == GroupRole.leader) {
+        setState(() {
+          _hasPermission = true;
+          _isCheckingPermission = false;
+        });
+        _generateQRCode();
+        return;
+      }
+
+      // メンバーの場合は設定をチェック
+      final settings = await GroupFirestoreService.getGroupSettings(group.id);
+      final allowInvite = settings?.allowMemberInvite ?? false;
+
+      setState(() {
+        _hasPermission = allowInvite;
+        _isCheckingPermission = false;
+      });
+
+      if (allowInvite) {
+        _generateQRCode();
+      }
+    } catch (e) {
+      print('QRコード生成権限チェックエラー: $e');
+      setState(() {
+        _hasPermission = false;
+        _isCheckingPermission = false;
+      });
+    }
+  }
+
+  void _startPermissionListener() {
+    final groupProvider = context.read<GroupProvider>();
+    final group = groupProvider.currentGroup;
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (group == null || user == null) {
+      setState(() {
+        _hasPermission = false;
+        _isCheckingPermission = false;
+      });
+      return;
+    }
+
+    // ユーザーのロールを取得
+    final userRole = group.getMemberRole(user.uid);
+
+    // 管理者またはリーダーは常に許可
+    if (userRole == GroupRole.admin || userRole == GroupRole.leader) {
+      setState(() {
+        _hasPermission = true;
+        _isCheckingPermission = false;
+      });
+      _generateQRCode();
+      return;
+    }
+
+    // メンバーの場合は設定をリアルタイム監視
+    _permissionSubscription?.cancel();
+    _permissionSubscription = GroupFirestoreService.watchGroupSettings(group.id)
+        .listen((settings) {
+          if (settings != null) {
+            final allowInvite = settings.allowMemberInvite;
+            setState(() {
+              _hasPermission = allowInvite;
+              _isCheckingPermission = false;
+            });
+
+            if (allowInvite && _qrData == null) {
     _generateQRCode();
+            }
+          } else {
+            setState(() {
+              _hasPermission = false;
+              _isCheckingPermission = false;
+            });
+          }
+        });
   }
 
   Future<void> _generateQRCode() async {
@@ -83,6 +192,117 @@ class _GroupQRGeneratePageState extends State<GroupQRGeneratePage> {
               color: themeSettings.fontColor1,
               fontSize: 16 * themeSettings.fontSizeScale,
               fontFamily: themeSettings.fontFamily,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 権限チェック中
+    if (_isCheckingPermission) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'QRコード生成',
+            style: TextStyle(
+              color: themeSettings.appBarTextColor,
+              fontSize: 20 * themeSettings.fontSizeScale,
+              fontWeight: FontWeight.bold,
+              fontFamily: themeSettings.fontFamily,
+            ),
+          ),
+          backgroundColor: themeSettings.appBarColor,
+          iconTheme: IconThemeData(color: themeSettings.iconColor),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  themeSettings.buttonColor,
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                '権限を確認中...',
+                style: TextStyle(
+                  color: themeSettings.fontColor1,
+                  fontSize: 16 * themeSettings.fontSizeScale,
+                  fontFamily: themeSettings.fontFamily,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 権限がない場合
+    if (!_hasPermission) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'QRコード生成',
+            style: TextStyle(
+              color: themeSettings.appBarTextColor,
+              fontSize: 20 * themeSettings.fontSizeScale,
+              fontWeight: FontWeight.bold,
+              fontFamily: themeSettings.fontFamily,
+            ),
+          ),
+          backgroundColor: themeSettings.appBarColor,
+          iconTheme: IconThemeData(color: themeSettings.iconColor),
+        ),
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.lock,
+                  size: 80,
+                  color: themeSettings.fontColor1.withOpacity(0.5),
+                ),
+                SizedBox(height: 24),
+                Text(
+                  '権限がありません',
+                  style: TextStyle(
+                    color: themeSettings.fontColor1,
+                    fontSize: 20 * themeSettings.fontSizeScale,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'QRコードの生成には管理者またはリーダーの権限が必要です。\n\nメンバーが招待できる設定が有効になっている場合は、管理者またはリーダーに設定の確認を依頼してください。',
+                  style: TextStyle(
+                    color: themeSettings.fontColor1.withOpacity(0.7),
+                    fontSize: 14 * themeSettings.fontSizeScale,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: themeSettings.buttonColor,
+                    foregroundColor: themeSettings.fontColor2,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  ),
+                  child: Text(
+                    '戻る',
+                    style: TextStyle(
+                      fontSize: 16 * themeSettings.fontSizeScale,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: themeSettings.fontFamily,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -283,5 +503,11 @@ class _GroupQRGeneratePageState extends State<GroupQRGeneratePage> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _permissionSubscription?.cancel();
+    super.dispose();
   }
 }

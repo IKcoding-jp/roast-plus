@@ -25,6 +25,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
   List<String> rightLabels = [];
   late SharedPreferences prefs;
 
+  // コントローラーを管理
+  Map<String, TextEditingController> _teamNameControllers = {};
+  Map<String, TextEditingController> _memberControllers = {};
+
   @override
   void initState() {
     super.initState();
@@ -44,40 +48,44 @@ class _MemberEditPageState extends State<MemberEditPage> {
         .get();
     if (doc.exists && doc.data() != null) {
       final data = doc.data()!;
-      setState(() {
-        if (data['teams'] != null) {
-          teams = List<Map<String, dynamic>>.from(
-            data['teams'],
-          ).map((teamMap) => Team.fromMap(teamMap)).toList();
-        } else {
-          // 古い形式の場合は新しい形式に変換
-          final aMembers = List<String>.from(data['aMembers'] ?? []);
-          final bMembers = List<String>.from(data['bMembers'] ?? []);
-          teams = [
-            Team(id: 'team_a', name: 'A班', members: aMembers),
-            Team(id: 'team_b', name: 'B班', members: bMembers),
-          ];
-        }
-        if ((data['leftLabels'] as List?)?.isNotEmpty ?? false) {
-          leftLabels = List<String>.from(data['leftLabels']);
-        }
-        if ((data['rightLabels'] as List?)?.isNotEmpty ?? false) {
-          rightLabels = List<String>.from(data['rightLabels']);
-        }
-        if (teams.isEmpty) {
+      if (mounted) {
+        setState(() {
+          if (data['teams'] != null) {
+            teams = List<Map<String, dynamic>>.from(
+              data['teams'],
+            ).map((teamMap) => Team.fromMap(teamMap)).toList();
+          } else {
+            // 古い形式の場合は新しい形式に変換
+            final aMembers = List<String>.from(data['aMembers'] ?? []);
+            final bMembers = List<String>.from(data['bMembers'] ?? []);
+            teams = [
+              Team(id: 'team_a', name: 'A班', members: aMembers),
+              Team(id: 'team_b', name: 'B班', members: bMembers),
+            ];
+          }
+          if ((data['leftLabels'] as List?)?.isNotEmpty ?? false) {
+            leftLabels = List<String>.from(data['leftLabels']);
+          }
+          if ((data['rightLabels'] as List?)?.isNotEmpty ?? false) {
+            rightLabels = List<String>.from(data['rightLabels']);
+          }
+          if (teams.isEmpty) {
+            teams = [
+              Team(id: 'team_a', name: 'A班', members: []),
+              Team(id: 'team_b', name: 'B班', members: []),
+            ];
+          }
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
           teams = [
             Team(id: 'team_a', name: 'A班', members: []),
             Team(id: 'team_b', name: 'B班', members: []),
           ];
-        }
-      });
-    } else {
-      setState(() {
-        teams = [
-          Team(id: 'team_a', name: 'A班', members: []),
-          Team(id: 'team_b', name: 'B班', members: []),
-        ];
-      });
+        });
+      }
     }
   }
 
@@ -93,6 +101,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         .doc('assignment')
         .snapshots()
         .listen((doc) {
+          if (!mounted) return; // ウィジェットが破棄されている場合は処理しない
           if (doc.exists && doc.data() != null) {
             final data = doc.data()!;
             setState(() {
@@ -117,6 +126,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
               if (teams.isEmpty) {
                 teams = [Team(id: 'team_default', name: '新しい班', members: [])];
               }
+
+              // コントローラーを初期化
+              _initializeControllers();
             });
           }
         });
@@ -125,6 +137,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
   @override
   void dispose() {
     _assignmentMembersSubscription?.cancel();
+    // コントローラーを破棄
+    _teamNameControllers.values.forEach((controller) => controller.dispose());
+    _memberControllers.values.forEach((controller) => controller.dispose());
     super.dispose();
   }
 
@@ -153,22 +168,65 @@ class _MemberEditPageState extends State<MemberEditPage> {
         teams = [];
       }
 
+      // コントローラーを初期化
+      _initializeControllers();
+
       // 初期値セットは削除（Firestore取得後に行う）
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       print('メンバー読み込みエラー: $e');
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  /// コントローラーを初期化
+  void _initializeControllers() {
+    // 既存のコントローラーを破棄
+    _teamNameControllers.values.forEach((controller) => controller.dispose());
+    _memberControllers.values.forEach((controller) => controller.dispose());
+    _teamNameControllers.clear();
+    _memberControllers.clear();
+
+    // 新しいコントローラーを作成
+    for (int i = 0; i < teams.length; i++) {
+      final team = teams[i];
+      _teamNameControllers[team.id] = TextEditingController(text: team.name);
+
+      for (int j = 0; j < team.members.length; j++) {
+        final memberKey = '${team.id}_$j';
+        _memberControllers[memberKey] = TextEditingController(
+          text: team.members[j],
+        );
+      }
     }
   }
 
   Future<void> _saveMembers() async {
     try {
-      // 新しい形式で保存
+      // 現在のラベルデータを取得（既存のデータを保持）
+      final currentSettings =
+          await UserSettingsFirestoreService.getMultipleSettings([
+            'leftLabels',
+            'rightLabels',
+          ]);
+
+      final currentLeftLabels = List<String>.from(
+        currentSettings['leftLabels'] ?? [],
+      );
+      final currentRightLabels = List<String>.from(
+        currentSettings['rightLabels'] ?? [],
+      );
+
+      // 新しい形式で保存（ラベルは既存のデータを保持）
       final teamsJson = teams.map((team) => team.toMap()).toList();
       await UserSettingsFirestoreService.saveMultipleSettings({
         'teams': teamsJson,
-        'leftLabels': leftLabels,
-        'rightLabels': rightLabels,
+        'leftLabels': currentLeftLabels,
+        'rightLabels': currentRightLabels,
       });
 
       // 後方互換性のため、最初の2つの班をA班、B班としても保存
@@ -182,12 +240,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
       print('メンバー保存エラー: $e');
     }
 
-    // Firestoreにも保存
+    // Firestoreにも保存（ラベルは既存のデータを保持）
     await AssignmentFirestoreService.saveAssignmentMembers(
       aMembers: teams.isNotEmpty ? teams[0].members : [],
       bMembers: teams.length > 1 ? teams[1].members : [],
-      leftLabels: leftLabels,
-      rightLabels: rightLabels,
+      leftLabels: leftLabels, // 現在のラベルデータを使用
+      rightLabels: rightLabels, // 現在のラベルデータを使用
     );
 
     // グループに同期
@@ -249,10 +307,33 @@ class _MemberEditPageState extends State<MemberEditPage> {
         members: [...teams[teamIndex].members, ''],
       );
     });
+
+    // 新しいメンバーのコントローラーを追加
+    final team = teams[teamIndex];
+    final memberIndex = team.members.length - 1;
+    final memberKey = '${team.id}_$memberIndex';
+    _memberControllers[memberKey] = TextEditingController(text: '');
+
     _adjustLabelsToTeams();
   }
 
   void _deleteMember(int teamIndex, int memberIndex) {
+    final team = teams[teamIndex];
+
+    // 削除するメンバーのコントローラーを破棄
+    final memberKey = '${team.id}_$memberIndex';
+    _memberControllers[memberKey]?.dispose();
+    _memberControllers.remove(memberKey);
+
+    // 後続のメンバーのコントローラーキーを更新
+    for (int i = memberIndex + 1; i < team.members.length; i++) {
+      final oldKey = '${team.id}_$i';
+      final newKey = '${team.id}_${i - 1}';
+      if (_memberControllers.containsKey(oldKey)) {
+        _memberControllers[newKey] = _memberControllers.remove(oldKey)!;
+      }
+    }
+
     setState(() {
       final newMembers = List<String>.from(teams[teamIndex].members);
       newMembers.removeAt(memberIndex);
@@ -314,7 +395,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
                 SizedBox(width: 8),
                 Expanded(
                   child: TextFormField(
-                    initialValue: team.name,
+                    controller: _teamNameControllers[team.id],
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -335,13 +416,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
             ),
             SizedBox(height: 12),
             ...List.generate(team.members.length, (memberIndex) {
+              final memberKey = '${team.id}_$memberIndex';
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
                     Expanded(
                       child: TextFormField(
-                        initialValue: team.members[memberIndex],
+                        controller: _memberControllers[memberKey],
                         style: TextStyle(
                           color: Provider.of<ThemeSettings>(context).fontColor1,
                         ),

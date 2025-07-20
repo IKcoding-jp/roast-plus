@@ -84,14 +84,40 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _slideController.dispose();
-    _nameController.dispose();
-    _descriptionController.dispose();
+    // アニメーションコントローラーを安全に破棄
+    try {
+      if (_fadeController.isAnimating) {
+        _fadeController.stop();
+      }
+      _fadeController.dispose();
+    } catch (e) {
+      print('FadeController破棄エラー: $e');
+    }
+
+    try {
+      if (_slideController.isAnimating) {
+        _slideController.stop();
+      }
+      _slideController.dispose();
+    } catch (e) {
+      print('SlideController破棄エラー: $e');
+    }
+
+    // テキストコントローラーを安全に破棄
+    try {
+      _nameController.dispose();
+      _descriptionController.dispose();
+    } catch (e) {
+      print('TextController破棄エラー: $e');
+    }
 
     // ゲーミフィケーションプロファイルの監視を停止
-    if (_currentGroupId != null && _groupProvider != null) {
-      _groupProvider!.unwatchGroupGamificationProfile(_currentGroupId!);
+    try {
+      if (_currentGroupId != null && _groupProvider != null) {
+        _groupProvider!.unwatchGroupGamificationProfile(_currentGroupId!);
+      }
+    } catch (e) {
+      print('ゲーミフィケーション監視停止エラー: $e');
     }
 
     super.dispose();
@@ -109,7 +135,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
   /// グループ変更をチェックして、必要に応じてゲーミフィケーションプロファイルの監視を開始
   void _checkGroupChange() {
-    if (_groupProvider == null) return;
+    if (_groupProvider == null || !mounted) return;
 
     final currentGroupId = _groupProvider!.hasGroup
         ? _groupProvider!.currentGroup!.id
@@ -119,13 +145,21 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     if (_currentGroupId != currentGroupId) {
       // 前のグループの監視を停止
       if (_currentGroupId != null) {
-        _groupProvider!.unwatchGroupGamificationProfile(_currentGroupId!);
+        try {
+          _groupProvider!.unwatchGroupGamificationProfile(_currentGroupId!);
+        } catch (e) {
+          print('前のグループの監視停止エラー: $e');
+        }
       }
 
       // 新しいグループの監視を開始
-      if (currentGroupId != null) {
-        _groupProvider!.watchGroupGamificationProfile(currentGroupId);
-        print('GroupInfoPage: ゲーミフィケーションプロファイルの監視を開始: $currentGroupId');
+      if (currentGroupId != null && mounted) {
+        try {
+          _groupProvider!.watchGroupGamificationProfile(currentGroupId);
+          print('GroupInfoPage: ゲーミフィケーションプロファイルの監視を開始: $currentGroupId');
+        } catch (e) {
+          print('新しいグループの監視開始エラー: $e');
+        }
       }
 
       _currentGroupId = currentGroupId;
@@ -137,7 +171,9 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     final gamificationProvider = context.read<GamificationProvider>();
 
     if (!groupProvider.hasGroup) {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
       return;
     }
 
@@ -148,8 +184,14 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       final statisticsService = GroupStatisticsService();
       _groupStats = await statisticsService.getGroupStatistics(group.id);
 
+      // ウィジェットが破棄されている場合は処理を中断
+      if (!mounted) return;
+
       // グループのゲーミフィケーションプロファイルを取得
       await groupProvider.loadGroupGamificationProfile(group.id);
+
+      // ウィジェットが破棄されている場合は処理を中断
+      if (!mounted) return;
 
       // ゲーミフィケーションプロファイルの監視を開始
       groupProvider.watchGroupGamificationProfile(group.id);
@@ -191,6 +233,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             await GroupDataSyncService.getGroupMembersGamificationData(
               group.id,
             );
+
+        // ウィジェットが破棄されている場合は処理を中断
+        if (!mounted) return;
+
         _groupProfile = _calculateGroupProfile(_memberProfiles);
       }
 
@@ -198,15 +244,24 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       _groupSettings = await GroupFirestoreService.getGroupSettings(group.id);
       _groupSettings ??= GroupSettings.defaultSettings();
 
+      // ウィジェットが破棄されている場合は処理を中断
+      if (!mounted) return;
+
       setState(() => _loading = false);
 
-      // アニメーション開始
-      _fadeController.forward();
-      await Future.delayed(Duration(milliseconds: 200));
-      _slideController.forward();
+      // アニメーション開始（mountedチェック付き）
+      if (mounted) {
+        _fadeController.forward();
+        await Future.delayed(Duration(milliseconds: 200));
+        if (mounted) {
+          _slideController.forward();
+        }
+      }
     } catch (e) {
       print('グループデータ読み込みエラー: $e');
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -291,7 +346,9 @@ class _GroupInfoPageState extends State<GroupInfoPage>
   Future<void> _saveGroupChanges() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSaving = true);
+    if (mounted) {
+      setState(() => _isSaving = true);
+    }
 
     try {
       final groupProvider = context.read<GroupProvider>();
@@ -315,15 +372,17 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
       if (success && mounted) {
         await groupProvider.loadUserGroups();
-        setState(() {
-          _isEditing = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('グループ情報を更新しました'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          setState(() {
+            _isEditing = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('グループ情報を更新しました'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
         print('GroupInfoPage: グループ更新完了');
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -375,16 +434,18 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       ),
     );
 
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
 
     try {
       final success = await groupProvider.deleteGroup(currentGroup.id);
       if (success && mounted) {
         await groupProvider.loadUserGroups();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('グループを削除しました'), backgroundColor: Colors.red),
-        );
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('グループを削除しました'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -395,27 +456,85 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     }
   }
 
-  Future<void> _updateGroupSettings(GroupSettings newSettings) async {
+  Future<void> _updateGroupSettings(
+    GroupSettings newSettings, [
+    StateSetter? setModalState,
+  ]) async {
     try {
+      print('GroupInfoPage: 設定更新開始');
+      print('GroupInfoPage: 現在の設定: $_groupSettings');
+      print('GroupInfoPage: 新しい設定: $newSettings');
+      print(
+        'GroupInfoPage: 新しい設定のdataPermissions: ${newSettings.dataPermissions}',
+      );
+
+      if (_groupSettings != null) {
+        print(
+          'GroupInfoPage: 現在のallowMemberInvite: ${_groupSettings!.allowMemberInvite}',
+        );
+        print(
+          'GroupInfoPage: 新しいallowMemberInvite: ${newSettings.allowMemberInvite}',
+        );
+        print(
+          'GroupInfoPage: 現在のallowMemberViewMembers: ${_groupSettings!.allowMemberViewMembers}',
+        );
+        print(
+          'GroupInfoPage: 新しいallowMemberViewMembers: ${newSettings.allowMemberViewMembers}',
+        );
+        print(
+          'GroupInfoPage: 現在のallowMemberViewMembers: ${_groupSettings!.allowMemberViewMembers}',
+        );
+        print(
+          'GroupInfoPage: 新しいallowMemberViewMembers: ${newSettings.allowMemberViewMembers}',
+        );
+      }
+
       await GroupFirestoreService.updateGroupSettings(
         groupId: context.read<GroupProvider>().currentGroup!.id,
         settings: newSettings,
       );
 
-      setState(() {
-        _groupSettings = newSettings;
-      });
+      print('GroupFirestoreService: Firestore更新完了');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('設定を更新しました'), backgroundColor: Colors.green),
-      );
+      if (mounted) {
+        print('GroupInfoPage: setState前の_groupSettings: $_groupSettings');
+        setState(() {
+          _groupSettings = newSettings;
+        });
+        print('GroupInfoPage: setState後の_groupSettings: $_groupSettings');
+
+        // ボトムシート内でも状態更新
+        if (setModalState != null) {
+          setModalState(() {
+            // ボトムシート内の状態を更新
+          });
+        }
+
+        // 強制的に再描画を促す
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              // 空のsetStateで強制再描画
+            });
+          }
+        });
+
+        print('GroupInfoPage: ローカル状態更新完了');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('設定を更新しました'), backgroundColor: Colors.green),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('設定の更新に失敗しました: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      print('GroupInfoPage: 設定更新エラー: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('設定の更新に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -426,11 +545,26 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
     if (user == null || group == null) return false;
 
-    return group.members.any(
-      (m) =>
-          m.uid == user.uid &&
-          (m.role == GroupRole.leader || m.role == GroupRole.admin),
-    );
+    // 管理者またはリーダーの場合に編集可能
+    final memberRole = group.getMemberRole(user.uid);
+    return memberRole == GroupRole.admin || memberRole == GroupRole.leader;
+  }
+
+  bool get _canShowQRCode {
+    final user = FirebaseAuth.instance.currentUser;
+    final groupProvider = context.read<GroupProvider>();
+    final group = groupProvider.currentGroup;
+
+    if (user == null || group == null) return false;
+
+    // 管理者またはリーダーは常に表示
+    final memberRole = group.getMemberRole(user.uid);
+    if (memberRole == GroupRole.admin || memberRole == GroupRole.leader) {
+      return true;
+    }
+
+    // メンバーの場合も常に表示（設定に関係なく）
+    return true;
   }
 
   void _showSettingsBottomSheet() {
@@ -440,11 +574,14 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildSettingsBottomSheet(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) =>
+            _buildSettingsBottomSheet(setModalState),
+      ),
     );
   }
 
-  Widget _buildSettingsBottomSheet() {
+  Widget _buildSettingsBottomSheet([StateSetter? setModalState]) {
     final themeSettings = Provider.of<ThemeSettings>(context);
 
     return Container(
@@ -499,9 +636,9 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               padding: EdgeInsets.all(20),
               child: Column(
                 children: [
-                  _buildDataPermissionSettings(),
+                  _buildDataPermissionSettings(setModalState),
                   SizedBox(height: 20),
-                  _buildMemberPermissionSettings(),
+                  _buildMemberPermissionSettings(setModalState),
                 ],
               ),
             ),
@@ -536,8 +673,8 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         backgroundColor: themeSettings.appBarColor,
         iconTheme: IconThemeData(color: themeSettings.iconColor),
         actions: [
-          if (groupProvider.hasGroup && _isUserLeader) ...[
-            if (_isEditing) ...[
+          if (groupProvider.hasGroup) ...[
+            if (_isEditing && _isUserLeader) ...[
               if (_isSaving)
                 SizedBox(
                   width: 24,
@@ -554,60 +691,71 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                 ),
               IconButton(
                 icon: Icon(Icons.close, color: themeSettings.iconColor),
-                onPressed: () => setState(() => _isEditing = false),
-              ),
-            ] else ...[
-              IconButton(
-                icon: Icon(Icons.edit, color: themeSettings.iconColor),
-                onPressed: () => setState(() => _isEditing = true),
-              ),
-              IconButton(
-                icon: Icon(Icons.qr_code, color: themeSettings.iconColor),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const GroupQRGeneratePage(),
-                    ),
-                  );
-                },
-                tooltip: 'QRコード生成',
-              ),
-              PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, color: themeSettings.iconColor),
-                onSelected: (value) {
-                  switch (value) {
-                    case 'settings':
-                      _showSettingsBottomSheet();
-                      break;
-                    case 'delete':
-                      _deleteGroup();
-                      break;
+                  if (mounted) {
+                    setState(() => _isEditing = false);
                   }
                 },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'settings',
-                    child: Row(
-                      children: [
-                        Icon(Icons.settings, size: 20),
-                        SizedBox(width: 8),
-                        Text('権限設定'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, size: 20, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('グループ削除', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
               ),
+            ] else ...[
+              if (_isUserLeader)
+                IconButton(
+                  icon: Icon(Icons.edit, color: themeSettings.iconColor),
+                  onPressed: () {
+                    if (mounted) {
+                      setState(() => _isEditing = true);
+                    }
+                  },
+                ),
+              if (_canShowQRCode)
+                IconButton(
+                  icon: Icon(Icons.qr_code, color: themeSettings.iconColor),
+                  onPressed: () async {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GroupQRGeneratePage(),
+                      ),
+                    );
+                  },
+                  tooltip: 'QRコード生成',
+                ),
+              if (_isUserLeader)
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, color: themeSettings.iconColor),
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'settings':
+                        _showSettingsBottomSheet();
+                        break;
+                      case 'delete':
+                        _deleteGroup();
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'settings',
+                      child: Row(
+                        children: [
+                          Icon(Icons.settings, size: 20),
+                          SizedBox(width: 8),
+                          Text('権限設定'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('グループ削除', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ],
         ],
@@ -660,473 +808,258 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
   Widget _buildGroupInfoView(ThemeSettings themeSettings, Group group) {
     final size = MediaQuery.of(context).size;
-
     return Consumer<GroupProvider>(
       builder: (context, groupProvider, child) {
-        // 最新のグループゲーミフィケーションプロファイルを取得
         final groupGamificationProfile = groupProvider
             .getGroupGamificationProfile(group.id);
-
-        // 統計データを取得
         final stats = groupGamificationProfile?.stats;
         final badgeCount = groupGamificationProfile?.badges.length ?? 0;
         final allBadgeCount = GamificationService.badgeConditions.length;
-
-        // レベル情報を取得
         final currentLevel = groupGamificationProfile?.level ?? 1;
         final experiencePoints =
             groupGamificationProfile?.experiencePoints ?? 0;
         final levelProgress = groupGamificationProfile?.levelProgress ?? 0.0;
         final experienceToNextLevel =
             groupGamificationProfile?.experienceToNextLevel ?? 0;
-
-        // メンバー情報を計算
         final memberCount = group.members.length;
 
         return Center(
           child: Container(
-            width: size.width > 500 ? 500 : size.width * 0.99,
-            margin: EdgeInsets.symmetric(vertical: 24),
+            width: size.width > 500 ? 500 : size.width * 0.95,
+            constraints: BoxConstraints(
+              maxHeight: size.height * 0.9,
+              minHeight: size.height * 0.7,
+            ),
             child: Card(
-              elevation: 16,
+              elevation: 8,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(32),
+                borderRadius: BorderRadius.circular(20),
               ),
               color: themeSettings.backgroundColor2,
-              shadowColor: themeSettings.buttonColor.withOpacity(0.25),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      themeSettings.buttonColor.withOpacity(0.10),
-                      themeSettings.buttonColor.withOpacity(0.03),
-                    ],
-                  ),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 28, vertical: 28),
+              shadowColor: themeSettings.buttonColor.withOpacity(0.15),
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: SingleChildScrollView(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 基本情報
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  themeSettings.buttonColor,
-                                  themeSettings.buttonColor.withOpacity(0.7),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: themeSettings.buttonColor.withOpacity(
-                                    0.18,
-                                  ),
-                                  blurRadius: 16,
-                                  offset: Offset(0, 8),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.groups,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                          ),
-                          SizedBox(width: 20),
-                          Expanded(
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (_isEditing) ...[
-                                    TextFormField(
-                                      controller: _nameController,
-                                      style: TextStyle(
-                                        fontSize:
-                                            20 * themeSettings.fontSizeScale,
-                                        fontWeight: FontWeight.bold,
-                                        color: themeSettings.fontColor1,
-                                        fontFamily: themeSettings.fontFamily,
-                                      ),
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        labelText: 'グループ名',
-                                        filled: true,
-                                        fillColor: Colors.white.withOpacity(
-                                          0.8,
-                                        ),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                      ),
-                                      validator: (value) {
-                                        if (value == null ||
-                                            value.trim().isEmpty) {
-                                          return 'グループ名を入力してください';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    SizedBox(height: 8),
-                                    TextFormField(
-                                      controller: _descriptionController,
-                                      style: TextStyle(
-                                        fontSize:
-                                            14 * themeSettings.fontSizeScale,
-                                        color: themeSettings.fontColor1,
-                                        fontFamily: themeSettings.fontFamily,
-                                      ),
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        labelText: 'グループ説明',
-                                        filled: true,
-                                        fillColor: Colors.white.withOpacity(
-                                          0.8,
-                                        ),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                      ),
-                                      maxLines: 2,
-                                    ),
-                                  ] else ...[
-                                    Text(
-                                      group.name,
-                                      style: TextStyle(
-                                        fontSize:
-                                            20 * themeSettings.fontSizeScale,
-                                        fontWeight: FontWeight.bold,
-                                        color: themeSettings.fontColor1,
-                                        fontFamily: themeSettings.fontFamily,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      group.description,
-                                      style: TextStyle(
-                                        fontSize:
-                                            14 * themeSettings.fontSizeScale,
-                                        color: themeSettings.fontColor1
-                                            .withOpacity(0.7),
-                                        fontFamily: themeSettings.fontFamily,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 12),
-                      Row(
-                        children: [
-                          // メンバーアイコン
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Text(
-                                  'メンバー',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: themeSettings.fontColor1.withOpacity(
-                                      0.6,
-                                    ),
-                                    fontFamily: themeSettings.fontFamily,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                // メンバーのアイコンを表示（最大5人まで）
-                                ...group.members
-                                    .take(5)
-                                    .map(
-                                      (member) => Container(
-                                        margin: EdgeInsets.only(right: 4),
-                                        child: CircleAvatar(
-                                          radius: 12,
-                                          backgroundColor: themeSettings
-                                              .buttonColor
-                                              .withOpacity(0.1),
-                                          backgroundImage:
-                                              member.photoUrl != null
-                                              ? NetworkImage(member.photoUrl!)
-                                              : null,
-                                          child: member.photoUrl == null
-                                              ? Text(
-                                                  member.displayName.isNotEmpty
-                                                      ? member.displayName[0]
-                                                            .toUpperCase()
-                                                      : '?',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: themeSettings
-                                                        .buttonColor,
-                                                  ),
-                                                )
-                                              : null,
-                                        ),
-                                      ),
-                                    ),
-                                // 残りのメンバー数
-                                if (group.members.length > 5)
-                                  Container(
-                                    margin: EdgeInsets.only(left: 4),
-                                    child: Text(
-                                      '+${group.members.length - 5}',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: themeSettings.fontColor1
-                                            .withOpacity(0.6),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          // メンバー数
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: themeSettings.buttonColor.withOpacity(
-                                0.08,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: themeSettings.buttonColor.withOpacity(
-                                  0.2,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.people,
-                                  color: themeSettings.buttonColor,
-                                  size: 16,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  '$memberCount人',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: themeSettings.buttonColor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      Divider(height: 32, thickness: 1.2),
-                      // レベル・経験値
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: themeSettings.buttonColor,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: themeSettings.buttonColor
-                                          .withOpacity(0.18),
-                                      blurRadius: 12,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Lv.$currentLevel',
-                                    style: TextStyle(
-                                      fontSize:
-                                          20 * themeSettings.fontSizeScale,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      fontFamily: themeSettings.fontFamily,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${experiencePoints} XP',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: themeSettings.fontColor1,
-                                      fontWeight: FontWeight.w600,
-                                      fontFamily: themeSettings.fontFamily,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    '次まで${experienceToNextLevel} XP',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: themeSettings.fontColor1
-                                          .withOpacity(0.6),
-                                      fontFamily: themeSettings.fontFamily,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          // バッジ数をラベル風に
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: themeSettings.buttonColor.withOpacity(
-                                0.12,
-                              ),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.emoji_events,
-                                  color: themeSettings.buttonColor,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  '$badgeCount / $allBadgeCount',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: themeSettings.buttonColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: themeSettings.fontFamily,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      // 経験値バー
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: levelProgress.clamp(0.0, 1.0),
-                          minHeight: 12,
-                          backgroundColor: themeSettings.fontColor1.withOpacity(
-                            0.08,
-                          ),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            themeSettings.buttonColor,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                      // 統計
-                      Container(
-                        decoration: BoxDecoration(
-                          color: themeSettings.backgroundColor.withOpacity(
-                            0.07,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          vertical: 16,
-                          horizontal: 8,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _miniStat(
-                              themeSettings,
-                              Icons.work,
-                              '出勤',
-                              '${stats?.totalAttendanceDays ?? 0}日',
-                              big: true,
-                            ),
-                            _miniStat(
-                              themeSettings,
-                              Icons.local_fire_department,
-                              '焙煎',
-                              '${stats?.totalRoastTimeHours.toStringAsFixed(1) ?? '0.0'}h',
-                              big: true,
-                            ),
-                            _miniStat(
-                              themeSettings,
-                              Icons.local_cafe,
-                              'パック',
-                              '${stats?.totalDripPackCount ?? 0}個',
-                              big: true,
-                            ),
-                            _miniStat(
-                              themeSettings,
-                              Icons.emoji_events,
-                              'バッジ',
-                              '$badgeCount',
-                              big: true,
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      // 作成日
+                      // グループ名と説明
                       Row(
                         children: [
                           Icon(
-                            Icons.calendar_today,
-                            size: 16,
-                            color: themeSettings.fontColor1.withOpacity(0.6),
+                            Icons.groups,
+                            color: themeSettings.buttonColor,
+                            size: 40,
                           ),
-                          SizedBox(width: 6),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: _isEditing
+                                ? _buildEditForm(themeSettings, group)
+                                : _buildGroupInfo(themeSettings, group),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 24),
+
+                      // メンバーと権限
+                      Text(
+                        'メンバーと権限',
+                        style: TextStyle(
+                          fontSize: 22 * themeSettings.fontSizeScale,
+                          fontWeight: FontWeight.bold,
+                          color: themeSettings.fontColor1,
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      _buildMembersSection(themeSettings, group),
+
+                      // 統計情報
+                      Text(
+                        'グループ統計',
+                        style: TextStyle(
+                          fontSize: 22 * themeSettings.fontSizeScale,
+                          fontWeight: FontWeight.bold,
+                          color: themeSettings.fontColor1,
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildStatItem(
+                            themeSettings,
+                            Icons.work,
+                            '出勤',
+                            '${stats?.totalAttendanceDays ?? 0}日',
+                          ),
+                          _buildStatItem(
+                            themeSettings,
+                            Icons.local_fire_department,
+                            '焙煎',
+                            '${stats?.totalRoastTimeHours.toStringAsFixed(1) ?? '0.0'}h',
+                          ),
+                          _buildStatItem(
+                            themeSettings,
+                            Icons.local_cafe,
+                            'パック',
+                            '${stats?.totalDripPackCount ?? 0}個',
+                          ),
+                          _buildStatItem(
+                            themeSettings,
+                            Icons.emoji_events,
+                            'バッジ',
+                            '$badgeCount',
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 24),
+
+                      // レベルと経験値
+                      Text(
+                        'グループレベル',
+                        style: TextStyle(
+                          fontSize: 22 * themeSettings.fontSizeScale,
+                          fontWeight: FontWeight.bold,
+                          color: themeSettings.fontColor1,
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.trending_up,
+                            color: themeSettings.buttonColor,
+                            size: 32,
+                          ),
+                          SizedBox(width: 12),
                           Text(
-                            '作成日: ${group.createdAt.year}/${group.createdAt.month}/${group.createdAt.day}',
+                            'Lv.$currentLevel',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: themeSettings.fontColor1.withOpacity(0.6),
+                              fontSize: 22 * themeSettings.fontSizeScale,
+                              fontWeight: FontWeight.bold,
+                              color: themeSettings.buttonColor,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                          ),
+                          Spacer(),
+                          Text(
+                            '${experiencePoints}XP',
+                            style: TextStyle(
+                              fontSize: 20 * themeSettings.fontSizeScale,
+                              color: themeSettings.fontColor1,
                               fontFamily: themeSettings.fontFamily,
                             ),
                           ),
                         ],
+                      ),
+                      SizedBox(height: 12),
+                      LinearProgressIndicator(
+                        value: levelProgress.clamp(0.0, 1.0),
+                        minHeight: 12,
+                        backgroundColor: themeSettings.fontColor1.withOpacity(
+                          0.1,
+                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          themeSettings.buttonColor,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '次まで${experienceToNextLevel}XP',
+                        style: TextStyle(
+                          fontSize: 18 * themeSettings.fontSizeScale,
+                          color: themeSettings.fontColor1.withOpacity(0.6),
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                      ),
+                      SizedBox(height: 24),
+
+                      // バッジ進捗
+                      Text(
+                        'バッジ進捗',
+                        style: TextStyle(
+                          fontSize: 22 * themeSettings.fontSizeScale,
+                          fontWeight: FontWeight.bold,
+                          color: themeSettings.fontColor1,
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Text(
+                            '$badgeCount / $allBadgeCount',
+                            style: TextStyle(
+                              fontSize: 20 * themeSettings.fontSizeScale,
+                              color: themeSettings.buttonColor,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: Row(
+                              children: GamificationService.badgeConditions
+                                  .take(5)
+                                  .map((condition) {
+                                    final isEarned =
+                                        groupGamificationProfile?.badges.any(
+                                          (b) => b.id == condition.badgeId,
+                                        ) ??
+                                        false;
+                                    return Padding(
+                                      padding: EdgeInsets.only(right: 8),
+                                      child: Icon(
+                                        condition.icon,
+                                        color: isEarned
+                                            ? condition.color
+                                            : themeSettings.fontColor1
+                                                  .withOpacity(0.2),
+                                        size: 32,
+                                      ),
+                                    );
+                                  })
+                                  .toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 24),
+
+                      // レベルタイトル
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 16,
+                          horizontal: 20,
+                        ),
+                        decoration: BoxDecoration(
+                          color: themeSettings.buttonColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.emoji_events,
+                              color: themeSettings.buttonColor,
+                              size: 32,
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              _getLevelTitle(currentLevel),
+                              style: TextStyle(
+                                fontSize: 20 * themeSettings.fontSizeScale,
+                                fontWeight: FontWeight.bold,
+                                color: themeSettings.buttonColor,
+                                fontFamily: themeSettings.fontFamily,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1136,6 +1069,123 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildStatItem(
+    ThemeSettings themeSettings,
+    IconData icon,
+    String label,
+    String value,
+  ) {
+    return Column(
+      children: [
+        Icon(icon, color: themeSettings.buttonColor, size: 36),
+        SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20 * themeSettings.fontSizeScale,
+            fontWeight: FontWeight.bold,
+            color: themeSettings.fontColor1,
+            fontFamily: themeSettings.fontFamily,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 18 * themeSettings.fontSizeScale,
+            color: themeSettings.fontColor1.withOpacity(0.6),
+            fontFamily: themeSettings.fontFamily,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailStatItem(
+    ThemeSettings themeSettings,
+    IconData icon,
+    String label,
+    String value,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      decoration: BoxDecoration(
+        color: themeSettings.backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: themeSettings.buttonColor.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: themeSettings.buttonColor, size: 20),
+          SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14 * themeSettings.fontSizeScale,
+              fontWeight: FontWeight.bold,
+              color: themeSettings.fontColor1,
+              fontFamily: themeSettings.fontFamily,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12 * themeSettings.fontSizeScale,
+              color: themeSettings.fontColor1.withOpacity(0.6),
+              fontFamily: themeSettings.fontFamily,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(
+    ThemeSettings themeSettings,
+    IconData icon,
+    String label,
+    String value,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      decoration: BoxDecoration(
+        color: themeSettings.backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: themeSettings.fontColor1.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: themeSettings.fontColor1.withOpacity(0.7),
+            size: 20,
+          ),
+          SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14 * themeSettings.fontSizeScale,
+              fontWeight: FontWeight.bold,
+              color: themeSettings.fontColor1,
+              fontFamily: themeSettings.fontFamily,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12 * themeSettings.fontSizeScale,
+              color: themeSettings.fontColor1.withOpacity(0.6),
+              fontFamily: themeSettings.fontFamily,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -1734,17 +1784,16 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     );
   }
 
-  Widget _buildDataPermissionSettings() {
+  Widget _buildDataPermissionSettings([StateSetter? setModalState]) {
+    print('GroupInfoPage: _buildDataPermissionSettings開始');
+    print('GroupInfoPage: 現在の_groupSettings: $_groupSettings');
+    if (_groupSettings != null) {
+      print(
+        'GroupInfoPage: 現在のdataPermissions: ${_groupSettings!.dataPermissions}',
+      );
+    }
+
     final themeSettings = Provider.of<ThemeSettings>(context);
-    final dataTypes = {
-      'roast_records': '焙煎記録一覧',
-      'drip_counter_records': 'ドリップカウンター',
-      'assignment_board': '担当表',
-      'assignment_history': '担当履歴',
-      'today_schedule': '本日のスケジュール',
-      'work_progress': '作業状況記録',
-      'tasting_record': '試飲感想記録',
-    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1759,73 +1808,554 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           ),
         ),
         SizedBox(height: 16),
-        ...dataTypes.entries.map((entry) {
-          final dataType = entry.key;
-          final displayName = entry.value;
-          final currentPermission = _groupSettings!.getPermissionForDataType(
-            dataType,
-          );
+        _buildDataPermissionToggle(
+          title: '焙煎記録入力',
+          description: '焙煎記録入力の作成権限',
+          dataType: 'roastRecordInput',
+          currentLevel: _groupSettings!.getPermissionForDataType(
+            'roastRecordInput',
+          ),
+          onChanged: (AccessLevel level) {
+            print('GroupInfoPage: 焙煎記録入力権限変更 - 新しい権限: $level');
+            if (setModalState != null) {
+              setModalState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['roastRecordInput'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            } else {
+              setState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['roastRecordInput'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            }
+            print(
+              'GroupInfoPage: setState完了 - 新しい設定: ${_groupSettings!.dataPermissions}',
+            );
+            _updateGroupSettings(_groupSettings!);
+          },
+        ),
+        SizedBox(height: 16),
+        _buildDataPermissionToggle(
+          title: '焙煎記録一覧',
+          description: '焙煎記録一覧の編集・削除権限',
+          dataType: 'roastRecords',
+          currentLevel: _groupSettings!.getPermissionForDataType(
+            'roastRecords',
+          ),
+          onChanged: (AccessLevel level) {
+            print('GroupInfoPage: 焙煎記録一覧権限変更 - 新しい権限: $level');
+            if (setModalState != null) {
+              setModalState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['roastRecords'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            } else {
+              setState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['roastRecords'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            }
+            print(
+              'GroupInfoPage: setState完了 - 新しい設定: ${_groupSettings!.dataPermissions}',
+            );
+            _updateGroupSettings(_groupSettings!);
+          },
+        ),
+        SizedBox(height: 16),
+        _buildDataPermissionToggle(
+          title: 'ドリップパックカウンター',
+          description: 'ドリップパックカウンターの記録・編集・削除権限',
+          dataType: 'dripCounter',
+          currentLevel: _groupSettings!.getPermissionForDataType('dripCounter'),
+          onChanged: (AccessLevel level) {
+            if (setModalState != null) {
+              setModalState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['dripCounter'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            } else {
+              setState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['dripCounter'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            }
+            _updateGroupSettings(_groupSettings!);
+          },
+        ),
+        SizedBox(height: 16),
+        _buildDataPermissionToggle(
+          title: '担当表',
+          description: '担当表の編集・削除権限',
+          dataType: 'assignment_board',
+          currentLevel: _groupSettings!.getPermissionForDataType(
+            'assignment_board',
+          ),
+          onChanged: (AccessLevel level) {
+            print('GroupInfoPage: 担当表権限変更 - 新しいレベル: $level');
+            print('GroupInfoPage: 変更前の設定: ${_groupSettings!.dataPermissions}');
 
-          return Padding(
-            padding: EdgeInsets.only(bottom: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  displayName,
-                  style: TextStyle(
-                    fontSize: 16 * themeSettings.fontSizeScale,
-                    fontWeight: FontWeight.w600,
-                    color: themeSettings.fontColor1,
-                    fontFamily: themeSettings.fontFamily,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildPermissionChip(
-                      '管理者のみ',
-                      DataPermission.adminOnly,
-                      currentPermission,
-                      Colors.red,
-                      () => _updateDataPermission(
-                        dataType,
-                        DataPermission.adminOnly,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    _buildPermissionChip(
-                      'リーダーまで',
-                      DataPermission.leaderOnly,
-                      currentPermission,
-                      Colors.orange,
-                      () => _updateDataPermission(
-                        dataType,
-                        DataPermission.leaderOnly,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    _buildPermissionChip(
-                      '全メンバー',
-                      DataPermission.memberOnly,
-                      currentPermission,
-                      Colors.green,
-                      () => _updateDataPermission(
-                        dataType,
-                        DataPermission.memberOnly,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        }),
+            if (setModalState != null) {
+              setModalState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['assignment_board'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            } else {
+              setState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['assignment_board'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            }
+
+            print('GroupInfoPage: 変更後の設定: ${_groupSettings!.dataPermissions}');
+            _updateGroupSettings(_groupSettings!);
+          },
+        ),
+        SizedBox(height: 16),
+        _buildDataPermissionToggle(
+          title: '本日のスケジュール',
+          description: '本日のスケジュールの編集・削除権限',
+          dataType: 'todaySchedule',
+          currentLevel: _groupSettings!.getPermissionForDataType(
+            'todaySchedule',
+          ),
+          onChanged: (AccessLevel level) {
+            if (setModalState != null) {
+              setModalState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['todaySchedule'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            } else {
+              setState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['todaySchedule'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            }
+            _updateGroupSettings(_groupSettings!);
+          },
+        ),
+        SizedBox(height: 16),
+        _buildDataPermissionToggle(
+          title: '作業状況記録',
+          description: '作業状況記録の編集・削除権限',
+          dataType: 'taskStatus',
+          currentLevel: _groupSettings!.getPermissionForDataType('taskStatus'),
+          onChanged: (AccessLevel level) {
+            if (setModalState != null) {
+              setModalState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['taskStatus'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            } else {
+              setState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['taskStatus'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            }
+            _updateGroupSettings(_groupSettings!);
+          },
+        ),
+        SizedBox(height: 16),
+        _buildDataPermissionToggle(
+          title: '試飲感想記録',
+          description: '試飲感想記録の編集・削除権限',
+          dataType: 'cuppingNotes',
+          currentLevel: _groupSettings!.getPermissionForDataType(
+            'cuppingNotes',
+          ),
+          onChanged: (AccessLevel level) {
+            if (setModalState != null) {
+              setModalState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['cuppingNotes'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            } else {
+              setState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['cuppingNotes'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            }
+            _updateGroupSettings(_groupSettings!);
+          },
+        ),
+        SizedBox(height: 16),
+        _buildDataPermissionToggle(
+          title: '丸シール設定',
+          description: '丸シール設定の編集・削除権限',
+          dataType: 'circleStamps',
+          currentLevel: _groupSettings!.getPermissionForDataType(
+            'circleStamps',
+          ),
+          onChanged: (AccessLevel level) {
+            if (setModalState != null) {
+              setModalState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['circleStamps'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            } else {
+              setState(() {
+                final newPermissions = Map<String, AccessLevel>.from(
+                  _groupSettings!.dataPermissions,
+                );
+                newPermissions['circleStamps'] = level;
+                _groupSettings = _groupSettings!.copyWith(
+                  dataPermissions: newPermissions,
+                );
+              });
+            }
+            _updateGroupSettings(_groupSettings!);
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildMemberPermissionSettings() {
+  Widget _buildDataPermissionToggle({
+    required String title,
+    required String description,
+    required String dataType,
+    required AccessLevel currentLevel,
+    required Function(AccessLevel) onChanged,
+  }) {
+    print('GroupInfoPage: $dataType の現在の権限: $currentLevel');
+
+    final themeSettings = Provider.of<ThemeSettings>(context);
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: themeSettings.backgroundColor2,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: themeSettings.fontColor1.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16 * themeSettings.fontSizeScale,
+                        fontWeight: FontWeight.bold,
+                        color: themeSettings.fontColor1,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 14 * themeSettings.fontSizeScale,
+                        color: themeSettings.fontColor1.withOpacity(0.7),
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 16),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _getAccessLevelColor(currentLevel).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _getAccessLevelColor(currentLevel).withOpacity(0.3),
+                  ),
+                ),
+                child: Text(
+                  _getAccessLevelDisplayName(currentLevel),
+                  style: TextStyle(
+                    fontSize: 12 * themeSettings.fontSizeScale,
+                    color: _getAccessLevelColor(currentLevel),
+                    fontWeight: FontWeight.bold,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              // 管理者ボタン
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(AccessLevel.admin_only),
+                  child: Container(
+                    margin: EdgeInsets.only(right: 8),
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color:
+                          _isLevelSelected(currentLevel, AccessLevel.admin_only)
+                          ? _getAccessLevelColor(AccessLevel.admin_only)
+                          : themeSettings.fontColor1.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color:
+                            _isLevelSelected(
+                              currentLevel,
+                              AccessLevel.admin_only,
+                            )
+                            ? _getAccessLevelColor(AccessLevel.admin_only)
+                            : themeSettings.fontColor1.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Text(
+                      '管理者',
+                      style: TextStyle(
+                        fontSize: 12 * themeSettings.fontSizeScale,
+                        color:
+                            _isLevelSelected(
+                              currentLevel,
+                              AccessLevel.admin_only,
+                            )
+                            ? Colors.white
+                            : themeSettings.fontColor1,
+                        fontWeight:
+                            _isLevelSelected(
+                              currentLevel,
+                              AccessLevel.admin_only,
+                            )
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+              // リーダーボタン
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(AccessLevel.admin_leader),
+                  child: Container(
+                    margin: EdgeInsets.only(right: 8),
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color:
+                          _isLevelSelected(
+                            currentLevel,
+                            AccessLevel.admin_leader,
+                          )
+                          ? _getAccessLevelColor(AccessLevel.admin_leader)
+                          : themeSettings.fontColor1.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color:
+                            _isLevelSelected(
+                              currentLevel,
+                              AccessLevel.admin_leader,
+                            )
+                            ? _getAccessLevelColor(AccessLevel.admin_leader)
+                            : themeSettings.fontColor1.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Text(
+                      'リーダー',
+                      style: TextStyle(
+                        fontSize: 12 * themeSettings.fontSizeScale,
+                        color:
+                            _isLevelSelected(
+                              currentLevel,
+                              AccessLevel.admin_leader,
+                            )
+                            ? Colors.white
+                            : themeSettings.fontColor1,
+                        fontWeight:
+                            _isLevelSelected(
+                              currentLevel,
+                              AccessLevel.admin_leader,
+                            )
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+              // メンバーボタン
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(AccessLevel.all_members),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color:
+                          _isLevelSelected(
+                            currentLevel,
+                            AccessLevel.all_members,
+                          )
+                          ? _getAccessLevelColor(AccessLevel.all_members)
+                          : themeSettings.fontColor1.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color:
+                            _isLevelSelected(
+                              currentLevel,
+                              AccessLevel.all_members,
+                            )
+                            ? _getAccessLevelColor(AccessLevel.all_members)
+                            : themeSettings.fontColor1.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Text(
+                      'メンバー',
+                      style: TextStyle(
+                        fontSize: 12 * themeSettings.fontSizeScale,
+                        color:
+                            _isLevelSelected(
+                              currentLevel,
+                              AccessLevel.all_members,
+                            )
+                            ? Colors.white
+                            : themeSettings.fontColor1,
+                        fontWeight:
+                            _isLevelSelected(
+                              currentLevel,
+                              AccessLevel.all_members,
+                            )
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getAccessLevelColor(AccessLevel level) {
+    switch (level) {
+      case AccessLevel.admin_only:
+        return Colors.red;
+      case AccessLevel.admin_leader:
+        return Colors.orange;
+      case AccessLevel.all_members:
+        return Colors.blue;
+    }
+  }
+
+  String _getAccessLevelDisplayName(AccessLevel level) {
+    switch (level) {
+      case AccessLevel.admin_only:
+        return '管理者のみ';
+      case AccessLevel.admin_leader:
+        return '管理者とリーダー';
+      case AccessLevel.all_members:
+        return '全メンバー';
+    }
+  }
+
+  /// 階層的な選択状態を判定する
+  /// 管理者をタップ: 管理者のみ選択
+  /// リーダーをタップ: 管理者とリーダーが選択
+  /// メンバーをタップ: 管理者とリーダーとメンバーが選択
+  bool _isLevelSelected(AccessLevel currentLevel, AccessLevel buttonLevel) {
+    switch (buttonLevel) {
+      case AccessLevel.admin_only:
+        // 管理者ボタンは、現在の権限が管理者のみ、管理者・リーダー、全メンバーの場合に選択
+        return currentLevel == AccessLevel.admin_only ||
+            currentLevel == AccessLevel.admin_leader ||
+            currentLevel == AccessLevel.all_members;
+      case AccessLevel.admin_leader:
+        // リーダーボタンは、現在の権限が管理者・リーダーまたは全メンバーの場合に選択
+        return currentLevel == AccessLevel.admin_leader ||
+            currentLevel == AccessLevel.all_members;
+      case AccessLevel.all_members:
+        // メンバーボタンは、現在の権限が全メンバーの場合のみ選択
+        return currentLevel == AccessLevel.all_members;
+    }
+  }
+
+  Widget _buildMemberPermissionSettings([StateSetter? setModalState]) {
     final themeSettings = Provider.of<ThemeSettings>(context);
 
     return Column(
@@ -1843,37 +2373,47 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         SizedBox(height: 16),
         _buildPermissionSwitch(
           title: 'メンバーが招待できる',
-          description: 'メンバーが他のユーザーをグループに招待できる',
+          description: 'メンバーがQRコードを生成して他のユーザーを招待できる',
           value: _groupSettings!.allowMemberInvite,
           onChanged: (value) {
-            final updatedSettings = _groupSettings!.copyWith(
-              allowMemberInvite: value,
-            );
-            _updateGroupSettings(updatedSettings);
-          },
-        ),
-        SizedBox(height: 16),
-        _buildPermissionSwitch(
-          title: 'メンバーがデータ同期できる',
-          description: 'メンバーがグループとのデータ同期を実行できる',
-          value: _groupSettings!.allowMemberDataSync,
-          onChanged: (value) {
-            final updatedSettings = _groupSettings!.copyWith(
-              allowMemberDataSync: value,
-            );
-            _updateGroupSettings(updatedSettings);
+            print('GroupInfoPage: メンバーが招待できる onChanged: $value');
+            if (setModalState != null) {
+              setModalState(() {
+                _groupSettings = _groupSettings!.copyWith(
+                  allowMemberInvite: value,
+                );
+              });
+            } else {
+              setState(() {
+                _groupSettings = _groupSettings!.copyWith(
+                  allowMemberInvite: value,
+                );
+              });
+            }
+            _updateGroupSettings(_groupSettings!);
           },
         ),
         SizedBox(height: 16),
         _buildPermissionSwitch(
           title: 'メンバーがメンバー一覧を見れる',
-          description: 'メンバーがグループのメンバー一覧を閲覧できる',
+          description: 'メンバーがグループのメンバー一覧を表示できる',
           value: _groupSettings!.allowMemberViewMembers,
           onChanged: (value) {
-            final updatedSettings = _groupSettings!.copyWith(
-              allowMemberViewMembers: value,
-            );
-            _updateGroupSettings(updatedSettings);
+            print('GroupInfoPage: メンバーがメンバー一覧を見れる onChanged: $value');
+            if (setModalState != null) {
+              setModalState(() {
+                _groupSettings = _groupSettings!.copyWith(
+                  allowMemberViewMembers: value,
+                );
+              });
+            } else {
+              setState(() {
+                _groupSettings = _groupSettings!.copyWith(
+                  allowMemberViewMembers: value,
+                );
+              });
+            }
+            _updateGroupSettings(_groupSettings!);
           },
         ),
       ],
@@ -1882,8 +2422,8 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
   Widget _buildPermissionChip(
     String label,
-    DataPermission permission,
-    DataPermission currentPermission,
+    AccessLevel permission,
+    AccessLevel currentPermission,
     Color color,
     VoidCallback onTap,
   ) {
@@ -1923,46 +2463,59 @@ class _GroupInfoPageState extends State<GroupInfoPage>
   }) {
     final themeSettings = Provider.of<ThemeSettings>(context);
 
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16 * themeSettings.fontSizeScale,
-                  fontWeight: FontWeight.bold,
-                  color: themeSettings.fontColor1,
-                  fontFamily: themeSettings.fontFamily,
+    return GestureDetector(
+      onTap: () {
+        print('GestureDetector tapped: $title');
+        print('Current value: $value');
+        print('Toggling to: ${!value}');
+        onChanged(!value);
+      },
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16 * themeSettings.fontSizeScale,
+                    fontWeight: FontWeight.bold,
+                    color: themeSettings.fontColor1,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
                 ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: 12 * themeSettings.fontSizeScale,
-                  color: themeSettings.fontColor1.withOpacity(0.7),
-                  fontFamily: themeSettings.fontFamily,
+                SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12 * themeSettings.fontSizeScale,
+                    color: themeSettings.fontColor1.withOpacity(0.7),
+                    fontFamily: themeSettings.fontFamily,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: themeSettings.buttonColor,
-        ),
-      ],
+          Switch(
+            value: value,
+            onChanged: (newValue) {
+              print('Switch onChanged called: $title');
+              print('Current value: $value');
+              print('New value: $newValue');
+              onChanged(newValue);
+            },
+            activeColor: themeSettings.buttonColor,
+          ),
+        ],
+      ),
     );
   }
 
-  void _updateDataPermission(String dataType, DataPermission permission) {
+  void _updateDataPermission(String dataType, AccessLevel permission) {
     if (_groupSettings == null) return;
 
-    final updatedPermissions = Map<String, DataPermission>.from(
+    final updatedPermissions = Map<String, AccessLevel>.from(
       _groupSettings!.dataPermissions,
     );
     updatedPermissions[dataType] = permission;
@@ -2047,5 +2600,529 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
     // 仮の成長率計算
     return (totalActivity * 0.5).clamp(0.0, 100.0).toStringAsFixed(1);
+  }
+
+  Widget _buildMembersSection(ThemeSettings themeSettings, Group group) {
+    // 権限チェック
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userRole = group.getMemberRole(user.uid);
+
+      // 管理者またはリーダーは常に表示
+      if (userRole == GroupRole.admin || userRole == GroupRole.leader) {
+        return _buildMembersList(themeSettings, group);
+      }
+
+      // メンバーの場合は設定をチェック
+      if (_groupSettings != null && _groupSettings!.allowMemberViewMembers) {
+        return _buildMembersList(themeSettings, group);
+      } else {
+        return Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: themeSettings.fontColor1.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: themeSettings.fontColor1.withOpacity(0.1),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.lock,
+                color: themeSettings.fontColor1.withOpacity(0.5),
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'メンバー一覧の表示権限がありません',
+                style: TextStyle(
+                  color: themeSettings.fontColor1.withOpacity(0.7),
+                  fontSize: 14 * themeSettings.fontSizeScale,
+                  fontFamily: themeSettings.fontFamily,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    return _buildMembersList(themeSettings, group);
+  }
+
+  Widget _buildMembersList(ThemeSettings themeSettings, Group group) {
+    return Row(
+      children: [
+        ...group.members.take(8).map((member) {
+          final role = group.getMemberRole(member.uid);
+          Color roleColor;
+          IconData roleIcon;
+          String roleText;
+          if (role == GroupRole.admin) {
+            roleColor = Colors.red;
+            roleIcon = Icons.admin_panel_settings;
+            roleText = '管理者';
+          } else if (role == GroupRole.leader) {
+            roleColor = Colors.orange;
+            roleIcon = Icons.star;
+            roleText = 'リーダー';
+          } else {
+            roleColor = Colors.blue;
+            roleIcon = Icons.person;
+            roleText = 'メンバー';
+          }
+          return Container(
+            margin: EdgeInsets.only(right: 8),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: roleColor.withOpacity(0.1),
+                  backgroundImage: member.photoUrl != null
+                      ? NetworkImage(member.photoUrl!)
+                      : null,
+                  child: member.photoUrl == null
+                      ? Text(
+                          member.displayName.isNotEmpty
+                              ? member.displayName[0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: roleColor,
+                          ),
+                        )
+                      : null,
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(roleIcon, color: roleColor, size: 12),
+                    SizedBox(width: 2),
+                    Text(
+                      roleText,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: roleColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+        if (group.members.length > 8)
+          Text(
+            '+${group.members.length - 8}',
+            style: TextStyle(
+              fontSize: 16,
+              color: themeSettings.fontColor1.withOpacity(0.6),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMemberCard(
+    ThemeSettings themeSettings,
+    GroupMember member,
+    Group group,
+  ) {
+    final isCurrentUser = member.uid == FirebaseAuth.instance.currentUser?.uid;
+    final role = group.getMemberRole(member.uid);
+    final isLeader = group.isLeader(member.uid);
+    final isAdmin = role == GroupRole.admin;
+
+    // 役割に応じた色とアイコンを設定
+    Color roleColor;
+    IconData roleIcon;
+    String roleText;
+
+    if (isAdmin) {
+      roleColor = Colors.red;
+      roleIcon = Icons.admin_panel_settings;
+      roleText = '管理者';
+    } else if (isLeader) {
+      roleColor = Colors.orange;
+      roleIcon = Icons.star;
+      roleText = 'リーダー';
+    } else {
+      roleColor = Colors.blue;
+      roleIcon = Icons.person;
+      roleText = 'メンバー';
+    }
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: themeSettings.backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isCurrentUser
+              ? themeSettings.buttonColor.withOpacity(0.3)
+              : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: Row(
+        children: [
+          // プロフィール画像
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: roleColor.withOpacity(0.1),
+            backgroundImage: member.photoUrl != null
+                ? NetworkImage(member.photoUrl!)
+                : null,
+            child: member.photoUrl == null
+                ? Text(
+                    member.displayName.isNotEmpty
+                        ? member.displayName[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: roleColor,
+                    ),
+                  )
+                : null,
+          ),
+          SizedBox(width: 16),
+
+          // メンバー情報
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      member.displayName,
+                      style: TextStyle(
+                        fontSize: 16 * themeSettings.fontSizeScale,
+                        fontWeight: FontWeight.bold,
+                        color: themeSettings.fontColor1,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                    if (isCurrentUser) ...[
+                      SizedBox(width: 8),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: themeSettings.buttonColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'あなた',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: themeSettings.buttonColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(roleIcon, size: 16, color: roleColor),
+                    SizedBox(width: 4),
+                    Text(
+                      roleText,
+                      style: TextStyle(
+                        fontSize: 14 * themeSettings.fontSizeScale,
+                        color: roleColor,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                    if (member.email.isNotEmpty) ...[
+                      SizedBox(width: 8),
+                      Text(
+                        '•',
+                        style: TextStyle(color: themeSettings.fontColor2),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          member.email,
+                          style: TextStyle(
+                            fontSize: 12 * themeSettings.fontSizeScale,
+                            color: themeSettings.fontColor2,
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // 権限変更ボタン（管理者のみ表示）
+          if (_groupProvider?.isCurrentUserLeaderOfCurrentGroup() == true &&
+              !isCurrentUser)
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: themeSettings.fontColor2),
+              onSelected: (value) => _handleMemberAction(value, member),
+              itemBuilder: (context) => [
+                if (isAdmin) ...[
+                  PopupMenuItem(
+                    value: 'remove_admin',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('管理者を解除'),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  PopupMenuItem(
+                    value: 'make_admin',
+                    child: Row(
+                      children: [
+                        Icon(Icons.admin_panel_settings, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('管理者に設定'),
+                      ],
+                    ),
+                  ),
+                ],
+                if (isLeader) ...[
+                  PopupMenuItem(
+                    value: 'remove_leader',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('リーダーを解除'),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  PopupMenuItem(
+                    value: 'make_leader',
+                    child: Row(
+                      children: [
+                        Icon(Icons.star, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text('リーダーに設定'),
+                      ],
+                    ),
+                  ),
+                ],
+                PopupMenuItem(
+                  value: 'remove_member',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_remove, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('メンバーを削除'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleMemberAction(String action, GroupMember member) async {
+    final group = _groupProvider?.currentGroup;
+    if (group == null) return;
+
+    try {
+      switch (action) {
+        case 'make_admin':
+          await _groupProvider?.changeMemberRole(
+            groupId: group.id,
+            memberUid: member.uid,
+            newRole: GroupRole.admin,
+          );
+          break;
+        case 'remove_admin':
+          await _groupProvider?.changeMemberRole(
+            groupId: group.id,
+            memberUid: member.uid,
+            newRole: GroupRole.member,
+          );
+          break;
+        case 'make_leader':
+          await _groupProvider?.changeMemberRole(
+            groupId: group.id,
+            memberUid: member.uid,
+            newRole: GroupRole.leader,
+          );
+          break;
+        case 'remove_leader':
+          await _groupProvider?.changeMemberRole(
+            groupId: group.id,
+            memberUid: member.uid,
+            newRole: GroupRole.member,
+          );
+          break;
+        case 'remove_member':
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('メンバーを削除'),
+              content: Text('${member.displayName}をグループから削除しますか？'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text('キャンセル'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  child: Text('削除'),
+                ),
+              ],
+            ),
+          );
+          if (confirmed == true) {
+            await _groupProvider?.removeMember(
+              groupId: group.id,
+              memberUid: member.uid,
+            );
+          }
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('操作に失敗しました: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildGroupInfo(ThemeSettings themeSettings, Group group) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          group.name,
+          style: TextStyle(
+            fontSize: 24 * themeSettings.fontSizeScale,
+            fontWeight: FontWeight.bold,
+            color: themeSettings.fontColor1,
+            fontFamily: themeSettings.fontFamily,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (group.description.isNotEmpty)
+          Text(
+            group.description,
+            style: TextStyle(
+              fontSize: 18 * themeSettings.fontSizeScale,
+              color: themeSettings.fontColor1.withOpacity(0.7),
+              fontFamily: themeSettings.fontFamily,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEditForm(ThemeSettings themeSettings, Group group) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: _nameController,
+            style: TextStyle(
+              fontSize: 24 * themeSettings.fontSizeScale,
+              fontWeight: FontWeight.bold,
+              color: themeSettings.fontColor1,
+              fontFamily: themeSettings.fontFamily,
+            ),
+            decoration: InputDecoration(
+              hintText: 'グループ名',
+              hintStyle: TextStyle(
+                fontSize: 24 * themeSettings.fontSizeScale,
+                color: themeSettings.fontColor1.withOpacity(0.5),
+                fontFamily: themeSettings.fontFamily,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: themeSettings.buttonColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: themeSettings.buttonColor,
+                  width: 2,
+                ),
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'グループ名を入力してください';
+              }
+              if (value.trim().length > 50) {
+                return 'グループ名は50文字以内で入力してください';
+              }
+              return null;
+            },
+          ),
+          SizedBox(height: 12),
+          TextFormField(
+            controller: _descriptionController,
+            style: TextStyle(
+              fontSize: 18 * themeSettings.fontSizeScale,
+              color: themeSettings.fontColor1,
+              fontFamily: themeSettings.fontFamily,
+            ),
+            maxLines: 2,
+            decoration: InputDecoration(
+              hintText: 'グループの説明（任意）',
+              hintStyle: TextStyle(
+                fontSize: 18 * themeSettings.fontSizeScale,
+                color: themeSettings.fontColor1.withOpacity(0.5),
+                fontFamily: themeSettings.fontFamily,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: themeSettings.fontColor1.withOpacity(0.3),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: themeSettings.buttonColor,
+                  width: 2,
+                ),
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            validator: (value) {
+              if (value != null && value.trim().length > 200) {
+                return '説明は200文字以内で入力してください';
+              }
+              return null;
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

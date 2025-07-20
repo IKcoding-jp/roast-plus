@@ -30,6 +30,14 @@ class GroupProvider extends ChangeNotifier {
   final Map<String, StreamSubscription<GroupGamificationProfile>>
   _gamificationWatchers = {};
 
+  // グループ作成フラグ
+  bool _showGroupCreationCelebration = false;
+  String? _newlyCreatedGroupId;
+
+  // グループ削除ページ表示フラグ
+  bool _showGroupDeletedPage = false;
+  bool get showGroupDeletedPage => _showGroupDeletedPage;
+
   // Getters
   List<Group> get groups => _groups;
   List<GroupInvitation> get invitations => _invitations;
@@ -46,6 +54,10 @@ class GroupProvider extends ChangeNotifier {
   // 単一グループ対応のための追加getter
   bool get hasGroup => _currentGroup != null;
   Group? get singleGroup => _currentGroup;
+
+  // グループ作成フラグのgetter
+  bool get showGroupCreationCelebration => _showGroupCreationCelebration;
+  String? get newlyCreatedGroupId => _newlyCreatedGroupId;
 
   /// ユーザーが参加しているグループを取得（単一グループ対応）
   Future<void> loadUserGroups() async {
@@ -84,6 +96,9 @@ class GroupProvider extends ChangeNotifier {
 
         // グループに参加している場合はデータ同期の準備完了
         print('GroupProvider: データ同期の準備完了');
+
+        // グループの監視を開始
+        watchGroup(_currentGroup!.id);
       } else {
         _currentGroup = null;
       }
@@ -188,11 +203,18 @@ class GroupProvider extends ChangeNotifier {
 
       print('GroupProvider: ローカル状態の更新完了');
 
+      // グループ作成フラグを設定
+      _showGroupCreationCelebration = true;
+      _newlyCreatedGroupId = newGroup.id;
+
       _safeNotifyListeners();
       print('GroupProvider: グループ作成完了');
 
       // グループ作成成功後の処理を非同期で実行（軽量化）
       _postGroupCreationSuccess(newGroup.id);
+
+      // Lv.1達成バッジの獲得演出を表示
+      await _showLevel1BadgeCelebration(newGroup.id);
 
       return true;
     } catch (e) {
@@ -205,6 +227,38 @@ class GroupProvider extends ChangeNotifier {
       return false;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /// Lv.1達成バッジの獲得演出を表示
+  Future<void> _showLevel1BadgeCelebration(String groupId) async {
+    try {
+      print('GroupProvider: Lv.1達成バッジ獲得演出の表示開始');
+
+      // 少し待ってから演出を表示（グループ作成処理の完了を待つ）
+      await Future.delayed(Duration(milliseconds: 1000));
+
+      // Lv.1達成バッジの条件を取得
+      final level1Condition = GroupBadgeConditions.conditions
+          .where((condition) => condition.badgeId == 'group_level_1')
+          .firstOrNull;
+
+      if (level1Condition != null) {
+        // バッジを作成
+        final level1Badge = level1Condition.createBadge(
+          FirebaseAuth.instance.currentUser?.uid ?? '',
+          FirebaseAuth.instance.currentUser?.displayName ?? 'Unknown User',
+        );
+
+        print('GroupProvider: Lv.1達成バッジ獲得演出の表示完了');
+        print('GroupProvider: バッジ名: ${level1Badge.name}');
+        print('GroupProvider: バッジID: ${level1Badge.id}');
+      } else {
+        print('GroupProvider: Lv.1達成バッジの条件が見つかりません');
+      }
+    } catch (e) {
+      print('GroupProvider: Lv.1達成バッジ獲得演出の表示エラー: $e');
+      // エラーが発生してもグループ作成は成功とする
     }
   }
 
@@ -634,9 +688,44 @@ class GroupProvider extends ChangeNotifier {
               _currentGroup = updated;
             }
             notifyListeners();
+          } else {
+            // グループが削除された場合の処理
+            _handleGroupDeleted(groupId);
           }
         });
     _groupWatchers[groupId] = sub;
+  }
+
+  /// グループが削除された場合の処理
+  void _handleGroupDeleted(String groupId) {
+    print('GroupProvider: グループが削除されました: $groupId');
+
+    // ローカルのグループリストから削除
+    _groups.removeWhere((g) => g.id == groupId);
+
+    // 現在のグループが削除された場合、nullに設定
+    if (_currentGroup?.id == groupId) {
+      _currentGroup = null;
+    }
+
+    // 監視を停止
+    unwatchGroup(groupId);
+
+    // ローカルデータをクリア
+    _clearLocalData();
+
+    // 通知
+    notifyListeners();
+
+    // グループ削除ページに遷移するためのフラグを設定
+    _showGroupDeletedPage = true;
+    notifyListeners();
+  }
+
+  /// グループ削除ページ表示フラグをリセット
+  void resetGroupDeletedPageFlag() {
+    _showGroupDeletedPage = false;
+    notifyListeners();
   }
 
   /// Firestoreのグループ監視を解除
@@ -1041,6 +1130,55 @@ class GroupProvider extends ChangeNotifier {
     }
   }
 
+  /// 複数の焙煎記録をまとめて処理（新しいバッジシステム対応）
+  Future<void> processMultipleGroupRoasting(
+    String groupId,
+    List<double> minutesList, {
+    BuildContext? context,
+  }) async {
+    try {
+      // すべての焙煎時間を合計
+      final totalMinutes = minutesList.fold(
+        0.0,
+        (sum, minutes) => sum + minutes,
+      );
+
+      print(
+        'GroupProvider: 複数焙煎記録の処理開始 - 合計時間: ${totalMinutes}分, 記録数: ${minutesList.length}',
+      );
+
+      final result = await GroupGamificationService.recordRoasting(
+        groupId,
+        totalMinutes,
+      );
+
+      if (result.success) {
+        // プロフィールを更新
+        final profile = await GroupGamificationService.getGroupProfile(groupId);
+        _groupGamificationProfiles[groupId] = profile;
+        _safeNotifyListeners();
+
+        // 演出を表示（contextが提供されている場合）
+        if (context != null && context.mounted) {
+          await GroupCelebrationHelper.showCompleteCelebration(
+            context,
+            xpGained: result.experienceGained,
+            newLevel: result.levelUp ? result.newLevel : null,
+            newBadges: result.newBadges,
+          );
+        }
+
+        if (result.newBadges.isNotEmpty) {
+          print(
+            'グループ複数焙煎バッジ獲得: ${result.newBadges.map((b) => b.name).join(', ')}',
+          );
+        }
+      }
+    } catch (e) {
+      print('グループ複数焙煎処理エラー: $e');
+    }
+  }
+
   /// グループのドリップパック記録を処理（新しいバッジシステム対応）
   Future<void> processGroupDripPack(
     String groupId,
@@ -1148,5 +1286,56 @@ class GroupProvider extends ChangeNotifier {
     } catch (e) {
       print('グループ作業進捗処理エラー: $e');
     }
+  }
+
+  /// グループ作成フラグをリセット
+  void resetGroupCreationCelebration() {
+    _showGroupCreationCelebration = false;
+    _newlyCreatedGroupId = null;
+    _safeNotifyListeners();
+    print('GroupProvider: グループ作成フラグをリセット');
+  }
+
+  /// ログアウト時にグループ情報をクリア
+  void clearOnLogout() {
+    print('GroupProvider: ログアウト時のグループ情報クリア開始');
+
+    // グループ情報をクリア
+    _groups.clear();
+    _currentGroup = null;
+    _invitations.clear();
+
+    // 統計データをクリア
+    _groupStatistics.clear();
+
+    // ゲーミフィケーション情報をクリア
+    _groupGamificationProfiles.clear();
+
+    // グループ作成フラグをリセット
+    _showGroupCreationCelebration = false;
+    _newlyCreatedGroupId = null;
+
+    // グループ削除ページ表示フラグをリセット
+    _showGroupDeletedPage = false;
+
+    // 監視状態をリセット
+    _isWatchingGroupData = false;
+
+    // エラーをクリア
+    _error = null;
+
+    // すべてのStreamSubscriptionをキャンセル
+    for (final subscription in _groupWatchers.values) {
+      subscription.cancel();
+    }
+    _groupWatchers.clear();
+
+    for (final subscription in _gamificationWatchers.values) {
+      subscription.cancel();
+    }
+    _gamificationWatchers.clear();
+
+    print('GroupProvider: ログアウト時のグループ情報クリア完了');
+    _safeNotifyListeners();
   }
 }

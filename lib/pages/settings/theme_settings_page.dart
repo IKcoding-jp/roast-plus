@@ -78,21 +78,22 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         title: const Text('テーマ設定'),
         backgroundColor: themeSettings.appBarColor,
         actions: [
-          IconButton(
-            icon: Icon(Icons.tune, color: themeSettings.appBarTextColor),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const CustomThemeSettingsPage(),
-                ),
-              );
-              if (result == true) {
-                await _loadCustomThemes();
-              }
-            },
-            tooltip: 'カスタム設定',
-          ),
+          if (_isDonorUser == true)
+            IconButton(
+              icon: Icon(Icons.tune, color: themeSettings.appBarTextColor),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CustomThemeSettingsPage(),
+                  ),
+                );
+                if (result == true) {
+                  await _loadCustomThemes();
+                }
+              },
+              tooltip: 'カスタム設定',
+            ),
         ],
       ),
       body: _isDonorUser == null
@@ -145,17 +146,20 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             ),
             const SizedBox(height: 16),
 
-            // 基本テーマ
-            _buildThemeCategory(context, themeSettings, '基本 ⚙️', [
-              'デフォルト',
-              'ダーク',
-              'ライト',
-            ], Icons.settings),
+            // 基本テーマ（全員利用可能）
+            _buildThemeCategory(
+              context,
+              themeSettings,
+              '基本 ⚙️',
+              ['デフォルト', 'ダーク', 'ライト'],
+              Icons.settings,
+              isBasic: true,
+            ),
 
             const SizedBox(height: 16),
 
             // パステル系テーマ
-            _buildPastelThemeCategory(context, themeSettings, 'パステル 🌸', [
+            _buildThemeCategory(context, themeSettings, 'パステル 🌸', [
               'ピンク',
               'ブルー',
               'グリーン',
@@ -207,6 +211,56 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               'ゴールド',
               'シルバー',
             ], Icons.auto_awesome),
+
+            // 非寄付者向けの案内
+            if (_isDonorUser == false) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.amber.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.amber, size: 24),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'カラーテーマは寄付者限定です。300円以上の寄付で解放されます。',
+                        style: TextStyle(
+                          fontSize: 16 * themeSettings.fontSizeScale,
+                          color: themeSettings.fontColor1,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const DonationPage(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        '寄付する',
+                        style: TextStyle(
+                          fontSize: 16 * themeSettings.fontSizeScale,
+                          color: Colors.amber,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -218,8 +272,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     ThemeSettings themeSettings,
     String categoryName,
     List<String> themeNames,
-    IconData categoryIcon,
-  ) {
+    IconData categoryIcon, {
+    bool isBasic = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -245,8 +300,14 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             return _PresetButton(
               presetName: presetName,
               onPressed: () {
-                themeSettings.applyPreset(presetName);
+                // 基本テーマは全員利用可能、カラーテーマは寄付者のみ
+                if (isBasic || _isDonorUser == true) {
+                  themeSettings.applyPreset(presetName);
+                } else {
+                  _showDonorRequiredDialog(context, themeSettings);
+                }
               },
+              isDisabled: !isBasic && _isDonorUser != true,
             );
           }).toList(),
         ),
@@ -745,13 +806,75 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     }
     return true;
   }
+
+  void _showDonorRequiredDialog(
+    BuildContext context,
+    ThemeSettings themeSettings,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          '寄付者限定機能',
+          style: TextStyle(
+            fontSize: 20 * themeSettings.fontSizeScale,
+            fontWeight: FontWeight.bold,
+            color: themeSettings.fontColor1,
+          ),
+        ),
+        content: Text(
+          'この機能は寄付者限定です。300円以上の寄付で解放されます。',
+          style: TextStyle(
+            fontSize: 16 * themeSettings.fontSizeScale,
+            color: themeSettings.fontColor1,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'キャンセル',
+              style: TextStyle(
+                fontSize: 16 * themeSettings.fontSizeScale,
+                color: themeSettings.fontColor1,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DonationPage()),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: themeSettings.buttonColor,
+              foregroundColor: themeSettings.fontColor2,
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text(
+              '寄付する',
+              style: TextStyle(
+                fontSize: 16 * themeSettings.fontSizeScale,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PresetButton extends StatelessWidget {
   final String presetName;
   final VoidCallback onPressed;
+  final bool isDisabled;
 
-  const _PresetButton({required this.presetName, required this.onPressed});
+  const _PresetButton({
+    required this.presetName,
+    required this.onPressed,
+    this.isDisabled = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -770,66 +893,88 @@ class _PresetButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: (preset?['buttonColor'] ?? Colors.grey).withOpacity(0.3),
+            color: (preset?['buttonColor'] ?? Colors.grey).withOpacity(
+              isDisabled ? 0.2 : 0.3,
+            ),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isLight
-              ? Colors.white
-              : (preset?['buttonColor'] ?? Colors.grey),
-          foregroundColor: isLight
-              ? Colors.black87
-              : (preset?['fontColor2'] ?? Colors.white),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+      child: Stack(
+        children: [
+          ElevatedButton(
+            onPressed: isDisabled ? null : onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isLight
+                  ? Colors.white
+                  : (preset?['buttonColor'] ?? Colors.grey),
+              foregroundColor: isLight
+                  ? Colors.black87
+                  : (preset?['fontColor2'] ?? Colors.white),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              elevation: 0,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // テーマに応じたアイコンとプレビュー色
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        preset?['backgroundColor'] ?? Colors.grey[100]!,
+                        preset?['iconColor'] ?? Colors.grey,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border.all(
+                      color: iconColor.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    _getThemeIcon(presetName),
+                    color: iconColor,
+                    size: 14,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    presetName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
-          elevation: 0,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // テーマに応じたアイコンとプレビュー色
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    preset?['backgroundColor'] ?? Colors.grey[100]!,
-                    preset?['iconColor'] ?? Colors.grey,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          // 無効化された場合のオーバーレイ
+          if (isDisabled)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  color: Colors.black.withOpacity(0.3),
                 ),
-                border: Border.all(color: iconColor.withOpacity(0.3), width: 1),
-              ),
-              child: Icon(
-                _getThemeIcon(presetName),
-                color: iconColor,
-                size: 14,
+                child: Center(
+                  child: Icon(Icons.lock, size: 20, color: Colors.white),
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Text(
-                presetName,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

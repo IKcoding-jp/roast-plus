@@ -86,14 +86,8 @@ class AutoSyncService {
     final groupSettings = await GroupFirestoreService.getGroupSettings(
       currentGroup.id,
     );
-    if (groupSettings != null && !groupSettings.allowMemberDataSync) {
-      final memberRole = currentGroup.getMemberRole(user.uid);
-      if (memberRole != GroupRole.leader && memberRole != GroupRole.admin) {
-        print('AutoSyncService: データ同期の権限がありません - メンバーは同期できません');
-        return;
-      }
-    }
-    print('AutoSyncService: 同期権限チェック完了 - 同期可能');
+    print('AutoSyncService: グループ設定取得完了');
+    print('AutoSyncService: データ同期は全メンバーで可能です');
 
     // データ同期を実行
     print('AutoSyncService: グループへのデータ同期を開始');
@@ -153,13 +147,8 @@ class AutoSyncService {
       final groupSettings = await GroupFirestoreService.getGroupSettings(
         currentGroup.id,
       );
-      if (groupSettings != null && !groupSettings.allowMemberDataSync) {
-        final memberRole = currentGroup.getMemberRole(user.uid);
-        if (memberRole != GroupRole.leader && memberRole != GroupRole.admin) {
-          print('AutoSyncService: データ同期の権限がありません - メンバーは同期できません');
-          return;
-        }
-      }
+      print('AutoSyncService: グループ設定取得完了 (triggerAutoSyncForDataType)');
+      print('AutoSyncService: データ同期は全メンバーで可能です (triggerAutoSyncForDataType)');
 
       // データタイプに応じた同期を実行
       if (dataType == 'gamification') {

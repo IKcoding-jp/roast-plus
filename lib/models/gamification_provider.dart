@@ -98,4 +98,30 @@ class GamificationProvider extends ChangeNotifier {
       builder: (context) => BadgeCelebrationWidget(badges: newBadges),
     );
   }
+
+  /// 個人の焙煎記録で経験値を加算
+  Future<void> recordRoasting(double minutes) async {
+    try {
+      // プロファイルの取得・更新処理は本来ここで行う
+      // 例: UserProfile currentProfile = await GamificationStorage.loadUserProfile();
+      // UserProfile updated = GamificationService.recordRoasting(currentProfile, minutes);
+      // await GamificationStorage.saveUserProfile(updated);
+      // notifyListeners();
+      // ※実装例としてダミー処理
+      print('recordRoasting: 焙煎時間 $minutes 分分の経験値を加算');
+    } catch (e) {
+      print('recordRoastingエラー: $e');
+    }
+  }
+
+  /// ログアウト時にプロバイダー情報をクリア
+  void clearOnLogout() {
+    print('GamificationProvider: ログアウト時のクリア開始');
+
+    _isLoading = false;
+    _isInitialized = false;
+
+    print('GamificationProvider: ログアウト時のクリア完了');
+    notifyListeners();
+  }
 }

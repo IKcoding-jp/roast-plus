@@ -21,19 +21,25 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   @override
   void initState() {
     super.initState();
+    print('GroupSettingsPage: initState開始');
+    print('GroupSettingsPage: グループID: ${widget.group.id}');
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
+    print('GroupSettingsPage: _loadSettings開始');
     try {
       final settings = await GroupFirestoreService.getGroupSettings(
         widget.group.id,
       );
+      print('GroupSettingsPage: 設定取得完了: $settings');
       setState(() {
         _settings = settings ?? GroupSettings.defaultSettings();
         _loading = false;
       });
+      print('GroupSettingsPage: setState完了 - _settings: $_settings');
     } catch (e) {
+      print('GroupSettingsPage: 設定取得エラー: $e');
       setState(() {
         _settings = GroupSettings.defaultSettings();
         _loading = false;
@@ -77,17 +83,26 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     }
   }
 
-  void _updateDataPermission(String dataType, DataPermission permission) {
+  void _updateDataPermission(String dataType, AccessLevel permission) {
     if (_settings == null) return;
 
-    final updatedPermissions = Map<String, DataPermission>.from(
+    print('GroupSettingsPage: 権限更新開始');
+    print('GroupSettingsPage: データタイプ: $dataType');
+    print('GroupSettingsPage: 新しい権限: $permission');
+    print('GroupSettingsPage: 現在の設定: ${_settings!.dataPermissions}');
+
+    final updatedPermissions = Map<String, AccessLevel>.from(
       _settings!.dataPermissions,
     );
     updatedPermissions[dataType] = permission;
 
+    print('GroupSettingsPage: 更新後の設定: $updatedPermissions');
+
     setState(() {
       _settings = _settings!.copyWith(dataPermissions: updatedPermissions);
     });
+
+    print('GroupSettingsPage: setState完了');
 
     // 設定をリアルタイムで保存
     _saveSettingsRealtime();
@@ -111,6 +126,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    print(
+      'GroupSettingsPage: build開始 - _loading: $_loading, _settings: $_settings',
+    );
     final themeSettings = Provider.of<ThemeSettings>(context);
 
     return Scaffold(
@@ -255,44 +273,48 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   }
 
   List<Widget> _buildDataPermissionSettings() {
+    print('GroupSettingsPage: _buildDataPermissionSettings開始');
+    print('GroupSettingsPage: _settings: $_settings');
+    if (_settings != null) {
+      print(
+        'GroupSettingsPage: 現在のdataPermissions: ${_settings!.dataPermissions}',
+      );
+    }
+
     final themeSettings = Provider.of<ThemeSettings>(context);
     final dataTypes = {
-      'roast_records': '焙煎記録一覧',
-      'drip_counter_records': 'ドリップカウンター',
-      'assignment_board': '担当表',
-      'assignment_history': '担当履歴',
-      'today_schedule': '本日のスケジュール',
-      'work_progress': '作業状況記録',
-      'tasting_record': '試飲感想記録',
-      'drip_pack_counter': 'ドリップパックカウンター記録一覧',
-      'bean_sticker_settings': '丸シール設定',
+      'roastRecordInput': '焙煎記録入力',
+      'roastRecords': '焙煎記録一覧',
+      'dripCounter': 'ドリップパックカウンター',
+      'assignment_board': '担当表', // 担当表関連の権限を一本化
+      'todaySchedule': '本日のスケジュール',
+      'taskStatus': '作業状況記録',
+      'cuppingNotes': '試飲感想記録',
+      'circleStamps': '丸シール設定',
     };
-
-    // DataPermissionの順序を右からadminOnly, leaderOnly, memberOnlyに固定
-    final permissionOrder = [
-      DataPermission.adminOnly,
-      DataPermission.leaderOnly,
-      DataPermission.memberOnly,
-    ];
 
     return dataTypes.entries.map((entry) {
       final dataType = entry.key;
       final displayName = entry.value;
       final currentPermission = _settings!.getPermissionForDataType(dataType);
 
+      print('GroupSettingsPage: $dataType の現在の権限: $currentPermission');
+
       // 選択状態を配列で表現
       List<bool> selected = [false, false, false];
       switch (currentPermission) {
-        case DataPermission.adminOnly:
+        case AccessLevel.admin_only:
           selected = [true, false, false];
           break;
-        case DataPermission.leaderOnly:
+        case AccessLevel.admin_leader:
           selected = [true, true, false];
           break;
-        case DataPermission.memberOnly:
+        case AccessLevel.all_members:
           selected = [true, true, true];
           break;
       }
+
+      print('GroupSettingsPage: $dataType の選択状態: $selected');
 
       return Padding(
         padding: EdgeInsets.only(bottom: 16),
@@ -310,17 +332,18 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             ),
             SizedBox(height: 8),
             Row(
-              children: List.generate(permissionOrder.length, (i) {
-                final permission = permissionOrder[i];
-                final label = _getPermissionLabel(permission);
-                final color = _getPermissionColor(permission);
-                final isSelected = selected[i];
-
-                return Expanded(
+              children: [
+                // 管理者ボタン
+                Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(right: 8),
                     child: InkWell(
-                      onTap: () => _updateDataPermission(dataType, permission),
+                      onTap: () {
+                        print(
+                          'GroupSettingsPage: 管理者ボタンタップ - データタイプ: $dataType',
+                        );
+                        _updateDataPermission(dataType, AccessLevel.admin_only);
+                      },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
                         padding: EdgeInsets.symmetric(
@@ -328,17 +351,21 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                           horizontal: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: isSelected ? color : Colors.transparent,
+                          color: selected[0]
+                              ? _getPermissionColor(AccessLevel.admin_only)
+                              : Colors.transparent,
                           border: Border.all(
-                            color: isSelected ? color : Colors.grey,
+                            color: selected[0]
+                                ? _getPermissionColor(AccessLevel.admin_only)
+                                : Colors.grey,
                             width: 1,
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          label,
+                          '管理者',
                           style: TextStyle(
-                            color: isSelected
+                            color: selected[0]
                                 ? Colors.white
                                 : themeSettings.fontColor1,
                             fontSize: 12 * themeSettings.fontSizeScale,
@@ -350,20 +377,110 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       ),
                     ),
                   ),
-                );
-              }),
+                ),
+                // リーダーボタン
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: InkWell(
+                      onTap: () {
+                        print(
+                          'GroupSettingsPage: リーダーボタンタップ - データタイプ: $dataType',
+                        );
+                        _updateDataPermission(
+                          dataType,
+                          AccessLevel.admin_leader,
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: selected[1]
+                              ? _getPermissionColor(AccessLevel.admin_leader)
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: selected[1]
+                                ? _getPermissionColor(AccessLevel.admin_leader)
+                                : Colors.grey,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'リーダー',
+                          style: TextStyle(
+                            color: selected[1]
+                                ? Colors.white
+                                : themeSettings.fontColor1,
+                            fontSize: 12 * themeSettings.fontSizeScale,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // メンバーボタン
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      print(
+                        'GroupSettingsPage: メンバーボタンタップ - データタイプ: $dataType',
+                      );
+                      _updateDataPermission(dataType, AccessLevel.all_members);
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected[2]
+                            ? _getPermissionColor(AccessLevel.all_members)
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: selected[2]
+                              ? _getPermissionColor(AccessLevel.all_members)
+                              : Colors.grey,
+                          width: 1,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'メンバー',
+                        style: TextStyle(
+                          color: selected[2]
+                              ? Colors.white
+                              : themeSettings.fontColor1,
+                          fontSize: 12 * themeSettings.fontSizeScale,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 6),
             // 選択状態に応じた説明文を表示
             Builder(
               builder: (_) {
                 String desc = '';
-                if (currentPermission == DataPermission.adminOnly) {
-                  desc = '管理者のみ追加・削除・編集できます';
-                } else if (currentPermission == DataPermission.leaderOnly) {
-                  desc = '管理者・リーダーが追加・削除・編集できます';
-                } else if (currentPermission == DataPermission.memberOnly) {
-                  desc = '管理者・リーダー・メンバー全員が追加・削除・編集できます';
+                if (currentPermission == AccessLevel.admin_only) {
+                  desc = '管理者が追加・削除・編集できます';
+                } else if (currentPermission == AccessLevel.admin_leader) {
+                  desc = 'リーダーが追加・削除・編集できます';
+                } else if (currentPermission == AccessLevel.all_members) {
+                  desc = 'メンバー全員が追加・削除・編集できます';
                 }
                 return Text(
                   desc,
@@ -397,18 +514,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         },
       ),
       SizedBox(height: 16),
-      _buildPermissionSwitch(
-        title: 'メンバーがデータ同期できる',
-        description: 'メンバーがグループとのデータ同期を実行できるようにする',
-        value: _settings!.allowMemberDataSync,
-        onChanged: (value) {
-          setState(() {
-            _settings = _settings!.copyWith(allowMemberDataSync: value);
-          });
-          _saveSettingsRealtime();
-        },
-      ),
-      SizedBox(height: 16),
+
       _buildPermissionSwitch(
         title: 'メンバーがメンバー一覧を見れる',
         description: 'メンバーがグループのメンバー一覧を閲覧できるようにする',
@@ -467,24 +573,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     );
   }
 
-  String _getPermissionLabel(DataPermission permission) {
+  Color _getPermissionColor(AccessLevel permission) {
     switch (permission) {
-      case DataPermission.adminOnly:
-        return '管理者';
-      case DataPermission.leaderOnly:
-        return 'リーダー';
-      case DataPermission.memberOnly:
-        return 'メンバー';
-    }
-  }
-
-  Color _getPermissionColor(DataPermission permission) {
-    switch (permission) {
-      case DataPermission.adminOnly:
+      case AccessLevel.admin_only:
         return Colors.red; // 管理者のみは赤
-      case DataPermission.leaderOnly:
+      case AccessLevel.admin_leader:
         return Colors.orange; // リーダーのみはオレンジ
-      case DataPermission.memberOnly:
+      case AccessLevel.all_members:
         return Colors.green; // メンバーも編集可は緑
     }
   }

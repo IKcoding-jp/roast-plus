@@ -10,6 +10,8 @@ import '../../widgets/bean_name_with_sticker.dart';
 import 'package:bysnapp/pages/roast/roast_edit_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../utils/performance_utils.dart';
+import '../../utils/permission_utils.dart';
+import '../../widgets/permission_denied_page.dart';
 
 class RoastRecordListPage extends StatefulWidget {
   const RoastRecordListPage({super.key});
@@ -59,6 +61,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
   // グループ共有機能用の状態
   bool _canEditRoastRecords = true;
   bool _canDeleteRoastRecordsPermission = true;
+  bool _isCheckingPermissions = true;
 
   // リスナー管理用
   GroupProvider? _groupProvider;
@@ -80,7 +83,6 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     }
 
     _setupGroupDataListener();
-    _checkEditPermissions();
     _setupFirestoreListener();
 
     // GroupProviderのグループ読み込みを確認
@@ -95,9 +97,16 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
         } else if (groupProvider.hasGroup) {
           print('RoastRecordListPage: グループが既に読み込まれています - グループデータ監視を開始');
           _startGroupDataWatching(groupProvider);
+          // グループが既に読み込まれている場合は権限チェックを実行
+          _checkEditPermissions();
+        } else {
+          // グループに参加していない場合は権限チェックを実行
+          _checkEditPermissions();
         }
       } catch (e) {
         print('RoastRecordListPage: グループ読み込み確認エラー: $e');
+        // エラーが発生した場合も権限チェックを実行
+        _checkEditPermissions();
       }
     });
   }
@@ -146,9 +155,57 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     return _canDeleteRoastRecordsPermission;
   }
 
-  // グループ権限チェック（編集）
+  // 編集権限をチェック
+  Future<void> _checkEditPermissions() async {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.hasGroup) {
+        print(
+          'RoastRecordListPage: グループ権限チェック開始 - グループID: ${groupProvider.currentGroup!.id}',
+        );
+
+        final canEdit = await PermissionUtils.canEditDataType(
+          groupId: groupProvider.currentGroup!.id,
+          dataType: 'roastRecords',
+        );
+        final canDelete = await PermissionUtils.canDeleteDataType(
+          groupId: groupProvider.currentGroup!.id,
+          dataType: 'roastRecords',
+        );
+
+        print('RoastRecordListPage: 権限チェック結果 - 編集: $canEdit, 削除: $canDelete');
+
+        setState(() {
+          _canEditRoastRecords = canEdit;
+          _canDeleteRoastRecordsPermission = canDelete;
+          _isCheckingPermissions = false;
+        });
+      } else {
+        print('RoastRecordListPage: グループに参加していないため、編集・削除権限を有効化');
+        setState(() {
+          _canEditRoastRecords = true;
+          _canDeleteRoastRecordsPermission = true;
+          _isCheckingPermissions = false;
+        });
+      }
+    } catch (e) {
+      print('焙煎記録編集権限チェックエラー: $e');
+      setState(() {
+        _canEditRoastRecords = false;
+        _canDeleteRoastRecordsPermission = false;
+        _isCheckingPermissions = false;
+      });
+    }
+  }
+
+  // 編集権限チェックメソッド（UI用）
   bool _canEditRoastRecordsMethod(BuildContext context) {
     return _canEditRoastRecords;
+  }
+
+  // 削除権限チェックメソッド（UI用）
+  bool _canDeleteRoastRecordsMethod(BuildContext context) {
+    return _canDeleteRoastRecordsPermission;
   }
 
   // グループデータの変更を監視
@@ -165,6 +222,12 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
 
         // 初回のグループデータ監視開始
         _startGroupDataWatching(groupProvider);
+
+        // 初回の権限チェックを実行
+        if (groupProvider.hasGroup) {
+          print('RoastRecordListPage: 初回権限チェックを実行');
+          _checkEditPermissions();
+        }
 
         // GroupProviderの変更を監視
         _groupProviderListener = () {
@@ -187,107 +250,6 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     });
 
     print('RoastRecordListPage: グループデータリスナー設定完了');
-  }
-
-  // 編集権限をチェック
-  Future<void> _checkEditPermissions() async {
-    if (!mounted) return;
-
-    try {
-      print('RoastRecordListPage: 編集権限チェック開始');
-      final groupProvider = context.read<GroupProvider>();
-      print('RoastRecordListPage: グループ数: ${groupProvider.groups.length}');
-
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
-        final currentUser = FirebaseAuth.instance.currentUser;
-        print('RoastRecordListPage: 現在のユーザー: ${currentUser?.uid}');
-
-        if (currentUser != null) {
-          final userRole = group.getMemberRole(currentUser.uid);
-          print('RoastRecordListPage: ユーザーロール: $userRole');
-          final groupSettings = groupProvider.getCurrentGroupSettings();
-          print('RoastRecordListPage: グループ設定: $groupSettings');
-
-          if (groupSettings != null) {
-            // 焙煎記録の編集権限をチェック
-            final canEditRoastRecords = groupSettings.canEditDataType(
-              'roast_records',
-              userRole ?? GroupRole.member,
-            );
-            // 焙煎記録の削除権限をチェック（リーダーのみ）
-            final canDeleteRoastRecords =
-                userRole == GroupRole.leader || userRole == GroupRole.admin;
-
-            print('RoastRecordListPage: 権限チェック結果:');
-            print(
-              'RoastRecordListPage: - roast_records編集: $canEditRoastRecords',
-            );
-            print(
-              'RoastRecordListPage: - roast_records削除: $canDeleteRoastRecords',
-            );
-
-            // 現在の権限と比較して変更があったかチェック
-            final hasChanged =
-                _canEditRoastRecords != canEditRoastRecords ||
-                _canDeleteRoastRecordsPermission != canDeleteRoastRecords;
-
-            if (hasChanged) {
-              print('RoastRecordListPage: 権限に変更を検知しました！');
-              print(
-                'RoastRecordListPage: 変更前 - 編集: $_canEditRoastRecords, 削除: $_canDeleteRoastRecordsPermission',
-              );
-              print(
-                'RoastRecordListPage: 変更後 - 編集: $canEditRoastRecords, 削除: $canDeleteRoastRecords',
-              );
-            }
-
-            if (mounted) {
-              try {
-                setState(() {
-                  _canEditRoastRecords = canEditRoastRecords;
-                  _canDeleteRoastRecordsPermission = canDeleteRoastRecords;
-                });
-
-                // 権限が変更された場合はストリームを再設定
-                _setupFirestoreListener();
-              } catch (e) {
-                print('RoastRecordListPage: setStateエラー: $e');
-              }
-            }
-
-            print('RoastRecordListPage: 編集権限チェック完了');
-            print('RoastRecordListPage: 焙煎記録編集可能: $_canEditRoastRecords');
-            print(
-              'RoastRecordListPage: 焙煎記録削除可能: $_canDeleteRoastRecordsPermission',
-            );
-          } else {
-            print('RoastRecordListPage: グループ設定がnullです');
-          }
-        } else {
-          print('RoastRecordListPage: 現在のユーザーがnullです');
-        }
-      } else {
-        // グループに参加していない場合は編集・削除可能
-        if (mounted) {
-          try {
-            setState(() {
-              _canEditRoastRecords = true;
-              _canDeleteRoastRecordsPermission = true;
-            });
-
-            // 権限が変更された場合はストリームを再設定
-            _setupFirestoreListener();
-          } catch (e) {
-            print('RoastRecordListPage: setStateエラー（グループなし）: $e');
-          }
-        }
-        print('RoastRecordListPage: グループがありません - 編集・削除可能に設定');
-      }
-    } catch (e) {
-      print('RoastRecordListPage: 編集権限チェックエラー: $e');
-      print('RoastRecordListPage: エラーの詳細: ${e.toString()}');
-    }
   }
 
   // Firestoreからのリアルタイム更新を監視
@@ -331,11 +293,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
       message = 'グループに参加していません';
     } else {
       final groupSettings = groupProvider.getCurrentGroupSettings();
-      if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.adminOnly) {
+      if (groupSettings?.getPermissionForDataType('roastRecords') ==
+          AccessLevel.admin_only) {
         message = '管理者のみ削除可能です';
-      } else if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.leaderOnly) {
+      } else if (groupSettings?.getPermissionForDataType('roastRecords') ==
+          AccessLevel.admin_leader) {
         message = '管理者・リーダーのみ削除可能です';
       } else {
         message = '権限がありません';
@@ -359,11 +321,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     String message;
     if (currentGroup != null) {
       final groupSettings = groupProvider.getCurrentGroupSettings();
-      if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.adminOnly) {
+      if (groupSettings?.getPermissionForDataType('roastRecords') ==
+          AccessLevel.admin_only) {
         message = '管理者のみ編集可能です';
-      } else if (groupSettings?.getPermissionForDataType('roast_records') ==
-          DataPermission.leaderOnly) {
+      } else if (groupSettings?.getPermissionForDataType('roastRecords') ==
+          AccessLevel.admin_leader) {
         message = '管理者・リーダーのみ編集可能です';
       } else {
         message = '権限がありません';
@@ -384,11 +346,16 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
 
   // 焙煎記録を編集
   void _editRecord(RoastRecord record) {
+    print('RoastRecordListPage: 編集開始 - 権限状態: $_canEditRoastRecords');
+
     // 権限チェック
     if (!_canEditRoastRecordsMethod(context)) {
+      print('RoastRecordListPage: 編集権限なし - エラーメッセージを表示');
       _showEditPermissionError();
       return;
     }
+
+    print('RoastRecordListPage: 編集権限あり - RoastEditPageに遷移');
 
     final initialData = {
       'bean': record.bean,
@@ -406,6 +373,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
       ),
     ).then((updatedData) async {
       if (updatedData != null) {
+        print('RoastRecordListPage: 編集完了 - Firestoreを更新');
         // 更新されたデータでFirestoreを更新
         final updatedRecord = RoastRecord(
           id: record.id,
@@ -533,10 +501,26 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
           stream: _recordsStream ?? Stream.value([]),
           builder: (context, snapshot) {
             if (snapshot.hasError) {
-              return Center(child: Text('エラーが発生しました')); // エラー表示
+              return Scaffold(
+                appBar: AppBar(
+                  title: Row(
+                    children: [
+                      Icon(
+                        Icons.list,
+                        color: Provider.of<ThemeSettings>(context).iconColor,
+                      ),
+                      SizedBox(width: 8),
+                      Text('焙煎記録一覧'),
+                    ],
+                  ),
+                ),
+                body: Center(child: Text('エラーが発生しました')),
+              );
             }
+
             _records = snapshot.data ?? [];
             final filteredRecords = _getFilteredRecords();
+
             return Scaffold(
               appBar: AppBar(
                 title: Row(
@@ -548,11 +532,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                     SizedBox(width: 8),
                     Text('焙煎記録一覧'),
                     // グループ状態バッジを追加
-                    Consumer<GroupProvider>(
-                      builder: (context, groupProvider, _) {
-                        if (groupProvider.groups.isNotEmpty) {
-                          // グループ名のテキストを削除し、アイコンのみ表示
-                          return Container(
+                    if (groupProvider.groups.isNotEmpty)
+                      Container(
                             margin: EdgeInsets.only(left: 12),
                             padding: EdgeInsets.symmetric(
                               horizontal: 8,
@@ -568,17 +549,46 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                               size: 18,
                               color: Colors.blue.shade700,
                             ),
-                          );
-                        } else {
-                          return SizedBox.shrink();
-                        }
-                      },
+                      ),
+                    // デバッグ用権限状態表示
+                    if (!_isCheckingPermissions)
+                      Container(
+                        margin: EdgeInsets.only(left: 8),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _canEditRoastRecords
+                              ? Colors.green.shade100
+                              : Colors.red.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _canEditRoastRecords
+                                ? Colors.green.shade400
+                                : Colors.red.shade400,
+                          ),
+                        ),
+                        child: Text(
+                          _canEditRoastRecords ? '編集可' : '編集不可',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: _canEditRoastRecords
+                                ? Colors.green.shade700
+                                : Colors.red.shade700,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                     ),
                   ],
                 ),
                 actions: [
+                  // 編集・削除権限がある場合のみ選択ボタンを表示
+                  if (_canEditRoastRecords && _canDeleteRoastRecordsPermission)
                   IconButton(
-                    icon: Icon(_selectionMode ? Icons.close : Icons.select_all),
+                      icon: Icon(
+                        _selectionMode ? Icons.close : Icons.select_all,
+                      ),
                     onPressed: _toggleSelectionMode,
                   ),
                   if (_selectionMode &&
@@ -591,7 +601,30 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                     ),
                 ],
               ),
-              body: Container(
+              body: _isCheckingPermissions
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Provider.of<ThemeSettings>(context).buttonColor,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            '権限を確認中...',
+                            style: TextStyle(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Container(
                 color: Theme.of(context).scaffoldBackgroundColor,
                 child: Column(
                   children: [
@@ -690,8 +723,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                       value: _selectedBean ?? '全て',
                                       items: _dynamicBeanList,
                                       label: '豆の種類',
-                                      onChanged: (v) =>
-                                          setState(() => _selectedBean = v),
+                                            onChanged: (v) => setState(
+                                              () => _selectedBean = v,
+                                            ),
                                     ),
                                   ),
                                   SizedBox(width: 10),
@@ -701,9 +735,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                       value: _selectedRoast ?? '全て',
                                       items: _roastList,
                                       label: '煎り度',
-                                      onChanged: (v) =>
-                                          setState(() => _selectedRoast = v),
-                                      // ここで20文字制限＋省略を適用
+                                            onChanged: (v) => setState(
+                                              () => _selectedRoast = v,
+                                            ),
                                     ),
                                   ),
                                 ],
@@ -717,15 +751,19 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                       label: '開始日',
                                       date: _startDate,
                                       onTap: () async {
-                                        final picked = await showDatePicker(
+                                              final picked =
+                                                  await showDatePicker(
                                           context: context,
                                           initialDate:
-                                              _startDate ?? DateTime.now(),
+                                                        _startDate ??
+                                                        DateTime.now(),
                                           firstDate: DateTime(2020),
                                           lastDate: DateTime(2100),
                                         );
                                         if (picked != null) {
-                                          setState(() => _startDate = picked);
+                                                setState(
+                                                  () => _startDate = picked,
+                                                );
                                         }
                                       },
                                     ),
@@ -746,15 +784,19 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                       label: '終了日',
                                       date: _endDate,
                                       onTap: () async {
-                                        final picked = await showDatePicker(
+                                              final picked =
+                                                  await showDatePicker(
                                           context: context,
                                           initialDate:
-                                              _endDate ?? DateTime.now(),
+                                                        _endDate ??
+                                                        DateTime.now(),
                                           firstDate: DateTime(2020),
                                           lastDate: DateTime(2100),
                                         );
                                         if (picked != null) {
-                                          setState(() => _endDate = picked);
+                                                setState(
+                                                  () => _endDate = picked,
+                                                );
                                         }
                                       },
                                     ),
@@ -778,10 +820,12 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                     });
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Provider.of<ThemeSettings>(
+                                          backgroundColor:
+                                              Provider.of<ThemeSettings>(
                                       context,
                                     ).buttonColor,
-                                    foregroundColor: Provider.of<ThemeSettings>(
+                                          foregroundColor:
+                                              Provider.of<ThemeSettings>(
                                       context,
                                     ).fontColor2,
                                     padding: EdgeInsets.symmetric(
@@ -789,7 +833,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                       vertical: 12,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                     ),
                                     elevation: 4,
                                   ),
@@ -833,7 +879,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: Provider.of<ThemeSettings>(
+                                                color:
+                                                    Provider.of<ThemeSettings>(
                                             context,
                                           ).fontColor1,
                                         ),
@@ -881,7 +928,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: Provider.of<ThemeSettings>(
+                                                color:
+                                                    Provider.of<ThemeSettings>(
                                             context,
                                           ).fontColor1,
                                         ),
@@ -900,14 +948,14 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                               ),
                             )
                           : PerformanceUtils.optimizedListViewBuilder(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
                               itemCount: filteredRecords.length,
-                              itemExtent: 120.0, // 固定高さを設定してパフォーマンスを向上
                               itemBuilder: (context, index) {
                                 final record = filteredRecords[index];
-                                final selected = _selectedIndexes.contains(
-                                  index,
-                                );
+                                      final selected = _selectedIndexes
+                                          .contains(index);
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
@@ -915,7 +963,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                   child: Card(
                                     elevation: 4,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
                                     ),
                                     color: selected
                                         ? Provider.of<ThemeSettings>(
@@ -925,39 +975,61 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                                 context,
                                               ).backgroundColor2 ??
                                               Colors.white,
-                                    child: ListTile(
-                                      contentPadding: const EdgeInsets.all(16),
-                                      onTap: () => _editRecord(record),
-                                      leading: Container(
+                                          child: GestureDetector(
+                                            onTap: null, // タップ機能を無効化
+                                            child: Container(
+                                              padding: const EdgeInsets.all(16),
+                                              child: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  // アイコン部分
+                                                  Container(
                                         padding: EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: Provider.of<ThemeSettings>(
-                                            context,
-                                          ).iconColor.withOpacity(0.12),
-                                          borderRadius: BorderRadius.circular(
+                                                      color:
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .iconColor
+                                                              .withOpacity(
+                                                                0.12,
+                                                              ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
                                             8,
                                           ),
                                         ),
                                         child: Icon(
                                           Icons.coffee,
-                                          color: Provider.of<ThemeSettings>(
-                                            context,
-                                          ).iconColor,
+                                                      color:
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .iconColor,
                                           size: 24,
                                         ),
                                       ),
-                                      title: Column(
+                                                  SizedBox(width: 16),
+                                                  // メインコンテンツ部分
+                                                  Expanded(
+                                                    child: Column(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                                          CrossAxisAlignment
+                                                              .start,
                                         children: [
+                                                        // タイトル部分
                                           BeanNameWithSticker(
                                             beanName: record.bean,
                                             textStyle: TextStyle(
-                                              fontWeight: FontWeight.bold,
+                                                            fontWeight:
+                                                                FontWeight.bold,
                                               fontSize: 16,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor1,
+                                                            color:
+                                                                Provider.of<
+                                                                      ThemeSettings
+                                                                    >(context)
+                                                                    .fontColor1,
                                             ),
                                             stickerSize: 16.0,
                                           ),
@@ -965,34 +1037,36 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                             '（${record.weight}g）',
                                             style: TextStyle(
                                               fontSize: 14,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor1.withOpacity(0.7),
+                                                            color:
+                                                                Provider.of<
+                                                                      ThemeSettings
+                                                                    >(context)
+                                                                    .fontColor1
+                                                                    .withOpacity(
+                                                                      0.7,
+                                                                    ),
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
                                           SizedBox(height: 8),
+                                                        // 詳細情報
                                           Row(
                                             children: [
                                               Icon(
                                                 Icons.timer,
                                                 size: 16,
                                                 color:
-                                                    Provider.of<ThemeSettings>(
-                                                      context,
-                                                    ).iconColor,
+                                                                  Provider.of<
+                                                                        ThemeSettings
+                                                                      >(context)
+                                                                      .iconColor,
                                               ),
                                               SizedBox(width: 4),
                                               Flexible(
                                                 child: Text(
                                                   '焙煎時間: ${record.time}',
                                                   overflow:
-                                                      TextOverflow.ellipsis,
+                                                                    TextOverflow
+                                                                        .ellipsis,
                                                 ),
                                               ),
                                             ],
@@ -1001,19 +1075,22 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                           Row(
                                             children: [
                                               Icon(
-                                                Icons.local_fire_department,
+                                                              Icons
+                                                                  .local_fire_department,
                                                 size: 16,
                                                 color:
-                                                    Provider.of<ThemeSettings>(
-                                                      context,
-                                                    ).iconColor,
+                                                                  Provider.of<
+                                                                        ThemeSettings
+                                                                      >(context)
+                                                                      .iconColor,
                                               ),
                                               SizedBox(width: 4),
                                               Flexible(
                                                 child: Text(
                                                   '煎り度: ${record.roast}',
                                                   overflow:
-                                                      TextOverflow.ellipsis,
+                                                                    TextOverflow
+                                                                        .ellipsis,
                                                 ),
                                               ),
                                             ],
@@ -1024,7 +1101,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                             SizedBox(height: 4),
                                             Row(
                                               crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                                                CrossAxisAlignment
+                                                                    .start,
                                               children: [
                                                 Icon(
                                                   Icons.note,
@@ -1035,15 +1113,20 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                                           >(context)
                                                           .iconColor,
                                                 ),
-                                                SizedBox(width: 4),
+                                                              SizedBox(
+                                                                width: 4,
+                                                              ),
                                                 Expanded(
                                                   child: Text(
                                                     record.memo,
                                                     maxLines: 2,
                                                     overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: 13,
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  style:
+                                                                      TextStyle(
+                                                                        fontSize:
+                                                                            13,
                                                     ),
                                                   ),
                                                 ),
@@ -1054,39 +1137,79 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                           Row(
                                             children: [
                                               Icon(
-                                                Icons.calendar_today,
+                                                              Icons
+                                                                  .calendar_today,
                                                 size: 16,
                                                 color:
-                                                    Provider.of<ThemeSettings>(
-                                                      context,
-                                                    ).iconColor,
+                                                                  Provider.of<
+                                                                        ThemeSettings
+                                                                      >(context)
+                                                                      .iconColor,
                                               ),
                                               SizedBox(width: 4),
                                               Flexible(
                                                 child: Text(
                                                   _formatTimestamp(
-                                                    record.timestamp,
+                                                                  record
+                                                                      .timestamp,
                                                   ),
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     color:
                                                         Provider.of<
                                                               ThemeSettings
-                                                            >(context)
+                                                                          >(
+                                                                            context,
+                                                                          )
                                                             .fontColor1
-                                                            .withOpacity(0.7),
+                                                                          .withOpacity(
+                                                                            0.7,
+                                                                          ),
                                                   ),
                                                   overflow:
-                                                      TextOverflow.ellipsis,
+                                                                    TextOverflow
+                                                                        .ellipsis,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ],
                                       ),
-                                      trailing: !_selectionMode
-                                          ? (_canDeleteRoastRecords(context)
-                                                ? IconButton(
+                                                  ),
+                                                  // アクションボタン部分
+                                                  if (!_selectionMode)
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        // 編集ボタン
+                                                        if (_canEditRoastRecords)
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              Icons.edit,
+                                                              color:
+                                                                  Provider.of<
+                                                                        ThemeSettings
+                                                                      >(context)
+                                                                      .iconColor,
+                                                            ),
+                                                            onPressed: () =>
+                                                                _editRecord(
+                                                                  record,
+                                                                ),
+                                                            iconSize: 24,
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                  8,
+                                                                ),
+                                                            tooltip: '編集',
+                                                          ),
+                                                        // 削除ボタン
+                                                        if (_canDeleteRoastRecords(
+                                                              context,
+                                                            ) &&
+                                                            _canDeleteRoastRecordsPermission)
+                                                          IconButton(
                                                     icon: Icon(
                                                       Icons.delete,
                                                       color:
@@ -1096,24 +1219,38 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                                               .iconColor,
                                                     ),
                                                     onPressed: () =>
-                                                        _deleteRecords([index]),
+                                                                _deleteRecords([
+                                                                  index,
+                                                                ]),
                                                     iconSize: 24,
-                                                    padding: EdgeInsets.all(8),
-                                                  )
-                                                : null)
-                                          : Checkbox(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                  8,
+                                                                ),
+                                                            tooltip: '削除',
+                                                          ),
+                                                      ],
+                                                    )
+                                                  else
+                                                    Checkbox(
                                               value: selected,
                                               onChanged: (val) =>
-                                                  _toggleSelection(index),
+                                                          _toggleSelection(
+                                                            index,
+                                                          ),
                                               activeColor:
-                                                  Provider.of<ThemeSettings>(
-                                                    context,
-                                                  ).buttonColor,
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .buttonColor,
+                                                    ),
+                                                ],
+                                              ),
                                             ),
                                     ),
                                   ),
                                 );
-                              }, // itemBuilder
+                                    },
                             ),
                     ),
                   ],

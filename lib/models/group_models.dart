@@ -7,27 +7,20 @@ enum GroupRole {
   member, // メンバー（閲覧のみ）
 }
 
-/// データタイプの権限設定
-enum DataPermission {
-  adminOnly, // 管理者のみ編集可能
-  leaderOnly, // リーダーのみ編集可能
-  memberOnly, // メンバーも編集可能
-}
+enum AccessLevel { admin_only, admin_leader, all_members }
 
 /// グループ設定
 class GroupSettings {
-  final Map<String, DataPermission> dataPermissions;
   final bool allowMemberInvite; // メンバーが招待できるか
-  final bool allowMemberDataSync; // メンバーがデータ同期できるか
   final bool allowMemberViewMembers; // メンバーがメンバー一覧を見れるか
-  final DateTime updatedAt;
+  final Map<String, AccessLevel> dataPermissions; // データタイプごとの権限設定
+  final DateTime? updatedAt;
 
-  GroupSettings({
-    required this.dataPermissions,
+  const GroupSettings({
     this.allowMemberInvite = false,
-    this.allowMemberDataSync = true,
     this.allowMemberViewMembers = true,
-    required this.updatedAt,
+    this.dataPermissions = const {},
+    this.updatedAt,
   });
 
   Map<String, dynamic> toJson() {
@@ -36,90 +29,92 @@ class GroupSettings {
         (key, value) => MapEntry(key, value.name),
       ),
       'allowMemberInvite': allowMemberInvite,
-      'allowMemberDataSync': allowMemberDataSync,
       'allowMemberViewMembers': allowMemberViewMembers,
-      'updatedAt': updatedAt.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
   factory GroupSettings.fromJson(Map<String, dynamic> json) {
     return GroupSettings(
-      dataPermissions: (json['dataPermissions'] as Map<String, dynamic>).map(
+      dataPermissions:
+          (json['dataPermissions'] as Map<String, dynamic>?)?.map(
         (key, value) => MapEntry(
           key,
-          DataPermission.values.firstWhere(
+              AccessLevel.values.firstWhere(
             (e) => e.name == value,
-            orElse: () => DataPermission.leaderOnly,
+                orElse: () => AccessLevel.admin_leader,
           ),
         ),
-      ),
+          ) ??
+          {},
       allowMemberInvite: json['allowMemberInvite'] as bool? ?? false,
-      allowMemberDataSync: json['allowMemberDataSync'] as bool? ?? true,
       allowMemberViewMembers: json['allowMemberViewMembers'] as bool? ?? true,
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'] as String)
+          : null,
     );
   }
 
   GroupSettings copyWith({
-    Map<String, DataPermission>? dataPermissions,
     bool? allowMemberInvite,
-    bool? allowMemberDataSync,
     bool? allowMemberViewMembers,
+    Map<String, AccessLevel>? dataPermissions,
     DateTime? updatedAt,
   }) {
     return GroupSettings(
-      dataPermissions: dataPermissions ?? this.dataPermissions,
       allowMemberInvite: allowMemberInvite ?? this.allowMemberInvite,
-      allowMemberDataSync: allowMemberDataSync ?? this.allowMemberDataSync,
       allowMemberViewMembers:
           allowMemberViewMembers ?? this.allowMemberViewMembers,
+      dataPermissions: dataPermissions ?? this.dataPermissions,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
   /// デフォルト設定を取得
-  factory GroupSettings.defaultSettings() {
-    return GroupSettings(
+  static GroupSettings defaultSettings() {
+    return const GroupSettings(
       dataPermissions: {
-        'roast_records': DataPermission.leaderOnly,
-        'todo_list': DataPermission.memberOnly,
-        'drip_counter_records': DataPermission.memberOnly,
-        'assignment_board': DataPermission.leaderOnly,
-        'today_assignment': DataPermission.leaderOnly,
-        'assignment_history': DataPermission.leaderOnly,
-        'schedule': DataPermission.memberOnly,
-        'today_schedule': DataPermission.leaderOnly,
-        'time_labels': DataPermission.leaderOnly,
-        'settings': DataPermission.adminOnly,
+        'roastRecordInput': AccessLevel.all_members,
+        'roastRecords': AccessLevel.admin_leader,
+        'dripCounter': AccessLevel.all_members,
+        'assignment_board': AccessLevel.all_members, // 担当表関連の権限を一本化
+        'todaySchedule': AccessLevel.admin_leader,
+        'taskStatus': AccessLevel.all_members,
+        'cuppingNotes': AccessLevel.all_members,
+        'circleStamps': AccessLevel.admin_only,
       },
       allowMemberInvite: false,
-      allowMemberDataSync: true,
       allowMemberViewMembers: true,
-      updatedAt: DateTime.now(),
+      updatedAt: null,
     );
   }
 
   /// 指定されたデータタイプの権限を取得
-  DataPermission getPermissionForDataType(String dataType) {
-    return dataPermissions[dataType] ?? DataPermission.leaderOnly;
+  AccessLevel getPermissionForDataType(String dataType) {
+    print('GroupSettings: データタイプ権限取得 - データタイプ: $dataType');
+    print('GroupSettings: 現在の権限設定: $dataPermissions');
+
+    final permission = dataPermissions[dataType] ?? AccessLevel.admin_leader;
+    print('GroupSettings: 取得した権限: $permission');
+
+    return permission;
   }
 
-  /// 指定されたデータタイプが編集可能かチェック
+  /// 指定されたデータタイプの編集権限をチェック
   bool canEditDataType(String dataType, GroupRole userRole) {
-    final permission = getPermissionForDataType(dataType);
-    print('GroupSettings: canEditDataType チェック');
-    print('GroupSettings: データタイプ: $dataType');
-    print('GroupSettings: ユーザーロール: $userRole');
-    print('GroupSettings: 権限設定: $permission');
+    print('GroupSettings: 編集権限チェック開始 - データタイプ: $dataType, ユーザーロール: $userRole');
 
-    final result = switch (permission) {
-      DataPermission.adminOnly => userRole == GroupRole.admin,
-      DataPermission.leaderOnly =>
-        userRole == GroupRole.leader || userRole == GroupRole.admin,
-      DataPermission.memberOnly => true,
+    final accessLevel = getPermissionForDataType(dataType);
+    print('GroupSettings: 設定されたアクセスレベル: $accessLevel');
+
+    final result = switch (accessLevel) {
+      AccessLevel.admin_only => userRole == GroupRole.admin,
+      AccessLevel.admin_leader =>
+        userRole == GroupRole.admin || userRole == GroupRole.leader,
+      AccessLevel.all_members => true,
     };
 
-    print('GroupSettings: 編集可能: $result');
+    print('GroupSettings: 編集権限結果: $result');
     return result;
   }
 }
@@ -290,6 +285,7 @@ class Group {
 
   /// 指定されたユーザーの権限を取得
   GroupRole? getMemberRole(String uid) {
+    try {
     final member = members.firstWhere(
       (m) => m.uid == uid,
       orElse: () => GroupMember(
@@ -300,7 +296,11 @@ class Group {
         joinedAt: DateTime.now(),
       ),
     );
-    return member.uid.isNotEmpty ? member.role : null;
+      return member.uid.isNotEmpty ? member.role : GroupRole.member;
+    } catch (e) {
+      print('Group: getMemberRole エラー - uid: $uid, error: $e');
+      return GroupRole.member;
+    }
   }
 
   Group copyWith({

@@ -5,7 +5,7 @@ import '../../models/group_models.dart';
 import '../../models/theme_settings.dart';
 import '../../settings/account_info_page.dart';
 import 'group_create_page.dart';
-import 'group_detail_page.dart';
+import 'group_info_page.dart';
 import 'group_invitations_page.dart';
 
 class GroupCardPage extends StatefulWidget {
@@ -317,11 +317,13 @@ class _GroupCardPageState extends State<GroupCardPage> {
       color: themeSettings.backgroundColor2 ?? Colors.white,
       child: InkWell(
         onTap: () {
+          // GroupProviderの現在のグループを設定
+          final groupProvider = context.read<GroupProvider>();
+          groupProvider.setCurrentGroup(group);
+
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => GroupDetailPage(group: group),
-            ),
+            MaterialPageRoute(builder: (context) => GroupInfoPage()),
           );
         },
         borderRadius: BorderRadius.circular(20),
@@ -493,10 +495,14 @@ class _GroupCardPageState extends State<GroupCardPage> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
+                        // GroupProviderの現在のグループを設定
+                        final groupProvider = context.read<GroupProvider>();
+                        groupProvider.setCurrentGroup(group);
+                        
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => GroupDetailPage(group: group),
+                            builder: (context) => GroupInfoPage(),
                           ),
                         );
                       },

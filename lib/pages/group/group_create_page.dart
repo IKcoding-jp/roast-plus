@@ -107,8 +107,11 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
           print('GroupCreatePage: ホーム画面遷移開始');
 
           try {
-            // 前の画面に戻る（グループ作成が完了したため、自動的にホーム画面に遷移する）
-            Navigator.of(context).pop();
+            // ホームページに自動遷移
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/',
+              (route) => false, // すべてのページをクリア
+            );
             print('GroupCreatePage: ホーム画面遷移完了');
           } catch (e) {
             print('GroupCreatePage: 遷移エラー: $e');
@@ -145,6 +148,43 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
       }
     }
   }
+
+  /// Lv.1達成バッジの獲得演出を表示
+  // Future<void> _showLevel1BadgeCelebration() async { // この関数を削除
+  //   try {
+  //     print('GroupCreatePage: Lv.1達成バッジ獲得演出の表示開始');
+
+  //     // 少し待ってから演出を表示（グループ作成処理の完了を待つ）
+  //     await Future.delayed(Duration(milliseconds: 500));
+
+  //     // Lv.1達成バッジの条件を取得
+  //     final level1Condition = GroupBadgeConditions.conditions
+  //         .where((condition) => condition.badgeId == 'group_level_1')
+  //         .firstOrNull;
+
+  //     if (level1Condition != null && mounted) {
+  //       // バッジを作成
+  //       final level1Badge = level1Condition.createBadge(
+  //         'group_creator',
+  //         'グループ作成者',
+  //       );
+
+  //       // バッジ獲得演出を表示
+  //       await GroupCelebrationHelper.showUnifiedBadgeCelebration(context, [
+  //         level1Badge,
+  //       ]);
+
+  //       print('GroupCreatePage: Lv.1達成バッジ獲得演出の表示完了');
+  //       print('GroupCreatePage: バッジ名: ${level1Badge.name}');
+  //       print('GroupCreatePage: バッジID: ${level1Badge.id}');
+  //     } else {
+  //       print('GroupCreatePage: Lv.1達成バッジの条件が見つからないか、コンテキストが無効です');
+  //     }
+  //   } catch (e) {
+  //     print('GroupCreatePage: Lv.1達成バッジ獲得演出の表示エラー: $e');
+  //     // エラーが発生してもグループ作成は成功とする
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

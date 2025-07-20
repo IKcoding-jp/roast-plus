@@ -22,6 +22,7 @@ class _BadgeListPageState extends State<BadgeListPage>
   String _selectedCategory = 'all';
   bool _isLoading = true;
   GroupGamificationProfile? _cachedProfile;
+  String? _currentGroupId;
 
   final Map<String, String> _categories = {
     'all': 'すべて',
@@ -48,6 +49,78 @@ class _BadgeListPageState extends State<BadgeListPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _preloadProfile();
     });
+
+    // 定期的にプロフィールを更新チェック
+    _startPeriodicUpdate();
+  }
+
+  /// 定期的なプロフィール更新チェックを開始
+  void _startPeriodicUpdate() {
+    Future.delayed(Duration(seconds: 2), () {
+      if (mounted) {
+        _checkProfileUpdate();
+        _startPeriodicUpdate(); // 再帰的に次のチェックをスケジュール
+      }
+    });
+  }
+
+  /// プロフィールの更新をチェック
+  void _checkProfileUpdate() {
+    try {
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      if (groupProvider.hasGroup && mounted) {
+        final groupId = groupProvider.currentGroup!.id;
+        final profile = groupProvider.getGroupGamificationProfile(groupId);
+
+        if (profile != null && _cachedProfile != profile) {
+          setState(() {
+            _cachedProfile = profile;
+            print(
+              'バッジ一覧: プロフィールが更新されました - レベル: ${profile.level}, バッジ数: ${profile.badges.length}',
+            );
+          });
+        }
+      }
+    } catch (e) {
+      print('プロフィール更新チェックエラー: $e');
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // プロフィールの更新を監視
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+    if (groupProvider.hasGroup) {
+      final groupId = groupProvider.currentGroup!.id;
+
+      // グループIDが変更された場合のみ監視を開始
+      if (_currentGroupId != groupId) {
+        _currentGroupId = groupId;
+
+        // プロフィールの監視を開始
+        groupProvider.watchGroupGamificationProfile(groupId);
+
+        // 最新のプロフィールを取得してキャッシュを更新
+        final profile = groupProvider.getGroupGamificationProfile(groupId);
+        if (profile != null && mounted) {
+          setState(() {
+            _cachedProfile = profile;
+            _isLoading = false;
+          });
+        }
+      } else {
+        // 同じグループの場合は最新のプロフィールを取得
+        final profile = groupProvider.getGroupGamificationProfile(groupId);
+        if (profile != null && mounted && _cachedProfile != profile) {
+          setState(() {
+            _cachedProfile = profile;
+            _isLoading = false;
+          });
+        }
+      }
+    }
   }
 
   @override
@@ -129,8 +202,8 @@ class _BadgeListPageState extends State<BadgeListPage>
         iconTheme: IconThemeData(color: themeSettings.iconColor),
         elevation: 0,
       ),
-      body: Consumer<GroupProvider>(
-        builder: (context, groupProvider, child) {
+      body: Consumer2<GroupProvider, GamificationProvider>(
+        builder: (context, groupProvider, gamificationProvider, child) {
           if (!groupProvider.hasGroup) {
             return Center(
               child: Column(
@@ -158,7 +231,7 @@ class _BadgeListPageState extends State<BadgeListPage>
 
           final groupId = groupProvider.currentGroup!.id;
 
-          // キャッシュされたプロフィールを優先使用
+          // リアルタイムでプロフィールを取得（キャッシュも使用）
           GroupGamificationProfile? profile = _cachedProfile;
           if (profile == null) {
             profile = groupProvider.getGroupGamificationProfile(groupId);
@@ -252,6 +325,16 @@ class _BadgeListPageState extends State<BadgeListPage>
     final filteredBadges = _getFilteredBadges();
     final earnedBadgeIds = profile.badges.map((b) => b.id).toSet();
 
+    // デバッグ情報を出力
+    print('=== バッジ一覧デバッグ情報 ===');
+    print('プロフィールレベル: ${profile.level}');
+    print('プロフィール経験値: ${profile.experiencePoints}');
+    print('獲得済みバッジ数: ${profile.badges.length}');
+    print('獲得済みバッジID: ${profile.badges.map((b) => b.id).toList()}');
+    print('獲得済みバッジ名: ${profile.badges.map((b) => b.name).toList()}');
+    print('フィルタリングされたバッジ数: ${filteredBadges.length}');
+    print('==============================');
+
     return Padding(
       padding: EdgeInsets.all(16),
       child: GridView.builder(
@@ -270,16 +353,37 @@ class _BadgeListPageState extends State<BadgeListPage>
               ? profile.badges.firstWhere((b) => b.id == condition.badgeId)
               : null;
 
+          // レベルバッジの場合は条件ベースでも判定
+          bool finalIsEarned = isEarned;
+          if (condition.category == BadgeCategory.level && !isEarned) {
+            finalIsEarned = _checkLevelBadgeCondition(condition, profile.level);
+            if (finalIsEarned) {
+              print(
+                'レベルバッジ条件達成: ${condition.name} (${condition.badgeId}) - 現在レベル: ${profile.level}',
+              );
+            }
+          }
+
+          // 獲得済みの場合は進捗を100%にする
+          final finalProgress = finalIsEarned ? 1.0 : progress;
+
+          // 各バッジの状態をデバッグ出力
+          print(
+            'バッジ: ${condition.name} (${condition.badgeId}) - 獲得済み: $isEarned, 条件判定: $finalIsEarned, 進捗: ${(finalProgress * 100).toInt()}%',
+          );
+
           return AnimatedContainer(
             duration: Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             child: BadgeCard(
               condition: condition,
-              isEarned: isEarned,
-              progress: progress,
+              isEarned: finalIsEarned,
+              progress: finalProgress,
               earnedBadge: earnedBadge,
               themeSettings: themeSettings,
               animationDelay: index * 100,
+              description: _getBadgeDescription(condition),
+              progressText: _getBadgeProgressText(condition),
             ),
           );
         },
@@ -290,8 +394,9 @@ class _BadgeListPageState extends State<BadgeListPage>
   /// バッジ進捗を計算
   double _calculateBadgeProgress(
     GroupBadgeCondition condition,
-    GroupGamificationProfile profile,
+    GroupGamificationProfile? profile,
   ) {
+    if (profile == null) return 0.0;
     // グループの統計データに基づいて進捗を計算
     final stats = profile.stats;
 
@@ -373,36 +478,56 @@ class _BadgeListPageState extends State<BadgeListPage>
         return (stats.totalDripPackCount / 50000).clamp(0.0, 1.0);
 
       // レベルバッジの進捗率
+      case 'group_level_1':
       case 'group_level_5':
-        return _calculateLevelProgress(stats, 5);
       case 'group_level_10':
-        return _calculateLevelProgress(stats, 10);
       case 'group_level_20':
-        return _calculateLevelProgress(stats, 20);
       case 'group_level_50':
-        return _calculateLevelProgress(stats, 50);
       case 'group_level_100':
-        return _calculateLevelProgress(stats, 100);
+      case 'group_level_250':
+      case 'group_level_500':
+      case 'group_level_1000':
+      case 'group_level_2000':
+      case 'group_level_3000':
+      case 'group_level_5000':
+      case 'group_level_7500':
+      case 'group_level_9999':
+        return _calculateLevelBadgeProgress(condition, profile.stats);
 
       // 特殊バッジの進捗率
       case 'group_tasting_100':
-        return (stats.totalTastingRecords / 100).clamp(0.0, 1.0);
+        return (profile.stats.totalTastingRecords / 100).clamp(0.0, 1.0);
 
       default:
         return 0.0;
     }
   }
 
-  /// レベル進捗を計算
-  double _calculateLevelProgress(GroupStats stats, int requiredLevel) {
-    // 実際のグループレベルを使用（統計から推定するのではなく）
+  /// レベルバッジの進捗率を計算
+  double _calculateLevelBadgeProgress(
+    GroupBadgeCondition condition,
+    GroupStats stats,
+  ) {
     try {
+      // バッジIDから必要なレベルを抽出
+      final levelMatch = RegExp(
+        r'group_level_(\d+)',
+      ).firstMatch(condition.badgeId);
+      if (levelMatch == null) return 0.0;
+
+      final requiredLevel = int.parse(levelMatch.group(1)!);
+
+      // グループプロバイダーから実際のレベルを取得
       final groupProvider = Provider.of<GroupProvider>(context, listen: false);
       if (groupProvider.hasGroup) {
         final groupId = groupProvider.currentGroup!.id;
         final profile = groupProvider.getGroupGamificationProfile(groupId);
         if (profile != null) {
-          return (profile.level / requiredLevel).clamp(0.0, 1.0);
+          final progress = (profile.level / requiredLevel).clamp(0.0, 1.0);
+          print(
+            'レベルバッジ進捗計算: ${condition.badgeId} - 現在レベル=${profile.level}, 必要レベル=$requiredLevel, 進捗=$progress',
+          );
+          return progress;
         }
       }
     } catch (e) {
@@ -417,7 +542,103 @@ class _BadgeListPageState extends State<BadgeListPage>
         (stats.totalTastingRecords * 20);
 
     final estimatedLevel = _calculateLevelFromXP(estimatedXP);
-    return (estimatedLevel / requiredLevel).clamp(0.0, 1.0);
+    final levelMatch = RegExp(
+      r'group_level_(\d+)',
+    ).firstMatch(condition.badgeId);
+    if (levelMatch != null) {
+      final requiredLevel = int.parse(levelMatch.group(1)!);
+      return (estimatedLevel / requiredLevel).clamp(0.0, 1.0);
+    }
+
+    return 0.0;
+  }
+
+  /// レベルバッジの進捗テキストを取得
+  String _getLevelBadgeProgressText(GroupBadgeCondition condition) {
+    try {
+      // バッジIDから必要なレベルを抽出
+      final levelMatch = RegExp(
+        r'group_level_(\d+)',
+      ).firstMatch(condition.badgeId);
+      if (levelMatch == null) return '';
+
+      final requiredLevel = int.parse(levelMatch.group(1)!);
+
+      // グループプロバイダーから現在のレベルを取得
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+        final profile = groupProvider.getGroupGamificationProfile(groupId);
+        if (profile != null) {
+          final currentLevel = profile.level;
+          final isEarned = currentLevel >= requiredLevel;
+
+          if (isEarned) {
+            return 'Lv.$currentLevel / Lv.$requiredLevel';
+          } else {
+            return 'Lv.$currentLevel / Lv.$requiredLevel';
+          }
+        }
+      }
+
+      return 'Lv.? / Lv.$requiredLevel';
+    } catch (e) {
+      print('レベルバッジ進捗テキスト生成エラー: $e');
+      return '';
+    }
+  }
+
+  /// バッジの進捗テキストを取得（レベルバッジの場合は特別な表示）
+  String _getBadgeProgressText(GroupBadgeCondition condition) {
+    if (_cachedProfile == null) return '';
+    if (condition.category == BadgeCategory.level) {
+      return _getLevelBadgeProgressText(condition);
+    }
+    return '${(_calculateBadgeProgress(condition, _cachedProfile!) * 100).toInt()}%';
+  }
+
+  /// レベルバッジの達成条件を動的に生成
+  String _getLevelBadgeDescription(GroupBadgeCondition condition) {
+    try {
+      // バッジIDから必要なレベルを抽出
+      final levelMatch = RegExp(
+        r'group_level_(\d+)',
+      ).firstMatch(condition.badgeId);
+      if (levelMatch == null) return condition.description;
+
+      final requiredLevel = int.parse(levelMatch.group(1)!);
+
+      // グループプロバイダーから現在のレベルを取得
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+        final profile = groupProvider.getGroupGamificationProfile(groupId);
+        if (profile != null) {
+          final currentLevel = profile.level;
+          final isEarned = currentLevel >= requiredLevel;
+
+          if (isEarned) {
+            return 'グループレベルがLv.$requiredLevelに到達しました！';
+          } else {
+            return 'グループレベルをLv.$requiredLevelまで上げる\n（現在: Lv.$currentLevel）';
+          }
+        }
+      }
+
+      // プロフィールが取得できない場合はデフォルトの説明
+      return 'グループレベルをLv.$requiredLevelまで上げる';
+    } catch (e) {
+      print('レベルバッジ説明生成エラー: $e');
+      return condition.description;
+    }
+  }
+
+  /// バッジの達成条件を取得（レベルバッジの場合は動的に生成）
+  String _getBadgeDescription(GroupBadgeCondition condition) {
+    if (condition.category == BadgeCategory.level) {
+      return _getLevelBadgeDescription(condition);
+    }
+    return condition.description;
   }
 
   /// 経験値からレベルを計算
@@ -464,6 +685,25 @@ class _BadgeListPageState extends State<BadgeListPage>
       }
     }).toList();
   }
+
+  /// レベルバッジの条件を満たしているかチェック
+  bool _checkLevelBadgeCondition(
+    GroupBadgeCondition condition,
+    int currentLevel,
+  ) {
+    try {
+      final levelMatch = RegExp(
+        r'group_level_(\d+)',
+      ).firstMatch(condition.badgeId);
+      if (levelMatch == null) return false;
+
+      final requiredLevel = int.parse(levelMatch.group(1)!);
+      return currentLevel >= requiredLevel;
+    } catch (e) {
+      print('レベルバッジ条件チェックエラー: $e');
+      return false;
+    }
+  }
 }
 
 /// 個別バッジカードウィジェット
@@ -474,6 +714,8 @@ class BadgeCard extends StatefulWidget {
   final GroupBadge? earnedBadge;
   final ThemeSettings themeSettings;
   final int animationDelay;
+  final String description;
+  final String progressText;
 
   const BadgeCard({
     super.key,
@@ -483,6 +725,8 @@ class BadgeCard extends StatefulWidget {
     this.earnedBadge,
     required this.themeSettings,
     required this.animationDelay,
+    required this.description,
+    required this.progressText,
   });
 
   @override
@@ -672,7 +916,7 @@ class _BadgeCardState extends State<BadgeCard>
                   SizedBox(height: 4),
                   // 進捗テキスト
                   Text(
-                    '${(widget.progress * 100).toInt()}%',
+                    widget.progressText,
                     style: TextStyle(
                       color: widget.condition.color,
                       fontSize: 12 * widget.themeSettings.fontSizeScale,
@@ -754,7 +998,7 @@ class _BadgeCardState extends State<BadgeCard>
             ),
             SizedBox(height: 4),
             Text(
-              widget.condition.description,
+              widget.description,
               style: TextStyle(fontFamily: widget.themeSettings.fontFamily),
             ),
             if (!widget.isEarned) ...[
@@ -777,7 +1021,7 @@ class _BadgeCardState extends State<BadgeCard>
               ),
               SizedBox(height: 4),
               Text(
-                '${(widget.progress * 100).toInt()}% 完了',
+                widget.progressText,
                 style: TextStyle(
                   color: widget.condition.color,
                   fontWeight: FontWeight.w600,
@@ -785,7 +1029,7 @@ class _BadgeCardState extends State<BadgeCard>
                 ),
               ),
             ],
-            if (widget.isEarned && widget.earnedBadge != null) ...[
+            if (widget.isEarned) ...[
               SizedBox(height: 16),
               Container(
                 padding: EdgeInsets.all(12),
@@ -801,12 +1045,16 @@ class _BadgeCardState extends State<BadgeCard>
                       size: 20,
                     ),
                     SizedBox(width: 8),
-                    Text(
-                      '${widget.earnedBadge!.earnedAt.year}/${widget.earnedBadge!.earnedAt.month}/${widget.earnedBadge!.earnedAt.day} に獲得',
-                      style: TextStyle(
-                        color: widget.condition.color,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: widget.themeSettings.fontFamily,
+                    Expanded(
+                      child: Text(
+                        widget.earnedBadge != null
+                            ? '${widget.earnedBadge!.earnedAt.year}/${widget.earnedBadge!.earnedAt.month}/${widget.earnedBadge!.earnedAt.day} に獲得'
+                            : '獲得済み',
+                        style: TextStyle(
+                          color: widget.condition.color,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: widget.themeSettings.fontFamily,
+                        ),
                       ),
                     ),
                   ],

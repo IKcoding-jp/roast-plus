@@ -20,7 +20,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
   int _coolingMinutes = 10;
   bool _loading = true;
   bool _usePreheat = true;
-  bool _useCooling = true;
+  bool _useCooling = false; // デフォルトをオフに変更
   bool _useRoast = true;
   final TextEditingController _recommendedOffsetController =
       TextEditingController();
@@ -88,14 +88,14 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       ]);
       setState(() {
         _usePreheat = settings['usePreheat'] ?? true;
-        _useCooling = settings['useCooling'] ?? true;
+        _useCooling = settings['useCooling'] ?? false; // デフォルトをオフに変更
         _useRoast = settings['useRoast'] ?? true;
       });
     } catch (e) {
       print('スイッチ設定読み込みエラー: $e');
       setState(() {
         _usePreheat = true;
-        _useCooling = true;
+        _useCooling = false; // デフォルトをオフに変更
         _useRoast = true;
       });
     }

@@ -9,8 +9,9 @@ import '../../services/group_gamification_service.dart';
 import '../../settings/account_info_page.dart';
 import '../gamification/badge_list_page.dart';
 import 'group_create_page.dart';
-import 'group_detail_page.dart';
+import 'group_info_page.dart';
 import 'group_invitations_page.dart';
+import '../../widgets/lottie_animation_widget.dart';
 
 class GroupListPage extends StatefulWidget {
   const GroupListPage({super.key});
@@ -73,9 +74,7 @@ class _GroupListPageState extends State<GroupListPage> {
       body: Consumer<GroupProvider>(
         builder: (context, groupProvider, child) {
           if (groupProvider.loading) {
-            return Center(
-              child: CircularProgressIndicator(color: themeSettings.iconColor),
-            );
+            return Center(child: const LoadingAnimationWidget());
           }
 
           if (groupProvider.error != null) {
@@ -485,11 +484,14 @@ class _GroupListPageState extends State<GroupListPage> {
                           color: themeSettings.iconColor,
                         ),
                         onTap: () {
+                          // GroupProviderの現在のグループを設定
+                          final groupProvider = context.read<GroupProvider>();
+                          groupProvider.setCurrentGroup(group);
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  GroupDetailPage(group: group),
+                              builder: (context) => GroupInfoPage(),
                             ),
                           );
                         },

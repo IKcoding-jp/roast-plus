@@ -6,6 +6,7 @@ import '../../widgets/bean_name_with_sticker.dart';
 import 'work_progress_edit_page.dart';
 import '../../models/group_provider.dart';
 import '../../services/user_settings_firestore_service.dart';
+import '../../widgets/lottie_animation_widget.dart';
 
 class WorkProgressPage extends StatefulWidget {
   const WorkProgressPage({super.key});
@@ -237,9 +238,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
       body: Consumer<WorkProgressProvider>(
         builder: (context, workProgressProvider, child) {
           if (workProgressProvider.isLoading) {
-            return Center(
-              child: CircularProgressIndicator(color: themeSettings.iconColor),
-            );
+            return Center(child: const LoadingAnimationWidget());
           }
 
           if (workProgressProvider.workProgressList.isEmpty) {

@@ -6,15 +6,15 @@ import '../../services/group_gamification_service.dart';
 import '../../models/group_gamification_models.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
-
 import '../../models/group_provider.dart';
-
 import '../../widgets/lottie_animation_widget.dart';
 import '../../models/dashboard_stats_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import '../../services/user_settings_firestore_service.dart';
+import '../../utils/permission_utils.dart';
+import '../../widgets/permission_denied_page.dart';
 
 class DripCounterPage extends StatefulWidget {
   const DripCounterPage({super.key});
@@ -34,6 +34,11 @@ class DripCounterPageState extends State<DripCounterPage>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<Color?> _colorAnimation;
+
+  // 権限チェック用の状態変数
+  bool _canUseDripCounter = true;
+  bool _isCheckingPermission = true;
+  StreamSubscription<bool>? _permissionSubscription;
 
   // Firestore同期用 記録リスト
   List<Map<String, dynamic>> _records = [];
@@ -66,6 +71,7 @@ class DripCounterPageState extends State<DripCounterPage>
         );
     _loadDripRecordsFromFirestore();
     _startDripRecordsListener();
+    _startPermissionListener();
   }
 
   @override
@@ -89,9 +95,39 @@ class DripCounterPageState extends State<DripCounterPage>
         _beanController.clear();
         _selectedRoast = null;
       });
+      // グループ変更時に権限監視も再開始
+      _startPermissionListener();
     }
 
     _currentGroupId = currentGroupId;
+  }
+
+  /// 権限チェック
+  Future<void> _checkPermission() async {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.hasGroup) {
+        final canUse = await PermissionUtils.canCreateDataType(
+          groupId: groupProvider.currentGroup!.id,
+          dataType: 'dripCounter',
+        );
+        setState(() {
+          _canUseDripCounter = canUse;
+          _isCheckingPermission = false;
+        });
+      } else {
+        setState(() {
+          _canUseDripCounter = true;
+          _isCheckingPermission = false;
+        });
+      }
+    } catch (e) {
+      print('ドリップパックカウンター権限チェックエラー: $e');
+      setState(() {
+        _canUseDripCounter = false;
+        _isCheckingPermission = false;
+      });
+    }
   }
 
   Future<void> _loadDripRecordsFromFirestore() async {
@@ -144,11 +180,35 @@ class DripCounterPageState extends State<DripCounterPage>
         });
   }
 
+  void _startPermissionListener() {
+    final groupProvider = context.read<GroupProvider>();
+    if (groupProvider.hasGroup) {
+      _permissionSubscription?.cancel();
+      _permissionSubscription = PermissionUtils.listenForPermissionChange(
+        groupId: groupProvider.currentGroup!.id,
+        dataType: 'dripCounter',
+        onPermissionChange: (canUse) {
+          setState(() {
+            _canUseDripCounter = canUse;
+            _isCheckingPermission = false;
+          });
+        },
+      );
+    } else {
+      _permissionSubscription?.cancel();
+      setState(() {
+        _canUseDripCounter = true;
+        _isCheckingPermission = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _beanController.dispose();
     _animationController.dispose();
     _dripRecordsSubscription?.cancel();
+    _permissionSubscription?.cancel();
     super.dispose();
   }
 
@@ -167,6 +227,59 @@ class DripCounterPageState extends State<DripCounterPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final themeSettings = Provider.of<ThemeSettings>(context);
+
+    // 権限チェック中
+    if (_isCheckingPermission) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Row(
+            children: [
+              Icon(
+                Icons.coffee,
+                color: Provider.of<ThemeSettings>(context).iconColor,
+              ),
+              SizedBox(width: 8),
+              Text('ドリップパックカウンター'),
+            ],
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Provider.of<ThemeSettings>(context).buttonColor,
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                '権限を確認中...',
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 権限がない場合
+    if (!_canUseDripCounter) {
+      return PermissionDeniedPage(
+        title: 'ドリップパックカウンター',
+        message: 'ドリップパックカウンターを使用するには、管理者またはリーダーの権限が必要です。',
+        additionalInfo:
+            'メンバーがドリップパックカウンターを使用できる設定が有効になっている場合は、管理者またはリーダーに設定の確認を依頼してください。',
+        customIcon: Icons.coffee,
+        onBackPressed: () {
+          // ホームに戻る
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        },
+      );
+    }
 
     // 美しいグラデーションカラーパレット
     final primaryGradient = LinearGradient(
@@ -203,16 +316,17 @@ class DripCounterPageState extends State<DripCounterPage>
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: Icon(Icons.list, color: themeSettings.iconColor),
-            tooltip: '記録一覧',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => DripPackRecordListPage()),
-              );
-            },
-          ),
+          if (_canUseDripCounter)
+            IconButton(
+              icon: Icon(Icons.list, color: themeSettings.iconColor),
+              tooltip: '記録一覧',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => DripPackRecordListPage()),
+                );
+              },
+            ),
         ],
       ),
       body: SafeArea(

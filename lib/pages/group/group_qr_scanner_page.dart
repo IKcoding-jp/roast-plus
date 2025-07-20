@@ -114,9 +114,15 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
     final success = await groupProvider.joinGroupByInviteCode(inviteCode);
 
     if (success && mounted) {
-      Navigator.of(context).pop();
+      // 成功メッセージを表示
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('グループに参加しました'), backgroundColor: Colors.green),
+      );
+
+      // ホームページに自動遷移
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/',
+        (route) => false, // すべてのページをクリア
       );
     } else if (mounted) {
       _showError(groupProvider.error ?? 'グループの参加に失敗しました');
@@ -160,10 +166,7 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
       ),
       body: Stack(
         children: [
-          MobileScanner(
-            controller: controller,
-            onDetect: _onDetect,
-          ),
+          MobileScanner(controller: controller, onDetect: _onDetect),
           if (_isJoining)
             Container(
               color: Colors.black54,
@@ -226,4 +229,3 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
     );
   }
 }
- 

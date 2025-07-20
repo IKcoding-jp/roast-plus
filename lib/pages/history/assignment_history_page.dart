@@ -8,7 +8,12 @@ import '../../services/group_data_sync_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
+import '../../models/group_models.dart';
 import '../../services/user_settings_firestore_service.dart';
+import '../../utils/permission_utils.dart';
+import 'dart:convert'; // jsonDecodeを追加
+import '../../widgets/lottie_animation_widget.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // 追加
 
 class AssignmentHistoryPage extends StatefulWidget {
   const AssignmentHistoryPage({super.key});
@@ -20,6 +25,7 @@ class AssignmentHistoryPage extends StatefulWidget {
 class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
   bool isReady = false;
   bool? _canEditAssignmentHistory; // null: 未判定, true/false: 判定済み
+  StreamSubscription<GroupSettings?>? _permissionSubscription;
 
   final formatter = DateFormat('yyyy-MM-dd');
   final weekdayFormatter = DateFormat('E', 'ja_JP');
@@ -33,7 +39,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
   void initState() {
     super.initState();
     _loadPrefs();
-    _checkEditPermission();
+    _startPermissionListener();
     _initializeGroupMonitoring();
   }
 
@@ -142,15 +148,30 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
   Future<void> _loadAssignmentHistoryFromFirestore() async {
     if (!mounted) return;
     try {
+      print('AssignmentHistoryPage: Firestoreからの履歴一括取得開始');
       final allHistory =
           await AssignmentFirestoreService.loadAllAssignmentHistory();
+      print('AssignmentHistoryPage: 取得した履歴数: ${allHistory.length}');
+
       for (final entry in allHistory.entries) {
-        await UserSettingsFirestoreService.saveSetting(
-          'assignment_${entry.key}',
-          entry.value,
-        );
+        try {
+          final assignments = _safeStringListFromDynamic(entry.value);
+          await UserSettingsFirestoreService.saveSetting(
+            'assignment_${entry.key}',
+            assignments,
+          );
+          print(
+            'AssignmentHistoryPage: 履歴保存完了 - ${entry.key}: ${assignments.length}件',
+          );
+        } catch (e) {
+          print('AssignmentHistoryPage: 履歴保存エラー (${entry.key}): $e');
+        }
       }
-      if (mounted) setState(() {});
+
+      if (mounted) {
+        setState(() {});
+        print('AssignmentHistoryPage: 履歴一括取得完了');
+      }
     } catch (e) {
       print('AssignmentHistoryPage: Firestoreからの履歴一括取得エラー: $e');
     }
@@ -168,7 +189,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
         final group = groups.first;
         final canEdit = await GroupFirestoreService.canEditDataType(
           groupId: group.id,
-          dataType: 'assignment_history',
+          dataType: 'assignment_board', // assignment_boardに統一
         );
         setState(() {
           _canEditAssignmentHistory = canEdit;
@@ -176,6 +197,30 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
       }
     } catch (e) {
       // エラーの場合は編集可能として扱う（グループに参加していない場合など）
+      setState(() {
+        _canEditAssignmentHistory = true;
+      });
+    }
+  }
+
+  /// リアルタイム権限監視を開始
+  void _startPermissionListener() {
+    final groupProvider = context.read<GroupProvider>();
+    if (groupProvider.hasGroup) {
+      _permissionSubscription?.cancel();
+      // グループ設定の変更を直接監視
+      _permissionSubscription =
+          GroupFirestoreService.watchGroupSettings(
+            groupProvider.currentGroup!.id,
+          ).listen((groupSettings) {
+            if (!mounted) return;
+            print('AssignmentHistoryPage: グループ設定変更検知: $groupSettings');
+            if (groupSettings != null) {
+              _checkEditPermissionFromSettings(groupSettings, groupProvider);
+            }
+          });
+    } else {
+      _permissionSubscription?.cancel();
       setState(() {
         _canEditAssignmentHistory = true;
       });
@@ -253,8 +298,8 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
       'leftLabels',
       'rightLabels',
     ]);
-    final leftLabels = List<String>.from(settings['leftLabels'] ?? []);
-    final rightLabels = List<String>.from(settings['rightLabels'] ?? []);
+    final leftLabels = _safeStringListFromDynamic(settings['leftLabels']);
+    final rightLabels = _safeStringListFromDynamic(settings['rightLabels']);
 
     await showDialog(
       context: context,
@@ -298,17 +343,24 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
             onPressed: () async {
               final updated = controllers.map((c) => c.text).toList();
               try {
+                // ローカルとFirestoreの両方に保存
                 await UserSettingsFirestoreService.saveSetting(
                   'assignment_$dateKey',
                   updated,
                 );
-                // Firestoreにも保存（ラベルも必ず渡す）
-                await AssignmentFirestoreService.saveAssignmentHistory(
-                  dateKey: dateKey,
-                  assignments: updated,
-                  leftLabels: leftLabels, // 追加
-                  rightLabels: rightLabels, // 追加
-                );
+
+                // Firestoreにも保存
+                try {
+                  await AssignmentFirestoreService.saveAssignmentHistory(
+                    dateKey: dateKey,
+                    assignments: updated,
+                    leftLabels: leftLabels,
+                    rightLabels: rightLabels,
+                  );
+                  print('AssignmentHistoryPage: 編集内容をFirestoreに保存完了');
+                } catch (e) {
+                  print('AssignmentHistoryPage: Firestore保存エラー: $e');
+                }
                 // グループに参加している場合のみグループに同期
                 if (isInGroup) {
                   await _syncAssignmentHistoryToGroup(dateKey, updated);
@@ -377,9 +429,17 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
 
     if (confirmed == true) {
       try {
+        // ローカルから削除
         await UserSettingsFirestoreService.deleteSetting('assignment_$dateKey');
+
         // Firestoreからも削除
-        await AssignmentFirestoreService.deleteAssignmentHistory(dateKey);
+        try {
+          await AssignmentFirestoreService.deleteAssignmentHistory(dateKey);
+          print('AssignmentHistoryPage: Firestoreから履歴削除完了');
+        } catch (e) {
+          print('AssignmentHistoryPage: Firestore削除エラー: $e');
+        }
+
         // グループに参加している場合のみグループに削除を同期
         if (isInGroup) {
           await _syncAssignmentHistoryDeletionToGroup(dateKey);
@@ -391,9 +451,92 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
     }
   }
 
+  /// 動的データから安全にStringリストを取得
+  List<String> _safeStringListFromDynamic(dynamic data) {
+    if (data == null) return [];
+
+    try {
+      if (data is List) {
+        return data.map((item) => item?.toString() ?? '').toList();
+      } else if (data is String) {
+        // JSON文字列の場合
+        final decoded = jsonDecode(data);
+        if (decoded is List) {
+          return decoded.map((item) => item?.toString() ?? '').toList();
+        }
+      }
+    } catch (e) {
+      print(
+        'AssignmentHistoryPage: データ変換エラー: $e, data: $data, data type: ${data.runtimeType}',
+      );
+    }
+
+    return [];
+  }
+
+  /// グループ設定から権限をチェック
+  void _checkEditPermissionFromSettings(
+    GroupSettings groupSettings,
+    GroupProvider groupProvider,
+  ) {
+    if (!mounted) return;
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        print('AssignmentHistoryPage: ユーザーが認証されていません');
+        setState(() {
+          _canEditAssignmentHistory = false;
+        });
+        return;
+      }
+
+      final group = groupProvider.currentGroup;
+      if (group == null) {
+        print('AssignmentHistoryPage: グループが見つかりません');
+        setState(() {
+          _canEditAssignmentHistory = true;
+        });
+        return;
+      }
+
+      final userRole = group.getMemberRole(currentUser.uid);
+      if (userRole == null) {
+        print('AssignmentHistoryPage: ユーザーロールが取得できません');
+        setState(() {
+          _canEditAssignmentHistory = false;
+        });
+        return;
+      }
+
+      final canEdit = groupSettings.canEditDataType(
+        'assignment_board',
+        userRole,
+      );
+      print(
+        'AssignmentHistoryPage: 設定変更による権限チェック - ユーザーロール: $userRole, 権限: $canEdit',
+      );
+
+      if (mounted && _canEditAssignmentHistory != canEdit) {
+        setState(() {
+          _canEditAssignmentHistory = canEdit;
+        });
+        print('AssignmentHistoryPage: 権限状態を更新 - canEdit: $canEdit');
+      }
+    } catch (e) {
+      print('AssignmentHistoryPage: 設定変更による権限チェックエラー - $e');
+      if (mounted) {
+        setState(() {
+          _canEditAssignmentHistory = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _groupAssignmentHistorySubscription?.cancel();
+    _permissionSubscription?.cancel();
     super.dispose();
   }
 
@@ -406,7 +549,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
           title: Text('担当履歴'),
           backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         ),
-        body: Center(child: CircularProgressIndicator()),
+        body: const LoadingAnimationWidget(),
       );
     }
 
@@ -428,16 +571,72 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
           final weekday = weekdayFormatter.format(date);
           // 担当履歴を非同期で取得するため、FutureBuilderを使用
           items.add(
-            FutureBuilder<List<String>?>(
+            FutureBuilder<Map<String, dynamic>?>(
               future: (() async {
-                final result = await UserSettingsFirestoreService.getSetting(
-                  'assignment_$dayKey',
-                );
-                return result as List<String>?;
+                // まずUserSettingsFirestoreServiceから取得を試行
+                final userSettingsResult =
+                    await UserSettingsFirestoreService.getSetting(
+                      'assignment_$dayKey',
+                    );
+                if (userSettingsResult != null) {
+                  final assignments = _safeStringListFromDynamic(
+                    userSettingsResult,
+                  );
+                  return {
+                    'assignments': assignments,
+                    'leftLabels': [],
+                    'rightLabels': [],
+                  };
+                }
+
+                // UserSettingsFirestoreServiceにない場合はAssignmentFirestoreServiceから取得
+                try {
+                  final firestoreResult =
+                      await AssignmentFirestoreService.loadAssignmentHistoryWithLabels(
+                        dayKey,
+                      );
+                  if (firestoreResult != null) {
+                    // UserSettingsFirestoreServiceにも保存して次回から高速化
+                    final assignments = _safeStringListFromDynamic(
+                      firestoreResult['assignments'],
+                    );
+                    await UserSettingsFirestoreService.saveSetting(
+                      'assignment_$dayKey',
+                      assignments,
+                    );
+                    return {
+                      'assignments': assignments,
+                      'leftLabels': _safeStringListFromDynamic(
+                        firestoreResult['leftLabels'],
+                      ),
+                      'rightLabels': _safeStringListFromDynamic(
+                        firestoreResult['rightLabels'],
+                      ),
+                    };
+                  }
+                } catch (e) {
+                  print(
+                    'AssignmentHistoryPage: Firestoreからの履歴取得エラー ($dayKey): $e',
+                  );
+                }
+
+                return null;
               })(),
               builder: (context, snapshot) {
                 if (snapshot.hasData && snapshot.data != null) {
                   final data = snapshot.data!;
+                  final assignments = _safeStringListFromDynamic(
+                    data['assignments'],
+                  );
+                  final leftLabels = _safeStringListFromDynamic(
+                    data['leftLabels'],
+                  );
+                  final rightLabels = _safeStringListFromDynamic(
+                    data['rightLabels'],
+                  );
+
+                  if (assignments.isEmpty) return SizedBox.shrink();
+
                   return Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
@@ -471,9 +670,8 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                                   ),
                                 ),
                               ),
-                              // グループに参加していない場合、または編集権限がある場合は編集・削除ボタンを表示
-                              if (groupProvider.groups.isEmpty ||
-                                  _canEditAssignmentHistory == true) ...[
+                              // 編集権限がある場合のみ編集・削除ボタンを表示
+                              if (_canEditAssignmentHistory == true) ...[
                                 IconButton(
                                   icon: Icon(
                                     Icons.edit,
@@ -483,7 +681,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                                   ),
                                   tooltip: '編集',
                                   onPressed: () =>
-                                      _editAssignment(dayKey, data),
+                                      _editAssignment(dayKey, assignments),
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
@@ -494,12 +692,14 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                             ],
                           ),
                           SizedBox(height: 8),
-                          if (data.isNotEmpty)
-                            _buildAssignmentRow('掃除機', data[0]),
-                          if (data.length > 1)
-                            _buildAssignmentRow('机・ロースト', data[1]),
-                          if (data.length > 2)
-                            _buildAssignmentRow('洗い物', data[2]),
+                          ...assignments.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final assignment = entry.value;
+                            final label = leftLabels.length > index
+                                ? leftLabels[index]
+                                : '担当${index + 1}';
+                            return _buildAssignmentRow(label, assignment);
+                          }).toList(),
                         ],
                       ),
                     ),

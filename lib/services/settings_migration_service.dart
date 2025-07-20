@@ -113,7 +113,6 @@ class SettingsMigrationService {
     // その他の設定
     'developerMode': 'developerMode',
     'isFirstInstall': 'isFirstInstall',
-    'battery_optimization_dialog_shown': 'battery_optimization_dialog_shown',
   };
 
   /// 移行が必要かチェック

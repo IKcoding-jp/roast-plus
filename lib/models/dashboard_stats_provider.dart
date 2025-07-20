@@ -174,4 +174,20 @@ class DashboardStatsProvider extends ChangeNotifier {
       '完了タスク': '${_statsData['completedTasks'] ?? 0}件',
     };
   }
+
+  /// ログアウト時にプロバイダー情報をクリア
+  void clearOnLogout() {
+    print('DashboardStatsProvider: ログアウト時のクリア開始');
+
+    _statsData.clear();
+    _isLoading = false;
+    _lastUpdateTime = null;
+
+    // タイマーをキャンセル
+    _updateTimer?.cancel();
+    _updateTimer = null;
+
+    print('DashboardStatsProvider: ログアウト時のクリア完了');
+    notifyListeners();
+  }
 }

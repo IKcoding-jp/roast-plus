@@ -38,6 +38,7 @@ import 'pages/group/group_qr_generate_page.dart';
 import 'pages/group/group_qr_scanner_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'utils/app_performance_config.dart';
+import 'widgets/lottie_animation_widget.dart';
 // navigatorKeyが定義されているファイルをimport
 
 class WorkAssignmentApp extends StatefulWidget {
@@ -245,7 +246,7 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const LoadingScreen(title: '認証中...');
         }
         if (!snapshot.hasData) {
           return GoogleSignInScreen();
@@ -321,25 +322,7 @@ class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
       builder: (context, groupProvider, child) {
         // データ読み込み中の場合はローディング画面を表示
         if (groupProvider.loading) {
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    '読み込み中...',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-          );
+          return const LoadingScreen(title: 'グループ情報を読み込み中...');
         }
 
         // グループに参加していない場合はグループ参加ページを表示
@@ -538,9 +521,11 @@ class _PasscodeGateState extends State<PasscodeGate>
         false;
 
     if (isLockEnabled && _passcode != null && _unlocked) {
-      setState(() {
-        _unlocked = false;
-      });
+      if (mounted) {
+        setState(() {
+          _unlocked = false;
+        });
+      }
     }
   }
 
@@ -551,25 +536,29 @@ class _PasscodeGateState extends State<PasscodeGate>
           'passcode_lock_enabled',
         ) ??
         false;
-    setState(() {
-      _passcode = code;
-      _isLockEnabled = isLockEnabled;
-      _loading = false;
-      // パスコードが設定されていて、ロックが有効な場合のみロックをかける
-      _unlocked = code == null || !isLockEnabled;
-    });
+    if (mounted) {
+      setState(() {
+        _passcode = code;
+        _isLockEnabled = isLockEnabled;
+        _loading = false;
+        // パスコードが設定されていて、ロックが有効な場合のみロックをかける
+        _unlocked = code == null || !isLockEnabled;
+      });
+    }
   }
 
   void _onUnlock() {
-    setState(() {
-      _unlocked = true;
-    });
+    if (mounted) {
+      setState(() {
+        _unlocked = true;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const LoadingScreen(title: 'パスコード設定を確認中...');
     }
     if (!_unlocked && _passcode != null) {
       return PasscodeInputScreen(
@@ -602,22 +591,28 @@ class _PasscodeInputScreenState extends State<PasscodeInputScreen> {
   void _check() {
     final input = _controller.text.trim();
     if (input.length != 4 || int.tryParse(input) == null) {
-      setState(() {
-        _error = '4桁の数字で入力してください';
-      });
+      if (mounted) {
+        setState(() {
+          _error = '4桁の数字で入力してください';
+        });
+      }
       return;
     }
-    setState(() {
-      _checking = true;
-    });
+    if (mounted) {
+      setState(() {
+        _checking = true;
+      });
+    }
     Future.delayed(Duration(milliseconds: 300), () {
       if (input == widget.correctPasscode) {
         widget.onUnlock();
       } else {
-        setState(() {
-          _error = 'パスコードが違います';
-          _checking = false;
-        });
+        if (mounted) {
+          setState(() {
+            _error = 'パスコードが違います';
+            _checking = false;
+          });
+        }
       }
     });
   }
@@ -898,56 +893,78 @@ class _MainScaffoldState extends State<MainScaffold> {
                   'ローストプラス',
                   style: TextStyle(
                     color: Provider.of<ThemeSettings>(context).appBarTextColor,
+                    fontSize: MediaQuery.of(context).size.height < 600
+                        ? 16
+                        : 18,
                   ),
                 ),
               ],
             ),
+            toolbarHeight: MediaQuery.of(context).size.height < 600 ? 48 : 56,
           ),
+          body: SafeArea(
+            child: Stack(
+              children: [
+                FutureBuilder<bool>(
+                  future: isDonorUser(),
+                  builder: (context, snapshot) {
+                    final isDonor = snapshot.data == true;
+                    final bottomPadding = isDonor
+                        ? 0.0
+                        : (_isBannerAdLoaded ? _bannerHeight : 0.0);
 
-          body: Stack(
-            children: [
-              FutureBuilder<bool>(
-                future: isDonorUser(),
-                builder: (context, snapshot) {
-                  final isDonor = snapshot.data == true;
-                  final bottomPadding = isDonor
-                      ? 0.0
-                      : (_isBannerAdLoaded ? _bannerHeight : 0.0);
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: bottomPadding),
-                    child: PageView(
-                      controller: _pageController,
-                      onPageChanged: (index) {
-                        setState(() {
-                          _selectedIndex = index;
-                        });
-                      },
-                      children: _pages,
-                    ),
-                  );
-                },
-              ),
-              FutureBuilder<bool>(
-                future: isDonorUser(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return SizedBox.shrink();
-                  }
-                  if (snapshot.data == true) return SizedBox.shrink();
-                  if (_isBannerAdLoaded && _bannerAd != null) {
-                    return Align(
-                      alignment: Alignment.bottomCenter,
-                      child: SizedBox(
-                        width: _bannerAd!.size.width.toDouble(),
-                        height: _bannerAd!.size.height.toDouble(),
-                        child: AdWidget(ad: _bannerAd!),
+                    // 画面サイズに応じてパディングを調整
+                    final screenHeight = MediaQuery.of(context).size.height;
+                    final screenWidth = MediaQuery.of(context).size.width;
+
+                    double contentPadding;
+                    if (screenHeight < 600) {
+                      // 非常に小さい画面ではパディングを最小限に
+                      contentPadding = 8.0;
+                    } else if (screenHeight < 700) {
+                      // 小さい画面
+                      contentPadding = 12.0;
+                    } else {
+                      // 通常の画面
+                      contentPadding = 16.0;
+                    }
+
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: bottomPadding),
+                      child: PageView(
+                        controller: _pageController,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _selectedIndex = index;
+                          });
+                        },
+                        children: _pages,
                       ),
                     );
-                  }
-                  return SizedBox.shrink();
-                },
-              ),
-            ],
+                  },
+                ),
+                FutureBuilder<bool>(
+                  future: isDonorUser(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return SizedBox.shrink();
+                    }
+                    if (snapshot.data == true) return SizedBox.shrink();
+                    if (_isBannerAdLoaded && _bannerAd != null) {
+                      return Align(
+                        alignment: Alignment.bottomCenter,
+                        child: SizedBox(
+                          width: _bannerAd!.size.width.toDouble(),
+                          height: _bannerAd!.size.height.toDouble(),
+                          child: AdWidget(ad: _bannerAd!),
+                        ),
+                      );
+                    }
+                    return SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
           ),
           bottomNavigationBar: Consumer<ThemeSettings>(
             builder: (context, themeSettings, child) {
@@ -955,50 +972,94 @@ class _MainScaffoldState extends State<MainScaffold> {
                 8.0,
                 14.0,
               );
-              final barHeight = (56 + (themeSettings.fontSizeScale - 1.0) * 20)
-                  .clamp(56.0, 80.0);
 
-              return SizedBox(
-                height: barHeight,
-                child: BottomNavigationBar(
-                  type: BottomNavigationBarType.fixed,
-                  currentIndex: _selectedIndex,
-                  onTap: _onItemTapped,
-                  backgroundColor: themeSettings.bottomNavigationColor,
-                  selectedItemColor:
-                      themeSettings.bottomNavigationSelectedColor,
-                  unselectedItemColor:
-                      themeSettings.bottomNavigationUnselectedColor,
-                  selectedLabelStyle: TextStyle(
-                    fontSize: fontSize,
-                    fontFamily: themeSettings.fontFamily,
+              // 画面サイズに応じてボトムナビゲーションの高さを調整
+              final screenHeight = MediaQuery.of(context).size.height;
+              final screenWidth = MediaQuery.of(context).size.width;
+
+              // 小さい画面では高さを小さく、アイコンサイズも調整
+              double barHeight;
+              double iconSize;
+
+              if (screenHeight < 600) {
+                // 非常に小さい画面（iPhone SE等）
+                barHeight = 48.0;
+                iconSize = 20.0;
+              } else if (screenHeight < 700) {
+                // 小さい画面
+                barHeight = 52.0;
+                iconSize = 22.0;
+              } else if (screenHeight < 800) {
+                // 中程度の画面
+                barHeight = 56.0;
+                iconSize = 24.0;
+              } else {
+                // 大きい画面
+                barHeight = (56 + (themeSettings.fontSizeScale - 1.0) * 20)
+                    .clamp(56.0, 80.0);
+                iconSize = 24.0;
+              }
+
+              // 幅が狭い場合はフォントサイズを小さく
+              final adjustedFontSize = screenWidth < 360
+                  ? fontSize * 0.8
+                  : fontSize;
+
+              return SafeArea(
+                child: Container(
+                  height: barHeight,
+                  decoration: BoxDecoration(
+                    color: themeSettings.bottomNavigationColor,
+                    border: Border(
+                      top: BorderSide(
+                        color: themeSettings.fontColor1.withOpacity(0.1),
+                        width: 0.5,
+                      ),
+                    ),
                   ),
-                  unselectedLabelStyle: TextStyle(
-                    fontSize: fontSize,
-                    fontFamily: themeSettings.fontFamily,
+                  child: BottomNavigationBar(
+                    type: BottomNavigationBarType.fixed,
+                    currentIndex: _selectedIndex,
+                    onTap: _onItemTapped,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    selectedItemColor:
+                        themeSettings.bottomNavigationSelectedColor,
+                    unselectedItemColor:
+                        themeSettings.bottomNavigationUnselectedColor,
+                    selectedLabelStyle: TextStyle(
+                      fontSize: adjustedFontSize,
+                      fontFamily: themeSettings.fontFamily,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    unselectedLabelStyle: TextStyle(
+                      fontSize: adjustedFontSize,
+                      fontFamily: themeSettings.fontFamily,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    items: [
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.local_fire_department, size: iconSize),
+                        label: '焙煎タイマー',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.schedule, size: iconSize),
+                        label: 'スケジュール',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.home, size: iconSize),
+                        label: 'ホーム',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.local_cafe, size: iconSize),
+                        label: 'カウンター',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.group, size: iconSize),
+                        label: '担当表',
+                      ),
+                    ],
                   ),
-                  items: const [
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.local_fire_department),
-                      label: '焙煎タイマー',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.schedule),
-                      label: 'スケジュール',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.home),
-                      label: 'ホーム',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.local_cafe),
-                      label: 'カウンター',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.group),
-                      label: '担当表',
-                    ),
-                  ],
                 ),
               );
             },

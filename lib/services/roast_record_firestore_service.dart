@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/roast_record.dart';
+import '../utils/permission_utils.dart';
+import '../models/group_models.dart';
 
 class RoastRecordFirestoreService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -42,15 +44,7 @@ class RoastRecordFirestoreService {
           );
         }
         final dataMap = data as Map<String, dynamic>;
-        return RoastRecord(
-          id: doc.id,
-          bean: dataMap['bean'] ?? '',
-          weight: dataMap['weight'] ?? 0,
-          roast: dataMap['roast'] ?? '',
-          time: dataMap['time'] ?? '',
-          memo: dataMap['memo'] ?? '',
-          timestamp: (dataMap['timestamp'] as Timestamp).toDate(),
-        );
+        return RoastRecord.fromMap(dataMap, id: doc.id);
       }).toList();
     } catch (e) {
       print('焙煎記録取得エラー: $e');
@@ -73,16 +67,7 @@ class RoastRecordFirestoreService {
           .map((querySnapshot) {
             return querySnapshot.docs.map((doc) {
               final data = doc.data();
-              final dataMap = data;
-              return RoastRecord(
-                id: doc.id,
-                bean: dataMap['bean'] ?? '',
-                weight: dataMap['weight'] ?? 0,
-                roast: dataMap['roast'] ?? '',
-                time: dataMap['time'] ?? '',
-                memo: dataMap['memo'] ?? '',
-                timestamp: (dataMap['timestamp'] as Timestamp).toDate(),
-              );
+              return RoastRecord.fromMap(data, id: doc.id);
             }).toList();
           });
     } catch (e) {
@@ -101,14 +86,7 @@ class RoastRecordFirestoreService {
           .collection('users')
           .doc(user.uid)
           .collection('roastRecords')
-          .add({
-            'bean': record.bean,
-            'weight': record.weight,
-            'roast': record.roast,
-            'time': record.time,
-            'memo': record.memo,
-            'timestamp': Timestamp.fromDate(record.timestamp),
-          });
+          .add(record.toMap());
     } catch (e) {
       print('焙煎記録追加エラー: $e');
       rethrow;
@@ -126,14 +104,7 @@ class RoastRecordFirestoreService {
           .doc(user.uid)
           .collection('roastRecords')
           .doc(record.id)
-          .update({
-            'bean': record.bean,
-            'weight': record.weight,
-            'roast': record.roast,
-            'time': record.time,
-            'memo': record.memo,
-            'timestamp': Timestamp.fromDate(record.timestamp),
-          });
+          .update(record.toMap());
     } catch (e) {
       print('焙煎記録更新エラー: $e');
       rethrow;
@@ -170,15 +141,7 @@ class RoastRecordFirestoreService {
 
       return querySnapshot.docs.map((doc) {
         final data = doc.data();
-        return RoastRecord(
-          id: doc.id,
-          bean: data['bean'] ?? '',
-          weight: data['weight'] ?? 0,
-          roast: data['roast'] ?? '',
-          time: data['time'] ?? '',
-          memo: data['memo'] ?? '',
-          timestamp: (data['timestamp'] as Timestamp).toDate(),
-        );
+        return RoastRecord.fromMap(data, id: doc.id);
       }).toList();
     } catch (e) {
       print('グループ焙煎記録取得エラー: $e');
@@ -198,15 +161,7 @@ class RoastRecordFirestoreService {
           .map((querySnapshot) {
             return querySnapshot.docs.map((doc) {
               final data = doc.data();
-              return RoastRecord(
-                id: doc.id,
-                bean: data['bean'] ?? '',
-                weight: data['weight'] ?? 0,
-                roast: data['roast'] ?? '',
-                time: data['time'] ?? '',
-                memo: data['memo'] ?? '',
-                timestamp: (data['timestamp'] as Timestamp).toDate(),
-              );
+              return RoastRecord.fromMap(data, id: doc.id);
             }).toList();
           });
     } catch (e) {
@@ -215,21 +170,29 @@ class RoastRecordFirestoreService {
     }
   }
 
-  // グループに焙煎記録を追加
+  // グループに焙煎記録を追加（権限チェック付き）
   static Future<void> addGroupRecord(String groupId, RoastRecord record) async {
     try {
+      // 権限チェック
+      final canCreate = await PermissionUtils.canCreateDataType(
+        groupId: groupId,
+        dataType: 'roastRecordInput',
+      );
+
+      if (!canCreate) {
+        throw Exception(PermissionUtils.getPermissionErrorMessage('焙煎記録入力'));
+      }
+
+      final user = _auth.currentUser;
+      final now = DateTime.now();
+
       await _firestore
           .collection('groups')
           .doc(groupId)
           .collection('roastRecords')
           .add({
-            'bean': record.bean,
-            'weight': record.weight,
-            'roast': record.roast,
-            'time': record.time,
-            'memo': record.memo,
-            'timestamp': Timestamp.fromDate(record.timestamp),
-            'createdBy': _auth.currentUser?.uid,
+            ...record.toMap(),
+            'createdBy': user?.uid,
             'createdAt': FieldValue.serverTimestamp(),
           });
     } catch (e) {
@@ -238,25 +201,33 @@ class RoastRecordFirestoreService {
     }
   }
 
-  // グループの焙煎記録を更新
+  // グループの焙煎記録を更新（権限チェック付き）
   static Future<void> updateGroupRecord(
     String groupId,
     RoastRecord record,
   ) async {
     try {
+      // 権限チェック
+      final canEdit = await PermissionUtils.canEditDataType(
+        groupId: groupId,
+        dataType: 'roastRecords',
+      );
+
+      if (!canEdit) {
+        throw Exception(PermissionUtils.getPermissionErrorMessage('焙煎記録一覧'));
+      }
+
+      final user = _auth.currentUser;
+      final now = DateTime.now();
+
       await _firestore
           .collection('groups')
           .doc(groupId)
           .collection('roastRecords')
           .doc(record.id)
           .update({
-            'bean': record.bean,
-            'weight': record.weight,
-            'roast': record.roast,
-            'time': record.time,
-            'memo': record.memo,
-            'timestamp': Timestamp.fromDate(record.timestamp),
-            'updatedBy': _auth.currentUser?.uid,
+            ...record.toMap(),
+            'updatedBy': user?.uid,
             'updatedAt': FieldValue.serverTimestamp(),
           });
     } catch (e) {
@@ -265,9 +236,19 @@ class RoastRecordFirestoreService {
     }
   }
 
-  // グループの焙煎記録を削除
+  // グループの焙煎記録を削除（権限チェック付き）
   static Future<void> deleteGroupRecord(String groupId, String recordId) async {
     try {
+      // 権限チェック
+      final canDelete = await PermissionUtils.canDeleteDataType(
+        groupId: groupId,
+        dataType: 'roastRecords',
+      );
+
+      if (!canDelete) {
+        throw Exception(PermissionUtils.getPermissionErrorMessage('焙煎記録一覧'));
+      }
+
       await _firestore
           .collection('groups')
           .doc(groupId)

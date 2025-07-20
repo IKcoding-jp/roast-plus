@@ -6,9 +6,12 @@ import '../../models/group_gamification_provider.dart';
 import '../../models/group_gamification_models.dart';
 import '../../services/attendance_firestore_service.dart';
 import '../../models/attendance_models.dart';
+import '../../widgets/group_celebration_helper.dart';
+import '../group/group_deleted_page.dart';
 
 import '../gamification/badge_list_page.dart';
 import '../../app.dart' show mainScaffoldKey;
+import '../../widgets/lottie_animation_widget.dart';
 
 /// ホーム画面
 class HomePage extends StatefulWidget {
@@ -46,6 +49,9 @@ class _HomePageState extends State<HomePage> {
           _loadDetailedStats();
         });
       }
+
+      // グループ作成後のバッジ獲得演出をチェック
+      _checkGroupCreationCelebration();
     } catch (e) {
       // プロバイダー取得エラー: $e
     }
@@ -86,39 +92,28 @@ class _HomePageState extends State<HomePage> {
 
     return Consumer2<GroupProvider, GroupGamificationProvider>(
       builder: (context, groupProvider, gamificationProvider, child) {
-        // データ読み込み中の場合はローディング画面を表示
+        // グループ削除フラグをチェック
+        if (groupProvider.showGroupDeletedPage) {
+          // フラグをリセット
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            groupProvider.resetGroupDeletedPageFlag();
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const GroupDeletedPage()),
+            );
+          });
+        }
+
+        // データ読み込み中の場合
         if (groupProvider.loading) {
           return Scaffold(
+            backgroundColor: themeSettings.backgroundColor,
             appBar: AppBar(
               title: Text('ホーム'),
               backgroundColor: themeSettings.appBarColor,
               foregroundColor: themeSettings.appBarTextColor,
             ),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        themeSettings.iconColor,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    '読み込み中...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: themeSettings.fontColor2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            body: const LoadingAnimationWidget(),
           );
         }
 
@@ -175,7 +170,7 @@ class _HomePageState extends State<HomePage> {
             iconTheme: IconThemeData(color: themeSettings.appBarTextColor),
           ),
           body: _isLoading
-              ? Center(child: CircularProgressIndicator())
+              ? const LoadingAnimationWidget()
               : Padding(
                   padding: EdgeInsets.all(16),
                   child: _buildMainFunctionShortcuts(context, themeSettings),
@@ -582,9 +577,9 @@ class _HomePageState extends State<HomePage> {
                   context,
                   themeSettings,
                   Icons.local_fire_department,
-                  '焙煎記録',
+                  '焙煎記録入力',
                   Colors.orange,
-                  () => Navigator.pushNamed(context, '/roast'),
+                  () => Navigator.pushNamed(context, '/roast_record'),
                 ),
                 _buildShortcutItem(
                   context,
@@ -849,7 +844,37 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.purple,
                     ),
                   ),
-                  ...result.newBadges.map((badge) => Text(badge.name)),
+                  SizedBox(height: 8),
+                  // バッジ一覧を表示
+                  ...result.newBadges.map(
+                    (badge) => Container(
+                      margin: EdgeInsets.symmetric(vertical: 4),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badge.color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: badge.color.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(badge.icon, color: badge.color, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            badge.name,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: badge.color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   SizedBox(height: 16),
                 ],
 
@@ -965,7 +990,7 @@ class _HomePageState extends State<HomePage> {
               _buildFeatureCard(
                 context,
                 themeSettings,
-                '焙煎記録',
+                '焙煎記録入力',
                 Icons.edit_note,
                 () => Navigator.pushNamed(context, '/roast_record'),
               ),
@@ -979,7 +1004,7 @@ class _HomePageState extends State<HomePage> {
               _buildFeatureCard(
                 context,
                 themeSettings,
-                '記録一覧',
+                '焙煎記録一覧',
                 Icons.analytics,
                 () => Navigator.pushNamed(context, '/roast_record_list'),
               ),
@@ -1383,6 +1408,60 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       // エラーの場合は未出勤として扱う
       return false;
+    }
+  }
+
+  /// グループ作成後のバッジ獲得演出をチェック
+  void _checkGroupCreationCelebration() {
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+
+    if (groupProvider.showGroupCreationCelebration &&
+        groupProvider.newlyCreatedGroupId != null) {
+      print('HomePage: グループ作成後のバッジ獲得演出を開始');
+
+      // 少し待ってから演出を表示
+      Future.delayed(Duration(milliseconds: 1000), () async {
+        if (mounted) {
+          await _showGroupCreationBadgeCelebration(
+            groupProvider.newlyCreatedGroupId!,
+          );
+          // フラグをリセット
+          groupProvider.resetGroupCreationCelebration();
+        }
+      });
+    }
+  }
+
+  /// グループ作成後のバッジ獲得演出を表示
+  Future<void> _showGroupCreationBadgeCelebration(String groupId) async {
+    try {
+      print('HomePage: グループ作成後のバッジ獲得演出の表示開始');
+
+      // Lv.1達成バッジの条件を取得
+      final level1Condition = GroupBadgeConditions.conditions
+          .where((condition) => condition.badgeId == 'group_level_1')
+          .firstOrNull;
+
+      if (level1Condition != null && mounted) {
+        // バッジを作成
+        final level1Badge = level1Condition.createBadge(
+          'group_creator',
+          'グループ作成者',
+        );
+
+        // バッジ獲得演出を表示
+        await GroupCelebrationHelper.showUnifiedBadgeCelebration(context, [
+          level1Badge,
+        ]);
+
+        print('HomePage: グループ作成後のバッジ獲得演出の表示完了');
+        print('HomePage: バッジ名: ${level1Badge.name}');
+        print('HomePage: バッジID: ${level1Badge.id}');
+      } else {
+        print('HomePage: Lv.1達成バッジの条件が見つからないか、コンテキストが無効です');
+      }
+    } catch (e) {
+      print('HomePage: グループ作成後のバッジ獲得演出の表示エラー: $e');
     }
   }
 }

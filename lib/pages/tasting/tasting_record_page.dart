@@ -7,6 +7,7 @@ import 'tasting_record_edit_page.dart';
 import 'package:intl/intl.dart';
 import '../../models/group_provider.dart';
 import '../../services/user_settings_firestore_service.dart';
+import '../../widgets/lottie_animation_widget.dart';
 
 class TastingRecordPage extends StatefulWidget {
   const TastingRecordPage({super.key});
@@ -210,11 +211,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
       body: Consumer<TastingProvider>(
         builder: (context, tastingProvider, child) {
           if (tastingProvider.isLoading) {
-            return Center(
-              child: CircularProgressIndicator(
-                color: themeSettings.tastingColor,
-              ),
-            );
+            return const LoadingAnimationWidget();
           }
 
           if (tastingProvider.tastingRecords.isEmpty) {

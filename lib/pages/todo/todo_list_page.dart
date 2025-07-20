@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../utils/performance_utils.dart';
+import '../../widgets/permission_denied_page.dart';
 
 import '../roast/roast_scheduler_tab.dart' show RoastSchedulerTab;
 import '../roast/roast_break_time_edit_page.dart';

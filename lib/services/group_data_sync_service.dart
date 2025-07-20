@@ -381,16 +381,16 @@ class GroupDataSyncService {
     // 同期権限チェック（編集権限とは別）
     final canSync = await GroupFirestoreService.canSyncDataType(
       groupId: groupId,
-      dataType: 'today_assignment',
+      dataType: 'assignment_board', // assignment_boardに統一
     );
 
     if (!canSync) {
-      throw Exception('今日の担当履歴の同期権限がありません');
+      throw Exception('担当表の同期権限がありません');
     }
 
     await GroupFirestoreService.syncGroupData(
       groupId: groupId,
-      dataType: 'today_assignment',
+      dataType: 'today_assignment', // データ保存場所は変更なし
       data: todayAssignmentData,
     );
   }
@@ -423,16 +423,16 @@ class GroupDataSyncService {
     // 同期権限チェック（編集権限とは別）
     final canSync = await GroupFirestoreService.canSyncDataType(
       groupId: groupId,
-      dataType: 'assignment_history',
+      dataType: 'assignment_board', // assignment_boardに統一
     );
 
     if (!canSync) {
-      throw Exception('担当履歴の同期権限がありません');
+      throw Exception('担当表の同期権限がありません');
     }
 
     await GroupFirestoreService.syncGroupData(
       groupId: groupId,
-      dataType: 'assignment_history',
+      dataType: 'assignment_history', // データ保存場所は変更なし
       data: assignmentHistoryData,
     );
   }
@@ -577,7 +577,7 @@ class GroupDataSyncService {
     UserProfile profile,
   ) async {
     print('GroupDataSyncService: ゲーミフィケーションデータの同期権限チェック開始');
-    
+
     // 同期権限チェック
     final canSync = await GroupFirestoreService.canSyncDataType(
       groupId: groupId,
@@ -678,250 +678,235 @@ class GroupDataSyncService {
   /// 全データをグループに同期
   static Future<void> syncAllDataToGroup(String groupId) async {
     print('GroupDataSyncService: syncAllDataToGroup 開始 - groupId: $groupId');
-    if (_uid == null) throw Exception('未ログイン');
 
+    if (_uid == null || _uid!.isEmpty) {
+      throw Exception('未ログイン');
+    }
+
+    print('GroupDataSyncService: データ同期は全メンバーで可能です');
+
+    // 焙煎記録を同期
+    print('GroupDataSyncService: 焙煎記録の同期を開始');
+    final roastRecordsSnapshot = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('roast_records')
+        .get();
+
+    print('GroupDataSyncService: 焙煎記録数: ${roastRecordsSnapshot.docs.length}');
+    final roastRecords = roastRecordsSnapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return data;
+    }).toList();
+
+    print('GroupDataSyncService: 焙煎記録をグループに同期中...');
+    await syncRoastRecords(groupId, {'records': roastRecords});
+    print('GroupDataSyncService: 焙煎記録の同期完了');
+
+    // TODOリストを同期
+    final today = DateTime.now();
+    final todoDocId =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final todoDoc = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('todoList')
+        .doc(todoDocId)
+        .get();
+
+    if (todoDoc.exists) {
+      await syncTodoList(groupId, todoDoc.data()!);
+    }
+
+    // ドリップカウンター記録を同期
+    final dripRecords = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('dripPackRecords')
+        .doc(todoDocId)
+        .get();
+
+    if (dripRecords.exists) {
+      await syncDripCounterRecords(groupId, dripRecords.data()!);
+    }
+
+    // 担当表を同期
+    final assignmentDoc = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('assignmentMembers')
+        .doc('assignment')
+        .get();
+
+    if (assignmentDoc.exists) {
+      await syncAssignmentBoard(groupId, assignmentDoc.data()!);
+    }
+
+    // スケジュールを同期
+    final scheduleDoc = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('schedules')
+        .doc(todoDocId)
+        .get();
+
+    if (scheduleDoc.exists) {
+      await syncSchedule(groupId, scheduleDoc.data()!);
+    }
+
+    // 本日のスケジュールを同期
+    print('GroupDataSyncService: 本日のスケジュール同期を開始');
+    final todayScheduleDoc = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('todaySchedule')
+        .doc(todoDocId)
+        .get();
+
+    print(
+      'GroupDataSyncService: 本日のスケジュールドキュメント存在: ${todayScheduleDoc.exists}',
+    );
+    if (todayScheduleDoc.exists) {
+      print('GroupDataSyncService: 本日のスケジュールデータ: ${todayScheduleDoc.data()}');
+      await syncTodaySchedule(groupId, todayScheduleDoc.data()!);
+      print('GroupDataSyncService: 本日のスケジュール同期完了');
+    } else {
+      print('GroupDataSyncService: 本日のスケジュールドキュメントが存在しません');
+    }
+
+    // 時間ラベルを同期
+    print('GroupDataSyncService: 時間ラベル同期を開始');
+    final timeLabelsDoc = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('labels')
+        .doc('timeLabels')
+        .get();
+
+    print('GroupDataSyncService: 時間ラベルドキュメント存在: ${timeLabelsDoc.exists}');
+    if (timeLabelsDoc.exists) {
+      print('GroupDataSyncService: 時間ラベルデータ: ${timeLabelsDoc.data()}');
+      await syncTimeLabels(groupId, timeLabelsDoc.data()!);
+      print('GroupDataSyncService: 時間ラベル同期完了');
+    } else {
+      print('GroupDataSyncService: 時間ラベルドキュメントが存在しません');
+    }
+
+    // 今日の担当履歴を同期
+    print('GroupDataSyncService: 今日の担当履歴同期を開始');
+    final todayDate = DateTime.now();
+    final todayKey =
+        '${todayDate.year}-${todayDate.month.toString().padLeft(2, '0')}-${todayDate.day.toString().padLeft(2, '0')}';
+    final todayAssignmentDoc = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('assignmentHistory')
+        .doc(todayKey)
+        .get();
+
+    print(
+      'GroupDataSyncService: 今日の担当履歴ドキュメント存在: ${todayAssignmentDoc.exists}',
+    );
+    if (todayAssignmentDoc.exists) {
+      print('GroupDataSyncService: 今日の担当履歴データ: ${todayAssignmentDoc.data()}');
+      await syncTodayAssignment(groupId, todayAssignmentDoc.data()!);
+      print('GroupDataSyncService: 今日の担当履歴同期完了');
+    } else {
+      print('GroupDataSyncService: 今日の担当履歴ドキュメントが存在しません');
+    }
+
+    // 担当履歴を同期
+    print('GroupDataSyncService: 担当履歴同期を開始');
+    final assignmentHistorySnapshot = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('assignmentHistory')
+        .get();
+
+    print(
+      'GroupDataSyncService: 担当履歴数: ${assignmentHistorySnapshot.docs.length}',
+    );
+    final assignmentHistory = <String, dynamic>{};
+    for (final doc in assignmentHistorySnapshot.docs) {
+      assignmentHistory[doc.id] = doc.data();
+    }
+
+    if (assignmentHistory.isNotEmpty) {
+      print('GroupDataSyncService: 担当履歴データ: $assignmentHistory');
+      await syncAssignmentHistory(groupId, assignmentHistory);
+      print('GroupDataSyncService: 担当履歴同期完了');
+    } else {
+      print('GroupDataSyncService: 担当履歴データがありません');
+    }
+
+    // テイスティング記録を同期
+    print('GroupDataSyncService: テイスティング記録同期を開始');
+    final tastingRecordsSnapshot = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('tasting_records')
+        .get();
+
+    print(
+      'GroupDataSyncService: テイスティング記録数: ${tastingRecordsSnapshot.docs.length}',
+    );
+    final tastingRecords = tastingRecordsSnapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return data;
+    }).toList();
+
+    if (tastingRecords.isNotEmpty) {
+      print('GroupDataSyncService: テイスティング記録をグループに同期中...');
+      await syncTastingRecords(groupId, {'records': tastingRecords});
+      print('GroupDataSyncService: テイスティング記録の同期完了');
+    } else {
+      print('GroupDataSyncService: テイスティング記録データがありません');
+    }
+
+    // 作業進捗記録を同期
+    print('GroupDataSyncService: 作業進捗記録同期を開始');
+    final workProgressSnapshot = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('work_progress')
+        .get();
+
+    print('GroupDataSyncService: 作業進捗記録数: ${workProgressSnapshot.docs.length}');
+    final workProgressRecords = workProgressSnapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return data;
+    }).toList();
+
+    if (workProgressRecords.isNotEmpty) {
+      print('GroupDataSyncService: 作業進捗記録をグループに同期中...');
+      await syncWorkProgress(groupId, {'records': workProgressRecords});
+      print('GroupDataSyncService: 作業進捗記録の同期完了');
+    } else {
+      print('GroupDataSyncService: 作業進捗記録データがありません');
+    }
+
+    // アプリ設定を同期
+    print('GroupDataSyncService: アプリ設定同期を開始');
+    final appSettings = await _getAllAppSettingsFromUser();
+    if (appSettings.isNotEmpty) {
+      print('GroupDataSyncService: アプリ設定をグループに同期中...');
+      await syncAppSettings(groupId, appSettings);
+      print('GroupDataSyncService: アプリ設定の同期完了');
+    } else {
+      print('GroupDataSyncService: アプリ設定データがありません');
+    }
+
+    // ゲーミフィケーションデータを同期
     try {
-      // 権限チェック
-      final group = await GroupFirestoreService.getGroup(groupId);
-      if (group == null) throw Exception('グループが見つかりません');
-
-      final userRole = group.getMemberRole(_uid!);
-      if (userRole == null) throw Exception('グループメンバーではありません');
-
-      final settings = await GroupFirestoreService.getGroupSettings(groupId);
-      if (settings != null &&
-          !settings.allowMemberDataSync &&
-          userRole == GroupRole.member) {
-        throw Exception('データ同期の権限がありません');
-      }
-
-      // 焙煎記録を同期
-      print('GroupDataSyncService: 焙煎記録の同期を開始');
-      final roastRecordsSnapshot = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('roast_records')
-          .get();
-
-      print('GroupDataSyncService: 焙煎記録数: ${roastRecordsSnapshot.docs.length}');
-      final roastRecords = roastRecordsSnapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-
-      print('GroupDataSyncService: 焙煎記録をグループに同期中...');
-      await syncRoastRecords(groupId, {'records': roastRecords});
-      print('GroupDataSyncService: 焙煎記録の同期完了');
-
-      // TODOリストを同期
-      final today = DateTime.now();
-      final todoDocId =
-          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-      final todoDoc = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('todoList')
-          .doc(todoDocId)
-          .get();
-
-      if (todoDoc.exists) {
-        await syncTodoList(groupId, todoDoc.data()!);
-      }
-
-      // ドリップカウンター記録を同期
-      final dripRecords = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('dripPackRecords')
-          .doc(todoDocId)
-          .get();
-
-      if (dripRecords.exists) {
-        await syncDripCounterRecords(groupId, dripRecords.data()!);
-      }
-
-      // 担当表を同期
-      final assignmentDoc = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('assignmentMembers')
-          .doc('assignment')
-          .get();
-
-      if (assignmentDoc.exists) {
-        await syncAssignmentBoard(groupId, assignmentDoc.data()!);
-      }
-
-      // スケジュールを同期
-      final scheduleDoc = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('schedules')
-          .doc(todoDocId)
-          .get();
-
-      if (scheduleDoc.exists) {
-        await syncSchedule(groupId, scheduleDoc.data()!);
-      }
-
-      // 本日のスケジュールを同期
-      print('GroupDataSyncService: 本日のスケジュール同期を開始');
-      final todayScheduleDoc = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('todaySchedule')
-          .doc(todoDocId)
-          .get();
-
-      print(
-        'GroupDataSyncService: 本日のスケジュールドキュメント存在: ${todayScheduleDoc.exists}',
-      );
-      if (todayScheduleDoc.exists) {
-        print('GroupDataSyncService: 本日のスケジュールデータ: ${todayScheduleDoc.data()}');
-        await syncTodaySchedule(groupId, todayScheduleDoc.data()!);
-        print('GroupDataSyncService: 本日のスケジュール同期完了');
-      } else {
-        print('GroupDataSyncService: 本日のスケジュールドキュメントが存在しません');
-      }
-
-      // 時間ラベルを同期
-      print('GroupDataSyncService: 時間ラベル同期を開始');
-      final timeLabelsDoc = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('labels')
-          .doc('timeLabels')
-          .get();
-
-      print('GroupDataSyncService: 時間ラベルドキュメント存在: ${timeLabelsDoc.exists}');
-      if (timeLabelsDoc.exists) {
-        print('GroupDataSyncService: 時間ラベルデータ: ${timeLabelsDoc.data()}');
-        await syncTimeLabels(groupId, timeLabelsDoc.data()!);
-        print('GroupDataSyncService: 時間ラベル同期完了');
-      } else {
-        print('GroupDataSyncService: 時間ラベルドキュメントが存在しません');
-      }
-
-      // 今日の担当履歴を同期
-      print('GroupDataSyncService: 今日の担当履歴同期を開始');
-      final todayDate = DateTime.now();
-      final todayKey =
-          '${todayDate.year}-${todayDate.month.toString().padLeft(2, '0')}-${todayDate.day.toString().padLeft(2, '0')}';
-      final todayAssignmentDoc = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('assignmentHistory')
-          .doc(todayKey)
-          .get();
-
-      print(
-        'GroupDataSyncService: 今日の担当履歴ドキュメント存在: ${todayAssignmentDoc.exists}',
-      );
-      if (todayAssignmentDoc.exists) {
-        print('GroupDataSyncService: 今日の担当履歴データ: ${todayAssignmentDoc.data()}');
-        await syncTodayAssignment(groupId, todayAssignmentDoc.data()!);
-        print('GroupDataSyncService: 今日の担当履歴同期完了');
-      } else {
-        print('GroupDataSyncService: 今日の担当履歴ドキュメントが存在しません');
-      }
-
-      // 担当履歴を同期
-      print('GroupDataSyncService: 担当履歴同期を開始');
-      final assignmentHistorySnapshot = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('assignmentHistory')
-          .get();
-
-      print(
-        'GroupDataSyncService: 担当履歴数: ${assignmentHistorySnapshot.docs.length}',
-      );
-      final assignmentHistory = <String, dynamic>{};
-      for (final doc in assignmentHistorySnapshot.docs) {
-        assignmentHistory[doc.id] = doc.data();
-      }
-
-      if (assignmentHistory.isNotEmpty) {
-        print('GroupDataSyncService: 担当履歴データ: $assignmentHistory');
-        await syncAssignmentHistory(groupId, assignmentHistory);
-        print('GroupDataSyncService: 担当履歴同期完了');
-      } else {
-        print('GroupDataSyncService: 担当履歴データがありません');
-      }
-
-      // テイスティング記録を同期
-      print('GroupDataSyncService: テイスティング記録同期を開始');
-      final tastingRecordsSnapshot = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('tasting_records')
-          .get();
-
-      print(
-        'GroupDataSyncService: テイスティング記録数: ${tastingRecordsSnapshot.docs.length}',
-      );
-      final tastingRecords = tastingRecordsSnapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-
-      if (tastingRecords.isNotEmpty) {
-        print('GroupDataSyncService: テイスティング記録をグループに同期中...');
-        await syncTastingRecords(groupId, {'records': tastingRecords});
-        print('GroupDataSyncService: テイスティング記録の同期完了');
-      } else {
-        print('GroupDataSyncService: テイスティング記録データがありません');
-      }
-
-      // 作業進捗記録を同期
-      print('GroupDataSyncService: 作業進捗記録同期を開始');
-      final workProgressSnapshot = await _firestore
-          .collection('users')
-          .doc(_uid)
-          .collection('work_progress')
-          .get();
-
-      print(
-        'GroupDataSyncService: 作業進捗記録数: ${workProgressSnapshot.docs.length}',
-      );
-      final workProgressRecords = workProgressSnapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-
-      if (workProgressRecords.isNotEmpty) {
-        print('GroupDataSyncService: 作業進捗記録をグループに同期中...');
-        await syncWorkProgress(groupId, {'records': workProgressRecords});
-        print('GroupDataSyncService: 作業進捗記録の同期完了');
-      } else {
-        print('GroupDataSyncService: 作業進捗記録データがありません');
-      }
-
-      // アプリ設定を同期
-      print('GroupDataSyncService: アプリ設定同期を開始');
-      final appSettings = await _getAllAppSettingsFromUser();
-      if (appSettings.isNotEmpty) {
-        print('GroupDataSyncService: アプリ設定をグループに同期中...');
-        await syncAppSettings(groupId, appSettings);
-        print('GroupDataSyncService: アプリ設定の同期完了');
-      } else {
-        print('GroupDataSyncService: アプリ設定データがありません');
-      }
-
-      // ゲーミフィケーションデータを同期
-      try {
-        print('GroupDataSyncService: ゲーミフィケーションデータ同期を開始');
-        final profile = await GamificationStorage.loadUserProfile();
-        await syncGamificationData(groupId, profile);
-        print('GroupDataSyncService: ゲーミフィケーションデータの同期完了');
-      } catch (e) {
-        print('GroupDataSyncService: ゲーミフィケーションデータ同期エラー: $e');
-      }
+      print('GroupDataSyncService: ゲーミフィケーションデータ同期を開始');
+      final profile = await GamificationStorage.loadUserProfile();
+      await syncGamificationData(groupId, profile);
+      print('GroupDataSyncService: ゲーミフィケーションデータの同期完了');
     } catch (e) {
-      throw Exception('データの同期に失敗しました: $e');
+      print('GroupDataSyncService: ゲーミフィケーションデータ同期エラー: $e');
     }
   }
 

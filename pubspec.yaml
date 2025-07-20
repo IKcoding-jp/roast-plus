@@ -2,7 +2,7 @@ name: bysnapp
 description: "ローストプラス"
 publish_to: 'none'
 
-version: 0.5.4
+version: 0.5.5
 
 environment:
   sdk: ^3.8.1

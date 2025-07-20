@@ -5,6 +5,7 @@ import '../models/group_gamification_models.dart';
 import '../widgets/group_celebration_helper.dart';
 import 'roast_record_firestore_service.dart';
 import 'drip_counter_firestore_service.dart';
+import 'auto_sync_service.dart';
 
 /// グループ中心のゲーミフィケーション管理サービス
 class GroupGamificationService {
@@ -81,20 +82,42 @@ class GroupGamificationService {
     if (_uid == null) throw Exception('未ログイン');
 
     try {
+      // バッジの重複を除去
+      final uniqueBadges = <GroupBadge>[];
+      final seenBadgeIds = <String>{};
+
+      for (final badge in profile.badges) {
+        if (!seenBadgeIds.contains(badge.id)) {
+          uniqueBadges.add(badge);
+          seenBadgeIds.add(badge.id);
+        } else {
+          print('⚠️ プロフィール保存時にバッジ重複を検知、除外: ${badge.id} (${badge.name})');
+        }
+      }
+
+      if (uniqueBadges.length != profile.badges.length) {
+        print(
+          '⚠️ プロフィール保存時に${profile.badges.length - uniqueBadges.length}個の重複バッジを除外しました',
+        );
+      }
+
+      // 重複除去後のプロフィールを作成
+      final cleanProfile = profile.copyWith(badges: uniqueBadges);
+
       await _firestore
           .collection('groups')
           .doc(groupId)
           .collection('gamification')
           .doc('profile')
           .set({
-            ...profile.toJson(),
+            ...cleanProfile.toJson(),
             'lastUpdatedBy': _uid,
             'lastUpdatedByName': _userDisplayName,
             'version': 1,
           });
 
       print(
-        'グループプロフィールを保存しました: Level ${profile.level}, XP ${profile.experiencePoints}',
+        'グループプロフィールを保存しました: Level ${cleanProfile.level}, XP ${cleanProfile.experiencePoints}, バッジ数 ${cleanProfile.badges.length}',
       );
     } catch (e) {
       print('グループプロフィール保存エラー: $e');
@@ -342,17 +365,59 @@ class GroupGamificationService {
       // 新しいバッジをチェック
       print('バッジチェック前の状態:');
       print('  現在のレベル: ${currentProfile.level}');
+      print('  新しいレベル: $newLevel');
       print('  現在のバッジ数: ${currentProfile.badges.length}');
       print('  現在のバッジID: ${currentProfile.badges.map((b) => b.id).toList()}');
 
       final newBadges = await _checkNewBadges(groupId, updatedStats);
+
+      // レベルアップした場合は、レベルバッジを特別にチェック
+      List<GroupBadge> levelUpBadges = [];
+      if (levelUp) {
+        print('🎉 レベルアップ検知！ レベル${currentProfile.level} → $newLevel');
+        print('レベルバッジの特別チェックを実行...');
+
+        // 新しいレベルで獲得可能なレベルバッジをチェック
+        levelUpBadges = await _checkLevelUpBadges(
+          groupId,
+          newLevel,
+          currentProfile.badges,
+        );
+
+        if (levelUpBadges.isNotEmpty) {
+          print('🎊 レベルアップで新しいレベルバッジを獲得: ${levelUpBadges.length}個');
+          for (final badge in levelUpBadges) {
+            print('   - ${badge.name} (${badge.id})');
+          }
+        }
+      }
+
+      // すべての新しいバッジを結合
+      final allNewBadges = [...newBadges, ...levelUpBadges];
+
+      // バッジの重複を除去
+      final Set<String> existingBadgeIds = currentProfile.badges
+          .map((b) => b.id)
+          .toSet();
+      final uniqueNewBadges = allNewBadges
+          .where((badge) => !existingBadgeIds.contains(badge.id))
+          .toList();
+
+      if (uniqueNewBadges.length != allNewBadges.length) {
+        print(
+          '⚠️ バッジ重複を検知し、${allNewBadges.length - uniqueNewBadges.length}個のバッジを除外しました',
+        );
+        print(
+          '   除外されたバッジID: ${allNewBadges.where((badge) => existingBadgeIds.contains(badge.id)).map((b) => b.id).toList()}',
+        );
+      }
 
       // プロフィールを更新
       final updatedProfile = currentProfile.copyWith(
         experiencePoints: newExperiencePoints,
         level: newLevel,
         stats: updatedStats,
-        badges: [...currentProfile.badges, ...newBadges],
+        badges: [...currentProfile.badges, ...uniqueNewBadges],
         lastUpdated: DateTime.now(),
       );
 
@@ -363,7 +428,7 @@ class GroupGamificationService {
         success: true,
         message: reward.description,
         levelUp: levelUp,
-        newBadges: newBadges,
+        newBadges: allNewBadges,
         experienceGained: reward.experiencePoints,
         newLevel: newLevel,
       );
@@ -625,42 +690,159 @@ class GroupGamificationService {
         .map((b) => b.id)
         .toSet();
 
-    for (final condition in GroupBadgeConditions.conditions) {
-      final isEarned = profileBadgeIds.contains(condition.badgeId);
+    // レベルバッジを優先的にチェック
+    final levelConditions = GroupBadgeConditions.conditions
+        .where((condition) => condition.category == BadgeCategory.level)
+        .toList();
 
-      // レベルバッジの場合は実際のレベルを使用
-      bool conditionMet;
-      if (condition.category == BadgeCategory.level) {
-        conditionMet = _checkLevelBadgeCondition(condition, currentLevel);
+    print('レベルバッジチェック開始: ${levelConditions.length}個のレベルバッジをチェック');
+
+    for (final condition in levelConditions) {
+      final isEarned = profileBadgeIds.contains(condition.badgeId);
+      final conditionMet = _checkLevelBadgeCondition(condition, currentLevel);
+
+      print('レベルバッジ詳細チェック:');
+      print('  バッジID: ${condition.badgeId}');
+      print('  バッジ名: ${condition.name}');
+      print('  獲得済み: $isEarned');
+      print('  条件達成: $conditionMet');
+      print('  現在レベル: $currentLevel');
+
+      if (!isEarned && conditionMet) {
+        final newBadge = condition.createBadge(_uid!, _userDisplayName!);
+        newBadges.add(newBadge);
+
+        print('🎉 新しいレベルバッジを獲得: ${newBadge.name} (${newBadge.id})');
+        print('  カテゴリ: ${condition.category}');
+        print('  現在レベル: $currentLevel');
+
+        // バッジ獲得を即座にプロフィールに反映
+        await _addBadgeToProfile(groupId, newBadge);
+      } else if (isEarned) {
+        print('⏭️ レベルバッジスキップ（既に獲得済み）: ${condition.badgeId}');
+      }
+    }
+
+    // その他のバッジをチェック
+    final otherConditions = GroupBadgeConditions.conditions
+        .where((condition) => condition.category != BadgeCategory.level)
+        .toList();
+
+    print('その他バッジチェック開始: ${otherConditions.length}個のバッジをチェック');
+
+    for (final condition in otherConditions) {
+      final isEarned = profileBadgeIds.contains(condition.badgeId);
+      final conditionMet = condition.checkCondition(stats);
+
+      // ドリップパックバッジのみ詳細ログ
+      if (condition.category == BadgeCategory.dripPack) {
         print(
-          'レベルバッジチェック: ${condition.badgeId} - 獲得済み=$isEarned, 条件達成=$conditionMet, 現在レベル=$currentLevel',
+          'ドリップパックバッジチェック: ${condition.badgeId} - 獲得済み=$isEarned, 条件達成=$conditionMet',
         );
-      } else {
-        conditionMet = condition.checkCondition(stats);
-        // ドリップパックバッジのみ詳細ログ
-        if (condition.category == BadgeCategory.dripPack) {
-          print(
-            'ドリップパックバッジチェック: ${condition.badgeId} - 獲得済み=$isEarned, 条件達成=$conditionMet',
-          );
-        }
       }
 
       if (!isEarned && conditionMet) {
         final newBadge = condition.createBadge(_uid!, _userDisplayName!);
         newBadges.add(newBadge);
 
-        print('新しいバッジを獲得: ${newBadge.name} (${newBadge.id})');
+        print('🏆 新しいバッジを獲得: ${newBadge.name} (${newBadge.id})');
         print('  カテゴリ: ${condition.category}');
-        print('  現在レベル: $currentLevel');
-      } else if (condition.category == BadgeCategory.level) {
-        print(
-          'レベルバッジスキップ: ${condition.badgeId} - 獲得済み=$isEarned, 条件達成=$conditionMet',
-        );
+
+        // バッジ獲得を即座にプロフィールに反映
+        await _addBadgeToProfile(groupId, newBadge);
+      } else if (isEarned) {
+        print('⏭️ バッジスキップ（既に獲得済み）: ${condition.badgeId}');
       }
     }
 
     print('バッジチェック完了: 新規獲得数=${newBadges.length}');
     return newBadges;
+  }
+
+  /// レベルアップ時に獲得可能なレベルバッジをチェック
+  static Future<List<GroupBadge>> _checkLevelUpBadges(
+    String groupId,
+    int newLevel,
+    List<GroupBadge> currentBadges,
+  ) async {
+    final List<GroupBadge> levelUpBadges = [];
+    final Set<String> currentBadgeIds = currentBadges.map((b) => b.id).toSet();
+
+    print('レベルアップ時のレベルバッジチェック開始: 新レベル=$newLevel');
+    print('現在のバッジID: ${currentBadgeIds.toList()}');
+
+    for (final condition in GroupBadgeConditions.conditions) {
+      if (condition.category == BadgeCategory.level) {
+        final isEarned = currentBadgeIds.contains(condition.badgeId);
+        final conditionMet = _checkLevelBadgeCondition(condition, newLevel);
+
+        print('レベルアップ時のレベルバッジ詳細チェック:');
+        print('  バッジID: ${condition.badgeId}');
+        print('  バッジ名: ${condition.name}');
+        print('  獲得済み: $isEarned');
+        print('  条件達成: $conditionMet');
+        print('  新レベル: $newLevel');
+
+        if (!isEarned && conditionMet) {
+          final newBadge = condition.createBadge(_uid!, _userDisplayName!);
+          levelUpBadges.add(newBadge);
+          print('🎉 レベルアップで新しいレベルバッジを獲得: ${newBadge.name} (${newBadge.id})');
+        } else if (isEarned) {
+          print('⏭️ レベルアップ時のレベルバッジスキップ（既に獲得済み）: ${condition.badgeId}');
+        }
+      }
+    }
+
+    print('レベルアップ時のレベルバッジチェック完了: 新規獲得数=${levelUpBadges.length}');
+    return levelUpBadges;
+  }
+
+  /// バッジをプロフィールに即座に追加
+  static Future<void> _addBadgeToProfile(
+    String groupId,
+    GroupBadge badge,
+  ) async {
+    try {
+      final profileRef = _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('gamification')
+          .doc('profile');
+
+      // 現在のプロフィールを取得して重複チェック
+      final currentDoc = await profileRef.get();
+      if (currentDoc.exists) {
+        final currentData = currentDoc.data()!;
+        final currentBadges = currentData['badges'] as List<dynamic>? ?? [];
+        final currentBadgeIds = currentBadges
+            .map((b) => b['id'] as String)
+            .toSet();
+
+        // すでにバッジが存在する場合はスキップ
+        if (currentBadgeIds.contains(badge.id)) {
+          print('⚠️ バッジ重複検知、スキップ: ${badge.id} (${badge.name})');
+          return;
+        }
+      }
+
+      // バッジを追加
+      await profileRef.update({
+        'badges': FieldValue.arrayUnion([badge.toJson()]),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ バッジをプロフィールに即座に追加: ${badge.name}');
+      print('   バッジID: ${badge.id}');
+      print('   カテゴリ: ${badge.category}');
+      print('   獲得者: ${badge.earnedByUserName}');
+
+      // 自動同期を実行
+      await AutoSyncService.triggerAutoSyncForDataType('gamification');
+    } catch (e) {
+      print('❌ バッジプロフィール追加エラー: $e');
+      print('   バッジID: ${badge.id}');
+      print('   バッジ名: ${badge.name}');
+    }
   }
 
   /// レベルを計算
@@ -704,6 +886,13 @@ class GroupGamificationService {
     print('  現在レベル: $currentLevel');
     print('  必要レベル: $requiredLevel');
     print('  条件達成: $conditionMet');
+
+    // 条件を満たしている場合は即座にログ出力
+    if (conditionMet) {
+      print(
+        '🎉 レベルバッジ条件達成: ${condition.badgeId} (レベル$currentLevel >= $requiredLevel)',
+      );
+    }
 
     return conditionMet;
   }
@@ -874,6 +1063,8 @@ class GroupGamificationService {
         return (stats.totalDripPackCount / 50000).clamp(0.0, 1.0);
 
       // レベルバッジの進捗率
+      case 'group_level_1':
+        return (profile.level / 1).clamp(0.0, 1.0);
       case 'group_level_5':
         return (profile.level / 5).clamp(0.0, 1.0);
       case 'group_level_10':
@@ -884,6 +1075,22 @@ class GroupGamificationService {
         return (profile.level / 50).clamp(0.0, 1.0);
       case 'group_level_100':
         return (profile.level / 100).clamp(0.0, 1.0);
+      case 'group_level_250':
+        return (profile.level / 250).clamp(0.0, 1.0);
+      case 'group_level_500':
+        return (profile.level / 500).clamp(0.0, 1.0);
+      case 'group_level_1000':
+        return (profile.level / 1000).clamp(0.0, 1.0);
+      case 'group_level_2000':
+        return (profile.level / 2000).clamp(0.0, 1.0);
+      case 'group_level_3000':
+        return (profile.level / 3000).clamp(0.0, 1.0);
+      case 'group_level_5000':
+        return (profile.level / 5000).clamp(0.0, 1.0);
+      case 'group_level_7500':
+        return (profile.level / 7500).clamp(0.0, 1.0);
+      case 'group_level_9999':
+        return (profile.level / 9999).clamp(0.0, 1.0);
 
       // 特殊バッジの進捗率
       case 'group_tasting_100':
@@ -1110,6 +1317,49 @@ class GroupGamificationService {
       }
     } catch (e) {
       print('ドリップパック記録の再計算エラー: $e');
+      rethrow;
+    }
+  }
+
+  /// 既存のプロフィールから重複バッジを除去（修復用）
+  static Future<void> removeDuplicateBadges(String groupId) async {
+    try {
+      print('重複バッジ除去開始: groupId=$groupId');
+
+      final profile = await getGroupProfile(groupId);
+      final originalCount = profile.badges.length;
+
+      // バッジの重複を除去
+      final uniqueBadges = <GroupBadge>[];
+      final seenBadgeIds = <String>{};
+
+      for (final badge in profile.badges) {
+        if (!seenBadgeIds.contains(badge.id)) {
+          uniqueBadges.add(badge);
+          seenBadgeIds.add(badge.id);
+        } else {
+          print('重複バッジを除去: ${badge.id} (${badge.name})');
+        }
+      }
+
+      if (uniqueBadges.length != originalCount) {
+        print(
+          '重複バッジ除去完了: ${originalCount}個 → ${uniqueBadges.length}個 (${originalCount - uniqueBadges.length}個除去)',
+        );
+
+        // プロフィールを更新
+        final updatedProfile = profile.copyWith(
+          badges: uniqueBadges,
+          lastUpdated: DateTime.now(),
+        );
+
+        await _saveGroupProfile(groupId, updatedProfile);
+        print('プロフィールを更新しました');
+      } else {
+        print('重複バッジは見つかりませんでした');
+      }
+    } catch (e) {
+      print('重複バッジ除去エラー: $e');
       rethrow;
     }
   }

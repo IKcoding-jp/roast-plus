@@ -10,6 +10,7 @@ import '../../services/assignment_firestore_service.dart';
 import '../../services/drip_counter_firestore_service.dart';
 import '../../services/work_progress_firestore_service.dart';
 import '../../widgets/bean_name_with_sticker.dart';
+import '../../widgets/lottie_animation_widget.dart';
 
 class CalendarPage extends StatefulWidget {
   final DateTime? initialDate;
@@ -419,7 +420,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(),
+                        const LoadingAnimationWidget(),
                         SizedBox(height: 16),
                         Text(
                           'データを読み込み中...',

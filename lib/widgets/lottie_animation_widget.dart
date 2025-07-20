@@ -475,3 +475,62 @@ class AnimationHelper {
     );
   }
 }
+
+class LoadingAnimationWidget extends StatelessWidget {
+  final double? width;
+  final double? height;
+  final Color? backgroundColor;
+
+  const LoadingAnimationWidget({
+    super.key,
+    this.width,
+    this.height,
+    this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: backgroundColor ?? Colors.transparent,
+      child: Center(
+        child: Lottie.asset(
+          'assets/animations/Loading coffee bean.json',
+          width: width ?? 200,
+          height: height ?? 200,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+class LoadingScreen extends StatelessWidget {
+  final String? title;
+  final Color? backgroundColor;
+
+  const LoadingScreen({super.key, this.title, this.backgroundColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor:
+          backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const LoadingAnimationWidget(),
+          if (title != null) ...[
+            const SizedBox(height: 20),
+            Text(
+              title!,
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

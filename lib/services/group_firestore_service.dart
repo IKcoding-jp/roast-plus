@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_models.dart';
+import '../models/group_gamification_models.dart';
+import '../services/group_gamification_service.dart';
 
 import 'dart:math';
 import 'dart:async';
@@ -132,6 +134,11 @@ class GroupFirestoreService {
             .timeout(_timeout);
         print('GroupFirestoreService: ユーザーグループ情報保存完了');
 
+        // グループ作成時にLv.1達成バッジを自動獲得
+        print('GroupFirestoreService: Lv.1達成バッジの自動獲得処理開始');
+        await _awardLevel1BadgeOnGroupCreation(groupId);
+        print('GroupFirestoreService: Lv.1達成バッジの自動獲得処理完了');
+
         print('GroupFirestoreService: グループ作成完了');
         return group;
       } catch (e) {
@@ -139,6 +146,90 @@ class GroupFirestoreService {
         rethrow;
       }
     });
+  }
+
+  /// グループ作成時にLv.1達成バッジを自動獲得
+  static Future<void> _awardLevel1BadgeOnGroupCreation(String groupId) async {
+    try {
+      if (_uid == null) {
+        print('GroupFirestoreService: 未ログインのためLv.1バッジ獲得をスキップ');
+        return;
+      }
+
+      print('GroupFirestoreService: Lv.1達成バッジ獲得処理開始: groupId=$groupId');
+
+      // Lv.1達成バッジの条件を取得
+      final level1Condition = GroupBadgeConditions.conditions
+          .where((condition) => condition.badgeId == 'group_level_1')
+          .firstOrNull;
+
+      if (level1Condition == null) {
+        print('GroupFirestoreService: Lv.1達成バッジの条件が見つかりません');
+        return;
+      }
+
+      // Lv.1達成バッジを作成
+      final level1Badge = level1Condition.createBadge(
+        _uid!,
+        _displayName ?? 'Unknown User',
+      );
+
+      print('GroupFirestoreService: Lv.1達成バッジを作成: ${level1Badge.name}');
+
+      // ゲーミフィケーションプロファイルにバッジを追加
+      final profileRef = _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('gamification')
+          .doc('profile');
+
+      // プロフィールが存在するかチェック
+      final profileDoc = await profileRef.get();
+
+      if (profileDoc.exists) {
+        // 既存のプロフィールにバッジを追加
+        final currentData = profileDoc.data()!;
+        final currentBadges = currentData['badges'] as List<dynamic>? ?? [];
+        final currentBadgeIds = currentBadges
+            .map((b) => b['id'] as String)
+            .toSet();
+
+        // すでにバッジが存在する場合はスキップ
+        if (currentBadgeIds.contains(level1Badge.id)) {
+          print('GroupFirestoreService: Lv.1達成バッジは既に獲得済みです');
+          return;
+        }
+
+        // バッジを追加
+        await profileRef.update({
+          'badges': FieldValue.arrayUnion([level1Badge.toJson()]),
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+
+        print('GroupFirestoreService: 既存プロフィールにLv.1達成バッジを追加完了');
+      } else {
+        // 新しいプロフィールを作成してバッジを含める
+        final initialProfile = GroupGamificationProfile.initial(groupId);
+        final profileWithBadge = initialProfile.copyWith(
+          badges: [level1Badge],
+          lastUpdated: DateTime.now(),
+        );
+
+        await profileRef.set({
+          ...profileWithBadge.toJson(),
+          'lastUpdatedBy': _uid,
+          'lastUpdatedByName': _displayName ?? 'Unknown User',
+          'version': 1,
+        });
+
+        print('GroupFirestoreService: 新しいプロフィールにLv.1達成バッジを含めて作成完了');
+      }
+
+      print('GroupFirestoreService: Lv.1達成バッジ獲得処理完了: ${level1Badge.name}');
+    } catch (e) {
+      print('GroupFirestoreService: Lv.1達成バッジ獲得処理エラー: $e');
+      // エラーが発生してもグループ作成は続行
+    }
   }
 
   /// ユーザーが参加しているグループを取得
@@ -641,6 +732,26 @@ class GroupFirestoreService {
     }
   }
 
+  /// グループ設定の変更をリアルタイム監視
+  static Stream<GroupSettings?> watchGroupSettings(String groupId) {
+    if (_uid == null || _uid!.isEmpty) throw Exception('未ログイン');
+
+    return _firestore.collection('groups').doc(groupId).snapshots().map((doc) {
+      if (!doc.exists) return null;
+
+      try {
+        final groupData = doc.data()!;
+        final settingsData = groupData['settings'] as Map<String, dynamic>?;
+        if (settingsData == null) return GroupSettings.defaultSettings();
+
+        return GroupSettings.fromJson(settingsData);
+      } catch (e) {
+        // 古い形式の設定の場合はデフォルト設定を返す
+        return GroupSettings.defaultSettings();
+      }
+    });
+  }
+
   /// グループ設定を更新
   static Future<void> updateGroupSettings({
     required String groupId,
@@ -648,13 +759,30 @@ class GroupFirestoreService {
   }) async {
     if (_uid == null || _uid!.isEmpty) throw Exception('未ログイン');
 
+    print('GroupFirestoreService: 設定更新開始');
+    print('GroupFirestoreService: グループID: $groupId');
+    print('GroupFirestoreService: ユーザーID: $_uid');
+    print('GroupFirestoreService: 更新する設定: $settings');
+    print(
+      'GroupFirestoreService: 更新する設定のdataPermissions: ${settings.dataPermissions}',
+    );
+
     final group = await getGroup(groupId);
     if (group == null) throw Exception('グループが見つかりません');
 
-    // リーダーのみ設定変更可能
-    if (!group.isLeader(_uid!)) {
-      throw Exception('リーダーのみ設定を変更できます');
+    print('GroupFirestoreService: グループ取得完了');
+    print('GroupFirestoreService: 現在のグループ設定: ${group.settings}');
+
+    // 管理者またはリーダーのみ設定変更可能
+    final userRole = group.getMemberRole(_uid!);
+    print('GroupFirestoreService: ユーザーロール: $userRole');
+
+    if (userRole != GroupRole.admin && userRole != GroupRole.leader) {
+      print('GroupFirestoreService: 権限不足');
+      throw Exception('管理者またはリーダーのみ設定を変更できます');
     }
+
+    print('GroupFirestoreService: 権限チェック完了');
 
     final updatedSettings = settings.copyWith(updatedAt: DateTime.now());
     final updatedGroup = group.copyWith(
@@ -662,10 +790,15 @@ class GroupFirestoreService {
       updatedAt: DateTime.now(),
     );
 
+    print('GroupFirestoreService: グループ更新データ準備完了');
+    print('GroupFirestoreService: 更新後のグループ設定: ${updatedGroup.settings}');
+
     await _firestore
         .collection('groups')
         .doc(groupId)
         .update(updatedGroup.toJson());
+
+    print('GroupFirestoreService: Firestore更新完了');
   }
 
   /// 指定されたデータタイプの編集権限をチェック
@@ -710,15 +843,15 @@ class GroupFirestoreService {
       if (userRole == GroupRole.admin || userRole == GroupRole.leader) {
         return true;
       }
-      // メンバーは設定に応じて同期可能
-      return settings.allowMemberDataSync;
+      // メンバーは常に同期可能（データ同期は基本的な機能）
+      return true;
     } catch (e) {
       // 古い形式の設定の場合はデフォルト設定で判定
       final defaultSettings = GroupSettings.defaultSettings();
       if (userRole == GroupRole.admin || userRole == GroupRole.leader) {
         return true;
       }
-      return defaultSettings.allowMemberDataSync;
+      return true;
     }
   }
 }
