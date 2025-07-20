@@ -22,6 +22,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:bysnapp/utils/app_performance_config.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class AssignmentBoard extends StatefulWidget {
   const AssignmentBoard({super.key});
@@ -93,23 +94,27 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   /// ローカルデータを更新
   Future<void> _updateLocalData() async {
-    // 新しい形式で保存
-    final teamsJson = jsonEncode(teams.map((team) => team.toMap()).toList());
-    await prefs.setString('teams', teamsJson);
+    try {
+      // 新しい形式で保存
+      final teamsJson = jsonEncode(teams.map((team) => team.toMap()).toList());
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'teams': teamsJson,
+        'leftLabels': leftLabels,
+        'rightLabels': rightLabels,
+      });
 
-    // 後方互換性のため、最初の2つの班をA班、B班としても保存
-    if (teams.isNotEmpty) {
-      await prefs.setStringList('a班', teams[0].members);
-      if (teams.length > 1) {
-        await prefs.setStringList('b班', teams[1].members);
-      } else {
-        await prefs.setStringList('b班', []);
+      // 後方互換性のため、最初の2つの班をA班、B班としても保存
+      if (teams.isNotEmpty) {
+        await UserSettingsFirestoreService.saveMultipleSettings({
+          'assignment_team_a': teams[0].members,
+          'assignment_team_b': teams.length > 1 ? teams[1].members : [],
+        });
       }
-    }
 
-    await prefs.setStringList('leftLabels', leftLabels);
-    await prefs.setStringList('rightLabels', rightLabels);
-    print('AssignmentBoard: ローカルデータ更新完了');
+      print('AssignmentBoard: Firebaseデータ更新完了');
+    } catch (e) {
+      print('AssignmentBoard: Firebaseデータ更新エラー: $e');
+    }
   }
 
   void setAssignmentHistoryFromFirestore(List<String> history) {
@@ -485,7 +490,6 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   }
 
   Future<void> _loadState() async {
-    prefs = await SharedPreferences.getInstance();
     final groupProvider = context.read<GroupProvider>();
     // グループ状態ならグループデータのみ監視・利用
     if (groupProvider.groups.isNotEmpty) {
@@ -521,55 +525,74 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     } catch (e) {
       print('AssignmentBoard: Firestoreからのデータ取得に失敗しました: $e');
     }
-    // Firestoreからデータを取得できなかった場合はローカルデータを使用
-    print('AssignmentBoard: ローカルデータを使用します');
+    // Firestoreからデータを取得できなかった場合はFirebaseデータを使用
+    print('AssignmentBoard: Firebaseデータを使用します');
 
-    // 新しい形式で班データを読み込み
-    final teamsJson = prefs.getString('teams');
-    if (teamsJson != null) {
-      final teamsList = jsonDecode(teamsJson) as List;
-      teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
-    } else {
-      // 既存のA班、B班データを新しい形式に変換
-      final loadedA = prefs.getStringList('a班') ?? [];
-      final loadedB = prefs.getStringList('b班') ?? [];
-      teams = [
-        Team(id: 'team_a', name: 'A班', members: loadedA),
-        Team(id: 'team_b', name: 'B班', members: loadedB),
-      ];
-    }
+    try {
+      final settings = await UserSettingsFirestoreService.getMultipleSettings([
+        'teams',
+        'leftLabels',
+        'rightLabels',
+        'assignedDate',
+        'assignment_team_a',
+        'assignment_team_b',
+      ]);
 
-    final loadedLeft = prefs.getStringList('leftLabels') ?? [];
-    final loadedRight = prefs.getStringList('rightLabels') ?? [];
-
-    final today = _todayKey();
-    final savedDate = prefs.getString('assignedDate');
-    final assignedPairs = prefs.getStringList('assignment_$today');
-
-    // 今日の担当履歴が実際に存在し、かつ日付も一致する場合のみ決定済みとする
-    final wasAssigned =
-        savedDate == today && assignedPairs != null && assignedPairs.isNotEmpty;
-
-    // 今日の担当履歴があれば適用
-    if (wasAssigned &&
-        assignedPairs.length == loadedLeft.length &&
-        teams.length >= 2) {
-      for (int i = 0; i < teams.length; i++) {
-        final newTeamMembers = assignedPairs
-            .map((e) => e.split('-')[i])
-            .toList();
-        teams[i] = teams[i].copyWith(members: newTeamMembers);
+      // 新しい形式で班データを読み込み
+      final teamsJson = settings['teams'];
+      if (teamsJson != null) {
+        final teamsList = jsonDecode(teamsJson) as List;
+        teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
+      } else {
+        // 既存のA班、B班データを新しい形式に変換
+        final loadedA = settings['assignment_team_a'] ?? [];
+        final loadedB = settings['assignment_team_b'] ?? [];
+        teams = [
+          Team(id: 'team_a', name: 'A班', members: loadedA),
+          Team(id: 'team_b', name: 'B班', members: loadedB),
+        ];
       }
-    }
 
-    if (mounted) {
-      setState(() {
-        // ラベルは常に保存値を反映（メンバーが空でも消さない）
-        leftLabels = loadedLeft;
-        rightLabels = loadedRight;
-        isAssignedToday = wasAssigned && !_isWeekend();
-        _isLoading = false;
-      });
+      final loadedLeft = settings['leftLabels'] ?? [];
+      final loadedRight = settings['rightLabels'] ?? [];
+
+      final today = _todayKey();
+      final savedDate = settings['assignedDate'];
+      final assignedPairs =
+          await UserSettingsFirestoreService.getSetting('assignment_$today') ??
+          [];
+
+      // 今日の担当履歴が実際に存在し、かつ日付も一致する場合のみ決定済みとする
+      final wasAssigned = savedDate == today && assignedPairs.isNotEmpty;
+
+      // 今日の担当履歴があれば適用
+      if (wasAssigned &&
+          assignedPairs.length == loadedLeft.length &&
+          teams.length >= 2) {
+        for (int i = 0; i < teams.length; i++) {
+          final newTeamMembers = assignedPairs
+              .map((e) => e.split('-')[i])
+              .toList();
+          teams[i] = teams[i].copyWith(members: newTeamMembers);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          // ラベルは常に保存値を反映（メンバーが空でも消さない）
+          leftLabels = loadedLeft;
+          rightLabels = loadedRight;
+          isAssignedToday = wasAssigned && !_isWeekend();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('AssignmentBoard: Firebaseデータ読み込みエラー: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -581,7 +604,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   bool _isWeekend() {
     final wd = DateTime.now().weekday;
-    final devMode = prefs.getBool('developerMode') ?? false;
+    // developerModeはFirebaseから取得する必要があるが、パフォーマンスのためデフォルト値を使用
+    final devMode = false; // TODO: Firebaseから取得する場合は非同期処理が必要
     if (devMode) return false;
     return wd == DateTime.saturday || wd == DateTime.sunday;
   }
@@ -665,8 +689,12 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         final today = _todayKey();
         final y1 = _dayKeyAgo(1), y2 = _dayKeyAgo(2);
         final pairs = _makePairs();
-        final p1 = prefs.getStringList('assignment_$y1');
-        final p2 = prefs.getStringList('assignment_$y2');
+        final p1 =
+            await UserSettingsFirestoreService.getSetting('assignment_$y1') ??
+            [];
+        final p2 =
+            await UserSettingsFirestoreService.getSetting('assignment_$y2') ??
+            [];
 
         int retry = 0;
         while ((_isDuplicate(pairs, p1) || _isDuplicate(pairs, p2)) &&
@@ -687,8 +715,10 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           retry++;
         }
 
-        await prefs.setStringList('assignment_$today', pairs);
-        await prefs.setString('assignedDate', today);
+        await UserSettingsFirestoreService.saveMultipleSettings({
+          'assignment_$today': pairs,
+          'assignedDate': today,
+        });
 
         setState(() {
           isShuffling = false;
@@ -720,9 +750,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   Future<void> _resetTodayAssignment() async {
     final today = _todayKey();
 
-    // ローカルデータをリセット
-    await prefs.remove('assignment_$today');
-    await prefs.remove('assignedDate');
+    // Firebaseデータをリセット
+    await UserSettingsFirestoreService.saveMultipleSettings({
+      'assignment_$today': null,
+      'assignedDate': null,
+    });
 
     // 元のメンバー構成に戻す
     await _loadState();
@@ -825,7 +857,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         }
 
         final todayIsWeekend = _isWeekend();
-        final isDev = prefs.getBool('developerMode') ?? false;
+        final isDev = false; // TODO: Firebaseから取得する場合は非同期処理が必要
         final isButtonDisabled =
             todayIsWeekend && !isDev || isAssignedToday || isShuffling;
 

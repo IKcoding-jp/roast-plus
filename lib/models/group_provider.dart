@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'group_models.dart';
 import 'group_gamification_models.dart';
@@ -10,6 +11,7 @@ import '../services/group_data_sync_service.dart';
 import '../services/auto_sync_service.dart';
 import '../services/group_statistics_service.dart';
 import '../services/group_gamification_service.dart';
+import '../services/user_settings_firestore_service.dart';
 import '../widgets/group_celebration_helper.dart';
 
 class GroupProvider extends ChangeNotifier {
@@ -255,6 +257,9 @@ class GroupProvider extends ChangeNotifier {
         _currentGroup = null;
       }
 
+      // ローカルデータをクリア
+      await _clearLocalData();
+
       _safeNotifyListeners();
       return true;
     } catch (e) {
@@ -266,6 +271,21 @@ class GroupProvider extends ChangeNotifier {
       return false;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /// ローカルデータをクリア
+  Future<void> _clearLocalData() async {
+    try {
+      // ドリップパック記録をクリア
+      await UserSettingsFirestoreService.deleteSetting('dripPackRecords');
+
+      // その他のローカルデータも必要に応じてクリア
+      // 例: 焙煎記録、試飲記録など
+
+      print('GroupProvider: ローカルデータをクリアしました');
+    } catch (e) {
+      print('GroupProvider: ローカルデータのクリアに失敗: $e');
     }
   }
 

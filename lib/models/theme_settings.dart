@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/theme_cloud_service.dart';
+import '../services/user_settings_firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -43,8 +44,8 @@ class ThemeSettings extends ChangeNotifier {
 
   // 初期インストール時にデフォルトテーマを適用
   Future<void> initializeDefaultTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isFirstInstall = prefs.getBool('isFirstInstall') ?? true;
+    final isFirstInstall =
+        await UserSettingsFirestoreService.getSetting('isFirstInstall') ?? true;
 
     if (isFirstInstall) {
       print('ThemeSettings: 初期インストール - デフォルトテーマを適用');
@@ -79,7 +80,7 @@ class ThemeSettings extends ChangeNotifier {
       save();
 
       // 初回インストールフラグを設定
-      await prefs.setBool('isFirstInstall', false);
+      await UserSettingsFirestoreService.saveSetting('isFirstInstall', false);
 
       notifyListeners();
       print('ThemeSettings: デフォルトテーマ適用完了');
@@ -962,281 +963,207 @@ class ThemeSettings extends ChangeNotifier {
   }
 
   static Future<ThemeSettings> load() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // 主要なテーマキーが未保存ならデフォルトテーマを保存
-    if (!prefs.containsKey(_appBarKey)) {
-      final defaultTheme = presets['デフォルト']!;
-      await prefs.setInt(_appBarKey, defaultTheme['appBarColor']!.value);
-      await prefs.setInt(
-        _backgroundKey,
-        defaultTheme['backgroundColor']!.value,
-      );
-      await prefs.setInt(_buttonKey, defaultTheme['buttonColor']!.value);
-      await prefs.setInt(
-        _background2Key,
-        defaultTheme['backgroundColor2']!.value,
-      );
-      await prefs.setInt(_font1Key, defaultTheme['fontColor1']!.value);
-      await prefs.setInt(_font2Key, defaultTheme['fontColor2']!.value);
-      await prefs.setInt(_iconKey, defaultTheme['iconColor']!.value);
-      await prefs.setInt(
-        _timerCircleKey,
-        defaultTheme['timerCircleColor']!.value,
-      );
-      await prefs.setInt(
-        _bottomNavigationKey,
-        defaultTheme['bottomNavigationColor']!.value,
-      );
-      await prefs.setInt(
-        _inputBackgroundKey,
-        defaultTheme['inputBackgroundColor']!.value,
-      );
-      await prefs.setInt(
-        'theme_memberBackgroundColor',
-        defaultTheme['memberBackgroundColor']!.value,
-      );
-      await prefs.setInt(
-        'theme_appBarTextColor',
-        defaultTheme['appBarTextColor']!.value,
-      );
-      await prefs.setInt(
-        'theme_bottomNavigationTextColor',
-        defaultTheme['bottomNavigationTextColor']!.value,
-      );
-      await prefs.setInt(
-        'theme_dialogBackgroundColor',
-        defaultTheme['dialogBackgroundColor']!.value,
-      );
-      await prefs.setInt(
-        'theme_dialogTextColor',
-        defaultTheme['dialogTextColor']!.value,
-      );
-      await prefs.setInt(
-        'theme_inputTextColor',
-        defaultTheme['inputTextColor']!.value,
-      );
-      await prefs.setDouble(_fontSizeScaleKey, 1.0);
-      await prefs.setString(_fontFamilyKey, 'Noto Sans JP');
-    }
-
-    // クラウドからテーマ設定を取得を試行
-    Map<String, Color>? cloudTheme;
     try {
-      cloudTheme = await ThemeCloudService.getThemeFromCloud();
-    } catch (e) {
-      print('クラウドからのテーマ取得に失敗しました: $e');
-    }
+      // Firebaseからテーマ設定を取得
+      final settings = await UserSettingsFirestoreService.getMultipleSettings([
+        'theme_appBarColor',
+        'theme_backgroundColor',
+        'theme_buttonColor',
+        'theme_backgroundColor2',
+        'theme_fontColor1',
+        'theme_fontColor2',
+        'theme_iconColor',
+        'theme_timerCircleColor',
+        'theme_bottomNavigationColor',
+        'theme_inputBackgroundColor',
+        'theme_memberBackgroundColor',
+        'theme_appBarTextColor',
+        'theme_bottomNavigationTextColor',
+        'theme_dialogBackgroundColor',
+        'theme_dialogTextColor',
+        'theme_inputTextColor',
+        'theme_fontSizeScale',
+        'theme_fontFamily',
+        'custom_themes',
+      ]);
 
-    // クラウドの設定があれば使用、なければローカルの設定を使用
-    if (cloudTheme != null) {
+      // デフォルトテーマ
+      final defaultTheme = presets['デフォルト']!;
+
+      // Firebaseから取得した設定またはデフォルト値を使用
       return ThemeSettings(
-        appBarColor:
-            cloudTheme['appBarColor'] ??
-            Color(prefs.getInt(_appBarKey) ?? 0xFF2C1D17),
-        backgroundColor:
-            cloudTheme['backgroundColor'] ??
-            Color(prefs.getInt(_backgroundKey) ?? 0xFFFFF8E1),
-        buttonColor:
-            cloudTheme['buttonColor'] ??
-            Color(prefs.getInt(_buttonKey) ?? 0xFF795548),
-        backgroundColor2:
-            cloudTheme['backgroundColor2'] ??
-            Color(prefs.getInt(_background2Key) ?? 0xFFFFFFFF),
-        fontColor1:
-            cloudTheme['fontColor1'] ??
-            Color(prefs.getInt(_font1Key) ?? 0xFF000000),
-        fontColor2:
-            cloudTheme['fontColor2'] ??
-            Color(prefs.getInt(_font2Key) ?? 0xFFFFFFFF),
-        iconColor:
-            cloudTheme['iconColor'] ??
-            Color(prefs.getInt(_iconKey) ?? 0xFFBDBDBD),
-        timerCircleColor:
-            cloudTheme['timerCircleColor'] ??
-            Color(prefs.getInt(_timerCircleKey) ?? 0xFF795548),
-        bottomNavigationColor:
-            cloudTheme['bottomNavigationColor'] ??
-            Color(prefs.getInt(_bottomNavigationKey) ?? 0xFF2C1D17),
-        inputBackgroundColor:
-            cloudTheme['inputBackgroundColor'] ??
-            Color(prefs.getInt(_inputBackgroundKey) ?? 0xFFF5F5F5),
-        memberBackgroundColor:
-            cloudTheme['memberBackgroundColor'] ??
-            Color(prefs.getInt('theme_memberBackgroundColor') ?? 0xFFFFFFFF),
-        appBarTextColor:
-            cloudTheme['appBarTextColor'] ??
-            Color(prefs.getInt('theme_appBarTextColor') ?? 0xFF000000),
-        bottomNavigationTextColor:
-            cloudTheme['bottomNavigationTextColor'] ??
-            Color(
-              prefs.getInt('theme_bottomNavigationTextColor') ?? 0xFF000000,
-            ),
-        dialogBackgroundColor:
-            cloudTheme['dialogBackgroundColor'] ??
-            Color(prefs.getInt('theme_dialogBackgroundColor') ?? 0xFFFFFFFF),
-        dialogTextColor:
-            cloudTheme['dialogTextColor'] ??
-            Color(prefs.getInt('theme_dialogTextColor') ?? 0xFF000000),
-        inputTextColor:
-            cloudTheme['inputTextColor'] ??
-            Color(prefs.getInt('theme_inputTextColor') ?? 0xFF000000),
-        cardBackgroundColor:
-            cloudTheme['cardBackgroundColor'] ??
-            Color(prefs.getInt('theme_cardBackgroundColor') ?? 0xFFFFFFFF),
-        borderColor:
-            cloudTheme['borderColor'] ??
-            Color(prefs.getInt('theme_borderColor') ?? 0xFFE0E0E0),
-        fontSizeScale: prefs.getDouble(_fontSizeScaleKey) ?? 1.0,
-        fontFamily: _getValidFontFamily(
-          prefs.getString(_fontFamilyKey) ?? 'Noto Sans JP',
+        appBarColor: Color(
+          settings['theme_appBarColor'] ?? defaultTheme['appBarColor']!.value,
         ),
-        bottomNavigationSelectedColor:
-            cloudTheme['bottomNavigationSelectedColor'],
-        calculatorColor:
-            cloudTheme['calculatorColor'] ?? Color(0xFF1565C0), // 計算機らしい深い青
-        settingsColor:
-            cloudTheme['settingsColor'] ?? Color(0xFFE67E22), // オレンジ色
-        todoColor: cloudTheme['todoColor'] ?? Color(0xFF2E7D32), // タスクらしい深い緑
-        tastingColor:
-            cloudTheme['tastingColor'] ?? Color(0xFFD84315), // コーヒーらしい深いオレンジ
-        customBottomNavigationSelectedColor:
-            cloudTheme['customBottomNavigationSelectedColor'],
-        customBottomNavigationUnselectedColor:
-            cloudTheme['customBottomNavigationUnselectedColor'],
-      );
-    } else {
-      // ローカル設定
-      // プリセット名を推定（デフォルトで"デフォルト"）
-      String presetName = 'デフォルト';
-      // 主要な色からプリセット名を推定するロジックを追加してもよい
-      final preset = presets[presetName];
-      return ThemeSettings(
-        appBarColor: Color(prefs.getInt(_appBarKey) ?? 0xFF2C1D17),
-        backgroundColor: Color(prefs.getInt(_backgroundKey) ?? 0xFFFFF8E1),
-        buttonColor: Color(prefs.getInt(_buttonKey) ?? 0xFF795548),
-        backgroundColor2: Color(prefs.getInt(_background2Key) ?? 0xFFFFFFFF),
-        fontColor1: Color(prefs.getInt(_font1Key) ?? 0xFF000000),
-        fontColor2: Color(prefs.getInt(_font2Key) ?? 0xFFFFFFFF),
-        iconColor: Color(prefs.getInt(_iconKey) ?? 0xFFBDBDBD),
-        timerCircleColor: Color(prefs.getInt(_timerCircleKey) ?? 0xFF795548),
+        backgroundColor: Color(
+          settings['theme_backgroundColor'] ??
+              defaultTheme['backgroundColor']!.value,
+        ),
+        buttonColor: Color(
+          settings['theme_buttonColor'] ?? defaultTheme['buttonColor']!.value,
+        ),
+        backgroundColor2: Color(
+          settings['theme_backgroundColor2'] ??
+              defaultTheme['backgroundColor2']!.value,
+        ),
+        fontColor1: Color(
+          settings['theme_fontColor1'] ?? defaultTheme['fontColor1']!.value,
+        ),
+        fontColor2: Color(
+          settings['theme_fontColor2'] ?? defaultTheme['fontColor2']!.value,
+        ),
+        iconColor: Color(
+          settings['theme_iconColor'] ?? defaultTheme['iconColor']!.value,
+        ),
+        timerCircleColor: Color(
+          settings['theme_timerCircleColor'] ??
+              defaultTheme['timerCircleColor']!.value,
+        ),
         bottomNavigationColor: Color(
-          prefs.getInt(_bottomNavigationKey) ?? 0xFF2C1D17,
+          settings['theme_bottomNavigationColor'] ??
+              defaultTheme['bottomNavigationColor']!.value,
         ),
         inputBackgroundColor: Color(
-          prefs.getInt(_inputBackgroundKey) ?? 0xFFF5F5F5,
+          settings['theme_inputBackgroundColor'] ??
+              defaultTheme['inputBackgroundColor']!.value,
         ),
         memberBackgroundColor: Color(
-          prefs.getInt('theme_memberBackgroundColor') ?? 0xFFFFFFFF,
+          settings['theme_memberBackgroundColor'] ??
+              defaultTheme['memberBackgroundColor']!.value,
         ),
         appBarTextColor: Color(
-          prefs.getInt('theme_appBarTextColor') ?? 0xFF000000,
+          settings['theme_appBarTextColor'] ??
+              defaultTheme['appBarTextColor']!.value,
         ),
         bottomNavigationTextColor: Color(
-          prefs.getInt('theme_bottomNavigationTextColor') ?? 0xFF000000,
+          settings['theme_bottomNavigationTextColor'] ??
+              defaultTheme['bottomNavigationTextColor']!.value,
         ),
         dialogBackgroundColor: Color(
-          prefs.getInt('theme_dialogBackgroundColor') ?? 0xFFFFFFFF,
+          settings['theme_dialogBackgroundColor'] ??
+              defaultTheme['dialogBackgroundColor']!.value,
         ),
         dialogTextColor: Color(
-          prefs.getInt('theme_dialogTextColor') ?? 0xFF000000,
+          settings['theme_dialogTextColor'] ??
+              defaultTheme['dialogTextColor']!.value,
         ),
         inputTextColor: Color(
-          prefs.getInt('theme_inputTextColor') ?? 0xFF000000,
+          settings['theme_inputTextColor'] ??
+              defaultTheme['inputTextColor']!.value,
         ),
-        cardBackgroundColor: Color(
-          prefs.getInt('theme_cardBackgroundColor') ?? 0xFFFFFFFF,
-        ),
-        borderColor: Color(prefs.getInt('theme_borderColor') ?? 0xFFE0E0E0),
-        fontSizeScale: prefs.getDouble(_fontSizeScaleKey) ?? 1.0,
+        cardBackgroundColor: defaultTheme['cardBackgroundColor']!,
+        borderColor: defaultTheme['borderColor']!,
+        fontSizeScale: settings['theme_fontSizeScale'] ?? 1.0,
         fontFamily: _getValidFontFamily(
-          prefs.getString(_fontFamilyKey) ?? 'Noto Sans JP',
+          settings['theme_fontFamily'] ?? 'Noto Sans JP',
         ),
-        bottomNavigationSelectedColor: preset?['bottomNavigationSelectedColor'],
+        bottomNavigationSelectedColor:
+            defaultTheme['bottomNavigationSelectedColor'],
         calculatorColor: Color(0xFF1565C0), // 計算機らしい深い青
         settingsColor: Color(0xFFE67E22), // オレンジ色
         todoColor: Color(0xFF2E7D32), // タスクらしい深い緑
         tastingColor: Color(0xFFD84315), // コーヒーらしい深いオレンジ
-        customBottomNavigationSelectedColor:
-            preset?['bottomNavigationSelectedColor'],
-        customBottomNavigationUnselectedColor:
-            preset?['bottomNavigationUnselectedColor'],
+        customBottomNavigationSelectedColor: null,
+        customBottomNavigationUnselectedColor: null,
+      );
+    } catch (e) {
+      print('テーマ設定読み込みエラー: $e');
+
+      // エラー時はデフォルトテーマを返す
+      final defaultTheme = presets['デフォルト']!;
+      return ThemeSettings(
+        appBarColor: defaultTheme['appBarColor']!,
+        backgroundColor: defaultTheme['backgroundColor']!,
+        buttonColor: defaultTheme['buttonColor']!,
+        backgroundColor2: defaultTheme['backgroundColor2']!,
+        fontColor1: defaultTheme['fontColor1']!,
+        fontColor2: defaultTheme['fontColor2']!,
+        iconColor: defaultTheme['iconColor']!,
+        timerCircleColor: defaultTheme['timerCircleColor']!,
+        bottomNavigationColor: defaultTheme['bottomNavigationColor']!,
+        inputBackgroundColor: defaultTheme['inputBackgroundColor']!,
+        memberBackgroundColor: defaultTheme['memberBackgroundColor']!,
+        appBarTextColor: defaultTheme['appBarTextColor']!,
+        bottomNavigationTextColor: defaultTheme['bottomNavigationTextColor']!,
+        dialogBackgroundColor: defaultTheme['dialogBackgroundColor']!,
+        dialogTextColor: defaultTheme['dialogTextColor']!,
+        inputTextColor: defaultTheme['inputTextColor']!,
+        cardBackgroundColor: defaultTheme['cardBackgroundColor']!,
+        borderColor: defaultTheme['borderColor']!,
+        fontSizeScale: 1.0,
+        fontFamily: 'Noto Sans JP',
+        bottomNavigationSelectedColor:
+            defaultTheme['bottomNavigationSelectedColor'],
+        calculatorColor: Color(0xFF1565C0),
+        settingsColor: Color(0xFFE67E22),
+        todoColor: Color(0xFF2E7D32),
+        tastingColor: Color(0xFFD84315),
+        customBottomNavigationSelectedColor: null,
+        customBottomNavigationUnselectedColor: null,
       );
     }
   }
 
   Future<void> save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_appBarKey, appBarColor.value);
-    await prefs.setInt(_backgroundKey, backgroundColor.value);
-    await prefs.setInt(_buttonKey, buttonColor.value);
-    await prefs.setInt(_background2Key, backgroundColor2.value);
-    await prefs.setInt(_font1Key, fontColor1.value);
-    await prefs.setInt(_font2Key, fontColor2.value);
-    await prefs.setInt(_iconKey, iconColor.value);
-    await prefs.setInt(_timerCircleKey, timerCircleColor.value);
-    await prefs.setInt(_bottomNavigationKey, bottomNavigationColor.value);
-    await prefs.setInt(_inputBackgroundKey, inputBackgroundColor.value);
-    await prefs.setInt(
-      'theme_memberBackgroundColor',
-      memberBackgroundColor.value,
-    );
-    await prefs.setInt('theme_appBarTextColor', appBarTextColor.value);
-    await prefs.setInt(
-      'theme_bottomNavigationTextColor',
-      bottomNavigationTextColor.value,
-    );
-    await prefs.setInt(
-      'theme_dialogBackgroundColor',
-      dialogBackgroundColor.value,
-    );
-    await prefs.setInt('theme_dialogTextColor', dialogTextColor.value);
-    await prefs.setInt('theme_inputTextColor', inputTextColor.value);
-    await prefs.setDouble(_fontSizeScaleKey, fontSizeScale);
-    await prefs.setString(_fontFamilyKey, fontFamily);
-
-    // クラウドにも保存
+    // Firebaseに保存
     try {
       final themeData = {
-        'appBarColor': appBarColor,
-        'backgroundColor': backgroundColor,
-        'buttonColor': buttonColor,
-        'backgroundColor2': backgroundColor2,
-        'fontColor1': fontColor1,
-        'fontColor2': fontColor2,
-        'iconColor': iconColor,
-        'timerCircleColor': timerCircleColor,
-        'bottomNavigationColor': bottomNavigationColor,
-        'inputBackgroundColor': inputBackgroundColor,
-        'memberBackgroundColor': memberBackgroundColor,
-        'appBarTextColor': appBarTextColor,
-        'bottomNavigationTextColor': bottomNavigationTextColor,
-        'dialogBackgroundColor': dialogBackgroundColor,
-        'dialogTextColor': dialogTextColor,
-        'inputTextColor': inputTextColor,
-        'cardBackgroundColor': cardBackgroundColor,
-        'borderColor': borderColor,
-        'bottomNavigationSelectedColor': bottomNavigationSelectedColor,
-        'settingsColor': settingsColor,
+        'appBarColor': appBarColor.value,
+        'backgroundColor': backgroundColor.value,
+        'buttonColor': buttonColor.value,
+        'backgroundColor2': backgroundColor2.value,
+        'fontColor1': fontColor1.value,
+        'fontColor2': fontColor2.value,
+        'iconColor': iconColor.value,
+        'timerCircleColor': timerCircleColor.value,
+        'bottomNavigationColor': bottomNavigationColor.value,
+        'inputBackgroundColor': inputBackgroundColor.value,
+        'memberBackgroundColor': memberBackgroundColor.value,
+        'appBarTextColor': appBarTextColor.value,
+        'bottomNavigationTextColor': bottomNavigationTextColor.value,
+        'dialogBackgroundColor': dialogBackgroundColor.value,
+        'dialogTextColor': dialogTextColor.value,
+        'inputTextColor': inputTextColor.value,
+        'cardBackgroundColor': cardBackgroundColor.value,
+        'borderColor': borderColor.value,
+        'bottomNavigationSelectedColor': bottomNavigationSelectedColor.value,
+        'settingsColor': settingsColor.value,
+        'fontSizeScale': fontSizeScale,
+        'fontFamily': fontFamily,
         if (customBottomNavigationSelectedColor != null)
           'customBottomNavigationSelectedColor':
-              customBottomNavigationSelectedColor!,
+              customBottomNavigationSelectedColor!.value,
         if (customBottomNavigationUnselectedColor != null)
           'customBottomNavigationUnselectedColor':
-              customBottomNavigationUnselectedColor!,
+              customBottomNavigationUnselectedColor!.value,
       };
-      print('ThemeSettings: Firestoreに保存するテーマデータ: $themeData');
-      print(
-        'ThemeSettings: customBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
-      );
-      print(
-        'ThemeSettings: customBottomNavigationUnselectedColor: $customBottomNavigationUnselectedColor',
-      );
-      print('ThemeSettings: settingsColor: $settingsColor');
-      await ThemeCloudService.saveThemeToCloud(themeData);
+
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'theme_appBarColor': appBarColor.value,
+        'theme_backgroundColor': backgroundColor.value,
+        'theme_buttonColor': buttonColor.value,
+        'theme_backgroundColor2': backgroundColor2.value,
+        'theme_fontColor1': fontColor1.value,
+        'theme_fontColor2': fontColor2.value,
+        'theme_iconColor': iconColor.value,
+        'theme_timerCircleColor': timerCircleColor.value,
+        'theme_bottomNavigationColor': bottomNavigationColor.value,
+        'theme_inputBackgroundColor': inputBackgroundColor.value,
+        'theme_memberBackgroundColor': memberBackgroundColor.value,
+        'theme_appBarTextColor': appBarTextColor.value,
+        'theme_bottomNavigationTextColor': bottomNavigationTextColor.value,
+        'theme_dialogBackgroundColor': dialogBackgroundColor.value,
+        'theme_dialogTextColor': dialogTextColor.value,
+        'theme_inputTextColor': inputTextColor.value,
+        'theme_fontSizeScale': fontSizeScale,
+        'theme_fontFamily': fontFamily,
+        'custom_themes': themeData,
+      });
+
+      print('ThemeSettings: Firebaseにテーマ設定を保存しました');
     } catch (e) {
-      // クラウド保存に失敗してもローカル保存は成功しているので、エラーを無視
-      print('クラウド保存に失敗しました: $e');
+      print('テーマ設定保存エラー: $e');
+      rethrow;
     }
   }
 
@@ -1429,14 +1356,16 @@ class ThemeSettings extends ChangeNotifier {
     String name,
     Map<String, Color> themeData,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
     final customThemes = await getCustomThemes();
     customThemes[name] = themeData;
 
     final themeDataMap = customThemes.map(
       (key, value) => MapEntry(key, value.map((k, v) => MapEntry(k, v.value))),
     );
-    await prefs.setString('custom_themes', json.encode(themeDataMap));
+    await UserSettingsFirestoreService.saveSetting(
+      'custom_themes',
+      themeDataMap,
+    );
 
     // クラウドにも保存
     try {
@@ -1448,8 +1377,6 @@ class ThemeSettings extends ChangeNotifier {
 
   // カスタムテーマを取得
   static Future<Map<String, Map<String, Color>>> getCustomThemes() async {
-    final prefs = await SharedPreferences.getInstance();
-
     // クラウドからカスタムテーマを取得を試行
     Map<String, Map<String, Color>> cloudCustomThemes = {};
     try {
@@ -1463,12 +1390,13 @@ class ThemeSettings extends ChangeNotifier {
       return cloudCustomThemes;
     }
 
-    final customThemesJson = prefs.getString('custom_themes');
-    if (customThemesJson == null) return {};
+    final customThemesData = await UserSettingsFirestoreService.getSetting(
+      'custom_themes',
+    );
+    if (customThemesData == null) return {};
 
     try {
-      final Map<String, dynamic> decoded = json.decode(customThemesJson);
-      return decoded.map(
+      return customThemesData.map(
         (key, value) => MapEntry(
           key,
           (value as Map<String, dynamic>).map(
@@ -1483,14 +1411,16 @@ class ThemeSettings extends ChangeNotifier {
 
   // カスタムテーマを削除
   static Future<void> deleteCustomTheme(String name) async {
-    final prefs = await SharedPreferences.getInstance();
     final customThemes = await getCustomThemes();
     customThemes.remove(name);
 
     final themeDataMap = customThemes.map(
       (key, value) => MapEntry(key, value.map((k, v) => MapEntry(k, v.value))),
     );
-    await prefs.setString('custom_themes', json.encode(themeDataMap));
+    await UserSettingsFirestoreService.saveSetting(
+      'custom_themes',
+      themeDataMap,
+    );
 
     // クラウドからも削除
     try {

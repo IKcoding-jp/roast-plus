@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class AssignmentSettingsPage extends StatefulWidget {
   const AssignmentSettingsPage({super.key, this.onReset});
@@ -19,8 +19,8 @@ class _AssignmentSettingsPageState extends State<AssignmentSettingsPage> {
   }
 
   Future<void> _loadDeveloperMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final local = prefs.getBool('developerMode') ?? false;
+    final local =
+        await UserSettingsFirestoreService.getSetting('developerMode') ?? false;
     setState(() {
       _developerMode = local;
     });
@@ -30,8 +30,7 @@ class _AssignmentSettingsPageState extends State<AssignmentSettingsPage> {
     setState(() {
       _developerMode = value;
     });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('developerMode', value);
+    await UserSettingsFirestoreService.saveSetting('developerMode', value);
   }
 
   @override

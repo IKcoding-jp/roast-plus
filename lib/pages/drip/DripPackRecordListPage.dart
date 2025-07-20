@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class DripPackRecordListPage extends StatefulWidget {
   const DripPackRecordListPage({super.key});
@@ -16,14 +17,14 @@ class DripPackRecordListPage extends StatefulWidget {
 class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
   List<Map<String, dynamic>> _records = [];
   bool _isLoading = true;
+  String? _currentGroupId;
 
   // 削除処理を追加
   Future<void> _deleteRecord(int index) async {
     setState(() {
       _records.removeAt(index);
     });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('dripPackRecords', json.encode(_records));
+    await UserSettingsFirestoreService.saveSetting('dripPackRecords', _records);
   }
 
   @override
@@ -32,12 +33,41 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
     _loadRecords();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkGroupChange();
+  }
+
+  /// グループ変更をチェックして、必要に応じてデータをクリア
+  void _checkGroupChange() {
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+    final currentGroupId = groupProvider.hasGroup
+        ? groupProvider.currentGroup!.id
+        : null;
+
+    // グループが変更された場合、データをクリア
+    if (_currentGroupId != null && _currentGroupId != currentGroupId) {
+      setState(() {
+        _records = [];
+        _isLoading = false;
+      });
+      _clearLocalRecords();
+    }
+
+    _currentGroupId = currentGroupId;
+  }
+
+  /// ローカル記録をクリア
+  Future<void> _clearLocalRecords() async {
+    await UserSettingsFirestoreService.deleteSetting('dripPackRecords');
+  }
+
   Future<void> _loadRecords() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('dripPackRecords');
+    final saved = await UserSettingsFirestoreService.getSetting('dripPackRecords');
     if (saved != null) {
       setState(() {
-        _records = List<Map<String, dynamic>>.from(json.decode(saved));
+        _records = List<Map<String, dynamic>>.from(saved);
         _isLoading = false;
       });
     } else {

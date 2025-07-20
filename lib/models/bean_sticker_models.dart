@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/app_settings_firestore_service.dart';
 import 'group_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/user_settings_firestore_service.dart';
 
 class BeanSticker {
   final String id;
@@ -109,10 +110,15 @@ class BeanStickerProvider extends ChangeNotifier {
         );
       } else {
         // 個人用API
-        final prefs = await SharedPreferences.getInstance();
-        final jsonString = prefs.getString(_storageKey);
-        if (jsonString != null) {
-          jsonList = json.decode(jsonString);
+        try {
+          final jsonString = await UserSettingsFirestoreService.getSetting(
+            _storageKey,
+          );
+          if (jsonString != null) {
+            jsonList = jsonString;
+          }
+        } catch (e) {
+          print('Firebaseからの豆ステッカー読み込みエラー: $e');
         }
       }
 
@@ -139,15 +145,11 @@ class BeanStickerProvider extends ChangeNotifier {
 
   Future<void> _saveToStorage() async {
     try {
-      print('Getting SharedPreferences instance...');
-      final prefs = await SharedPreferences.getInstance();
       print('Converting bean stickers to JSON...');
-      final jsonString = json.encode(
-        _beanStickers.map((bs) => bs.toMap()).toList(),
-      );
-      print('Saving to SharedPreferences with key: $_storageKey');
-      await prefs.setString(_storageKey, jsonString);
-      print('Successfully saved to SharedPreferences');
+      final jsonString = _beanStickers.map((bs) => bs.toMap()).toList();
+      print('Saving to Firebase with key: $_storageKey');
+      await UserSettingsFirestoreService.saveSetting(_storageKey, jsonString);
+      print('Successfully saved to Firebase');
     } catch (e) {
       print('Error saving bean stickers: $e');
       rethrow;

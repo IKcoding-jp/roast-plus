@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../utils/sound_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class RoastTimerAdvancedPage extends StatefulWidget {
   final Duration? initialDuration;
@@ -59,8 +60,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
   }
 
   Future<void> _loadUsePreheat() async {
-    final prefs = await SharedPreferences.getInstance();
-    final usePreheat = prefs.getBool('usePreheat') ?? true;
+    final usePreheat = await UserSettingsFirestoreService.getSetting('usePreheat') ?? true;
     setState(() {
       _usePreheat = usePreheat;
       if (_usePreheat == false &&

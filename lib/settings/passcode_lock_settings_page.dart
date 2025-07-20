@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../models/theme_settings.dart';
+import '../services/user_settings_firestore_service.dart';
 import '../services/app_settings_firestore_service.dart';
 
 class PasscodeLockSettingsPage extends StatefulWidget {
@@ -28,12 +29,22 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
   }
 
   Future<void> _loadPasscode() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _savedPasscode = prefs.getString('passcode');
-      _isLockEnabled = prefs.getBool('isLockEnabled') ?? false;
-      _isLoading = false;
-    });
+    try {
+      final settings = await UserSettingsFirestoreService.getMultipleSettings([
+        'passcode',
+        'isLockEnabled',
+      ]);
+      setState(() {
+        _savedPasscode = settings['passcode'];
+        _isLockEnabled = settings['isLockEnabled'] ?? false;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('パスコード設定読み込みエラー: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _savePasscode() async {
@@ -57,9 +68,10 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('passcode', _passcodeController.text);
-      await prefs.setBool('isLockEnabled', true);
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'passcode': _passcodeController.text,
+        'isLockEnabled': true,
+      });
 
       // Firestoreにも保存
       await AppSettingsFirestoreService.savePasscodeSettings(
@@ -96,9 +108,10 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('passcode');
-      await prefs.setBool('isLockEnabled', false);
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'passcode': null,
+        'isLockEnabled': false,
+      });
 
       // Firestoreも無効化
       await AppSettingsFirestoreService.savePasscodeSettings(

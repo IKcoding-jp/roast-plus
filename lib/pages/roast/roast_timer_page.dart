@@ -13,6 +13,7 @@ import '../../models/roast_record.dart';
 import '../../models/gamification_provider.dart';
 import '../../services/roast_record_firestore_service.dart';
 import '../../services/roast_timer_notification_service.dart';
+import '../../services/user_settings_firestore_service.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -231,11 +232,12 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   // バッテリー最適化除外のダイアログを表示（条件付き）
   Future<void> _checkAndShowBatteryOptimizationDialog() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-
       // ダイアログ表示履歴をチェック
       final dialogShown =
-          prefs.getBool('battery_optimization_dialog_shown') ?? false;
+          await UserSettingsFirestoreService.getSetting(
+            'battery_optimization_dialog_shown',
+          ) ??
+          false;
 
       // 既にダイアログを表示済みの場合はスキップ
       if (dialogShown) {
@@ -258,7 +260,10 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       _showBatteryOptimizationDialog();
 
       // ダイアログ表示履歴を保存
-      await prefs.setBool('battery_optimization_dialog_shown', true);
+      await UserSettingsFirestoreService.saveSetting(
+        'battery_optimization_dialog_shown',
+        true,
+      );
     } catch (e) {
       print('バッテリー最適化ダイアログチェックエラー: $e');
     }
@@ -266,37 +271,42 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
 
   // タイマー状態を保存
   void _saveTimerState() {
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt('roast_timer_remaining_seconds', _remainingSeconds);
-      prefs.setInt('roast_timer_total_seconds', _totalSeconds);
-      prefs.setString('roast_timer_mode', _mode.toString());
-      prefs.setBool('roast_timer_is_paused', _isPaused);
+    UserSettingsFirestoreService.saveMultipleSettings({
+      'roast_timer_remaining_seconds': _remainingSeconds,
+      'roast_timer_total_seconds': _totalSeconds,
+      'roast_timer_mode': _mode.toString(),
+      'roast_timer_is_paused': _isPaused,
     });
   }
 
   // タイマー完了状態を保存
   Future<void> _saveTimerCompletionState() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('roast_timer_completed', true);
-    await prefs.setString('roast_timer_completed_mode', _mode.toString());
-    await prefs.setInt(
-      'roast_timer_completed_at',
-      DateTime.now().millisecondsSinceEpoch,
-    );
+    await UserSettingsFirestoreService.saveMultipleSettings({
+      'roast_timer_completed': true,
+      'roast_timer_completed_mode': _mode.toString(),
+      'roast_timer_completed_at': DateTime.now().millisecondsSinceEpoch,
+    });
   }
 
   // アプリ復帰時のタイマー状態チェック
   void _checkTimerStateOnResume() async {
     if (!mounted) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    final isCompleted = prefs.getBool('roast_timer_completed') ?? false;
+    final isCompleted =
+        await UserSettingsFirestoreService.getSetting(
+          'roast_timer_completed',
+        ) ??
+        false;
 
     if (isCompleted) {
       // タイマー完了状態をクリア
-      await prefs.remove('roast_timer_completed');
-      await prefs.remove('roast_timer_completed_mode');
-      await prefs.remove('roast_timer_completed_at');
+      await UserSettingsFirestoreService.deleteSetting('roast_timer_completed');
+      await UserSettingsFirestoreService.deleteSetting(
+        'roast_timer_completed_mode',
+      );
+      await UserSettingsFirestoreService.deleteSetting(
+        'roast_timer_completed_at',
+      );
 
       print('アプリ復帰時にタイマー完了を検出');
 
@@ -373,8 +383,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   }
 
   void _startPreheating() async {
-    final prefs = await SharedPreferences.getInstance();
-    final usePreheat = prefs.getBool('usePreheat') ?? true;
+    final usePreheat =
+        await UserSettingsFirestoreService.getSetting('usePreheat') ?? true;
     if (!usePreheat) {
       // 予熱タイマーをスキップし、手動入力画面へ
       setState(() {
@@ -382,7 +392,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       });
       return;
     }
-    final preheatMinutes = prefs.getInt('preheatMinutes') ?? 30;
+    final preheatMinutes =
+        await UserSettingsFirestoreService.getSetting('preheatMinutes') ?? 30;
     setState(() {
       _mode = RoastMode.preheating;
       _totalSeconds = preheatMinutes * 60;
@@ -401,9 +412,10 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   }
 
   void _startRoasting(int minutes) async {
-    final prefs = await SharedPreferences.getInstance();
-    final useRoast = prefs.getBool('useRoast') ?? true;
-    final useCooling = prefs.getBool('useCooling') ?? true;
+    final useRoast =
+        await UserSettingsFirestoreService.getSetting('useRoast') ?? true;
+    final useCooling =
+        await UserSettingsFirestoreService.getSetting('useCooling') ?? true;
     if (!useRoast) {
       // 焙煎タイマーをスキップ
       if (useCooling) {
@@ -431,9 +443,10 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   }
 
   void _startRecommendedRoast(Duration duration) async {
-    final prefs = await SharedPreferences.getInstance();
-    final useRoast = prefs.getBool('useRoast') ?? true;
-    final useCooling = prefs.getBool('useCooling') ?? true;
+    final useRoast =
+        await UserSettingsFirestoreService.getSetting('useRoast') ?? true;
+    final useCooling =
+        await UserSettingsFirestoreService.getSetting('useCooling') ?? true;
     if (!useRoast) {
       // 焙煎タイマーをスキップ
       if (useCooling) {
@@ -467,8 +480,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     setState(() {
       _canStartBeanCooling = false;
     });
-    final prefs = await SharedPreferences.getInstance();
-    final coolingMinutes = prefs.getInt('coolingMinutes') ?? 10;
+    final coolingMinutes =
+        await UserSettingsFirestoreService.getSetting('coolingMinutes') ?? 10;
     setState(() {
       _mode = RoastMode.cooling;
       _totalSeconds = coolingMinutes * 60;
@@ -557,14 +570,21 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     await RoastTimerNotificationService.cancelAllRoastTimerNotifications();
 
     // タイマー状態をクリア
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('roast_timer_remaining_seconds');
-    await prefs.remove('roast_timer_total_seconds');
-    await prefs.remove('roast_timer_mode');
-    await prefs.remove('roast_timer_is_paused');
-    await prefs.remove('roast_timer_completed');
-    await prefs.remove('roast_timer_completed_mode');
-    await prefs.remove('roast_timer_completed_at');
+    await UserSettingsFirestoreService.deleteSetting(
+      'roast_timer_remaining_seconds',
+    );
+    await UserSettingsFirestoreService.deleteSetting(
+      'roast_timer_total_seconds',
+    );
+    await UserSettingsFirestoreService.deleteSetting('roast_timer_mode');
+    await UserSettingsFirestoreService.deleteSetting('roast_timer_is_paused');
+    await UserSettingsFirestoreService.deleteSetting('roast_timer_completed');
+    await UserSettingsFirestoreService.deleteSetting(
+      'roast_timer_completed_mode',
+    );
+    await UserSettingsFirestoreService.deleteSetting(
+      'roast_timer_completed_at',
+    );
 
     setState(() {
       _remainingSeconds = 0;
@@ -619,9 +639,14 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
               Navigator.pop(context);
               if (_mode == RoastMode.preheating) {
                 // 予熱タイマーのみオンの場合はidleに戻す
-                final prefs = await SharedPreferences.getInstance();
-                final useRoast = prefs.getBool('useRoast') ?? true;
-                final useCooling = prefs.getBool('useCooling') ?? true;
+                final useRoast =
+                    await UserSettingsFirestoreService.getSetting('useRoast') ??
+                    true;
+                final useCooling =
+                    await UserSettingsFirestoreService.getSetting(
+                      'useCooling',
+                    ) ??
+                    true;
                 if (!useRoast && !useCooling) {
                   setState(() {
                     _mode = RoastMode.idle;
@@ -681,7 +706,11 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
         final groupId = groupProvider.currentGroup!.id;
 
         // グループのゲーミフィケーションシステムに通知
-        await groupProvider.processGroupRoasting(groupId, roastTimeMinutes, context: context);
+        await groupProvider.processGroupRoasting(
+          groupId,
+          roastTimeMinutes,
+          context: context,
+        );
       }
     } catch (e) {
       print('焙煎記録処理エラー: $e');
@@ -693,8 +722,10 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       context: context,
       builder: (_) => FutureBuilder<bool>(
         future: (() async {
-          final prefs = await SharedPreferences.getInstance();
-          return prefs.getBool('useCooling') ?? true;
+          final result = await UserSettingsFirestoreService.getSetting(
+            'useCooling',
+          );
+          return (result as bool?) ?? true;
         })(),
         builder: (context, snapshot) {
           final useCooling = snapshot.data ?? true;
@@ -733,8 +764,11 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
               TextButton(
                 onPressed: () async {
                   Navigator.pop(context);
-                  final prefs = await SharedPreferences.getInstance();
-                  final useCooling = prefs.getBool('useCooling') ?? true;
+                  final useCooling =
+                      await UserSettingsFirestoreService.getSetting(
+                        'useCooling',
+                      ) ??
+                      true;
                   if (useCooling) {
                     _startBeanCooling(); // 豆冷ましタイマーを開始
                   } else {
@@ -805,10 +839,19 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
             onPressed: () {
               Navigator.pop(context, false);
               _loadInterstitialAdAndShow(() async {
-                final prefs = await SharedPreferences.getInstance();
-                final usePreheat = prefs.getBool('usePreheat') ?? true;
-                final useRoast = prefs.getBool('useRoast') ?? true;
-                final useCooling = prefs.getBool('useCooling') ?? true;
+                final usePreheat =
+                    await UserSettingsFirestoreService.getSetting(
+                      'usePreheat',
+                    ) ??
+                    true;
+                final useRoast =
+                    await UserSettingsFirestoreService.getSetting('useRoast') ??
+                    true;
+                final useCooling =
+                    await UserSettingsFirestoreService.getSetting(
+                      'useCooling',
+                    ) ??
+                    true;
                 if (!usePreheat && !useRoast && useCooling) {
                   setState(() {
                     _mode = RoastMode.idle;
@@ -1299,9 +1342,10 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                             }
                             if (count == 0) return;
                             int avgSeconds = (totalSeconds ~/ count);
-                            final prefs = await SharedPreferences.getInstance();
                             int offset =
-                                prefs.getInt('recommendedRoastOffsetSeconds') ??
+                                await UserSettingsFirestoreService.getSetting(
+                                  'recommendedRoastOffsetSeconds',
+                                ) ??
                                 60;
                             int setSeconds = avgSeconds - offset;
                             if (setSeconds < 60) setSeconds = 60;
@@ -1466,10 +1510,18 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
 
     // 予熱タイマーの設定値を取得
     final Future<List<bool>> useTimerSettingsFuture = (() async {
-      final prefs = await SharedPreferences.getInstance();
-      final usePreheat = prefs.getBool('usePreheat') ?? true;
-      final useRoast = prefs.getBool('useRoast') ?? true;
-      final useCooling = prefs.getBool('useCooling') ?? true;
+      final usePreheat =
+          (await UserSettingsFirestoreService.getSetting('usePreheat')
+              as bool?) ??
+          true;
+      final useRoast =
+          (await UserSettingsFirestoreService.getSetting('useRoast')
+              as bool?) ??
+          true;
+      final useCooling =
+          (await UserSettingsFirestoreService.getSetting('useCooling')
+              as bool?) ??
+          true;
       return [usePreheat, useRoast, useCooling];
     })();
 

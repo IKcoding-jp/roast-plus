@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
 import '../../services/group_data_sync_service.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class DripCounterHistoryPage extends StatefulWidget {
   const DripCounterHistoryPage({super.key});
@@ -37,11 +38,10 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
 
   Future<void> _loadRecords() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString('dripPackRecords');
+      final saved = await UserSettingsFirestoreService.getSetting('dripPackRecords');
       if (saved != null && mounted) {
         setState(() {
-          _records = List<Map<String, dynamic>>.from(json.decode(saved));
+          _records = List<Map<String, dynamic>>.from(saved);
         });
       }
     } catch (e) {
@@ -73,8 +73,11 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
   }
 
   Future<void> _saveRecords() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('dripPackRecords', json.encode(_records));
+    try {
+      await UserSettingsFirestoreService.saveSetting('dripPackRecords', _records);
+    } catch (e) {
+      print('ドリップパック記録の保存エラー: $e');
+    }
   }
 
   void _deleteRecord(int index) {

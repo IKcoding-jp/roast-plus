@@ -10,15 +10,15 @@ import '../../models/attendance_models.dart';
 import '../gamification/badge_list_page.dart';
 import '../../app.dart' show mainScaffoldKey;
 
-/// グループ中心の新しいダッシュボード画面
-class GroupDashboardPage extends StatefulWidget {
-  const GroupDashboardPage({super.key});
+/// ホーム画面
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<GroupDashboardPage> createState() => _GroupDashboardPageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _GroupDashboardPageState extends State<GroupDashboardPage> {
+class _HomePageState extends State<HomePage> {
   bool _isLoading = true;
   Map<String, dynamic>? _detailedStats;
   GroupProvider? _groupProvider;
@@ -983,25 +983,45 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
                 Icons.analytics,
                 () => Navigator.pushNamed(context, '/roast_record_list'),
               ),
+              _buildFeatureCard(
+                context,
+                themeSettings,
+                '担当表',
+                Icons.group,
+                () => _switchToBottomNavTab(4),
+              ),
+              _buildFeatureCard(
+                context,
+                themeSettings,
+                'スケジュール',
+                Icons.schedule,
+                () => _switchToBottomNavTab(1),
+              ),
             ],
           ),
           SizedBox(height: 24),
 
-          // 分析・記録セクション
+          // 記録セクション
           _buildFeatureSection(
             context,
             themeSettings,
-            '分析・記録',
+            '記録',
             Icons.assessment,
             Colors.blue.shade600,
             [
-              _buildAttendanceFeatureCard(context, themeSettings),
               _buildFeatureCard(
                 context,
                 themeSettings,
                 'カレンダー',
                 Icons.calendar_today,
-                () => _switchToBottomNavTab(1),
+                () => Navigator.pushNamed(context, '/calendar'),
+              ),
+              _buildFeatureCard(
+                context,
+                themeSettings,
+                'カウンター',
+                Icons.local_cafe,
+                () => _switchToBottomNavTab(3),
               ),
               _buildFeatureCard(
                 context,
@@ -1020,9 +1040,9 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
               _buildFeatureCard(
                 context,
                 themeSettings,
-                'カウンター',
-                Icons.local_cafe,
-                () => _switchToBottomNavTab(3),
+                '作業状況記録',
+                Icons.work_outline,
+                () => Navigator.pushNamed(context, '/work_progress'),
               ),
               _buildFeatureCard(
                 context,
@@ -1053,7 +1073,7 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
               _buildFeatureCard(
                 context,
                 themeSettings,
-                'バッジ',
+                'バッジ・実績',
                 Icons.military_tech,
                 () => Navigator.pushNamed(context, '/badge_list'),
               ),
@@ -1138,45 +1158,15 @@ class _GroupDashboardPageState extends State<GroupDashboardPage> {
         ),
         SizedBox(height: 16),
 
-        // 機能カードグリッド（2列固定レイアウト）
-        Column(
-          children: [
-            if (children.isNotEmpty) ...[
-              Row(
-                children: [
-                  Expanded(child: children[0]),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: children.length > 1 ? children[1] : Container(),
-                  ),
-                ],
-              ),
-            ],
-            if (children.length > 2) ...[
-              SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: children[2]),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: children.length > 3 ? children[3] : Container(),
-                  ),
-                ],
-              ),
-            ],
-            if (children.length > 4) ...[
-              SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: children[4]),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: children.length > 5 ? children[5] : Container(),
-                  ),
-                ],
-              ),
-            ],
-          ],
+        // 機能カードグリッド（3行2列）
+        GridView.count(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.2,
+          children: children,
         ),
       ],
     );

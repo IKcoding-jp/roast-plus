@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../models/theme_settings.dart';
 import '../pages/schedule/schedule_time_label_edit_page.dart';
+import '../services/user_settings_firestore_service.dart';
 
 class TodaySchedulePage extends StatefulWidget {
   const TodaySchedulePage({super.key});
@@ -50,37 +51,41 @@ class _TodaySchedulePageState extends State<TodaySchedulePage>
 
   Future<void> _saveSchedules() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'todaySchedule_labels',
-        json.encode(_scheduleLabels),
-      );
-      await prefs.setString(
-        'todaySchedule_contents',
-        json.encode(_scheduleContents),
-      );
-    } catch (_) {}
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'todaySchedule_labels': _scheduleLabels,
+        'todaySchedule_contents': _scheduleContents,
+      });
+    } catch (e) {
+      print('スケジュール保存エラー: $e');
+    }
   }
 
   Future<void> _loadSchedules() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final labelsStr = prefs.getString('todaySchedule_labels');
-      final contentsStr = prefs.getString('todaySchedule_contents');
+      final settings = await UserSettingsFirestoreService.getMultipleSettings([
+        'todaySchedule_labels',
+        'todaySchedule_contents',
+      ]);
+
       List<String> loadedLabels = [];
       Map<String, String> loadedContents = {};
-      if (labelsStr != null) {
-        loadedLabels = List<String>.from(json.decode(labelsStr));
+
+      if (settings['todaySchedule_labels'] != null) {
+        loadedLabels = List<String>.from(settings['todaySchedule_labels']);
       }
-      if (contentsStr != null) {
-        loadedContents = Map<String, String>.from(json.decode(contentsStr));
+      if (settings['todaySchedule_contents'] != null) {
+        loadedContents = Map<String, String>.from(
+          settings['todaySchedule_contents'],
+        );
       }
+
       setState(() {
         _scheduleLabels = loadedLabels;
         _scheduleContents = loadedContents;
       });
       _initControllers();
-    } catch (_) {
+    } catch (e) {
+      print('スケジュール読み込みエラー: $e');
       setState(() {
         _scheduleLabels = [];
         _scheduleContents = {};

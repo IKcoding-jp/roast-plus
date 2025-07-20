@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../services/schedule_firestore_service.dart';
+import '../../services/user_settings_firestore_service.dart';
 import '../../widgets/time_picker_widget.dart';
 
 class TodoListTab extends StatefulWidget {
@@ -191,14 +192,20 @@ class TodoListTabState extends State<TodoListTab> {
   }
 
   Future<void> _loadTodos() async {
-    prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getStringList(_storageKey) ?? [];
-    // _sortByTime は常に true（設定読み込み不要）
-    List<TodoItem> loaded = saved.map(TodoItem.fromString).toList();
-    loaded.sort(_compareTodoByTime);
-    setState(() {
-      _todos = loaded;
-    });
+    try {
+      final saved =
+          await UserSettingsFirestoreService.getSetting('todo_list') ?? [];
+      List<TodoItem> loaded = saved.map(TodoItem.fromString).toList();
+      loaded.sort(_compareTodoByTime);
+      setState(() {
+        _todos = loaded;
+      });
+    } catch (e) {
+      print('TODO読み込みエラー: $e');
+      setState(() {
+        _todos = [];
+      });
+    }
   }
 
   // 追加: 時間順比較関数
@@ -258,20 +265,26 @@ class TodoListTabState extends State<TodoListTab> {
   }
 
   Future<void> _saveTodos() async {
-    final saved = _todos.map((e) => e.toStorageString()).toList();
-    await prefs.setStringList(_storageKey, saved);
-    // Firestoreにも自動保存
     try {
-      await ScheduleFirestoreService.saveTodayTodoList(
-        todos: _todos
-            .map((e) => {'title': e.title, 'isDone': e.isDone, 'time': e.time})
-            .toList(),
-      );
-      // グループ同期は行わない
+      final saved = _todos.map((e) => e.toStorageString()).toList();
+      await UserSettingsFirestoreService.saveSetting('todo_list', saved);
+
+      // Firestoreにも自動保存
+      try {
+        await ScheduleFirestoreService.saveTodayTodoList(
+          todos: _todos
+              .map(
+                (e) => {'title': e.title, 'isDone': e.isDone, 'time': e.time},
+              )
+              .toList(),
+        );
+        // グループ同期は行わない
+      } catch (e) {
+        print('TodoListTab: TODOリスト保存エラー: $e');
+      }
     } catch (e) {
-      print('TodoListTab: TODOリスト保存エラー: $e');
+      print('TODO保存エラー: $e');
     }
-    // ソート設定は固定のため保存不要
   }
 
   void _addTodo() {

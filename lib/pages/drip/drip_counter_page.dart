@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:bysnapp/pages/drip/DripPackRecordListPage.dart';
 import '../../services/drip_counter_firestore_service.dart';
@@ -15,6 +14,7 @@ import '../../models/dashboard_stats_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import '../../services/user_settings_firestore_service.dart';
 
 class DripCounterPage extends StatefulWidget {
   const DripCounterPage({super.key});
@@ -37,6 +37,7 @@ class DripCounterPageState extends State<DripCounterPage>
 
   // Firestore同期用 記録リスト
   List<Map<String, dynamic>> _records = [];
+  String? _currentGroupId;
   void setDripRecordsFromFirestore(List<Map<String, dynamic>> records) {
     setState(() {
       _records = List<Map<String, dynamic>>.from(records);
@@ -65,6 +66,32 @@ class DripCounterPageState extends State<DripCounterPage>
         );
     _loadDripRecordsFromFirestore();
     _startDripRecordsListener();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkGroupChange();
+  }
+
+  /// グループ変更をチェックして、必要に応じてデータをクリア
+  void _checkGroupChange() {
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+    final currentGroupId = groupProvider.hasGroup
+        ? groupProvider.currentGroup!.id
+        : null;
+
+    // グループが変更された場合、データをクリア
+    if (_currentGroupId != null && _currentGroupId != currentGroupId) {
+      setState(() {
+        _records = [];
+        _counter = 0;
+        _beanController.clear();
+        _selectedRoast = null;
+      });
+    }
+
+    _currentGroupId = currentGroupId;
   }
 
   Future<void> _loadDripRecordsFromFirestore() async {
@@ -782,55 +809,65 @@ class DripCounterPageState extends State<DripCounterPage>
     final roast = _selectedRoast;
     final count = _counter;
     if (bean.isEmpty || roast == null || roast.isEmpty || count <= 0) return;
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('dripPackRecords');
-    List<Map<String, dynamic>> records = [];
-    if (saved != null) {
-      records = List<Map<String, dynamic>>.from(json.decode(saved));
-    }
-    final now = DateTime.now();
-    records.insert(0, {
-      'bean': bean,
-      'roast': roast,
-      'count': count,
-      'timestamp': now.toIso8601String(),
-    });
-    await prefs.setString('dripPackRecords', json.encode(records));
-    // Firestoreにも保存
+
     try {
-      await DripCounterFirestoreService.addDripPackRecord(
-        bean: bean,
-        roast: roast,
-        count: count,
-        timestamp: now,
+      final saved = await UserSettingsFirestoreService.getSetting(
+        'dripPackRecords',
       );
-    } catch (_) {}
-
-    // グループレベルシステムでドリップパック記録を処理
-    await _processDripPackForGroup(count, bean, now);
-
-    // 統計データを更新
-    if (mounted) {
-      final statsProvider = Provider.of<DashboardStatsProvider>(
-        context,
-        listen: false,
+      List<Map<String, dynamic>> records = [];
+      if (saved != null) {
+        records = List<Map<String, dynamic>>.from(saved);
+      }
+      final now = DateTime.now();
+      records.insert(0, {
+        'bean': bean,
+        'roast': roast,
+        'count': count,
+        'timestamp': now.toIso8601String(),
+      });
+      await UserSettingsFirestoreService.saveSetting(
+        'dripPackRecords',
+        records,
       );
-      await statsProvider.onDripPackAdded();
+
+      // Firestoreにも保存
+      try {
+        await DripCounterFirestoreService.addDripPackRecord(
+          bean: bean,
+          roast: roast,
+          count: count,
+          timestamp: now,
+        );
+      } catch (_) {}
+
+      // グループレベルシステムでドリップパック記録を処理
+      await _processDripPackForGroup(count, bean, now);
+
+      // 統計データを更新
+      if (mounted) {
+        final statsProvider = Provider.of<DashboardStatsProvider>(
+          context,
+          listen: false,
+        );
+        await statsProvider.onDripPackAdded();
+      }
+
+      // UIをリセット
+      setState(() {
+        _beanController.clear();
+        _selectedRoast = null;
+        _counter = 0;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$count袋の記録を保存しました'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('ドリップパック記録保存エラー: $e');
     }
-
-    // UIをリセット
-    setState(() {
-      _beanController.clear();
-      _selectedRoast = null;
-      _counter = 0;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$count袋の記録を保存しました'),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
   /// グループレベルシステムでドリップパック記録を処理
@@ -846,26 +883,12 @@ class DripCounterPageState extends State<DripCounterPage>
       if (groupProvider.hasGroup) {
         final groupId = groupProvider.currentGroup!.id;
 
-        // グループのゲーミフィケーションシステムに通知
-        final result = await GroupGamificationService.recordDripPack(
+        // グループのゲーミフィケーションシステムに通知（統一された演出を使用）
+        await groupProvider.processGroupDripPack(
           groupId,
           count,
+          context: context,
         );
-
-        // バッジ獲得時の通知
-        if (result.success && result.newBadges.isNotEmpty) {
-          for (final badge in result.newBadges) {
-            if (badge.category == BadgeCategory.dripPack) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('🎖 ${badge.name} を獲得しました！'),
-                  backgroundColor: badge.color,
-                  duration: Duration(seconds: 3),
-                ),
-              );
-            }
-          }
-        }
       }
     } catch (e) {
       print('グループレベルシステム処理エラー: $e');

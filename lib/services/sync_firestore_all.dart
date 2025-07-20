@@ -9,7 +9,7 @@ import '../services/roast_timer_settings_firestore_service.dart';
 import '../services/tasting_firestore_service.dart';
 import '../services/work_progress_firestore_service.dart';
 import 'package:bysnapp/pages/drip/drip_counter_page.dart';
-import 'package:bysnapp/pages/home/AssignmentBoard.dart';
+import '../pages/business/assignment_board_page.dart';
 import 'package:bysnapp/pages/roast/roast_timer_settings_page.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +17,7 @@ import '../models/tasting_models.dart';
 import '../models/work_progress_models.dart';
 import '../models/gamification_provider.dart';
 import '../services/gamification_storage.dart';
+import '../services/user_settings_firestore_service.dart';
 
 // TodoPage用のグローバルKeyを用意
 final GlobalKey<TodoPageState> todoListPageKey = GlobalKey<TodoPageState>();
@@ -43,8 +44,7 @@ Future<void> syncAllFirestoreData(
         todoListPageKey.currentState!.setTodosFromFirestore(todos);
       }
       // ローカルにも保存
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(
+      await UserSettingsFirestoreService.saveSetting(
         'todoList',
         todos?.map((e) => TodoItem.fromMap(e).toStorageString()).toList() ?? [],
       );
@@ -59,15 +59,10 @@ Future<void> syncAllFirestoreData(
       final todaySchedule =
           await ScheduleFirestoreService.loadTodayTodoSchedule();
       if (todaySchedule != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(
-          'todaySchedule_labels',
-          json.encode(todaySchedule['labels'] ?? []),
-        );
-        await prefs.setString(
-          'todaySchedule_contents',
-          json.encode(todaySchedule['contents'] ?? {}),
-        );
+        await UserSettingsFirestoreService.saveMultipleSettings({
+          'todaySchedule_labels': todaySchedule['labels'] ?? [],
+          'todaySchedule_contents': todaySchedule['contents'] ?? {},
+        });
       }
     } catch (e) {
       print('同期エラー: $e');
@@ -78,8 +73,10 @@ Future<void> syncAllFirestoreData(
   try {
     final timeLabels = await ScheduleFirestoreService.loadTimeLabels();
     if (timeLabels != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('todaySchedule_labels', json.encode(timeLabels));
+      await UserSettingsFirestoreService.saveSetting(
+        'todaySchedule_labels',
+        timeLabels,
+      );
     }
   } catch (e) {
     print('同期エラー: $e');
@@ -92,8 +89,10 @@ Future<void> syncAllFirestoreData(
       dripCounterPageKey.currentState!.setDripRecordsFromFirestore(dripRecords);
     }
     // ローカルにも保存
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('dripPackRecords', json.encode(dripRecords ?? []));
+    await UserSettingsFirestoreService.saveSetting(
+      'dripPackRecords',
+      dripRecords ?? [],
+    );
   } catch (e) {
     print('同期エラー: $e');
   }
@@ -107,30 +106,28 @@ Future<void> syncAllFirestoreData(
         assignmentMembers,
       );
       // ローカルにも保存（新しい形式と古い形式の両方）
-      final prefs = await SharedPreferences.getInstance();
+      final settingsToSave = <String, dynamic>{};
 
       // 新しい形式（teams）で保存
       if (assignmentMembers['teams'] != null) {
-        await prefs.setString('teams', json.encode(assignmentMembers['teams']));
+        settingsToSave['teams'] = assignmentMembers['teams'];
       }
 
       // 後方互換性のため、古い形式でも保存
-      await prefs.setStringList(
-        'a班',
-        List<String>.from(assignmentMembers['aMembers'] ?? []),
+      settingsToSave['a班'] = List<String>.from(
+        assignmentMembers['aMembers'] ?? [],
       );
-      await prefs.setStringList(
-        'b班',
-        List<String>.from(assignmentMembers['bMembers'] ?? []),
+      settingsToSave['b班'] = List<String>.from(
+        assignmentMembers['bMembers'] ?? [],
       );
-      await prefs.setStringList(
-        'leftLabels',
-        List<String>.from(assignmentMembers['leftLabels'] ?? []),
+      settingsToSave['leftLabels'] = List<String>.from(
+        assignmentMembers['leftLabels'] ?? [],
       );
-      await prefs.setStringList(
-        'rightLabels',
-        List<String>.from(assignmentMembers['rightLabels'] ?? []),
+      settingsToSave['rightLabels'] = List<String>.from(
+        assignmentMembers['rightLabels'] ?? [],
       );
+
+      await UserSettingsFirestoreService.saveMultipleSettings(settingsToSave);
 
       print('担当表データの同期完了');
     }
@@ -150,8 +147,7 @@ Future<void> syncAllFirestoreData(
         assignmentHistory,
       );
       // ローカルにも保存
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(
+      await UserSettingsFirestoreService.saveSetting(
         'assignment_$dateKey',
         List<String>.from(assignmentHistory),
       );
@@ -185,10 +181,9 @@ Future<void> syncAllFirestoreData(
     // 一括セット用メソッドに修正
     tastingProvider.replaceAll(tastingRecords);
     // ローカルにも保存
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
+    await UserSettingsFirestoreService.saveSetting(
       'tastingRecords',
-      json.encode(tastingRecords.map((e) => e.toMap()).toList()),
+      tastingRecords.map((e) => e.toMap()).toList(),
     );
   } catch (e) {
     print('同期エラー: $e');
@@ -205,10 +200,9 @@ Future<void> syncAllFirestoreData(
     // 一括セット用メソッドに修正
     workProgressProvider.replaceAll(workProgressRecords);
     // ローカルにも保存
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
+    await UserSettingsFirestoreService.saveSetting(
       'workProgressRecords',
-      json.encode(workProgressRecords.map((e) => e.toMap()).toList()),
+      workProgressRecords.map((e) => e.toMap()).toList(),
     );
   } catch (e) {
     print('同期エラー: $e');

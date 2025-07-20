@@ -8,6 +8,7 @@ import '../../services/group_data_sync_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class AssignmentHistoryPage extends StatefulWidget {
   const AssignmentHistoryPage({super.key});
@@ -17,7 +18,6 @@ class AssignmentHistoryPage extends StatefulWidget {
 }
 
 class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
-  late SharedPreferences prefs;
   bool isReady = false;
   bool? _canEditAssignmentHistory; // null: 未判定, true/false: 判定済み
 
@@ -99,13 +99,26 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
       if (historyData is Map<String, dynamic>) {
         if (historyData['deleted'] == true) {
           // 削除の場合
-          await prefs.remove('assignment_$dateKey');
-          print('AssignmentHistoryPage: 担当履歴削除 - $dateKey');
+          try {
+            await UserSettingsFirestoreService.deleteSetting(
+              'assignment_$dateKey',
+            );
+            print('AssignmentHistoryPage: 担当履歴削除 - $dateKey');
+          } catch (e) {
+            print('担当履歴削除エラー: $e');
+          }
         } else if (historyData['assignments'] != null) {
           // 更新の場合
           final assignments = List<String>.from(historyData['assignments']);
-          await prefs.setStringList('assignment_$dateKey', assignments);
-          print('AssignmentHistoryPage: 担当履歴更新 - $dateKey: $assignments');
+          try {
+            await UserSettingsFirestoreService.saveSetting(
+              'assignment_$dateKey',
+              assignments,
+            );
+            print('AssignmentHistoryPage: 担当履歴更新 - $dateKey: $assignments');
+          } catch (e) {
+            print('担当履歴更新エラー: $e');
+          }
         }
       }
     });
@@ -114,8 +127,6 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
 
   Future<void> _loadPrefs() async {
     if (isReady) return; // 既に読み込み済みの場合は何もしない
-
-    prefs = await SharedPreferences.getInstance();
 
     // Firestoreから担当履歴を読み込み
     await _loadAssignmentHistoryFromFirestore();
@@ -134,7 +145,10 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
       final allHistory =
           await AssignmentFirestoreService.loadAllAssignmentHistory();
       for (final entry in allHistory.entries) {
-        await prefs.setStringList('assignment_${entry.key}', entry.value);
+        await UserSettingsFirestoreService.saveSetting(
+          'assignment_${entry.key}',
+          entry.value,
+        );
       }
       if (mounted) setState(() {});
     } catch (e) {
@@ -235,8 +249,12 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
         .toList();
 
     // ラベルを取得（なければ空リスト）
-    final leftLabels = prefs.getStringList('leftLabels') ?? [];
-    final rightLabels = prefs.getStringList('rightLabels') ?? [];
+    final settings = await UserSettingsFirestoreService.getMultipleSettings([
+      'leftLabels',
+      'rightLabels',
+    ]);
+    final leftLabels = List<String>.from(settings['leftLabels'] ?? []);
+    final rightLabels = List<String>.from(settings['rightLabels'] ?? []);
 
     await showDialog(
       context: context,
@@ -279,20 +297,27 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
           ElevatedButton(
             onPressed: () async {
               final updated = controllers.map((c) => c.text).toList();
-              prefs.setStringList('assignment_$dateKey', updated);
-              // Firestoreにも保存（ラベルも必ず渡す）
-              await AssignmentFirestoreService.saveAssignmentHistory(
-                dateKey: dateKey,
-                assignments: updated,
-                leftLabels: leftLabels, // 追加
-                rightLabels: rightLabels, // 追加
-              );
-              // グループに参加している場合のみグループに同期
-              if (isInGroup) {
-                await _syncAssignmentHistoryToGroup(dateKey, updated);
+              try {
+                await UserSettingsFirestoreService.saveSetting(
+                  'assignment_$dateKey',
+                  updated,
+                );
+                // Firestoreにも保存（ラベルも必ず渡す）
+                await AssignmentFirestoreService.saveAssignmentHistory(
+                  dateKey: dateKey,
+                  assignments: updated,
+                  leftLabels: leftLabels, // 追加
+                  rightLabels: rightLabels, // 追加
+                );
+                // グループに参加している場合のみグループに同期
+                if (isInGroup) {
+                  await _syncAssignmentHistoryToGroup(dateKey, updated);
+                }
+                Navigator.pop(context);
+                setState(() {});
+              } catch (e) {
+                print('担当履歴保存エラー: $e');
               }
-              Navigator.pop(context);
-              setState(() {});
             },
             child: Text(
               '保存',
@@ -351,14 +376,18 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
     );
 
     if (confirmed == true) {
-      await prefs.remove('assignment_$dateKey');
-      // Firestoreからも削除
-      await AssignmentFirestoreService.deleteAssignmentHistory(dateKey);
-      // グループに参加している場合のみグループに削除を同期
-      if (isInGroup) {
-        await _syncAssignmentHistoryDeletionToGroup(dateKey);
+      try {
+        await UserSettingsFirestoreService.deleteSetting('assignment_$dateKey');
+        // Firestoreからも削除
+        await AssignmentFirestoreService.deleteAssignmentHistory(dateKey);
+        // グループに参加している場合のみグループに削除を同期
+        if (isInGroup) {
+          await _syncAssignmentHistoryDeletionToGroup(dateKey);
+        }
+        setState(() {});
+      } catch (e) {
+        print('担当履歴削除エラー: $e');
       }
-      setState(() {});
     }
   }
 
@@ -397,74 +426,89 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
           final date = now.subtract(Duration(days: i));
           final dayKey = formatter.format(date);
           final weekday = weekdayFormatter.format(date);
-          final data = prefs.getStringList('assignment_$dayKey');
-          if (data != null) {
-            items.add(
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                color: themeSettings.backgroundColor2 ?? Colors.white,
-                margin: EdgeInsets.symmetric(vertical: 8),
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+          // 担当履歴を非同期で取得するため、FutureBuilderを使用
+          items.add(
+            FutureBuilder<List<String>?>(
+              future: (() async {
+                final result = await UserSettingsFirestoreService.getSetting(
+                  'assignment_$dayKey',
+                );
+                return result as List<String>?;
+              })(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data != null) {
+                  final data = snapshot.data!;
+                  return Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: themeSettings.backgroundColor2 ?? Colors.white,
+                    margin: EdgeInsets.symmetric(vertical: 8),
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.calendar_today,
-                            color: Provider.of<ThemeSettings>(
-                              context,
-                            ).iconColor,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '$dayKey（$weekday）',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).fontColor1,
-                              ),
-                            ),
-                          ),
-                          // グループに参加していない場合、または編集権限がある場合は編集・削除ボタンを表示
-                          if (groupProvider.groups.isEmpty ||
-                              _canEditAssignmentHistory == true) ...[
-                            IconButton(
-                              icon: Icon(
-                                Icons.edit,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
                                 color: Provider.of<ThemeSettings>(
                                   context,
                                 ).iconColor,
                               ),
-                              tooltip: '編集',
-                              onPressed: () => _editAssignment(dayKey, data),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              tooltip: '削除',
-                              onPressed: () => _deleteAssignment(dayKey),
-                            ),
-                          ],
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '$dayKey（$weekday）',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
+                                  ),
+                                ),
+                              ),
+                              // グループに参加していない場合、または編集権限がある場合は編集・削除ボタンを表示
+                              if (groupProvider.groups.isEmpty ||
+                                  _canEditAssignmentHistory == true) ...[
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.edit,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).iconColor,
+                                  ),
+                                  tooltip: '編集',
+                                  onPressed: () =>
+                                      _editAssignment(dayKey, data),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  tooltip: '削除',
+                                  onPressed: () => _deleteAssignment(dayKey),
+                                ),
+                              ],
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          if (data.isNotEmpty)
+                            _buildAssignmentRow('掃除機', data[0]),
+                          if (data.length > 1)
+                            _buildAssignmentRow('机・ロースト', data[1]),
+                          if (data.length > 2)
+                            _buildAssignmentRow('洗い物', data[2]),
                         ],
                       ),
-                      SizedBox(height: 8),
-                      if (data.isNotEmpty) _buildAssignmentRow('掃除機', data[0]),
-                      if (data.length > 1)
-                        _buildAssignmentRow('机・ロースト', data[1]),
-                      if (data.length > 2) _buildAssignmentRow('洗い物', data[2]),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }
+                    ),
+                  );
+                }
+                return SizedBox.shrink();
+              },
+            ),
+          );
         }
 
         return Scaffold(

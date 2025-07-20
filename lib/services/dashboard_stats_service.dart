@@ -7,6 +7,7 @@ import '../models/attendance_models.dart';
 import '../services/roast_record_firestore_service.dart';
 import '../services/attendance_firestore_service.dart';
 import '../services/drip_counter_firestore_service.dart';
+import 'user_settings_firestore_service.dart';
 
 class DashboardStatsService {
   static final DashboardStatsService _instance =
@@ -95,9 +96,12 @@ class DashboardStatsService {
       int totalMinutes = 0;
 
       // まずキャッシュから確認
-      final prefs = await SharedPreferences.getInstance();
-      final cachedTime = prefs.getInt('cached_total_roasting_time');
-      final cacheTimestamp = prefs.getInt('roasting_time_cache_timestamp');
+      final cachedTime = await UserSettingsFirestoreService.getSetting(
+        'cached_total_roasting_time',
+      );
+      final cacheTimestamp = await UserSettingsFirestoreService.getSetting(
+        'roasting_time_cache_timestamp',
+      );
 
       if (cachedTime != null && cacheTimestamp != null) {
         final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
@@ -123,17 +127,17 @@ class DashboardStatsService {
         // 現在は最新100件のみで概算値を提供
 
         // キャッシュに保存
-        await prefs.setInt('cached_total_roasting_time', totalMinutes);
-        await prefs.setInt(
-          'roasting_time_cache_timestamp',
-          DateTime.now().millisecondsSinceEpoch,
-        );
+        await UserSettingsFirestoreService.saveMultipleSettings({
+          'cached_total_roasting_time': totalMinutes,
+          'roasting_time_cache_timestamp':
+              DateTime.now().millisecondsSinceEpoch,
+        });
 
         print('DashboardStatsService: 焙煎時間を計算: $totalMinutes分');
       } catch (e) {
         print('Firestore焙煎記録取得エラー: $e');
         // フォールバック: ローカルデータから取得
-        totalMinutes = await _getRoastingTimeFromLocal(prefs);
+        totalMinutes = await _getRoastingTimeFromLocal();
       }
 
       return totalMinutes;
@@ -147,9 +151,12 @@ class DashboardStatsService {
   Future<int> _getAttendanceDaysOptimized() async {
     try {
       // キャッシュから確認
-      final prefs = await SharedPreferences.getInstance();
-      final cachedDays = prefs.getInt('cached_attendance_days');
-      final cacheTimestamp = prefs.getInt('attendance_cache_timestamp');
+      final cachedDays = await UserSettingsFirestoreService.getSetting(
+        'cached_attendance_days',
+      );
+      final cacheTimestamp = await UserSettingsFirestoreService.getSetting(
+        'attendance_cache_timestamp',
+      );
 
       if (cachedDays != null && cacheTimestamp != null) {
         final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
@@ -189,17 +196,16 @@ class DashboardStatsService {
 
         // キャッシュに保存
         final result = uniqueDates.length;
-        await prefs.setInt('cached_attendance_days', result);
-        await prefs.setInt(
-          'attendance_cache_timestamp',
-          DateTime.now().millisecondsSinceEpoch,
-        );
+        await UserSettingsFirestoreService.saveMultipleSettings({
+          'cached_attendance_days': result,
+          'attendance_cache_timestamp': DateTime.now().millisecondsSinceEpoch,
+        });
 
         print('DashboardStatsService: 出勤日数を計算: $result日');
         return result;
       } catch (e) {
         print('Firestore出勤記録取得エラー: $e');
-        return await _getAttendanceDaysFromLocal(prefs);
+        return await _getAttendanceDaysFromLocal();
       }
     } catch (e) {
       print('出勤日数計算エラー: $e');
@@ -211,9 +217,12 @@ class DashboardStatsService {
   Future<int> _getDripPackCountOptimized() async {
     try {
       // キャッシュから確認
-      final prefs = await SharedPreferences.getInstance();
-      final cachedCount = prefs.getInt('cached_drip_pack_count');
-      final cacheTimestamp = prefs.getInt('drip_pack_cache_timestamp');
+      final cachedCount = await UserSettingsFirestoreService.getSetting(
+        'cached_drip_pack_count',
+      );
+      final cacheTimestamp = await UserSettingsFirestoreService.getSetting(
+        'drip_pack_cache_timestamp',
+      );
 
       if (cachedCount != null && cacheTimestamp != null) {
         final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
@@ -256,16 +265,15 @@ class DashboardStatsService {
         }
 
         // キャッシュに保存
-        await prefs.setInt('cached_drip_pack_count', totalCount);
-        await prefs.setInt(
-          'drip_pack_cache_timestamp',
-          DateTime.now().millisecondsSinceEpoch,
-        );
+        await UserSettingsFirestoreService.saveMultipleSettings({
+          'cached_drip_pack_count': totalCount,
+          'drip_pack_cache_timestamp': DateTime.now().millisecondsSinceEpoch,
+        });
 
         print('DashboardStatsService: ドリップパック数を計算: $totalCount袋');
       } catch (e) {
         print('Firestoreドリップパック記録取得エラー: $e');
-        totalCount = await _getDripPackCountFromLocal(prefs);
+        totalCount = await _getDripPackCountFromLocal();
       }
 
       return totalCount;
@@ -278,8 +286,8 @@ class DashboardStatsService {
   /// 最適化された完了タスク数を取得
   Future<int> _getCompletedTasksOptimized() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final todoRecordsJson = prefs.getStringList('todos') ?? [];
+      final todoRecordsJson =
+          await UserSettingsFirestoreService.getSetting('todos') ?? [];
 
       int completedCount = 0;
       for (String todoJson in todoRecordsJson) {
@@ -320,9 +328,10 @@ class DashboardStatsService {
   }
 
   /// ローカルから焙煎時間を取得
-  Future<int> _getRoastingTimeFromLocal(SharedPreferences prefs) async {
+  Future<int> _getRoastingTimeFromLocal() async {
     try {
-      final roastRecordsJson = prefs.getStringList('roast_records') ?? [];
+      final roastRecordsJson =
+          await UserSettingsFirestoreService.getSetting('roast_records') ?? [];
       int totalMinutes = 0;
 
       for (String recordJson in roastRecordsJson) {
@@ -342,10 +351,11 @@ class DashboardStatsService {
   }
 
   /// ローカルから出勤日数を取得
-  Future<int> _getAttendanceDaysFromLocal(SharedPreferences prefs) async {
+  Future<int> _getAttendanceDaysFromLocal() async {
     try {
       final attendanceRecordsJson =
-          prefs.getStringList('attendance_records') ?? [];
+          await UserSettingsFirestoreService.getSetting('attendance_records') ??
+          [];
       Set<String> uniqueDates = {};
 
       for (String recordJson in attendanceRecordsJson) {
@@ -369,12 +379,14 @@ class DashboardStatsService {
   }
 
   /// ローカルからドリップパック数を取得
-  Future<int> _getDripPackCountFromLocal(SharedPreferences prefs) async {
+  Future<int> _getDripPackCountFromLocal() async {
     try {
-      final dripRecordsJson = prefs.getString('dripPackRecords');
+      final dripRecordsJson = await UserSettingsFirestoreService.getSetting(
+        'dripPackRecords',
+      );
 
       if (dripRecordsJson != null) {
-        final records = json.decode(dripRecordsJson) as List<dynamic>;
+        final records = dripRecordsJson as List<dynamic>;
         int totalCount = 0;
         for (final record in records) {
           totalCount += (record['count'] as int? ?? 0);
@@ -398,13 +410,24 @@ class DashboardStatsService {
 
     // ローカルキャッシュもクリア
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('cached_total_roasting_time');
-      await prefs.remove('roasting_time_cache_timestamp');
-      await prefs.remove('cached_attendance_days');
-      await prefs.remove('attendance_cache_timestamp');
-      await prefs.remove('cached_drip_pack_count');
-      await prefs.remove('drip_pack_cache_timestamp');
+      await UserSettingsFirestoreService.deleteSetting(
+        'cached_total_roasting_time',
+      );
+      await UserSettingsFirestoreService.deleteSetting(
+        'roasting_time_cache_timestamp',
+      );
+      await UserSettingsFirestoreService.deleteSetting(
+        'cached_attendance_days',
+      );
+      await UserSettingsFirestoreService.deleteSetting(
+        'attendance_cache_timestamp',
+      );
+      await UserSettingsFirestoreService.deleteSetting(
+        'cached_drip_pack_count',
+      );
+      await UserSettingsFirestoreService.deleteSetting(
+        'drip_pack_cache_timestamp',
+      );
     } catch (e) {
       print('ローカルキャッシュクリアエラー: $e');
     }

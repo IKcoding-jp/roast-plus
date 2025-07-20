@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart'; // Added for kDebugMode
 
 /// アプリ全体のパフォーマンス設定を管理するクラス
 class AppPerformanceConfig {
@@ -28,6 +29,26 @@ class AppPerformanceConfig {
   static const int maxConcurrentOperations = 5;
   static const int maxRetryAttempts = 3;
 
+  // 新しい最適化設定
+  static const bool enableListViewOptimization = true;
+  static const bool enableProviderOptimization = true;
+  static const bool enableImageOptimization = true;
+  static const bool enableTextOptimization = true;
+  static const bool enableMemoryOptimization = true;
+
+  // キャッシュ設定
+  static const Duration cacheExpirationDuration = Duration(minutes: 30);
+  static const int maxCacheSize = 1000;
+  static const bool enableCacheCompression = true;
+
+  // アニメーション設定
+  static const bool enableReducedMotion = false;
+  static const double animationScale = 1.0;
+
+  // ネットワーク設定
+  static const Duration networkTimeout = Duration(seconds: 10);
+  static const int maxConcurrentNetworkRequests = 3;
+
   /// デバッグモードでのパフォーマンス設定
   static Map<String, dynamic> getDebugConfig() {
     return {
@@ -35,6 +56,18 @@ class AppPerformanceConfig {
       'enableMemoryMonitoring': true,
       'enableWidgetRebuildLogging': true,
       'enableNetworkLogging': true,
+      'enableListViewOptimization': enableListViewOptimization,
+      'enableProviderOptimization': enableProviderOptimization,
+      'enableImageOptimization': enableImageOptimization,
+      'enableTextOptimization': enableTextOptimization,
+      'enableMemoryOptimization': enableMemoryOptimization,
+      'cacheExpirationDuration': cacheExpirationDuration,
+      'maxCacheSize': maxCacheSize,
+      'enableCacheCompression': enableCacheCompression,
+      'enableReducedMotion': enableReducedMotion,
+      'animationScale': animationScale,
+      'networkTimeout': networkTimeout,
+      'maxConcurrentNetworkRequests': maxConcurrentNetworkRequests,
     };
   }
 
@@ -45,7 +78,30 @@ class AppPerformanceConfig {
       'enableMemoryMonitoring': false,
       'enableWidgetRebuildLogging': false,
       'enableNetworkLogging': false,
+      'enableListViewOptimization': enableListViewOptimization,
+      'enableProviderOptimization': enableProviderOptimization,
+      'enableImageOptimization': enableImageOptimization,
+      'enableTextOptimization': enableTextOptimization,
+      'enableMemoryOptimization': enableMemoryOptimization,
+      'cacheExpirationDuration': cacheExpirationDuration,
+      'maxCacheSize': maxCacheSize,
+      'enableCacheCompression': enableCacheCompression,
+      'enableReducedMotion': enableReducedMotion,
+      'animationScale': animationScale,
+      'networkTimeout': networkTimeout,
+      'maxConcurrentNetworkRequests': maxConcurrentNetworkRequests,
     };
+  }
+
+  /// 現在の設定を取得
+  static Map<String, dynamic> getCurrentConfig() {
+    return kDebugMode ? getDebugConfig() : getReleaseConfig();
+  }
+
+  /// 設定値の取得
+  static T getSetting<T>(String key, T defaultValue) {
+    final config = getCurrentConfig();
+    return config[key] as T? ?? defaultValue;
   }
 }
 

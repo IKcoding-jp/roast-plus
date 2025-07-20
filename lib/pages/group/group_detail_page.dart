@@ -15,6 +15,7 @@ import 'group_edit_page.dart';
 import 'group_leave_complete_page.dart';
 import 'group_list_page.dart';
 import 'group_delete_complete_page.dart';
+import '../../widgets/group_level_display_widget.dart';
 
 class GroupDetailPage extends StatefulWidget {
   final Group group;
@@ -337,6 +338,38 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                   ),
                 ),
 
+                // グループレベル表示
+                SliverToBoxAdapter(
+                  child: Consumer<GroupProvider>(
+                    builder: (context, groupProvider, child) {
+                      final gamificationProfile = groupProvider.getGroupGamificationProfile(widget.group.id);
+                      if (gamificationProfile == null) {
+                        return Card(
+                          margin: EdgeInsets.all(12),
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          color: themeSettings.backgroundColor2 ?? Colors.white,
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: themeSettings.iconColor,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return GroupLevelDisplayWidget(
+                        profile: gamificationProfile,
+                        width: double.infinity,
+                      );
+                    },
+                  ),
+                ),
+
                 // グループ設定ボタン（リーダーのみ）
                 if (isLeader)
                   SliverToBoxAdapter(
@@ -434,6 +467,34 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                       ),
                     ),
                   ),
+
+                // グループレベルバッジ表示
+                SliverToBoxAdapter(
+                  child: Consumer<GroupProvider>(
+                    builder: (context, groupProvider, child) {
+                      final gamificationProfile = groupProvider.getGroupGamificationProfile(widget.group.id);
+                      if (gamificationProfile == null) {
+                        return SizedBox.shrink();
+                      }
+
+                      final levelBadges = gamificationProfile.badges
+                          .where((badge) => badge.category == BadgeCategory.level)
+                          .toList();
+
+                      return GroupLevelBadgeWidget(
+                        levelBadges: levelBadges,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BadgeListPage(),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
 
                 // バッジセクション
                 SliverToBoxAdapter(

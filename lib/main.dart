@@ -17,6 +17,8 @@ import 'models/dashboard_stats_provider.dart';
 import 'services/todo_notification_service.dart';
 import 'services/auto_sync_service.dart';
 import 'services/roast_timer_notification_service.dart';
+import 'services/settings_migration_service.dart';
+import 'services/user_settings_firestore_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -86,6 +88,9 @@ void main() async {
   // 古い設定データの移行処理
   await _migrateOldSoundSettings();
 
+  // SharedPreferencesからFirebaseへの設定移行
+  await _migrateSettingsToFirebase();
+
   // グローバルナビゲーションキーを通知サービスにセット
   TodoNotificationService().setNavigatorKey(navigatorKey);
 
@@ -125,23 +130,59 @@ void main() async {
 
 /// 古い音声設定データを新しい形式に移行
 Future<void> _migrateOldSoundSettings() async {
-  final prefs = await SharedPreferences.getInstance();
-
   // タイマー音の移行
-  final oldTimerSound = prefs.getString('selected_timer_sound');
+  final oldTimerSound = await UserSettingsFirestoreService.getSetting(
+    'selected_timer_sound',
+  );
   if (oldTimerSound != null && !oldTimerSound.startsWith('sounds/')) {
     final newTimerSound = 'sounds/$oldTimerSound';
-    await prefs.setString('selected_timer_sound', newTimerSound);
+    await UserSettingsFirestoreService.saveSetting(
+      'selected_timer_sound',
+      newTimerSound,
+    );
     print('タイマー音設定を移行しました: $oldTimerSound -> $newTimerSound');
   }
 
   // 通知音の移行
-  final oldNotificationSound = prefs.getString('selected_notification_sound');
+  final oldNotificationSound = await UserSettingsFirestoreService.getSetting(
+    'selected_notification_sound',
+  );
   if (oldNotificationSound != null &&
       !oldNotificationSound.startsWith('sounds/')) {
     final newNotificationSound = 'sounds/$oldNotificationSound';
-    await prefs.setString('selected_notification_sound', newNotificationSound);
+    await UserSettingsFirestoreService.saveSetting(
+      'selected_notification_sound',
+      newNotificationSound,
+    );
     print('通知音設定を移行しました: $oldNotificationSound -> $newNotificationSound');
+  }
+}
+
+/// SharedPreferencesからFirebaseへの設定移行
+Future<void> _migrateSettingsToFirebase() async {
+  try {
+    // 移行が必要かチェック
+    final needsMigration = await SettingsMigrationService.needsMigration();
+
+    if (needsMigration) {
+      print('設定移行が必要です。移行を開始します...');
+
+      // 移行を実行
+      final success = await SettingsMigrationService.migrateSettings();
+
+      if (success) {
+        print('設定移行が完了しました');
+
+        // 移行完了後、古い設定をクリーンアップ（オプション）
+        // await SettingsMigrationService.cleanupOldSettings();
+      } else {
+        print('設定移行に失敗しました');
+      }
+    } else {
+      print('設定移行は不要です');
+    }
+  } catch (e) {
+    print('設定移行処理エラー: $e');
   }
 }
 

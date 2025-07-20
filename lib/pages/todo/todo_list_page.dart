@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
+import '../../utils/performance_utils.dart';
 
 import '../roast/roast_scheduler_tab.dart' show RoastSchedulerTab;
 import '../roast/roast_break_time_edit_page.dart';
@@ -15,6 +16,7 @@ import 'package:bysnapp/models/roast_break_time.dart';
 import '../../services/schedule_firestore_service.dart';
 import '../../services/todo_notification_service.dart';
 import '../schedule/today_schedule.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class TodoListPage extends StatefulWidget {
   const TodoListPage({super.key});
@@ -47,9 +49,15 @@ class TodoListPageState extends State<TodoListPage>
             setState(() {
               _roastBreakTimes = newBreakTimes;
             });
-            final prefs = await SharedPreferences.getInstance();
-            final jsonList = _roastBreakTimes.map((b) => b.toJson()).toList();
-            prefs.setString('roastBreakTimes', json.encode(jsonList));
+            try {
+              final jsonList = _roastBreakTimes.map((b) => b.toJson()).toList();
+              await UserSettingsFirestoreService.saveSetting(
+                'roastBreakTimes',
+                jsonList,
+              );
+            } catch (e) {
+              print('休憩時間保存エラー: $e');
+            }
           },
         ),
       ),
@@ -82,17 +90,20 @@ class TodoListPageState extends State<TodoListPage>
     });
 
     // 休憩時間リストの初期値をロード
-    SharedPreferences.getInstance().then((prefs) {
-      final jsonStr = prefs.getString('roastBreakTimes');
-      if (jsonStr != null) {
-        final list = (json.decode(jsonStr) as List)
-            .map((e) => RoastBreakTime.fromJson(e))
-            .toList();
-        setState(() {
-          _roastBreakTimes = list;
+    UserSettingsFirestoreService.getSetting('roastBreakTimes')
+        .then((jsonStr) {
+          if (jsonStr != null) {
+            final list = jsonStr
+                .map((e) => RoastBreakTime.fromJson(e))
+                .toList();
+            setState(() {
+              _roastBreakTimes = list;
+            });
+          }
+        })
+        .catchError((e) {
+          print('休憩時間読み込みエラー: $e');
         });
-      }
-    });
   }
 
   StreamSubscription? _todoListSubscription;
@@ -272,7 +283,7 @@ class TodoListPageState extends State<TodoListPage>
             print('TodoListPage: TODOリストを更新しました');
             // ここでローカルにも保存する
             final saved = _todos.map((e) => e.toStorageString()).toList();
-            await prefs.setStringList(_storageKey, saved);
+            await UserSettingsFirestoreService.saveSetting(_storageKey, saved);
           }
         }
       }
@@ -282,14 +293,21 @@ class TodoListPageState extends State<TodoListPage>
   }
 
   Future<void> _loadTodos() async {
-    prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getStringList(_storageKey) ?? [];
-    // _sortByTime は常に true（設定読み込み不要）
-    List<TodoItem> loaded = saved.map(TodoItem.fromString).toList();
-    loaded.sort(_compareTodoByTime);
-    setState(() {
-      _todos = loaded;
-    });
+    try {
+      final saved =
+          await UserSettingsFirestoreService.getSetting(_storageKey) ?? [];
+      // _sortByTime は常に true（設定読み込み不要）
+      List<TodoItem> loaded = saved.map(TodoItem.fromString).toList();
+      loaded.sort(_compareTodoByTime);
+      setState(() {
+        _todos = loaded;
+      });
+    } catch (e) {
+      print('TODO読み込みエラー: $e');
+      setState(() {
+        _todos = [];
+      });
+    }
   }
 
   // 追加: 時間順比較関数
@@ -349,20 +367,26 @@ class TodoListPageState extends State<TodoListPage>
   }
 
   Future<void> _saveTodos() async {
-    final saved = _todos.map((e) => e.toStorageString()).toList();
-    await prefs.setStringList(_storageKey, saved);
-    // Firestoreにも自動保存
     try {
-      await ScheduleFirestoreService.saveTodayTodoList(
-        todos: _todos
-            .map((e) => {'title': e.title, 'isDone': e.isDone, 'time': e.time})
-            .toList(),
-      );
-      // グループ同期は行わない
+      final saved = _todos.map((e) => e.toStorageString()).toList();
+      await UserSettingsFirestoreService.saveSetting(_storageKey, saved);
+      // Firestoreにも自動保存
+      try {
+        await ScheduleFirestoreService.saveTodayTodoList(
+          todos: _todos
+              .map(
+                (e) => {'title': e.title, 'isDone': e.isDone, 'time': e.time},
+              )
+              .toList(),
+        );
+        // グループ同期は行わない
+      } catch (e) {
+        print('TodoListPage: TODOリスト保存エラー: $e');
+      }
+      // ソート設定は固定のため保存不要
     } catch (e) {
-      print('TodoListPage: TODOリスト保存エラー: $e');
+      print('TODO保存エラー: $e');
     }
-    // ソート設定は固定のため保存不要
   }
 
   void _addTodo() {
@@ -702,13 +726,12 @@ class TodoListPageState extends State<TodoListPage>
                             setState(() {
                               _roastBreakTimes = newBreakTimes;
                             });
-                            final prefs = await SharedPreferences.getInstance();
                             final jsonList = _roastBreakTimes
                                 .map((b) => b.toJson())
                                 .toList();
-                            prefs.setString(
+                            await UserSettingsFirestoreService.saveSetting(
                               'roastBreakTimes',
-                              json.encode(jsonList),
+                              jsonList,
                             );
                           },
                         ),
@@ -1022,20 +1045,17 @@ class TodoListPageState extends State<TodoListPage>
                                   ),
                                 ),
                               )
-                            : ListView.builder(
+                            : PerformanceUtils.optimizedListViewBuilder(
                                 itemCount: _todos.length,
                                 itemExtent: 80.0, // 固定高さを設定してパフォーマンスを向上
                                 itemBuilder: (_, i) {
                                   final item = _todos[i];
-                                  return Card(
-                                    elevation: 4,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
+                                  return PerformanceUtils.optimizedCard(
                                     color:
-                                        Provider.of<ThemeSettings>(
-                                          context,
-                                        ).backgroundColor2 ??
+                                        PerformanceUtils.optimizedProviderOf<
+                                              ThemeSettings
+                                            >(context)
+                                            .backgroundColor2 ??
                                         Colors.white,
                                     margin: EdgeInsets.only(bottom: 12),
                                     child: ListTile(
@@ -1064,9 +1084,10 @@ class TodoListPageState extends State<TodoListPage>
                                                 : Icons.radio_button_unchecked,
                                             color: item.isDone
                                                 ? Color(0xFF4CAF50)
-                                                : Provider.of<ThemeSettings>(
-                                                    context,
-                                                  ).iconColor,
+                                                : PerformanceUtils.optimizedProviderOf<
+                                                        ThemeSettings
+                                                      >(context)
+                                                      .iconColor,
                                             size: 24,
                                           ),
                                         ),
@@ -1076,13 +1097,16 @@ class TodoListPageState extends State<TodoListPage>
                                         style: TextStyle(
                                           fontSize:
                                               16 *
-                                              Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontSizeScale,
+                                              PerformanceUtils.optimizedProviderOf<
+                                                    ThemeSettings
+                                                  >(context)
+                                                  .fontSizeScale,
                                           fontWeight: FontWeight.bold,
-                                          color: Provider.of<ThemeSettings>(
-                                            context,
-                                          ).fontColor1,
+                                          color:
+                                              PerformanceUtils.optimizedProviderOf<
+                                                    ThemeSettings
+                                                  >(context)
+                                                  .fontColor1,
                                           decoration: item.isDone
                                               ? TextDecoration.lineThrough
                                               : TextDecoration.none,
@@ -1099,7 +1123,7 @@ class TodoListPageState extends State<TodoListPage>
                                                     Icons.access_time,
                                                     size: 16,
                                                     color:
-                                                        Provider.of<
+                                                        PerformanceUtils.optimizedProviderOf<
                                                               ThemeSettings
                                                             >(context)
                                                             .iconColor,
@@ -1110,12 +1134,12 @@ class TodoListPageState extends State<TodoListPage>
                                                     style: TextStyle(
                                                       fontSize:
                                                           14 *
-                                                          Provider.of<
+                                                          PerformanceUtils.optimizedProviderOf<
                                                                 ThemeSettings
                                                               >(context)
                                                               .fontSizeScale,
                                                       color:
-                                                          Provider.of<
+                                                          PerformanceUtils.optimizedProviderOf<
                                                                 ThemeSettings
                                                               >(context)
                                                               .fontColor1

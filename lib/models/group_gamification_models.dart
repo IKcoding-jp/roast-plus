@@ -277,11 +277,14 @@ class GroupGamificationProfile {
     return badges.where((badge) => badge.category == category).toList();
   }
 
-  /// レベルに必要な経験値を計算（緩やかなスケーリング）
+  /// レベルに必要な経験値を計算（新しい仕様に基づく）
   static int _calculateRequiredXP(int level) {
-    if (level <= 1) return 0;
-    // 序盤はサクサク上がるように設計：基本XP * (レベル^1.5)
-    return (50 * level * Math.pow(level, 0.5)).round();
+    if (level <= 1) return 0; // レベル1は0XPから開始
+    if (level <= 20) return (level - 1) * 10; // レベル2-20: 10XPずつ増加
+    if (level <= 100) return 190 + (level - 20) * 15; // レベル21-100: 15XPずつ増加
+    if (level <= 1000)
+      return 1390 + (level - 100) * 20; // レベル101-1000: 20XPずつ増加
+    return 18190 + (level - 1000) * 25; // レベル1001以上: 25XPずつ増加
   }
 
   /// グループタイトルを取得
@@ -586,52 +589,8 @@ class GroupBadgeConditions {
       );
     }),
 
-    // ④ 🏆 レベルバッジ（グループレベル）- 段階的バッジ
-    GroupBadgeCondition(
-      badgeId: 'group_level_5',
-      name: '初心者チーム',
-      description: 'グループレベル5を達成',
-      icon: Icons.star_outline,
-      color: Colors.blue.shade400,
-      category: BadgeCategory.level,
-      checkCondition: (stats) => _checkGroupLevel(stats, 5),
-    ),
-    GroupBadgeCondition(
-      badgeId: 'group_level_10',
-      name: '成長チーム',
-      description: 'グループレベル10を達成',
-      icon: Icons.star_half,
-      color: Colors.blue.shade600,
-      category: BadgeCategory.level,
-      checkCondition: (stats) => _checkGroupLevel(stats, 10),
-    ),
-    GroupBadgeCondition(
-      badgeId: 'group_level_20',
-      name: '熟練チーム',
-      description: 'グループレベル20を達成',
-      icon: Icons.star,
-      color: Colors.green.shade500,
-      category: BadgeCategory.level,
-      checkCondition: (stats) => _checkGroupLevel(stats, 20),
-    ),
-    GroupBadgeCondition(
-      badgeId: 'group_level_50',
-      name: 'エキスパートチーム',
-      description: 'グループレベル50を達成',
-      icon: Icons.workspace_premium,
-      color: Colors.orange.shade600,
-      category: BadgeCategory.level,
-      checkCondition: (stats) => _checkGroupLevel(stats, 50),
-    ),
-    GroupBadgeCondition(
-      badgeId: 'group_level_100',
-      name: 'マスターチーム',
-      description: 'グループレベル100を達成',
-      icon: Icons.auto_awesome,
-      color: Colors.purple.shade600,
-      category: BadgeCategory.level,
-      checkCondition: (stats) => _checkGroupLevel(stats, 100),
-    ),
+    // ④ 🏆 レベルバッジ（グループレベル）- 新しい仕様に基づく段階的バッジ
+    ...levelBadgeConditions,
 
     // ⑤ 🏅 特殊・記録バッジ
     GroupBadgeCondition(
@@ -734,10 +693,146 @@ class GroupBadgeConditions {
     return level;
   }
 
-  /// レベルに必要な経験値を計算
+  /// レベルに必要な経験値を計算（新しい仕様に基づく）
   static int _calculateRequiredXP(int level) {
-    if (level <= 1) return 0;
-    return (50 * level * Math.pow(level, 0.5)).round();
+    if (level <= 1) return 0; // レベル1は0XPから開始
+    if (level <= 20) return (level - 1) * 10; // レベル2-20: 10XPずつ増加
+    if (level <= 100) return 190 + (level - 20) * 15; // レベル21-100: 15XPずつ増加
+    if (level <= 1000)
+      return 1390 + (level - 100) * 20; // レベル101-1000: 20XPずつ増加
+    return 18190 + (level - 1000) * 25; // レベル1001以上: 25XPずつ増加
+  }
+
+  /// 新しい仕様に基づくレベルバッジを取得
+  static List<GroupBadgeCondition> get levelBadgeConditions {
+    return [
+      GroupBadgeCondition(
+        badgeId: 'group_level_1',
+        name: 'Lv.1 達成！',
+        description: '初回の感動',
+        icon: Icons.star_outline,
+        color: Colors.green.shade400,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 1),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_5',
+        name: '成長の芽',
+        description: 'チュートリアル区間で達成',
+        icon: Icons.star_half,
+        color: Colors.green.shade500,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 5),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_10',
+        name: 'コーヒーの旅路',
+        description: '最初の壁',
+        icon: Icons.star,
+        color: Colors.green.shade600,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 10),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_20',
+        name: 'チームの誇り',
+        description: '頻繁に活動している証',
+        icon: Icons.workspace_premium_outlined,
+        color: Colors.blue.shade400,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 20),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_50',
+        name: '現場の主',
+        description: '継続を実感',
+        icon: Icons.workspace_premium,
+        color: Colors.blue.shade600,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 50),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_100',
+        name: 'ベテランブリュワー',
+        description: '長期運用へ',
+        icon: Icons.auto_awesome_outlined,
+        color: Colors.orange.shade600,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 100),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_250',
+        name: '伝説の焙煎士',
+        description: '上位組へ',
+        icon: Icons.auto_awesome,
+        color: Colors.orange.shade700,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 250),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_500',
+        name: '百戦錬磨',
+        description: '特別感ある称号',
+        icon: Icons.emoji_events_outlined,
+        color: Colors.purple.shade500,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 500),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_1000',
+        name: '殿堂入り',
+        description: '初代達成のインパクト',
+        icon: Icons.emoji_events,
+        color: Colors.purple.shade700,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 1000),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_2000',
+        name: 'コーヒーの神話',
+        description: '長期ユーザーに',
+        icon: Icons.workspace_premium,
+        color: Colors.indigo.shade600,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 2000),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_3000',
+        name: '焙煎の系譜',
+        description: 'レア称号として魅力的',
+        icon: Icons.auto_awesome,
+        color: Colors.indigo.shade800,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 3000),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_5000',
+        name: '深煎の極み',
+        description: '超高難度',
+        icon: Icons.workspace_premium,
+        color: Colors.red.shade600,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 5000),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_7500',
+        name: '究極の香り',
+        description: '伝説級称号',
+        icon: Icons.auto_awesome,
+        color: Colors.red.shade800,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 7500),
+      ),
+      GroupBadgeCondition(
+        badgeId: 'group_level_9999',
+        name: 'Lv.9999 到達',
+        description: '最終到達記念称号（特別演出）',
+        icon: Icons.workspace_premium,
+        color: Colors.amber.shade700,
+        category: BadgeCategory.level,
+        checkCondition: (stats) => _checkGroupLevel(stats, 9999),
+      ),
+    ];
   }
 }
 

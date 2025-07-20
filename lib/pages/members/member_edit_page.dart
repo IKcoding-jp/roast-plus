@@ -7,6 +7,7 @@ import '../../services/assignment_firestore_service.dart';
 import '../../services/group_data_sync_service.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
+import '../../services/user_settings_firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -128,45 +129,58 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   Future<void> _loadMembers() async {
-    prefs = await SharedPreferences.getInstance();
+    try {
+      // Firebaseから既存のデータを読み込み（後方互換性のため）
+      final settings = await UserSettingsFirestoreService.getMultipleSettings([
+        'assignment_team_a',
+        'assignment_team_b',
+        'leftLabels',
+        'rightLabels',
+        'teams',
+      ]);
 
-    // 既存のデータを読み込み（後方互換性のため）
-    final aMembers = prefs.getStringList('a班') ?? [];
-    final bMembers = prefs.getStringList('b班') ?? [];
-    leftLabels = prefs.getStringList('leftLabels') ?? [];
-    rightLabels = prefs.getStringList('rightLabels') ?? [];
+      final aMembers = settings['assignment_team_a'] ?? [];
+      final bMembers = settings['assignment_team_b'] ?? [];
+      leftLabels = settings['leftLabels'] ?? [];
+      rightLabels = settings['rightLabels'] ?? [];
 
-    // 班のデータを読み込み
-    final teamsJson = prefs.getString('teams');
-    if (teamsJson != null) {
-      final teamsList = jsonDecode(teamsJson) as List;
-      teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
-    } else {
-      teams = [];
+      // 班のデータを読み込み
+      final teamsJson = settings['teams'];
+      if (teamsJson != null) {
+        final teamsList = teamsJson;
+        teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
+      } else {
+        teams = [];
+      }
+
+      // 初期値セットは削除（Firestore取得後に行う）
+      setState(() {});
+    } catch (e) {
+      print('メンバー読み込みエラー: $e');
+      setState(() {});
     }
-
-    // 初期値セットは削除（Firestore取得後に行う）
-    setState(() {});
   }
 
   Future<void> _saveMembers() async {
-    // 新しい形式で保存
-    final teamsJson = jsonEncode(teams.map((team) => team.toMap()).toList());
-    await prefs.setString('teams', teamsJson);
+    try {
+      // 新しい形式で保存
+      final teamsJson = teams.map((team) => team.toMap()).toList();
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'teams': teamsJson,
+        'leftLabels': leftLabels,
+        'rightLabels': rightLabels,
+      });
 
-    // 後方互換性のため、最初の2つの班をA班、B班としても保存
-    if (teams.isNotEmpty) {
-      await prefs.setStringList('a班', teams[0].members);
-      if (teams.length > 1) {
-        await prefs.setStringList('b班', teams[1].members);
-      } else {
-        await prefs.setStringList('b班', []);
+      // 後方互換性のため、最初の2つの班をA班、B班としても保存
+      if (teams.isNotEmpty) {
+        await UserSettingsFirestoreService.saveMultipleSettings({
+          'assignment_team_a': teams[0].members,
+          'assignment_team_b': teams.length > 1 ? teams[1].members : [],
+        });
       }
+    } catch (e) {
+      print('メンバー保存エラー: $e');
     }
-
-    // ラベルも保存
-    await prefs.setStringList('leftLabels', leftLabels);
-    await prefs.setStringList('rightLabels', rightLabels);
 
     // Firestoreにも保存
     await AssignmentFirestoreService.saveAssignmentMembers(

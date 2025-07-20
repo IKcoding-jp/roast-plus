@@ -10,6 +10,7 @@ import '../../services/group_data_sync_service.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../services/schedule_firestore_service.dart' as ScheduleService;
+import '../../services/user_settings_firestore_service.dart';
 import '../schedule/schedule_time_label_edit_page.dart';
 
 // ▼▼▼ 範囲管理用クラスを追加 ▼▼▼
@@ -52,6 +53,12 @@ class _TodayScheduleState extends State<TodaySchedule> {
   // テキストコントローラー管理
   final Map<String, TextEditingController> _scheduleControllers = {};
 
+  // StreamSubscription管理
+  StreamSubscription? _scheduleSubscription;
+  StreamSubscription? _timeLabelsSubscription;
+  StreamSubscription? _groupTimeLabelsSubscription;
+  StreamSubscription? _groupTodayScheduleSubscription;
+
   // ラベル追加・削除・初期化時にコントローラを管理
   void _initScheduleControllers() {
     // 新規ラベルのみcontroller生成
@@ -74,6 +81,7 @@ class _TodayScheduleState extends State<TodaySchedule> {
 
   // グループデータからの更新（保存しない）
   void _updateFromGroupData(List<String> labels, Map<String, String> contents) {
+    if (!mounted) return; // mountedチェックを追加
     print('TodaySchedule: グループデータから更新（保存なし）');
 
     // リーダーの場合はグループデータで上書きしない
@@ -124,22 +132,32 @@ class _TodayScheduleState extends State<TodaySchedule> {
 
   // ▼▼▼ 範囲選択の保存 ▼▼▼
   Future<void> _saveArrowRanges() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ranges = _arrowRanges.map((r) => [r.start, r.end]).toList();
-    await prefs.setString('todaySchedule_arrowRanges', json.encode(ranges));
+    try {
+      final ranges = _arrowRanges.map((r) => [r.start, r.end]).toList();
+      await UserSettingsFirestoreService.saveSetting(
+        'todaySchedule_arrowRanges',
+        ranges,
+      );
+    } catch (e) {
+      print('範囲選択保存エラー: $e');
+    }
   }
 
   Future<void> _loadArrowRanges() async {
-    final prefs = await SharedPreferences.getInstance();
-    final rangesStr = prefs.getString('todaySchedule_arrowRanges');
-    if (rangesStr != null) {
-      final List<dynamic> decoded = json.decode(rangesStr);
+    try {
+      final ranges =
+          await UserSettingsFirestoreService.getSetting(
+            'todaySchedule_arrowRanges',
+          ) ??
+          [];
       _arrowRanges.clear();
-      for (final item in decoded) {
+      for (final item in ranges) {
         if (item is List && item.length == 2) {
           _arrowRanges.add(_ArrowRange(item[0], item[1]));
         }
       }
+    } catch (e) {
+      print('範囲選択読み込みエラー: $e');
     }
   }
   // ▲▲▲
@@ -152,11 +170,6 @@ class _TodayScheduleState extends State<TodaySchedule> {
     _setupGroupDataListener();
     _checkEditPermissions();
     _setupFirestoreListener();
-
-    // 親からコールバックを受け取る場合
-    if (widget.onEditTimeLabels != null) {
-      widget.onEditTimeLabels!(_openLabelEdit);
-    }
 
     // GroupProviderのグループ読み込みを確認
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -174,6 +187,13 @@ class _TodayScheduleState extends State<TodaySchedule> {
 
   @override
   void dispose() {
+    // StreamSubscriptionをキャンセル
+    _scheduleSubscription?.cancel();
+    _timeLabelsSubscription?.cancel();
+    _groupTimeLabelsSubscription?.cancel();
+    _groupTodayScheduleSubscription?.cancel();
+
+    // テキストコントローラーを破棄
     for (final c in _scheduleControllers.values) {
       c.dispose();
     }
@@ -182,17 +202,23 @@ class _TodayScheduleState extends State<TodaySchedule> {
 
   Future<void> _loadSchedules() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final labelsStr = prefs.getString('todaySchedule_labels');
-      final contentsStr = prefs.getString('todaySchedule_contents');
+      final settings = await UserSettingsFirestoreService.getMultipleSettings([
+        'todaySchedule_labels',
+        'todaySchedule_contents',
+      ]);
+
       List<String> loadedLabels = [];
       Map<String, String> loadedContents = {};
-      if (labelsStr != null) {
-        loadedLabels = List<String>.from(json.decode(labelsStr));
+
+      if (settings['todaySchedule_labels'] != null) {
+        loadedLabels = List<String>.from(settings['todaySchedule_labels']);
       }
-      if (contentsStr != null) {
-        loadedContents = Map<String, String>.from(json.decode(contentsStr));
+      if (settings['todaySchedule_contents'] != null) {
+        loadedContents = Map<String, String>.from(
+          settings['todaySchedule_contents'],
+        );
       }
+
       setState(() {
         _scheduleLabels = loadedLabels;
         _scheduleContents = loadedContents;
@@ -236,15 +262,10 @@ class _TodayScheduleState extends State<TodaySchedule> {
     print('TodaySchedule: ラベル: $_scheduleLabels');
     print('TodaySchedule: 内容: $_scheduleContents');
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        'todaySchedule_labels',
-        json.encode(_scheduleLabels),
-      );
-      await prefs.setString(
-        'todaySchedule_contents',
-        json.encode(_scheduleContents),
-      );
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'todaySchedule_labels': _scheduleLabels,
+        'todaySchedule_contents': _scheduleContents,
+      });
 
       final groupProvider = context.read<GroupProvider>();
       final isNoGroup = groupProvider.groups.isEmpty;
@@ -295,20 +316,26 @@ class _TodayScheduleState extends State<TodaySchedule> {
 
   // 時間ラベル保存用のメソッドを追加
   Future<void> _saveTimeLabels(List<String> labels) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('todaySchedule_labels', json.encode(labels));
-    setState(() {
-      _scheduleLabels = List.from(labels);
-      _initScheduleControllers();
-    });
-    final groupProvider = context.read<GroupProvider>();
-    final isNoGroup = groupProvider.groups.isEmpty;
-    if (_canEditTimeLabels || isNoGroup) {
-      try {
-        await ScheduleService.ScheduleFirestoreService.saveTimeLabels(labels);
-      } catch (e) {
-        print('TodaySchedule: 時間ラベルFirestore保存エラー: $e');
+    try {
+      await UserSettingsFirestoreService.saveSetting(
+        'todaySchedule_labels',
+        labels,
+      );
+      setState(() {
+        _scheduleLabels = List.from(labels);
+        _initScheduleControllers();
+      });
+      final groupProvider = context.read<GroupProvider>();
+      final isNoGroup = groupProvider.groups.isEmpty;
+      if (_canEditTimeLabels || isNoGroup) {
+        try {
+          await ScheduleService.ScheduleFirestoreService.saveTimeLabels(labels);
+        } catch (e) {
+          print('TodaySchedule: 時間ラベルFirestore保存エラー: $e');
+        }
       }
+    } catch (e) {
+      print('時間ラベル保存エラー: $e');
     }
   }
 
@@ -322,13 +349,14 @@ class _TodayScheduleState extends State<TodaySchedule> {
 
       // 本日のスケジュールの変更を監視（メンバーのみ）
       if (!_canEditTodaySchedule) {
-        FirebaseFirestore.instance
+        _scheduleSubscription = FirebaseFirestore.instance
             .collection('users')
             .doc(FirebaseAuth.instance.currentUser?.uid)
             .collection('todaySchedule')
             .doc(docId)
             .snapshots()
             .listen((snapshot) {
+              if (!mounted) return; // mountedチェックを追加
               print('TodaySchedule: Firestoreからスケジュール変更を検知（メンバー）');
               if (snapshot.exists && snapshot.data() != null) {
                 final data = snapshot.data()!;
@@ -348,13 +376,14 @@ class _TodayScheduleState extends State<TodaySchedule> {
 
       // 時間ラベルの変更を監視（メンバーのみ）
       if (!_canEditTimeLabels) {
-        FirebaseFirestore.instance
+        _timeLabelsSubscription = FirebaseFirestore.instance
             .collection('users')
             .doc(FirebaseAuth.instance.currentUser?.uid)
             .collection('labels')
             .doc('timeLabels')
             .snapshots()
             .listen((snapshot) {
+              if (!mounted) return; // mountedチェックを追加
               print('TodaySchedule: Firestoreから時間ラベル変更を検知（メンバー）');
               if (snapshot.exists && snapshot.data() != null) {
                 final data = snapshot.data()!;
@@ -383,37 +412,47 @@ class _TodayScheduleState extends State<TodaySchedule> {
 
         // グループの時間ラベル変更を監視（メンバーのみ）
         if (!_canEditTimeLabels) {
-          GroupDataSyncService.watchGroupTimeLabels(group.id).listen((data) {
-            print('TodaySchedule: グループから時間ラベル変更を検知（メンバー）: $data');
-            if (data != null) {
-              final labels = data['labels'] as List<dynamic>?;
-              if (labels != null) {
-                setState(() {
-                  _scheduleLabels = List<String>.from(labels);
-                });
-                _initScheduleControllers();
-                print('TodaySchedule: グループから時間ラベルを更新しました（メンバー）');
-              }
-            }
-          });
+          _groupTimeLabelsSubscription =
+              GroupDataSyncService.watchGroupTimeLabels(group.id).listen((
+                data,
+              ) {
+                if (!mounted) return; // mountedチェックを追加
+                print('TodaySchedule: グループから時間ラベル変更を検知（メンバー）: $data');
+                if (data != null) {
+                  final labels = data['labels'] as List<dynamic>?;
+                  if (labels != null) {
+                    setState(() {
+                      _scheduleLabels = List<String>.from(labels);
+                    });
+                    _initScheduleControllers();
+                    print('TodaySchedule: グループから時間ラベルを更新しました（メンバー）');
+                  }
+                }
+              });
         }
 
         // グループの本日のスケジュール変更を監視（メンバーのみ）
         if (!_canEditTodaySchedule) {
-          GroupDataSyncService.watchGroupTodaySchedule(group.id).listen((data) {
-            print('TodaySchedule: グループから本日のスケジュール変更を検知（メンバー）: $data');
-            if (data != null) {
-              final labels = data['labels'] as List<dynamic>?;
-              final contents = data['contents'] as Map<String, dynamic>?;
-              if (labels != null) {
-                _updateFromGroupData(
-                  List<String>.from(labels),
-                  contents != null ? Map<String, String>.from(contents) : {},
-                );
-                print('TodaySchedule: グループから本日のスケジュールを更新しました（メンバー）');
-              }
-            }
-          });
+          _groupTodayScheduleSubscription =
+              GroupDataSyncService.watchGroupTodaySchedule(group.id).listen((
+                data,
+              ) {
+                if (!mounted) return; // mountedチェックを追加
+                print('TodaySchedule: グループから本日のスケジュール変更を検知（メンバー）: $data');
+                if (data != null) {
+                  final labels = data['labels'] as List<dynamic>?;
+                  final contents = data['contents'] as Map<String, dynamic>?;
+                  if (labels != null) {
+                    _updateFromGroupData(
+                      List<String>.from(labels),
+                      contents != null
+                          ? Map<String, String>.from(contents)
+                          : {},
+                    );
+                    print('TodaySchedule: グループから本日のスケジュールを更新しました（メンバー）');
+                  }
+                }
+              });
         }
       }
     } catch (e) {

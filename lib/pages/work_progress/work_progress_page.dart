@@ -5,6 +5,7 @@ import '../../models/theme_settings.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 import 'work_progress_edit_page.dart';
 import '../../models/group_provider.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class WorkProgressPage extends StatefulWidget {
   const WorkProgressPage({super.key});

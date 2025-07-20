@@ -548,55 +548,12 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
           final totalMinutes = minutes + (seconds / 60.0);
 
           if (totalMinutes > 0) {
-            // グループのゲーミフィケーションシステムに通知
+            // グループのゲーミフィケーションシステムに通知（統一された演出を使用）
             await groupProvider.processGroupRoasting(
               groupId,
               totalMinutes,
               context: context,
             );
-
-            // 新しい焙煎時間バッジのチェック（別途実行）
-            try {
-              final result = await GroupGamificationService.recordRoasting(
-                groupId,
-                totalMinutes,
-              );
-
-              if (result.success && result.newBadges.isNotEmpty) {
-                // 焙煎時間バッジをフィルタリング
-                final roastTimeBadges = result.newBadges
-                    .where((badge) => badge.id.startsWith('roast_time_'))
-                    .toList();
-
-                if (roastTimeBadges.isNotEmpty) {
-                  // バッジ獲得通知を表示
-                  for (final badge in roastTimeBadges) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              Icon(badge.icon, color: badge.color, size: 20),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '焙煎バッジ獲得: ${badge.name}',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ),
-                          backgroundColor: Colors.green.shade100,
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  }
-                }
-              }
-            } catch (e) {
-              print('焙煎時間バッジチェックエラー: $e');
-            }
           }
         }
       }

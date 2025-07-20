@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../models/theme_settings.dart';
+import '../services/user_settings_firestore_service.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback onReset;
@@ -23,22 +24,36 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadDevMode() async {
-    final loadedPrefs = await SharedPreferences.getInstance();
-    final devMode = loadedPrefs.getBool('developerMode') ?? false;
-    if (mounted) {
-      setState(() {
-        prefs = loadedPrefs;
-        developerMode = devMode;
-        _prefsLoaded = true;
-      });
+    try {
+      final devMode =
+          await UserSettingsFirestoreService.getSetting('developerMode') ??
+          false;
+      if (mounted) {
+        setState(() {
+          developerMode = devMode;
+          _prefsLoaded = true;
+        });
+      }
+    } catch (e) {
+      print('開発者モード読み込みエラー: $e');
+      if (mounted) {
+        setState(() {
+          developerMode = false;
+          _prefsLoaded = true;
+        });
+      }
     }
   }
 
-  void _toggleDevMode(bool value) {
+  void _toggleDevMode(bool value) async {
     setState(() {
       developerMode = value;
     });
-    prefs?.setBool('developerMode', value);
+    try {
+      await UserSettingsFirestoreService.saveSetting('developerMode', value);
+    } catch (e) {
+      print('開発者モード保存エラー: $e');
+    }
   }
 
   @override

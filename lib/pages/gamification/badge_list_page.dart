@@ -429,10 +429,14 @@ class _BadgeListPageState extends State<BadgeListPage>
     return level;
   }
 
-  /// レベルに必要な経験値を計算
+  /// レベルに必要な経験値を計算（GroupGamificationProfileと統一）
   int _calculateRequiredXP(int level) {
-    if (level <= 1) return 0;
-    return (50 * level * Math.pow(level, 0.5)).round();
+    if (level <= 1) return 0; // レベル1は0XPから開始
+    if (level <= 20) return (level - 1) * 10; // レベル2-20: 10XPずつ増加
+    if (level <= 100) return 190 + (level - 20) * 15; // レベル21-100: 15XPずつ増加
+    if (level <= 1000)
+      return 1390 + (level - 100) * 20; // レベル101-1000: 20XPずつ増加
+    return 18190 + (level - 1000) * 25; // レベル1001以上: 25XPずつ増加
   }
 
   /// フィルタリングされたバッジリスト

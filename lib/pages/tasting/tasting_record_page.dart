@@ -6,6 +6,7 @@ import '../../widgets/bean_name_with_sticker.dart';
 import 'tasting_record_edit_page.dart';
 import 'package:intl/intl.dart';
 import '../../models/group_provider.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class TastingRecordPage extends StatefulWidget {
   const TastingRecordPage({super.key});

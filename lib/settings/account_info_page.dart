@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/sync_firestore_all.dart';
 import '../services/data_sync_service.dart';
+import '../services/user_settings_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../models/theme_settings.dart';
 import '../utils/app_performance_config.dart';
@@ -627,6 +628,8 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                               // Firestoreデータ削除
                                               await DataSyncService.deleteAllUserData();
                                               // ローカルデータ削除
+                                              // 注: UserSettingsFirestoreServiceにはclearAllSettingsメソッドがないため、
+                                              // 個別に削除するか、SharedPreferencesを直接使用
                                               final prefs =
                                                   await SharedPreferences.getInstance();
                                               await prefs.clear();

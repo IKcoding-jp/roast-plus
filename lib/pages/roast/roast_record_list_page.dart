@@ -9,6 +9,7 @@ import '../../models/group_models.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 import 'package:bysnapp/pages/roast/roast_edit_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../utils/performance_utils.dart';
 
 class RoastRecordListPage extends StatefulWidget {
   const RoastRecordListPage({super.key});
@@ -898,10 +899,10 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                 ),
                               ),
                             )
-                          : ListView.builder(
+                          : PerformanceUtils.optimizedListViewBuilder(
                               padding: EdgeInsets.symmetric(horizontal: 8),
                               itemCount: filteredRecords.length,
-                              // itemExtent: 120.0, // 固定高さを削除
+                              itemExtent: 120.0, // 固定高さを設定してパフォーマンスを向上
                               itemBuilder: (context, index) {
                                 final record = filteredRecords[index];
                                 final selected = _selectedIndexes.contains(

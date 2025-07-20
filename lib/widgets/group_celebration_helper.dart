@@ -48,34 +48,13 @@ class GroupCelebrationHelper {
     }
   }
 
-  /// バッジ獲得演出（複数バッジ対応）
+  /// バッジ獲得演出（複数バッジ対応）- 非推奨：showUnifiedBadgeCelebrationを使用
+  @Deprecated('showUnifiedBadgeCelebrationを使用してください')
   static Future<void> showBadgeCelebration(
     BuildContext context,
     List<GroupBadge> badges,
   ) async {
-    if (!context.mounted || badges.isEmpty) return;
-
-    for (final badge in badges) {
-      if (!context.mounted) break;
-
-      showModalBottomSheet(
-        context: context,
-        isDismissible: false,
-        backgroundColor: Colors.transparent,
-        isScrollControlled: true,
-        builder: (_) => _BadgeCelebrationCard(badge: badge),
-      );
-
-      await Future.delayed(Duration(seconds: 2));
-      if (context.mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
-
-      // 複数バッジの場合は少し間隔を空ける
-      if (badges.length > 1) {
-        await Future.delayed(Duration(milliseconds: 500));
-      }
-    }
+    return showUnifiedBadgeCelebration(context, badges);
   }
 
   /// 複合演出（XP獲得 + レベルアップ + バッジ獲得）
@@ -97,9 +76,29 @@ class GroupCelebrationHelper {
       await showLevelUp(context, newLevel);
     }
 
-    // バッジ獲得演出
+    // バッジ獲得演出（単一の統合演出）
     if (newBadges.isNotEmpty) {
-      await showBadgeCelebration(context, newBadges);
+      await showUnifiedBadgeCelebration(context, newBadges);
+    }
+  }
+
+  /// 統合バッジ獲得演出（複数バッジを一度に表示）
+  static Future<void> showUnifiedBadgeCelebration(
+    BuildContext context,
+    List<GroupBadge> badges,
+  ) async {
+    if (!context.mounted || badges.isEmpty) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (_) => _UnifiedBadgeCelebrationDialog(badges: badges),
+    );
+
+    await Future.delayed(Duration(seconds: 3));
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
     }
   }
 }
@@ -185,10 +184,10 @@ class _CelebrationDialogState extends State<_CelebrationDialog>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Lottieアニメーション
+                    // Lottieアニメーション（統一サイズ）
                     Container(
-                      width: widget.isFullScreen ? 200 : 150,
-                      height: widget.isFullScreen ? 200 : 150,
+                      width: 180,
+                      height: 180,
                       child: Lottie.asset(
                         widget.lottieAsset,
                         repeat: false,
@@ -228,40 +227,38 @@ class _CelebrationDialogState extends State<_CelebrationDialog>
   }
 }
 
-/// 内部用：バッジ獲得カード
-class _BadgeCelebrationCard extends StatefulWidget {
-  final GroupBadge badge;
+/// 内部用：統合バッジ獲得ダイアログ
+class _UnifiedBadgeCelebrationDialog extends StatefulWidget {
+  final List<GroupBadge> badges;
 
-  const _BadgeCelebrationCard({required this.badge});
+  const _UnifiedBadgeCelebrationDialog({required this.badges});
 
   @override
-  State<_BadgeCelebrationCard> createState() => _BadgeCelebrationCardState();
+  State<_UnifiedBadgeCelebrationDialog> createState() =>
+      _UnifiedBadgeCelebrationDialogState();
 }
 
-class _BadgeCelebrationCardState extends State<_BadgeCelebrationCard>
+class _UnifiedBadgeCelebrationDialogState
+    extends State<_UnifiedBadgeCelebrationDialog>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: Duration(milliseconds: 600),
+      duration: Duration(milliseconds: 800),
       vsync: this,
     );
 
-    _slideAnimation = Tween<Offset>(begin: Offset(0, 1), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _animationController,
-            curve: Curves.elasticOut,
-          ),
-        );
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
     );
 
     _animationController.forward();
@@ -280,103 +277,136 @@ class _BadgeCelebrationCardState extends State<_BadgeCelebrationCard>
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
-        return SlideTransition(
-          position: _slideAnimation,
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          backgroundColor: Colors.transparent,
           child: FadeTransition(
             opacity: _fadeAnimation,
-            child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: Card(
-                elevation: 12,
-                shadowColor: widget.badge.color.withOpacity(0.3),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Container(
+                padding: EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
                 ),
-                child: Container(
-                  padding: EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        widget.badge.color.withOpacity(0.1),
-                        widget.badge.color.withOpacity(0.05),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ヘッダー
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.emoji_events,
+                          color: Colors.amber.shade600,
+                          size: 24,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'バッジ獲得！',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'KiwiMaru',
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // バッジアイコン
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              widget.badge.color.withOpacity(0.8),
-                              widget.badge.color,
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: widget.badge.color.withOpacity(0.4),
-                              blurRadius: 15,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          widget.badge.icon,
-                          size: 40,
-                          color: Colors.white,
-                        ),
+                    SizedBox(height: 20),
+
+                    // バッジ一覧
+                    ...widget.badges
+                        .map((badge) => _buildBadgeItem(badge, theme))
+                        .toList(),
+
+                    SizedBox(height: 16),
+                    Text(
+                      'タップして閉じる',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
                       ),
-
-                      SizedBox(height: 16),
-
-                      // バッジ名
-                      Text(
-                        '🎖 バッジ「${widget.badge.name}」を獲得しました！',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
-                          fontFamily: 'KiwiMaru',
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      SizedBox(height: 8),
-
-                      // バッジ説明
-                      Text(
-                        widget.badge.description,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.8),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      SizedBox(height: 12),
-
-                      // 獲得者情報
-                      Text(
-                        'by ${widget.badge.earnedByUserName}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildBadgeItem(GroupBadge badge, ThemeData theme) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: badge.color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: badge.color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          // バッジアイコン
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: badge.color,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: badge.color.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(badge.icon, color: Colors.white, size: 24),
+          ),
+          SizedBox(width: 12),
+
+          // バッジ情報
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  badge.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  badge.description,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.8),
+                  ),
+                ),
+                if (badge.earnedByUserName.isNotEmpty) ...[
+                  SizedBox(height: 4),
+                  Text(
+                    'by ${badge.earnedByUserName}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

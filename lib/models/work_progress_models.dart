@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/work_progress_firestore_service.dart';
+import '../services/user_settings_firestore_service.dart';
 
 enum WorkStage {
   handpick, // ハンドピック
@@ -136,19 +137,27 @@ class WorkProgressProvider extends ChangeNotifier {
         // 作成日順にソート（新しい順）
         _workProgressList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       } else {
-        // Firestoreにデータがない場合はローカルストレージから読み込み
-        final prefs = await SharedPreferences.getInstance();
-        final jsonString = prefs.getString(_storageKey);
+        // Firestoreにデータがない場合はFirebaseから読み込み
+        try {
+          final jsonString = await UserSettingsFirestoreService.getSetting(
+            _storageKey,
+          );
 
-        if (jsonString != null) {
-          final List<dynamic> jsonList = json.decode(jsonString);
-          _workProgressList = jsonList
-              .map((json) => WorkProgress.fromMap(json))
-              .toList();
+          if (jsonString != null) {
+            final List<dynamic> jsonList = jsonString;
+            _workProgressList = jsonList
+                .map((json) => WorkProgress.fromMap(json))
+                .toList();
 
-          // 作成日順にソート（新しい順）
-          _workProgressList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        } else {
+            // 作成日順にソート（新しい順）
+            _workProgressList.sort(
+              (a, b) => b.createdAt.compareTo(a.createdAt),
+            );
+          } else {
+            _workProgressList = [];
+          }
+        } catch (e) {
+          print('Firebaseからの作業進捗読み込みエラー: $e');
           _workProgressList = [];
         }
       }
@@ -163,11 +172,8 @@ class WorkProgressProvider extends ChangeNotifier {
 
   Future<void> _saveToStorage() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = json.encode(
-        _workProgressList.map((wp) => wp.toMap()).toList(),
-      );
-      await prefs.setString(_storageKey, jsonString);
+      final jsonString = _workProgressList.map((wp) => wp.toMap()).toList();
+      await UserSettingsFirestoreService.saveSetting(_storageKey, jsonString);
     } catch (e) {
       print('Error saving work progress: $e');
       rethrow;

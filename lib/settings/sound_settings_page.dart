@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/theme_settings.dart';
-import '../services/app_settings_firestore_service.dart';
+import '../services/user_settings_firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -117,19 +116,40 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
 
   Future<void> _loadSoundSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final timerSoundEnabled = await UserSettingsFirestoreService.getSetting(
+        'timer_sound_enabled',
+        defaultValue: true,
+      );
+      final notificationSoundEnabled =
+          await UserSettingsFirestoreService.getSetting(
+            'notification_sound_enabled',
+            defaultValue: true,
+          );
+      final timerVolume = await UserSettingsFirestoreService.getSetting(
+        'timer_volume',
+        defaultValue: 0.7,
+      );
+      final notificationVolume = await UserSettingsFirestoreService.getSetting(
+        'notification_volume',
+        defaultValue: 0.5,
+      );
+      final selectedTimerSound = await UserSettingsFirestoreService.getSetting(
+        'selected_timer_sound',
+        defaultValue: 'sounds/alarm/alarm01.mp3',
+      );
+      final selectedNotificationSound =
+          await UserSettingsFirestoreService.getSetting(
+            'selected_notification_sound',
+            defaultValue: 'sounds/notification/notification01.mp3',
+          );
+
       setState(() {
-        _timerSoundEnabled = prefs.getBool('timer_sound_enabled') ?? true;
-        _notificationSoundEnabled =
-            prefs.getBool('notification_sound_enabled') ?? true;
-        _timerVolume = prefs.getDouble('timer_volume') ?? 0.7;
-        _notificationVolume = prefs.getDouble('notification_volume') ?? 0.5;
-        _selectedTimerSound =
-            prefs.getString('selected_timer_sound') ??
-            'sounds/alarm/alarm01.mp3';
-        _selectedNotificationSound =
-            prefs.getString('selected_notification_sound') ??
-            'sounds/notification/notification01.mp3';
+        _timerSoundEnabled = timerSoundEnabled;
+        _notificationSoundEnabled = notificationSoundEnabled;
+        _timerVolume = timerVolume;
+        _notificationVolume = notificationVolume;
+        _selectedTimerSound = selectedTimerSound;
+        _selectedNotificationSound = selectedNotificationSound;
         _isLoading = false;
       });
     } catch (e) {
@@ -140,105 +160,60 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
   }
 
   Future<void> _saveTimerSoundEnabled(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('timer_sound_enabled', value);
+    await UserSettingsFirestoreService.saveSetting(
+      'timer_sound_enabled',
+      value,
+    );
     setState(() {
       _timerSoundEnabled = value;
     });
-    // Firestoreに必ず保存
-    await AppSettingsFirestoreService.saveSoundSettings(
-      alarmSound: _selectedTimerSound,
-      notificationSound: _selectedNotificationSound,
-      alarmEnabled: value,
-      notificationEnabled: _notificationSoundEnabled,
-      alarmVolume: _timerVolume,
-      notificationVolume: _notificationVolume,
-    );
   }
 
   Future<void> _saveNotificationSoundEnabled(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('notification_sound_enabled', value);
+    await UserSettingsFirestoreService.saveSetting(
+      'notification_sound_enabled',
+      value,
+    );
     setState(() {
       _notificationSoundEnabled = value;
     });
-    // Firestoreに必ず保存
-    await AppSettingsFirestoreService.saveSoundSettings(
-      alarmSound: _selectedTimerSound,
-      notificationSound: _selectedNotificationSound,
-      alarmEnabled: _timerSoundEnabled,
-      notificationEnabled: value,
-      alarmVolume: _timerVolume,
-      notificationVolume: _notificationVolume,
-    );
   }
 
   Future<void> _saveTimerVolume(double value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('timer_volume', value);
+    await UserSettingsFirestoreService.saveSetting('timer_volume', value);
     setState(() {
       _timerVolume = value;
     });
-    // Firestoreに必ず保存
-    await AppSettingsFirestoreService.saveSoundSettings(
-      alarmSound: _selectedTimerSound,
-      notificationSound: _selectedNotificationSound,
-      alarmEnabled: _timerSoundEnabled,
-      notificationEnabled: _notificationSoundEnabled,
-      alarmVolume: value,
-      notificationVolume: _notificationVolume,
-    );
   }
 
   Future<void> _saveNotificationVolume(double value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('notification_volume', value);
+    await UserSettingsFirestoreService.saveSetting(
+      'notification_volume',
+      value,
+    );
     setState(() {
       _notificationVolume = value;
     });
-    // Firestoreに必ず保存
-    await AppSettingsFirestoreService.saveSoundSettings(
-      alarmSound: _selectedTimerSound,
-      notificationSound: _selectedNotificationSound,
-      alarmEnabled: _timerSoundEnabled,
-      notificationEnabled: _notificationSoundEnabled,
-      alarmVolume: _timerVolume,
-      notificationVolume: value,
-    );
   }
 
   Future<void> _saveSelectedTimerSound(String sound) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_timer_sound', sound);
+    await UserSettingsFirestoreService.saveSetting(
+      'selected_timer_sound',
+      sound,
+    );
     setState(() {
       _selectedTimerSound = sound;
     });
-    // Firestoreに必ず保存
-    await AppSettingsFirestoreService.saveSoundSettings(
-      alarmSound: sound,
-      notificationSound: _selectedNotificationSound,
-      alarmEnabled: _timerSoundEnabled,
-      notificationEnabled: _notificationSoundEnabled,
-      alarmVolume: _timerVolume,
-      notificationVolume: _notificationVolume,
-    );
   }
 
   Future<void> _saveSelectedNotificationSound(String sound) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_notification_sound', sound);
+    await UserSettingsFirestoreService.saveSetting(
+      'selected_notification_sound',
+      sound,
+    );
     setState(() {
       _selectedNotificationSound = sound;
     });
-    // Firestoreに必ず保存
-    await AppSettingsFirestoreService.saveSoundSettings(
-      alarmSound: _selectedTimerSound,
-      notificationSound: sound,
-      alarmEnabled: _timerSoundEnabled,
-      notificationEnabled: _notificationSoundEnabled,
-      alarmVolume: _timerVolume,
-      notificationVolume: _notificationVolume,
-    );
   }
 
   String _getTimerSoundDisplayName(String soundFile) {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/gamification_models.dart';
+import 'user_settings_firestore_service.dart';
 import 'gamification_firestore_service.dart';
 
 /// ゲーミフィケーションデータの永続化クラス（Firestore + ローカル対応）
@@ -9,22 +10,29 @@ class GamificationStorage {
   static const String _keyUserProfile = 'gamification_user_profile';
   static const String _keyLastResetDate = 'gamification_last_reset_date';
   static const String _keyDailyActivities = 'gamification_daily_activities';
-  static const String _keyMigrationCompleted = 'gamification_migration_completed';
+  static const String _keyMigrationCompleted =
+      'gamification_migration_completed';
 
-  /// ユーザープロフィールを保存（Firestore + ローカル）
+  /// ユーザープロフィールを保存（Firebase + Firestore）
   static Future<void> saveUserProfile(UserProfile profile) async {
-    // ローカルに保存
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = jsonEncode(profile.toJson());
-    await prefs.setString(_keyUserProfile, jsonString);
+    try {
+      // Firebaseに保存
+      final jsonString = jsonEncode(profile.toJson());
+      await UserSettingsFirestoreService.saveSetting(
+        _keyUserProfile,
+        jsonString,
+      );
 
-    // Firestoreに保存（ログインしている場合）
-    if (FirebaseAuth.instance.currentUser != null) {
-      try {
-        await GamificationFirestoreService.saveUserProfile(profile);
-      } catch (e) {
-        print('Firestoreへの保存に失敗しましたが、ローカル保存は成功しました: $e');
+      // Firestoreに保存（ログインしている場合）
+      if (FirebaseAuth.instance.currentUser != null) {
+        try {
+          await GamificationFirestoreService.saveUserProfile(profile);
+        } catch (e) {
+          print('Firestoreへの保存に失敗しましたが、Firebase保存は成功しました: $e');
+        }
       }
+    } catch (e) {
+      print('ユーザープロフィール保存エラー: $e');
     }
   }
 
@@ -42,23 +50,25 @@ class GamificationStorage {
       }
     }
 
-    // ローカルから取得を試行
+    // Firebaseから取得を試行
     try {
-      final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_keyUserProfile);
+      final jsonString = await UserSettingsFirestoreService.getSetting(
+        _keyUserProfile,
+      );
 
       if (jsonString != null && jsonString.isNotEmpty) {
-      final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;
+        final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;
         localProfile = UserProfile.fromJson(jsonMap);
       }
     } catch (e) {
-      print('ローカルデータの読み込みエラー: $e');
+      print('Firebaseデータの読み込みエラー: $e');
     }
 
     // Firestoreのデータがある場合はそれを優先
     if (firestoreProfile != null) {
       // ローカルデータより新しい場合は、ローカルにも保存
-      if (localProfile == null || _isFirestoreDataNewer(firestoreProfile, localProfile)) {
+      if (localProfile == null ||
+          _isFirestoreDataNewer(firestoreProfile, localProfile)) {
         await _saveLocalProfile(firestoreProfile);
       }
       return firestoreProfile;
@@ -77,18 +87,27 @@ class GamificationStorage {
     }
 
     // どちらにもデータがない場合は初期データを返す
-      return UserProfile.initial();
-    }
+    return UserProfile.initial();
+  }
 
-  /// ローカルプロフィールのみを保存（Firestore同期なし）
+  /// Firebaseプロフィールのみを保存（Firestore同期なし）
   static Future<void> _saveLocalProfile(UserProfile profile) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = jsonEncode(profile.toJson());
-    await prefs.setString(_keyUserProfile, jsonString);
+    try {
+      final jsonString = jsonEncode(profile.toJson());
+      await UserSettingsFirestoreService.saveSetting(
+        _keyUserProfile,
+        jsonString,
+      );
+    } catch (e) {
+      print('Firebaseプロフィール保存エラー: $e');
+    }
   }
 
   /// Firestoreデータの方が新しいかチェック
-  static bool _isFirestoreDataNewer(UserProfile firestoreProfile, UserProfile localProfile) {
+  static bool _isFirestoreDataNewer(
+    UserProfile firestoreProfile,
+    UserProfile localProfile,
+  ) {
     // 経験値やレベルが高い方を新しいと判断
     if (firestoreProfile.experiencePoints > localProfile.experiencePoints) {
       return true;
@@ -104,26 +123,37 @@ class GamificationStorage {
 
   /// プロフィールをリセット（開発・テスト用）
   static Future<void> resetUserProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyUserProfile);
-    await prefs.remove(_keyLastResetDate);
-    await prefs.remove(_keyDailyActivities);
-    await prefs.remove(_keyMigrationCompleted);
+    try {
+      await UserSettingsFirestoreService.deleteSetting(_keyUserProfile);
+      await UserSettingsFirestoreService.deleteSetting(_keyLastResetDate);
+      await UserSettingsFirestoreService.deleteSetting(_keyDailyActivities);
+      await UserSettingsFirestoreService.deleteSetting(_keyMigrationCompleted);
+    } catch (e) {
+      print('プロフィールリセットエラー: $e');
+    }
   }
 
-  /// 今日の活動記録を保存（重複防止用、Firestore + ローカル）
+  /// 今日の活動記録を保存（重複防止用、Firebase + Firestore）
   static Future<void> saveDailyActivity(ActivityType type, String key) async {
     final today = DateTime.now();
-    
-    // ローカルに保存
-    final prefs = await SharedPreferences.getInstance();
-    final todayStr = today.toIso8601String().split('T')[0]; // YYYY-MM-DD
-    final activityKey = '${type.toString()}_${key}_$todayStr';
 
-    final activities = prefs.getStringList(_keyDailyActivities) ?? [];
-    if (!activities.contains(activityKey)) {
-      activities.add(activityKey);
-      await prefs.setStringList(_keyDailyActivities, activities);
+    try {
+      // Firebaseに保存
+      final todayStr = today.toIso8601String().split('T')[0]; // YYYY-MM-DD
+      final activityKey = '${type.toString()}_${key}_$todayStr';
+
+      final activities =
+          await UserSettingsFirestoreService.getSetting(_keyDailyActivities) ??
+          [];
+      if (!activities.contains(activityKey)) {
+        activities.add(activityKey);
+        await UserSettingsFirestoreService.saveSetting(
+          _keyDailyActivities,
+          activities,
+        );
+      }
+    } catch (e) {
+      print('Firebase活動記録保存エラー: $e');
     }
 
     // Firestoreに保存（ログインしている場合）
@@ -142,47 +172,64 @@ class GamificationStorage {
     String key,
   ) async {
     final today = DateTime.now();
-    
+
     // Firestoreから確認（ログインしている場合）
     if (FirebaseAuth.instance.currentUser != null) {
       try {
-        final isRecorded = await GamificationFirestoreService.isDailyActivityRecorded(
-          type, key, today
-        );
+        final isRecorded =
+            await GamificationFirestoreService.isDailyActivityRecorded(
+              type,
+              key,
+              today,
+            );
         return isRecorded;
       } catch (e) {
         print('Firestoreでの活動記録確認に失敗しました: $e');
       }
     }
-    
-    // ローカルから確認
-    final prefs = await SharedPreferences.getInstance();
-    final todayStr = today.toIso8601String().split('T')[0]; // YYYY-MM-DD
-    final activityKey = '${type.toString()}_${key}_$todayStr';
 
-    final activities = prefs.getStringList(_keyDailyActivities) ?? [];
-    return activities.contains(activityKey);
+    // Firebaseから確認
+    try {
+      final todayStr = today.toIso8601String().split('T')[0]; // YYYY-MM-DD
+      final activityKey = '${type.toString()}_${key}_$todayStr';
+
+      final activities =
+          await UserSettingsFirestoreService.getSetting(_keyDailyActivities) ??
+          [];
+      return activities.contains(activityKey);
+    } catch (e) {
+      print('Firebase活動記録確認エラー: $e');
+      return false;
+    }
   }
 
   /// 古い活動記録をクリーンアップ（1週間以上前のデータを削除）
   static Future<void> cleanupOldActivities() async {
-    // ローカルクリーンアップ
-    final prefs = await SharedPreferences.getInstance();
-    final activities = prefs.getStringList(_keyDailyActivities) ?? [];
+    try {
+      // Firebaseクリーンアップ
+      final activities =
+          await UserSettingsFirestoreService.getSetting(_keyDailyActivities) ??
+          [];
 
-    final oneWeekAgo = DateTime.now().subtract(Duration(days: 7));
-    final cutoffDate = oneWeekAgo.toIso8601String().split('T')[0];
+      final oneWeekAgo = DateTime.now().subtract(Duration(days: 7));
+      final cutoffDate = oneWeekAgo.toIso8601String().split('T')[0];
 
-    final validActivities = activities.where((activity) {
-      final parts = activity.split('_');
-      if (parts.length >= 3) {
-        final dateStr = parts.last;
-        return dateStr.compareTo(cutoffDate) >= 0;
-      }
-      return false;
-    }).toList();
+      final validActivities = activities.where((activity) {
+        final parts = activity.split('_');
+        if (parts.length >= 3) {
+          final dateStr = parts.last;
+          return dateStr.compareTo(cutoffDate) >= 0;
+        }
+        return false;
+      }).toList();
 
-    await prefs.setStringList(_keyDailyActivities, validActivities);
+      await UserSettingsFirestoreService.saveSetting(
+        _keyDailyActivities,
+        validActivities,
+      );
+    } catch (e) {
+      print('Firebase古い活動記録クリーンアップエラー: $e');
+    }
 
     // Firestoreクリーンアップ（ログインしている場合）
     if (FirebaseAuth.instance.currentUser != null) {
@@ -196,8 +243,9 @@ class GamificationStorage {
 
   /// データの移行（アップデート時などに使用）
   static Future<void> migrateDataIfNeeded() async {
-    final prefs = await SharedPreferences.getInstance();
-    final migrationCompleted = prefs.getBool(_keyMigrationCompleted) ?? false;
+    final migrationCompleted =
+        await UserSettingsFirestoreService.getSetting(_keyMigrationCompleted) ??
+        false;
 
     // 既に移行済みの場合はスキップ
     if (migrationCompleted) {
@@ -208,14 +256,17 @@ class GamificationStorage {
 
     try {
       // ローカルの既存データを確認
-      final existingLocalData = prefs.getString(_keyUserProfile);
+      final existingLocalData = await UserSettingsFirestoreService.getSetting(
+        _keyUserProfile,
+      );
       UserProfile? localProfile;
 
       if (existingLocalData != null) {
-      try {
-          final jsonMap = jsonDecode(existingLocalData) as Map<String, dynamic>;
-          localProfile = UserProfile.fromJson(jsonMap);
-          print('ローカルデータが見つかりました: レベル${localProfile.level}, 経験値${localProfile.experiencePoints}');
+        try {
+          localProfile = UserProfile.fromJson(existingLocalData);
+          print(
+            'ローカルデータが見つかりました: レベル${localProfile.level}, 経験値${localProfile.experiencePoints}',
+          );
         } catch (e) {
           print('ローカルデータの解析に失敗しました: $e');
         }
@@ -225,9 +276,12 @@ class GamificationStorage {
       UserProfile? firestoreProfile;
       if (FirebaseAuth.instance.currentUser != null) {
         try {
-          firestoreProfile = await GamificationFirestoreService.loadUserProfile();
+          firestoreProfile =
+              await GamificationFirestoreService.loadUserProfile();
           if (firestoreProfile != null) {
-            print('Firestoreデータが見つかりました: レベル${firestoreProfile.level}, 経験値${firestoreProfile.experiencePoints}');
+            print(
+              'Firestoreデータが見つかりました: レベル${firestoreProfile.level}, 経験値${firestoreProfile.experiencePoints}',
+            );
           }
         } catch (e) {
           print('Firestoreデータの取得に失敗しました: $e');
@@ -236,7 +290,7 @@ class GamificationStorage {
 
       // データの統合処理
       UserProfile finalProfile;
-      
+
       if (localProfile != null && firestoreProfile != null) {
         // 両方のデータがある場合は、より進んでいる方を採用
         if (_isFirestoreDataNewer(firestoreProfile, localProfile)) {
@@ -259,7 +313,7 @@ class GamificationStorage {
 
       // 統合されたデータを両方の場所に保存
       await _saveLocalProfile(finalProfile);
-      
+
       if (FirebaseAuth.instance.currentUser != null) {
         try {
           await GamificationFirestoreService.saveUserProfile(finalProfile);
@@ -272,15 +326,21 @@ class GamificationStorage {
       await _migrateDailyActivities();
 
       // 移行完了フラグを設定
-      await prefs.setBool(_keyMigrationCompleted, true);
-      
-        print('ゲーミフィケーションデータ移行完了');
-      } catch (e) {
-        print('データ移行エラー: $e');
-        // エラーの場合は初期データで上書き
+      await UserSettingsFirestoreService.saveSetting(
+        _keyMigrationCompleted,
+        true,
+      );
+
+      print('ゲーミフィケーションデータ移行完了');
+    } catch (e) {
+      print('データ移行エラー: $e');
+      // エラーの場合は初期データで上書き
       try {
         await saveUserProfile(UserProfile.initial());
-        await prefs.setBool(_keyMigrationCompleted, true);
+        await UserSettingsFirestoreService.saveSetting(
+          _keyMigrationCompleted,
+          true,
+        );
       } catch (saveError) {
         print('初期データ保存エラー: $saveError');
       }
@@ -292,8 +352,9 @@ class GamificationStorage {
     if (FirebaseAuth.instance.currentUser == null) return;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final activities = prefs.getStringList(_keyDailyActivities) ?? [];
+      final activities =
+          await UserSettingsFirestoreService.getSetting(_keyDailyActivities) ??
+          [];
 
       for (final activity in activities) {
         final parts = activity.split('_');
@@ -301,21 +362,25 @@ class GamificationStorage {
           final typeStr = parts[0];
           final key = parts[1];
           final dateStr = parts[2];
-          
+
           try {
             final type = ActivityType.values.firstWhere(
               (e) => e.toString() == typeStr,
               orElse: () => ActivityType.attendance,
             );
             final date = DateTime.parse('${dateStr}T00:00:00');
-            
-            await GamificationFirestoreService.saveDailyActivity(type, key, date);
+
+            await GamificationFirestoreService.saveDailyActivity(
+              type,
+              key,
+              date,
+            );
           } catch (e) {
             print('活動記録の移行に失敗しました: $activity, エラー: $e');
           }
         }
       }
-      
+
       print('活動記録の移行が完了しました: ${activities.length}件');
     } catch (e) {
       print('活動記録移行エラー: $e');

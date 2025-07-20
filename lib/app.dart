@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:bysnapp/pages/home/AssignmentBoard.dart';
+import 'pages/business/assignment_board_page.dart' show AssignmentBoard;
 import 'package:bysnapp/pages/roast/roast_timer_page.dart';
 import 'package:bysnapp/pages/todo/todo_page.dart';
 import 'package:bysnapp/pages/drip/drip_counter_page.dart';
 import 'package:bysnapp/pages/schedule/schedule_page.dart';
-import 'package:bysnapp/pages/dashboard/dashboard_page.dart';
+import 'pages/home/home_page.dart';
 import 'models/gamification_provider.dart';
 import 'pages/gamification/badge_list_page.dart';
 import 'services/sync_firestore_all.dart';
@@ -20,6 +20,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'services/data_sync_service.dart';
 import 'services/assignment_firestore_service.dart';
 import 'services/group_firestore_service.dart';
+import 'services/user_settings_firestore_service.dart';
 
 import 'pages/group/group_required_page.dart';
 import 'pages/tasting/tasting_record_page.dart';
@@ -220,7 +221,7 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
             '/settings': (context) => AppSettingsPage(),
             '/assignment_board': (context) => AssignmentBoard(),
             '/group_info': (context) => GroupInfoPage(),
-            '/analytics': (context) => DashboardPage(),
+            '/analytics': (context) => HomePage(),
             '/todo': (context) => TodoPage(),
             '/calculator': (context) => CalculatorPage(),
             '/group_required': (context) => const GroupRequiredPage(),
@@ -396,11 +397,14 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
           context,
           listen: false,
         );
-        final prefs = await SharedPreferences.getInstance();
 
         // フォント設定を更新
-        final fontSize = prefs.getDouble('fontSize');
-        final fontFamily = prefs.getString('fontFamily');
+        final fontSize = await UserSettingsFirestoreService.getSetting(
+          'fontSize',
+        );
+        final fontFamily = await UserSettingsFirestoreService.getSetting(
+          'fontFamily',
+        );
         if (fontSize != null) {
           themeSettings.updateFontSizeScale(fontSize);
         }
@@ -527,8 +531,11 @@ class _PasscodeGateState extends State<PasscodeGate>
   }
 
   Future<void> _checkPasscodeOnResume() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isLockEnabled = prefs.getBool('passcode_lock_enabled') ?? false;
+    final isLockEnabled =
+        await UserSettingsFirestoreService.getSetting(
+          'passcode_lock_enabled',
+        ) ??
+        false;
 
     if (isLockEnabled && _passcode != null && _unlocked) {
       setState(() {
@@ -538,9 +545,12 @@ class _PasscodeGateState extends State<PasscodeGate>
   }
 
   Future<void> _checkPasscode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final code = prefs.getString('app_passcode');
-    final isLockEnabled = prefs.getBool('passcode_lock_enabled') ?? false;
+    final code = await UserSettingsFirestoreService.getSetting('app_passcode');
+    final isLockEnabled =
+        await UserSettingsFirestoreService.getSetting(
+          'passcode_lock_enabled',
+        ) ??
+        false;
     setState(() {
       _passcode = code;
       _isLockEnabled = isLockEnabled;
@@ -748,10 +758,10 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   // ページを遅延読み込みするためのリスト
   final List<Widget> _pages = [
-    RoastTimerPage(), // 予熱タイマー
+    RoastTimerPage(), // 焙煎タイマー
     SchedulePage(), // スケジュール
-    DashboardPage(), // ダッシュボード（中央）
-    DripCounterPage(key: dripCounterPageKey), // ドリップ
+    HomePage(), // ホーム（中央）
+    DripCounterPage(key: dripCounterPageKey), // カウンター
     AssignmentBoard(key: assignmentBoardKey), // 担当表
   ];
 

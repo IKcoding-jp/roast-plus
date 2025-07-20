@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bysnapp/pages/roast/roast_timer_settings_page.dart';
 import 'package:bysnapp/pages/roast/roast_record_page.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 // ------ タイマー・ページ遷移管理 ------
 enum RoastMode { idle, preheating, roasting, inputManualTime, inputRecommended }
@@ -43,13 +44,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
 
   // 記録からおすすめ条件の組み合わせを抽出
   Future<void> _loadRecommendOptions() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('roastRecords');
+    final saved = await UserSettingsFirestoreService.getSetting('roastRecords');
     if (saved != null) {
-      final List<dynamic> jsonList = json.decode(saved);
-      final records = jsonList
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
+      final records = saved.map((e) => Map<String, dynamic>.from(e)).toList();
       // 組み合わせごとに件数カウント
       final Map<String, int> countMap = {};
       for (var r in records) {

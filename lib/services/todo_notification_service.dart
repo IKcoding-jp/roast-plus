@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/sound_utils.dart';
 import '../models/theme_settings.dart';
+import 'user_settings_firestore_service.dart';
 
 class TodoNotificationService {
   static final TodoNotificationService _instance =
@@ -119,13 +120,14 @@ class TodoNotificationService {
     return [];
   }
 
-  /// SharedPreferencesからTODOリストを取得
-  Future<List<String>> _getTodosFromSharedPreferences() async {
+  /// FirebaseからTODOリストを取得
+  Future<List<String>> _getTodosFromFirebase() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getStringList('todoList') ?? [];
+      final saved =
+          await UserSettingsFirestoreService.getSetting('todo_list') ?? [];
+      return saved;
     } catch (e) {
-      print('SharedPreferencesからTODO取得エラー: $e');
+      print('FirebaseからTODO取得エラー: $e');
       return [];
     }
   }
@@ -174,14 +176,14 @@ class TodoNotificationService {
   /// TODO通知をチェック
   Future<void> _checkTodoNotifications() async {
     try {
-      // FirestoreとSharedPreferencesの両方からTODOを取得
+      // FirestoreとFirebaseの両方からTODOを取得
       final firestoreTodos = await _getTodosFromFirestore();
-      final sharedPrefsTodos = await _getTodosFromSharedPreferences();
+      final firebaseTodos = await _getTodosFromFirebase();
 
       final now = DateTime.now();
       print('TODO通知チェック: 現在時刻 ${now.hour}:${now.minute}:${now.second}');
       print('TODO通知チェック: Firestore TODO数 ${firestoreTodos.length}');
-      print('TODO通知チェック: SharedPreferences TODO数 ${sharedPrefsTodos.length}');
+      print('TODO通知チェック: Firebase TODO数 ${firebaseTodos.length}');
 
       // FirestoreのTODOをチェック
       for (final todo in firestoreTodos) {
@@ -214,8 +216,8 @@ class TodoNotificationService {
         }
       }
 
-      // SharedPreferencesのTODOもチェック（重複を避けるため、既に通知済みのものはスキップ）
-      for (final todoStr in sharedPrefsTodos) {
+      // FirebaseのTODOもチェック（重複を避けるため、既に通知済みのものはスキップ）
+      for (final todoStr in firebaseTodos) {
         final parts = todoStr.split('|');
         if (parts.length >= 3) {
           final title = parts[0];
@@ -409,8 +411,7 @@ class TodoNotificationService {
   /// 通知履歴を保存
   Future<void> _saveNotificationHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(
+      await UserSettingsFirestoreService.saveSetting(
         'todo_notification_history',
         _notifiedTodos.toList(),
       );
@@ -422,8 +423,7 @@ class TodoNotificationService {
   /// 通知履歴を読み込み
   Future<void> _loadNotificationHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getStringList('todo_notification_history') ?? [];
+      final saved = await UserSettingsFirestoreService.getSetting('todo_notification_history') ?? [];
       _notifiedTodos = saved.toSet();
 
       // 古い通知履歴をクリア（前日以前のもの）

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/roast_timer_settings_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../services/user_settings_firestore_service.dart';
 import '../../models/group_provider.dart';
 
 class RoastTimerSettingsPage extends StatefulWidget {
@@ -43,38 +44,82 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
   }
 
   Future<void> _loadPreheat() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _preheatMinutes = prefs.getInt('preheatMinutes') ?? 30;
-      _preheatController.text = _preheatMinutes.toString();
-      _loading = false;
-    });
+    try {
+      final value =
+          await UserSettingsFirestoreService.getSetting('preheatMinutes') ?? 30;
+      setState(() {
+        _preheatMinutes = value;
+        _preheatController.text = _preheatMinutes.toString();
+        _loading = false;
+      });
+    } catch (e) {
+      print('予熱時間読み込みエラー: $e');
+      setState(() {
+        _preheatMinutes = 30;
+        _preheatController.text = '30';
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _loadCooling() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _coolingMinutes = prefs.getInt('coolingMinutes') ?? 10;
-      _coolingController.text = _coolingMinutes.toString();
-    });
+    try {
+      final value =
+          await UserSettingsFirestoreService.getSetting('coolingMinutes') ?? 10;
+      setState(() {
+        _coolingMinutes = value;
+        _coolingController.text = _coolingMinutes.toString();
+      });
+    } catch (e) {
+      print('豆冷まし時間読み込みエラー: $e');
+      setState(() {
+        _coolingMinutes = 10;
+        _coolingController.text = '10';
+      });
+    }
   }
 
   Future<void> _loadSwitches() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _usePreheat = prefs.getBool('usePreheat') ?? true;
-      _useCooling = prefs.getBool('useCooling') ?? true;
-      _useRoast = prefs.getBool('useRoast') ?? true;
-    });
+    try {
+      final settings = await UserSettingsFirestoreService.getMultipleSettings([
+        'usePreheat',
+        'useCooling',
+        'useRoast',
+      ]);
+      setState(() {
+        _usePreheat = settings['usePreheat'] ?? true;
+        _useCooling = settings['useCooling'] ?? true;
+        _useRoast = settings['useRoast'] ?? true;
+      });
+    } catch (e) {
+      print('スイッチ設定読み込みエラー: $e');
+      setState(() {
+        _usePreheat = true;
+        _useCooling = true;
+        _useRoast = true;
+      });
+    }
   }
 
   Future<void> _loadRecommendedOffset() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _recommendedOffsetSeconds =
-          prefs.getInt('recommendedRoastOffsetSeconds') ?? 60;
-      _recommendedOffsetController.text = _recommendedOffsetSeconds.toString();
-    });
+    try {
+      final value =
+          await UserSettingsFirestoreService.getSetting(
+            'recommendedRoastOffsetSeconds',
+          ) ??
+          60;
+      setState(() {
+        _recommendedOffsetSeconds = value;
+        _recommendedOffsetController.text = _recommendedOffsetSeconds
+            .toString();
+      });
+    } catch (e) {
+      print('おすすめ焙煎設定読み込みエラー: $e');
+      setState(() {
+        _recommendedOffsetSeconds = 60;
+        _recommendedOffsetController.text = '60';
+      });
+    }
   }
 
   Future<void> _saveAllToFirestore() async {
@@ -93,62 +138,83 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
   }
 
   Future<void> _saveUsePreheat(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('usePreheat', value);
-    _usePreheat = value; // 先に値を更新
-    setState(() {});
-    await _saveAllToFirestore();
+    try {
+      await UserSettingsFirestoreService.saveSetting('usePreheat', value);
+      _usePreheat = value; // 先に値を更新
+      setState(() {});
+      await _saveAllToFirestore();
+    } catch (e) {
+      print('予熱設定保存エラー: $e');
+    }
   }
 
   Future<void> _saveUseCooling(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('useCooling', value);
-    _useCooling = value; // 先に値を更新
-    setState(() {});
-    await _saveAllToFirestore();
+    try {
+      await UserSettingsFirestoreService.saveSetting('useCooling', value);
+      _useCooling = value; // 先に値を更新
+      setState(() {});
+      await _saveAllToFirestore();
+    } catch (e) {
+      print('豆冷まし設定保存エラー: $e');
+    }
   }
 
   Future<void> _saveUseRoast(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('useRoast', value);
-    _useRoast = value; // 先に値を更新
-    setState(() {});
-    await _saveAllToFirestore();
+    try {
+      await UserSettingsFirestoreService.saveSetting('useRoast', value);
+      _useRoast = value; // 先に値を更新
+      setState(() {});
+      await _saveAllToFirestore();
+    } catch (e) {
+      print('焙煎設定保存エラー: $e');
+    }
   }
 
   Future<void> _savePreheat() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = int.tryParse(_preheatController.text) ?? 30;
-    await prefs.setInt('preheatMinutes', value);
-    _preheatMinutes = value; // 先に値を更新
-    setState(() {});
-    await _saveAllToFirestore();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('予熱時間を$value分に保存しました')));
+    try {
+      final value = int.tryParse(_preheatController.text) ?? 30;
+      await UserSettingsFirestoreService.saveSetting('preheatMinutes', value);
+      _preheatMinutes = value; // 先に値を更新
+      setState(() {});
+      await _saveAllToFirestore();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('予熱時間を$value分に保存しました')));
+    } catch (e) {
+      print('予熱時間保存エラー: $e');
+    }
   }
 
   Future<void> _saveCooling() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = int.tryParse(_coolingController.text) ?? 10;
-    await prefs.setInt('coolingMinutes', value);
-    _coolingMinutes = value; // 先に値を更新
-    setState(() {});
-    await _saveAllToFirestore();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('豆冷ましタイマーを$value分に保存しました')));
+    try {
+      final value = int.tryParse(_coolingController.text) ?? 10;
+      await UserSettingsFirestoreService.saveSetting('coolingMinutes', value);
+      _coolingMinutes = value; // 先に値を更新
+      setState(() {});
+      await _saveAllToFirestore();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('豆冷ましタイマーを$value分に保存しました')));
+    } catch (e) {
+      print('豆冷まし時間保存エラー: $e');
+    }
   }
 
   Future<void> _saveRecommendedOffset() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = int.tryParse(_recommendedOffsetController.text) ?? 60;
-    await prefs.setInt('recommendedRoastOffsetSeconds', value);
-    _recommendedOffsetSeconds = value;
-    setState(() {});
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('おすすめ焙煎の引き秒数を$value秒に保存しました')));
+    try {
+      final value = int.tryParse(_recommendedOffsetController.text) ?? 60;
+      await UserSettingsFirestoreService.saveSetting(
+        'recommendedRoastOffsetSeconds',
+        value,
+      );
+      _recommendedOffsetSeconds = value;
+      setState(() {});
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('おすすめ焙煎の引き秒数を$value秒に保存しました')));
+    } catch (e) {
+      print('おすすめ焙煎設定保存エラー: $e');
+    }
   }
 
   @override

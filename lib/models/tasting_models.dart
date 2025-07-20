@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/tasting_firestore_service.dart';
+import '../services/user_settings_firestore_service.dart';
 
 class TastingRecord {
   final String id;
@@ -229,21 +230,27 @@ class TastingProvider extends ChangeNotifier {
         // 試飲日順にソート（新しい順）
         _tastingRecords.sort((a, b) => b.tastingDate.compareTo(a.tastingDate));
       } else {
-        // Firestoreにデータがない場合はローカルストレージから読み込み
-        final prefs = await SharedPreferences.getInstance();
-        final jsonString = prefs.getString(_storageKey);
-
-        if (jsonString != null) {
-          final List<dynamic> jsonList = json.decode(jsonString);
-          _tastingRecords = jsonList
-              .map((json) => TastingRecord.fromMap(json))
-              .toList();
-
-          // 試飲日順にソート（新しい順）
-          _tastingRecords.sort(
-            (a, b) => b.tastingDate.compareTo(a.tastingDate),
+        // Firestoreにデータがない場合はFirebaseから読み込み
+        try {
+          final jsonString = await UserSettingsFirestoreService.getSetting(
+            _storageKey,
           );
-        } else {
+
+          if (jsonString != null) {
+            final List<dynamic> jsonList = jsonString;
+            _tastingRecords = jsonList
+                .map((json) => TastingRecord.fromMap(json))
+                .toList();
+
+            // 試飲日順にソート（新しい順）
+            _tastingRecords.sort(
+              (a, b) => b.tastingDate.compareTo(a.tastingDate),
+            );
+          } else {
+            _tastingRecords = [];
+          }
+        } catch (e) {
+          print('Firebaseからのテイスティング記録読み込みエラー: $e');
           _tastingRecords = [];
         }
       }
@@ -258,11 +265,8 @@ class TastingProvider extends ChangeNotifier {
 
   Future<void> _saveToStorage() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = json.encode(
-        _tastingRecords.map((tr) => tr.toMap()).toList(),
-      );
-      await prefs.setString(_storageKey, jsonString);
+      final jsonString = _tastingRecords.map((tr) => tr.toMap()).toList();
+      await UserSettingsFirestoreService.saveSetting(_storageKey, jsonString);
     } catch (e) {
       print('Error saving tasting records: $e');
       rethrow;

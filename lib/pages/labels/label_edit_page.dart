@@ -5,6 +5,7 @@ import '../../models/theme_settings.dart';
 import '../../services/group_data_sync_service.dart';
 import '../../models/group_provider.dart';
 import '../../services/assignment_firestore_service.dart';
+import '../../services/user_settings_firestore_service.dart';
 
 class LabelEditPage extends StatefulWidget {
   const LabelEditPage({super.key});
@@ -18,7 +19,6 @@ class _LabelEditPageState extends State<LabelEditPage> {
   List<String> rightLabels = [];
   List<String> aMembers = [];
   List<String> bMembers = [];
-  late SharedPreferences prefs;
 
   @override
   void initState() {
@@ -27,64 +27,87 @@ class _LabelEditPageState extends State<LabelEditPage> {
   }
 
   Future<void> _loadLabels() async {
-    prefs = await SharedPreferences.getInstance();
-    setState(() {
-      leftLabels = prefs.getStringList('leftLabels') ?? [];
-      rightLabels = prefs.getStringList('rightLabels') ?? [];
-      aMembers = prefs.getStringList('a班') ?? [];
-      bMembers = prefs.getStringList('b班') ?? [];
-      // デフォルトで空の状態にする
-      if (leftLabels.isEmpty && rightLabels.isEmpty) {
+    try {
+      final settings = await UserSettingsFirestoreService.getMultipleSettings([
+        'leftLabels',
+        'rightLabels',
+        'a班',
+        'b班',
+      ]);
+
+      setState(() {
+        leftLabels = List<String>.from(settings['leftLabels'] ?? []);
+        rightLabels = List<String>.from(settings['rightLabels'] ?? []);
+        aMembers = List<String>.from(settings['a班'] ?? []);
+        bMembers = List<String>.from(settings['b班'] ?? []);
+        // デフォルトで空の状態にする
+        if (leftLabels.isEmpty && rightLabels.isEmpty) {
+          leftLabels = [''];
+          rightLabels = [''];
+        }
+      });
+    } catch (e) {
+      print('ラベル読み込みエラー: $e');
+      setState(() {
         leftLabels = [''];
         rightLabels = [''];
-      }
-    });
+        aMembers = [];
+        bMembers = [];
+      });
+    }
   }
 
   Future<void> _saveLabels() async {
-    prefs.setStringList('leftLabels', leftLabels);
-    prefs.setStringList('rightLabels', rightLabels);
-
-    // メンバーも保存（空でもOK、ラベルは消さない）
-    prefs.setStringList('a班', aMembers);
-    prefs.setStringList('b班', bMembers);
-
-    // Firestoreにも保存
-    await AssignmentFirestoreService.saveAssignmentMembers(
-      aMembers: aMembers,
-      bMembers: bMembers,
-      leftLabels: leftLabels, // ← ラベルは常に現在の値を保存
-      rightLabels: rightLabels, // ← ラベルは常に現在の値を保存
-    );
-
-    // グループに同期
     try {
-      final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
-        print('LabelEditPage: 担当表データをグループに同期開始 - groupId: ${group.id}');
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'leftLabels': leftLabels,
+        'rightLabels': rightLabels,
+        'a班': aMembers,
+        'b班': bMembers,
+      });
 
-        final assignmentData = {
-          'aMembers': aMembers,
-          'bMembers': bMembers,
-          'leftLabels': leftLabels,
-          'rightLabels': rightLabels,
-          'savedAt': DateTime.now().toIso8601String(),
-        };
+      // Firestoreにも保存
+      await AssignmentFirestoreService.saveAssignmentMembers(
+        aMembers: aMembers,
+        bMembers: bMembers,
+        leftLabels: leftLabels, // ← ラベルは常に現在の値を保存
+        rightLabels: rightLabels, // ← ラベルは常に現在の値を保存
+      );
 
-        await GroupDataSyncService.syncAssignmentBoard(
-          group.id,
-          assignmentData,
-        );
-        print('LabelEditPage: 担当表データ同期完了');
+      // グループに同期
+      try {
+        final groupProvider = context.read<GroupProvider>();
+        if (groupProvider.groups.isNotEmpty) {
+          final group = groupProvider.groups.first;
+          print('LabelEditPage: 担当表データをグループに同期開始 - groupId: ${group.id}');
+
+          final assignmentData = {
+            'aMembers': aMembers,
+            'bMembers': bMembers,
+            'leftLabels': leftLabels,
+            'rightLabels': rightLabels,
+            'savedAt': DateTime.now().toIso8601String(),
+          };
+
+          await GroupDataSyncService.syncAssignmentBoard(
+            group.id,
+            assignmentData,
+          );
+          print('LabelEditPage: 担当表データ同期完了');
+        }
+      } catch (e) {
+        print('LabelEditPage: 担当表データ同期エラー: $e');
       }
-    } catch (e) {
-      print('LabelEditPage: 担当表データ同期エラー: $e');
-    }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('ラベル保存しました')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('ラベル保存しました')));
+    } catch (e) {
+      print('ラベル保存エラー: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('ラベル保存に失敗しました')));
+    }
   }
 
   void _addLabel() {
