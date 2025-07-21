@@ -97,6 +97,9 @@ void main() async {
   // TODO通知サービスを開始
   TodoNotificationService().startNotificationService();
 
+  // AutoSyncServiceを初期化
+  await AutoSyncService.initialize();
+
   // アプリ終了時のクリーンアップを設定
   WidgetsBinding.instance.addObserver(
     LifecycleEventHandler(

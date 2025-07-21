@@ -111,11 +111,11 @@ class TodoNotificationService {
         final data = doc.data()!;
         final todos = data['todos'] as List<dynamic>?;
         if (todos != null) {
-          return todos.cast<Map<String, dynamic>>();
+          return todos.map((todo) => Map<String, dynamic>.from(todo)).toList();
         }
       }
     } catch (e) {
-      print('FirestoreからTODO取得エラー: $e');
+      print('FirebaseからTODO取得エラー: $e');
     }
     return [];
   }
@@ -423,7 +423,11 @@ class TodoNotificationService {
   /// 通知履歴を読み込み
   Future<void> _loadNotificationHistory() async {
     try {
-      final saved = await UserSettingsFirestoreService.getSetting('todo_notification_history') ?? [];
+      final saved =
+          await UserSettingsFirestoreService.getSetting(
+            'todo_notification_history',
+          ) ??
+          [];
       _notifiedTodos = saved.toSet();
 
       // 古い通知履歴をクリア（前日以前のもの）

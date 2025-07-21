@@ -38,13 +38,13 @@ class GroupSettings {
     return GroupSettings(
       dataPermissions:
           (json['dataPermissions'] as Map<String, dynamic>?)?.map(
-        (key, value) => MapEntry(
-          key,
+            (key, value) => MapEntry(
+              key,
               AccessLevel.values.firstWhere(
-            (e) => e.name == value,
+                (e) => e.name == value,
                 orElse: () => AccessLevel.admin_leader,
-          ),
-        ),
+              ),
+            ),
           ) ??
           {},
       allowMemberInvite: json['allowMemberInvite'] as bool? ?? false,
@@ -78,7 +78,7 @@ class GroupSettings {
         'roastRecords': AccessLevel.admin_leader,
         'dripCounter': AccessLevel.all_members,
         'assignment_board': AccessLevel.all_members, // 担当表関連の権限を一本化
-        'todaySchedule': AccessLevel.admin_leader,
+        'todaySchedule': AccessLevel.all_members, // メンバーが編集できるように変更
         'taskStatus': AccessLevel.all_members,
         'cuppingNotes': AccessLevel.all_members,
         'circleStamps': AccessLevel.admin_only,
@@ -94,8 +94,25 @@ class GroupSettings {
     print('GroupSettings: データタイプ権限取得 - データタイプ: $dataType');
     print('GroupSettings: 現在の権限設定: $dataPermissions');
 
+    // 明示的に設定された権限を優先
+    if (dataPermissions.containsKey(dataType)) {
+      final permission = dataPermissions[dataType]!;
+      print('GroupSettings: 明示的に設定された権限を使用: $permission');
+      return permission;
+    }
+
+    // today_scheduleの権限が存在しない場合はtodayScheduleの権限を参照
+    if (dataType == 'today_schedule' &&
+        dataPermissions.containsKey('todaySchedule')) {
+      final todaySchedulePermission = dataPermissions['todaySchedule']!;
+      print(
+        'GroupSettings: today_schedule権限が存在しないため、todaySchedule権限を参照: $todaySchedulePermission',
+      );
+      return todaySchedulePermission;
+    }
+
     final permission = dataPermissions[dataType] ?? AccessLevel.admin_leader;
-    print('GroupSettings: 取得した権限: $permission');
+    print('GroupSettings: デフォルト権限を使用: $permission');
 
     return permission;
   }
@@ -115,7 +132,30 @@ class GroupSettings {
     };
 
     print('GroupSettings: 編集権限結果: $result');
+    print(
+      'GroupSettings: 権限チェック詳細 - admin_only: ${userRole == GroupRole.admin}, admin_leader: ${userRole == GroupRole.admin || userRole == GroupRole.leader}',
+    );
     return result;
+  }
+
+  /// 既存のグループのtodaySchedule権限を自動的に更新
+  GroupSettings updateTodaySchedulePermission() {
+    final updatedPermissions = Map<String, AccessLevel>.from(dataPermissions);
+
+    // today_scheduleの権限が存在しない場合のみ、todayScheduleと同じ値に設定
+    if (!updatedPermissions.containsKey('today_schedule') &&
+        updatedPermissions.containsKey('todaySchedule')) {
+      final todaySchedulePermission = updatedPermissions['todaySchedule']!;
+      print(
+        'GroupSettings: today_schedule権限が存在しないため、todayScheduleと同じ値に設定: $todaySchedulePermission',
+      );
+      updatedPermissions['today_schedule'] = todaySchedulePermission;
+    }
+
+    return copyWith(
+      dataPermissions: updatedPermissions,
+      updatedAt: DateTime.now(),
+    );
   }
 }
 
@@ -286,17 +326,33 @@ class Group {
   /// 指定されたユーザーの権限を取得
   GroupRole? getMemberRole(String uid) {
     try {
-    final member = members.firstWhere(
-      (m) => m.uid == uid,
-      orElse: () => GroupMember(
-        uid: '',
-        email: '',
-        displayName: '',
-        role: GroupRole.member,
-        joinedAt: DateTime.now(),
-      ),
-    );
-      return member.uid.isNotEmpty ? member.role : GroupRole.member;
+      print('Group: getMemberRole開始 - uid: $uid');
+      print('Group: メンバー数: ${members.length}');
+      print(
+        'Group: メンバー一覧: ${members.map((m) => '${m.uid}:${m.role}').toList()}',
+      );
+
+      final member = members.firstWhere(
+        (m) => m.uid == uid,
+        orElse: () {
+          print('Group: メンバーが見つかりません - uid: $uid');
+          return GroupMember(
+            uid: '',
+            email: '',
+            displayName: '',
+            role: GroupRole.member,
+            joinedAt: DateTime.now(),
+          );
+        },
+      );
+
+      if (member.uid.isNotEmpty) {
+        print('Group: メンバーが見つかりました - uid: ${member.uid}, role: ${member.role}');
+        return member.role;
+      } else {
+        print('Group: メンバーのuidが空です - デフォルトロールを返します');
+        return GroupRole.member;
+      }
     } catch (e) {
       print('Group: getMemberRole エラー - uid: $uid, error: $e');
       return GroupRole.member;

@@ -7,7 +7,7 @@ import '../../services/schedule_firestore_service.dart' as ScheduleService;
 
 class ScheduleTimeLabelEditPage extends StatefulWidget {
   final List<String> labels;
-  final void Function(List<String>) onLabelsChanged;
+  final Future<void> Function(List<String>) onLabelsChanged;
   const ScheduleTimeLabelEditPage({
     super.key,
     required this.labels,
@@ -28,6 +28,10 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
   void initState() {
     super.initState();
     _labels = List.from(widget.labels);
+    print('ScheduleTimeLabelEditPage: initState - 初期ラベル: $_labels');
+    print(
+      'ScheduleTimeLabelEditPage: onLabelsChangedコールバック存在: ${widget.onLabelsChanged != null}',
+    );
   }
 
   @override
@@ -35,6 +39,17 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
     _hourController.dispose();
     _minuteController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // ページを閉じる際に最終保存を実行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _autoSave();
+      }
+    });
   }
 
   void _sortLabels() {
@@ -49,18 +64,36 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
     });
   }
 
-  void _addLabel() {
+  void _addLabel() async {
     final hour = int.tryParse(_hourController.text) ?? 0;
     final minute = int.tryParse(_minuteController.text) ?? 0;
     final label =
         '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-    if (_labels.contains(label)) return;
+
+    print(
+      'ScheduleTimeLabelEditPage: 時間ラベル追加試行 - 入力: ${_hourController.text}:${_minuteController.text}',
+    );
+    print('ScheduleTimeLabelEditPage: 生成されたラベル: $label');
+    print('ScheduleTimeLabelEditPage: 現在のラベル数: ${_labels.length}');
+    print('ScheduleTimeLabelEditPage: 既存のラベル: $_labels');
+
+    if (_labels.contains(label)) {
+      print('ScheduleTimeLabelEditPage: ラベルが既に存在するため追加をスキップ');
+      return;
+    }
+
     setState(() {
       _labels.add(label);
       _sortLabels();
       _hourController.clear();
       _minuteController.clear();
     });
+
+    print('ScheduleTimeLabelEditPage: ラベル追加完了 - 新しいラベル数: ${_labels.length}');
+    print('ScheduleTimeLabelEditPage: 更新後のラベル: $_labels');
+
+    // 自動保存
+    await _autoSave();
   }
 
   void _editLabel(int index) {
@@ -137,7 +170,7 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final hour = int.tryParse(_hourController.text) ?? 0;
               final minute = int.tryParse(_minuteController.text) ?? 0;
               final newLabel =
@@ -149,6 +182,9 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                   _hourController.clear();
                   _minuteController.clear();
                 });
+
+                // 自動保存
+                await _autoSave();
               }
               Navigator.pop(context);
             },
@@ -164,28 +200,26 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
     );
   }
 
-  void _deleteLabel(int index) {
+  void _deleteLabel(int index) async {
     setState(() {
       _labels.removeAt(index);
       _sortLabels();
     });
+
+    // 自動保存
+    await _autoSave();
   }
 
-  // グループ同期を実行
-  Future<void> _triggerGroupSync() async {
-    try {
-      print('ScheduleTimeLabelEditPage: グループ同期を開始');
-      final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
-        await GroupDataSyncService.syncTimeLabels(group.id, {
-          'labels': _labels,
-          'savedAt': DateTime.now().toIso8601String(),
-        });
-        print('ScheduleTimeLabelEditPage: グループ同期完了');
+  // 自動保存メソッド
+  Future<void> _autoSave() async {
+    if (widget.onLabelsChanged != null) {
+      try {
+        print('ScheduleTimeLabelEditPage: 自動保存開始 - ラベル数: ${_labels.length}');
+        await widget.onLabelsChanged(_labels);
+        print('ScheduleTimeLabelEditPage: 自動保存完了');
+      } catch (e) {
+        print('ScheduleTimeLabelEditPage: 自動保存エラー: $e');
       }
-    } catch (e) {
-      print('ScheduleTimeLabelEditPage: グループ同期エラー: $e');
     }
   }
 
@@ -232,25 +266,7 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.save),
-            onPressed: () async {
-              widget.onLabelsChanged(_labels);
-              try {
-                // Firestoreにも必ず保存
-                await ScheduleService.ScheduleFirestoreService.saveTimeLabels(
-                  _labels,
-                );
-                // グループ同期を実行
-                await _triggerGroupSync();
-              } catch (e) {
-                print('ScheduleTimeLabelEditPage: 保存エラー: $e');
-              }
-              Navigator.pop(context);
-            },
-          ),
-        ],
+        actions: [],
         backgroundColor: Provider.of<ThemeSettings>(context).appBarColor,
         elevation: 0,
         iconTheme: IconThemeData(

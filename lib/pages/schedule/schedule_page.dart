@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/theme_settings.dart';
+import '../../models/roast_break_time.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../services/group_data_sync_service.dart';
 import '../../services/user_settings_firestore_service.dart';
 import '../../utils/performance_utils.dart';
 import 'today_schedule.dart';
-import 'schedule_time_label_edit_page.dart';
 import '../roast/roast_scheduler_tab.dart';
 
 class SchedulePage extends StatefulWidget {
@@ -21,26 +23,43 @@ class SchedulePage extends StatefulWidget {
 class _SchedulePageState extends State<SchedulePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  List<RoastBreakTime> _roastBreakTimes = [];
   bool _canEditSchedule = true;
   bool _canEditTimeLabels = true;
-  List<String> _currentTimeLabels = [];
+  void Function()? _onEditTimeLabels;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      // タブが切り替わった時にUIを更新
       setState(() {});
     });
+    _loadRoastBreakTimes();
     _checkEditPermissions();
-    _loadTimeLabels();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRoastBreakTimes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('roastBreakTimes');
+      if (jsonStr != null) {
+        final list = (json.decode(jsonStr) as List)
+            .map((e) => RoastBreakTime.fromJson(e))
+            .toList();
+        setState(() {
+          _roastBreakTimes = list;
+        });
+      }
+    } catch (e) {
+      print('SchedulePage: 休憩時間読み込みエラー: $e');
+    }
   }
 
   // 編集権限をチェック
@@ -77,61 +96,6 @@ class _SchedulePageState extends State<SchedulePage>
     }
   }
 
-  // 時間ラベルを読み込み
-  Future<void> _loadTimeLabels() async {
-    try {
-      final currentLabelsData = await UserSettingsFirestoreService.getSetting(
-        'todaySchedule_labels',
-      );
-      final currentLabels = currentLabelsData is List
-          ? (currentLabelsData as List).map((e) => e.toString()).toList()
-          : <String>[];
-
-      setState(() {
-        _currentTimeLabels = currentLabels;
-      });
-    } catch (e) {
-      print('時間ラベル読み込みエラー: $e');
-    }
-  }
-
-  // 時間ラベル編集ページを開く
-  void _openTimeLabelEdit() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ScheduleTimeLabelEditPage(
-          labels: _currentTimeLabels,
-          onLabelsChanged: (newLabels) async {
-            // 時間ラベルの変更を処理
-            await UserSettingsFirestoreService.saveSetting(
-              'todaySchedule_labels',
-              newLabels,
-            );
-
-            // グループ同期
-            final groupProvider = context.read<GroupProvider>();
-            if (groupProvider.hasGroup) {
-              try {
-                await GroupDataSyncService.syncTimeLabels(
-                  groupProvider.currentGroup!.id,
-                  {'labels': newLabels},
-                );
-              } catch (e) {
-                print('時間ラベル同期エラー: $e');
-              }
-            }
-          },
-        ),
-      ),
-    );
-
-    // 編集ページから戻ってきたら時間ラベルを再読み込み
-    if (result != null) {
-      await _loadTimeLabels();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeSettings>(
@@ -141,20 +105,24 @@ class _SchedulePageState extends State<SchedulePage>
           appBar: AppBar(
             title: Row(
               children: [
-                Icon(Icons.schedule, color: themeSettings.iconColor),
+                Icon(
+                  Icons.local_fire_department,
+                  color: themeSettings.iconColor,
+                ),
                 SizedBox(width: 8),
                 Text(
-                  'スケジュール',
+                  'スケジュール管理',
                   style: TextStyle(
                     color: themeSettings.appBarTextColor,
-                    fontSize: 18 * themeSettings.fontSizeScale,
+                    fontSize: 20 * themeSettings.fontSizeScale,
+                    fontWeight: FontWeight.bold,
                     fontFamily: themeSettings.fontFamily,
                   ),
                 ),
               ],
             ),
             backgroundColor: themeSettings.appBarColor,
-            elevation: 0,
+            iconTheme: IconThemeData(color: themeSettings.iconColor),
             bottom: PreferredSize(
               preferredSize: Size.fromHeight(kToolbarHeight),
               child: Container(
@@ -167,44 +135,53 @@ class _SchedulePageState extends State<SchedulePage>
                 child: TabBar(
                   controller: _tabController,
                   isScrollable: false,
-                  labelPadding: EdgeInsets.symmetric(horizontal: 16),
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  indicatorPadding: EdgeInsets.symmetric(horizontal: 16),
+                  labelPadding: EdgeInsets.symmetric(
+                    horizontal: (12 * themeSettings.fontSizeScale).clamp(
+                      4.0,
+                      12.0,
+                    ),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: (12 * themeSettings.fontSizeScale).clamp(
+                      4.0,
+                      12.0,
+                    ),
+                  ),
+                  indicatorPadding: EdgeInsets.symmetric(
+                    horizontal: (6 * themeSettings.fontSizeScale).clamp(
+                      2.0,
+                      8.0,
+                    ),
+                  ),
                   tabs: [
                     Tab(
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: Text(
-                          '本日のスケジュール',
-                          style: TextStyle(
-                            fontSize: (16 * themeSettings.fontSizeScale).clamp(
-                              14.0,
-                              20.0,
-                            ),
-                            fontWeight: FontWeight.w500,
+                      child: Text(
+                        '本日のスケジュール',
+                        style: TextStyle(
+                          fontSize: (16 * themeSettings.fontSizeScale).clamp(
+                            10.0,
+                            16.0,
                           ),
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: themeSettings.fontFamily,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                     Tab(
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: Text(
-                          'ローストスケジュール',
-                          style: TextStyle(
-                            fontSize: (16 * themeSettings.fontSizeScale).clamp(
-                              14.0,
-                              20.0,
-                            ),
-                            fontWeight: FontWeight.w500,
+                      child: Text(
+                        'ローストスケジュール',
+                        style: TextStyle(
+                          fontSize: (16 * themeSettings.fontSizeScale).clamp(
+                            10.0,
+                            16.0,
                           ),
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: themeSettings.fontFamily,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                   ],
@@ -217,28 +194,14 @@ class _SchedulePageState extends State<SchedulePage>
                 ),
               ),
             ),
-            actions: [
-              // 本日のスケジュールタブが選択されている時のみラベルアイコンを表示
-              if (_tabController.index == 0 && _canEditTimeLabels)
-                IconButton(
-                  icon: Icon(Icons.label, color: themeSettings.appBarTextColor),
-                  tooltip: '時間ラベル編集',
-                  onPressed: _openTimeLabelEdit,
-                ),
-            ],
           ),
           body: TabBarView(
             controller: _tabController,
             children: [
-              // 今日のスケジュールタブ
-              TodaySchedule(
-                onEditTimeLabels: _canEditTimeLabels
-                    ? (callback) => _loadTimeLabels()
-                    : null,
-              ),
-
-              // ローストスケジュールタブ
-              RoastSchedulerTab(breakTimes: []),
+              // --- 本日のスケジュールタブ ---
+              TodaySchedule(onEditTimeLabels: (cb) => _onEditTimeLabels = cb),
+              // --- ローストスケジュールタブ ---
+              RoastSchedulerTab(breakTimes: _roastBreakTimes),
             ],
           ),
         );

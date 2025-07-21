@@ -653,16 +653,35 @@ class GroupFirestoreService {
     required String dataType,
     required Map<String, dynamic> data,
   }) async {
-    if (_uid == null || _uid!.isEmpty) throw Exception('未ログイン');
+    print('GroupFirestoreService: syncGroupData開始');
+    print('GroupFirestoreService: グループID: $groupId');
+    print('GroupFirestoreService: データタイプ: $dataType');
+    print('GroupFirestoreService: 同期データ: $data');
 
+    if (_uid == null || _uid!.isEmpty) {
+      print('GroupFirestoreService: 未ログインエラー');
+      throw Exception('未ログイン');
+    }
+
+    print('GroupFirestoreService: ユーザーID: $_uid');
     final group = await getGroup(groupId);
-    if (group == null) throw Exception('グループが見つかりません');
+    if (group == null) {
+      print('GroupFirestoreService: グループが見つかりません');
+      throw Exception('グループが見つかりません');
+    }
+
+    print('GroupFirestoreService: グループ取得完了');
+    print(
+      'GroupFirestoreService: グループメンバー: ${group.members.map((m) => m.uid).toList()}',
+    );
 
     // メンバーのみ同期可能
     if (!group.isMember(_uid!)) {
+      print('GroupFirestoreService: グループメンバーではありません');
       throw Exception('グループメンバーのみデータを同期できます');
     }
 
+    print('GroupFirestoreService: メンバー権限チェック完了、Firestoreに保存開始');
     await _firestore
         .collection('groups')
         .doc(groupId)
@@ -673,6 +692,7 @@ class GroupFirestoreService {
           'updatedBy': _uid,
           'updatedAt': FieldValue.serverTimestamp(),
         });
+    print('GroupFirestoreService: Firestore保存完了');
   }
 
   /// グループの共有データを取得
@@ -725,7 +745,10 @@ class GroupFirestoreService {
     if (group == null) return null;
 
     try {
-      return GroupSettings.fromJson(group.settings);
+      final settings = GroupSettings.fromJson(group.settings);
+
+      // 管理者の設定を尊重するため、自動更新は行わない
+      return settings;
     } catch (e) {
       // 古い形式の設定の場合はデフォルト設定を返す
       return GroupSettings.defaultSettings();
@@ -744,7 +767,10 @@ class GroupFirestoreService {
         final settingsData = groupData['settings'] as Map<String, dynamic>?;
         if (settingsData == null) return GroupSettings.defaultSettings();
 
-        return GroupSettings.fromJson(settingsData);
+        final settings = GroupSettings.fromJson(settingsData);
+
+        // 管理者の設定を尊重するため、自動更新は行わない
+        return settings;
       } catch (e) {
         // 古い形式の設定の場合はデフォルト設定を返す
         return GroupSettings.defaultSettings();

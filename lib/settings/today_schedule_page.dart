@@ -58,6 +58,7 @@ class _TodaySchedulePageState extends State<TodaySchedulePage>
     } catch (e) {
       print('スケジュール保存エラー: $e');
     }
+    return;
   }
 
   Future<void> _loadSchedules() async {
@@ -92,15 +93,16 @@ class _TodaySchedulePageState extends State<TodaySchedulePage>
       });
       _initControllers();
     }
+    return;
   }
 
-  void _openLabelEdit() async {
+  Future<void> _openLabelEdit() async {
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ScheduleTimeLabelEditPage(
           labels: _scheduleLabels,
-          onLabelsChanged: (newLabels) {
+          onLabelsChanged: (newLabels) async {
             setState(() {
               _scheduleLabels = List.from(newLabels);
               _scheduleContents.removeWhere(
@@ -108,7 +110,7 @@ class _TodaySchedulePageState extends State<TodaySchedulePage>
               );
               _initControllers();
             });
-            _saveSchedules();
+            await _saveSchedules();
           },
         ),
       ),

@@ -9,6 +9,7 @@ class AutoSyncService {
   static Timer? _syncTimer;
   static bool _isInitialized = false;
   static bool _isSyncing = false;
+  static bool _isDisabled = false; // 同期を一時的に無効化するフラグ
   static DateTime? _lastSyncTime;
   static const Duration _syncCooldown = Duration(minutes: 1); // 1分間のクールダウン
 
@@ -34,6 +35,11 @@ class AutoSyncService {
   static Future<void> _performSync() async {
     if (_isSyncing) {
       print('AutoSyncService: 既に同期中です');
+      return;
+    }
+
+    if (_isDisabled) {
+      print('AutoSyncService: 同期が一時的に無効化されています');
       return;
     }
 
@@ -89,11 +95,23 @@ class AutoSyncService {
     print('AutoSyncService: グループ設定取得完了');
     print('AutoSyncService: データ同期は全メンバーで可能です');
 
-    // データ同期を実行
-    print('AutoSyncService: グループへのデータ同期を開始');
+    // データ同期を実行（新しいデータを優先）
+    print('AutoSyncService: グループへのデータ同期を開始（新しいデータを優先）');
     await GroupDataSyncService.syncAllDataToGroup(currentGroup.id);
-    print('AutoSyncService: ローカルへのデータ同期を開始');
+    print('AutoSyncService: ローカルへのデータ同期を開始（新しいデータを優先）');
     await GroupDataSyncService.applyGroupDataToLocal(currentGroup.id);
+  }
+
+  /// 同期を一時的に無効化
+  static void disableSync() {
+    _isDisabled = true;
+    print('AutoSyncService: 同期を一時的に無効化しました');
+  }
+
+  /// 同期を有効化
+  static void enableSync() {
+    _isDisabled = false;
+    print('AutoSyncService: 同期を有効化しました');
   }
 
   /// 特定のデータタイプの変更時に自動同期を実行
