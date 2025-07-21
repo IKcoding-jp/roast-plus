@@ -56,7 +56,7 @@ class BadgeCondition {
   final String description;
   final IconData icon;
   final Color color;
-  final bool Function(UserProfile profile) checkCondition;
+  final bool Function(UserStats stats) checkCondition;
 
   const BadgeCondition({
     required this.badgeId,
@@ -75,94 +75,6 @@ class BadgeCondition {
       icon: icon,
       color: color,
       earnedAt: DateTime.now(),
-    );
-  }
-}
-
-/// ユーザープロフィール（経験値、レベル、統計情報）
-class UserProfile {
-  final int experiencePoints;
-  final int level;
-  final List<UserBadge> badges;
-  final UserStats stats;
-
-  const UserProfile({
-    required this.experiencePoints,
-    required this.level,
-    required this.badges,
-    required this.stats,
-  });
-
-  /// 次のレベルまでに必要な経験値
-  int get experienceToNextLevel {
-    final nextLevelXP = _calculateRequiredXP(level + 1);
-    final currentLevelXP = _calculateRequiredXP(level);
-    return nextLevelXP - experiencePoints;
-  }
-
-  /// 現在のレベルでの進行度（0.0 - 1.0）
-  double get levelProgress {
-    final currentLevelXP = _calculateRequiredXP(level);
-    final nextLevelXP = _calculateRequiredXP(level + 1);
-    final progressXP = experiencePoints - currentLevelXP;
-    final totalLevelXP = nextLevelXP - currentLevelXP;
-    return (progressXP / totalLevelXP).clamp(0.0, 1.0);
-  }
-
-  /// 最新の称号を取得
-  UserBadge? get latestBadge {
-    if (badges.isEmpty) return null;
-    return badges.reduce((a, b) => a.earnedAt.isAfter(b.earnedAt) ? a : b);
-  }
-
-  /// レベルに必要な経験値を計算（指数関数的増加）
-  static int _calculateRequiredXP(int level) {
-    if (level <= 1) return 0;
-    return (100 * (level - 1) * (level - 1) * 1.2).round();
-  }
-
-  UserProfile copyWith({
-    int? experiencePoints,
-    int? level,
-    List<UserBadge>? badges,
-    UserStats? stats,
-  }) {
-    return UserProfile(
-      experiencePoints: experiencePoints ?? this.experiencePoints,
-      level: level ?? this.level,
-      badges: badges ?? this.badges,
-      stats: stats ?? this.stats,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'experiencePoints': experiencePoints,
-      'level': level,
-      'badges': badges.map((badge) => badge.toJson()).toList(),
-      'stats': stats.toJson(),
-    };
-  }
-
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
-      experiencePoints: json['experiencePoints'] ?? 0,
-      level: json['level'] ?? 1,
-      badges:
-          (json['badges'] as List<dynamic>?)
-              ?.map((badgeJson) => UserBadge.fromJson(badgeJson))
-              .toList() ??
-          [],
-      stats: UserStats.fromJson(json['stats'] ?? {}),
-    );
-  }
-
-  factory UserProfile.initial() {
-    return UserProfile(
-      experiencePoints: 0,
-      level: 1,
-      badges: [],
-      stats: UserStats.initial(),
     );
   }
 }
@@ -248,65 +160,6 @@ class UserStats {
       totalRoastSessions: 0,
       firstActivityDate: now,
       lastActivityDate: now,
-    );
-  }
-}
-
-/// 活動の種類
-enum ActivityType { attendance, roasting, dripPack, tasting, workProgress }
-
-/// 活動による経験値獲得
-class ActivityReward {
-  final ActivityType type;
-  final int experiencePoints;
-  final String description;
-
-  const ActivityReward({
-    required this.type,
-    required this.experiencePoints,
-    required this.description,
-  });
-
-  /// 経験値計算のルール
-  static const Map<ActivityType, int> baseRewards = {
-    ActivityType.attendance: 10, // 出勤1日 = 10XP
-    ActivityType.roasting: 40, // 焙煎30分 = 20XP（後で時間で調整）
-    ActivityType.dripPack: 5, // ドリップパック1個 = 5XP
-    ActivityType.tasting: 5, // テイスティング1回 = 5XP
-    ActivityType.workProgress: 3, // 作業進捗更新1回 = 3XP
-  };
-
-  /// 焙煎時間に応じた経験値を計算
-  static int calculateRoastingXP(double minutes) {
-    return (minutes * baseRewards[ActivityType.roasting]! / 30).round();
-  }
-
-  /// 出勤による経験値
-  static ActivityReward attendance() {
-    return ActivityReward(
-      type: ActivityType.attendance,
-      experiencePoints: baseRewards[ActivityType.attendance]!,
-      description: '出勤で${baseRewards[ActivityType.attendance]}XP獲得',
-    );
-  }
-
-  /// 焙煎による経験値
-  static ActivityReward roasting(double minutes) {
-    final xp = calculateRoastingXP(minutes);
-    return ActivityReward(
-      type: ActivityType.roasting,
-      experiencePoints: xp,
-      description: '焙煎${minutes.toStringAsFixed(0)}分で${xp}XP獲得',
-    );
-  }
-
-  /// ドリップパックによる経験値
-  static ActivityReward dripPack(int count) {
-    final xp = count * baseRewards[ActivityType.dripPack]!;
-    return ActivityReward(
-      type: ActivityType.dripPack,
-      experiencePoints: xp,
-      description: 'ドリップパック$count個で${xp}XP獲得',
     );
   }
 }

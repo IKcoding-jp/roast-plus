@@ -23,7 +23,7 @@ class HomeBody extends StatefulWidget {
 class _HomeBodyState extends State<HomeBody> {
   // 折りたたみ状態を管理
   final Map<String, bool> _expandedSections = {
-    'business': true, // 業務機能はデフォルトで展開
+    'business': false, // デフォルトで何も開かない
     'record': false,
     'growth': false,
     'support': false,
@@ -80,7 +80,7 @@ class _HomeBodyState extends State<HomeBody> {
             themeSettings: widget.themeSettings,
             title: 'サポート・設定',
             icon: Icons.settings,
-            accentColor: Color(0xFFC2C2C2), // グレー系で維持
+            accentColor: Color(0xFF757575), // より濃いグレーに変更
             isExpanded: _expandedSections['support']!,
             onToggle: () => _toggleSection('support'),
             children: _buildSupportFeatures(),

@@ -44,6 +44,39 @@ class ThemeSettings extends ChangeNotifier {
 
   // 初期インストール時にデフォルトテーマを適用
   Future<void> initializeDefaultTheme() async {
+    // 未ログインの場合はFirestoreにアクセスしない
+    if (FirebaseAuth.instance.currentUser == null) {
+      print('ThemeSettings: 未ログインのためローカルデフォルトテーマのみ適用');
+      final defaultTheme = presets['デフォルト']!;
+      appBarColor = defaultTheme['appBarColor']!;
+      backgroundColor = defaultTheme['backgroundColor']!;
+      buttonColor = defaultTheme['buttonColor']!;
+      backgroundColor2 = defaultTheme['backgroundColor2']!;
+      fontColor1 = defaultTheme['fontColor1']!;
+      fontColor2 = defaultTheme['fontColor2']!;
+      iconColor = defaultTheme['iconColor']!;
+      timerCircleColor = defaultTheme['timerCircleColor']!;
+      bottomNavigationColor = defaultTheme['bottomNavigationColor']!;
+      inputBackgroundColor = defaultTheme['inputBackgroundColor']!;
+      memberBackgroundColor = defaultTheme['memberBackgroundColor']!;
+      appBarTextColor = defaultTheme['appBarTextColor']!;
+      bottomNavigationTextColor = defaultTheme['bottomNavigationTextColor']!;
+      dialogBackgroundColor = defaultTheme['dialogBackgroundColor']!;
+      dialogTextColor = defaultTheme['dialogTextColor']!;
+      inputTextColor = defaultTheme['inputTextColor']!;
+      cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
+      borderColor = defaultTheme['borderColor']!;
+      _bottomNavigationSelectedColor = defaultTheme['bottomNavigationSelectedColor'];
+      _bottomNavigationUnselectedColor = defaultTheme['bottomNavigationUnselectedColor'];
+      customBottomNavigationSelectedColor = null;
+      customBottomNavigationUnselectedColor = null;
+      settingsColor = defaultTheme['settingsColor']!;
+      fontSizeScale = 1.0;
+      fontFamily = 'ZenMaruGothic';
+      notifyListeners();
+      return;
+    }
+
     final isFirstInstall =
         await UserSettingsFirestoreService.getSetting('isFirstInstall') ?? true;
 
@@ -70,9 +103,13 @@ class ThemeSettings extends ChangeNotifier {
       inputTextColor = defaultTheme['inputTextColor']!;
       cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
       borderColor = defaultTheme['borderColor']!;
-      customBottomNavigationSelectedColor =
-          defaultTheme['bottomNavigationSelectedColor']!;
-      settingsColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
+      _bottomNavigationSelectedColor =
+          defaultTheme['bottomNavigationSelectedColor'];
+      _bottomNavigationUnselectedColor =
+          defaultTheme['bottomNavigationUnselectedColor'];
+      customBottomNavigationSelectedColor = null;
+      customBottomNavigationUnselectedColor = null;
+      settingsColor = defaultTheme['settingsColor']!; // デフォルトテーマの設定色を使用
       fontSizeScale = 1.0;
       fontFamily = 'ZenMaruGothic';
 
@@ -174,6 +211,12 @@ class ThemeSettings extends ChangeNotifier {
                   themeData['dialogBackgroundColor'] ?? dialogBackgroundColor;
               dialogTextColor = themeData['dialogTextColor'] ?? dialogTextColor;
               inputTextColor = themeData['inputTextColor'] ?? inputTextColor;
+              _bottomNavigationSelectedColor =
+                  themeData['bottomNavigationSelectedColor'] ??
+                  _bottomNavigationSelectedColor;
+              _bottomNavigationUnselectedColor =
+                  themeData['bottomNavigationUnselectedColor'] ??
+                  _bottomNavigationUnselectedColor;
               customBottomNavigationSelectedColor =
                   themeData['customBottomNavigationSelectedColor'];
               customBottomNavigationUnselectedColor =
@@ -202,18 +245,18 @@ class ThemeSettings extends ChangeNotifier {
     if (customBottomNavigationSelectedColor != null) {
       return customBottomNavigationSelectedColor!;
     }
-    return _bottomNavigationSelectedColor ?? Color(0xFFFF9800);
+    return _bottomNavigationSelectedColor ?? iconColor;
   }
 
   Color get bottomNavigationUnselectedColor {
     if (customBottomNavigationUnselectedColor != null) {
       return customBottomNavigationUnselectedColor!;
     }
-    // デフォルトは薄いグレー
-    return Color(0xFF9E9E9E);
+    return _bottomNavigationUnselectedColor ?? Color(0xFF9E9E9E);
   }
 
   Color? _bottomNavigationSelectedColor;
+  Color? _bottomNavigationUnselectedColor;
 
   ThemeSettings({
     required this.appBarColor,
@@ -237,6 +280,7 @@ class ThemeSettings extends ChangeNotifier {
     required this.fontSizeScale,
     required this.fontFamily,
     Color? bottomNavigationSelectedColor,
+    Color? bottomNavigationUnselectedColor,
     this.customBottomNavigationSelectedColor,
     this.customBottomNavigationUnselectedColor,
     required this.calculatorColor,
@@ -244,7 +288,8 @@ class ThemeSettings extends ChangeNotifier {
     required this.todoColor,
     required this.tastingColor,
   }) : inputTextColor = inputTextColor ?? fontColor1,
-       _bottomNavigationSelectedColor = bottomNavigationSelectedColor;
+       _bottomNavigationSelectedColor = bottomNavigationSelectedColor,
+       _bottomNavigationUnselectedColor = bottomNavigationUnselectedColor;
 
   // プリセットテーマの定義（アイコン色は薄い色で設定）
   static const Map<String, Map<String, Color>> presets = {
@@ -269,7 +314,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF), // ミルク色の背景
       'borderColor': Color(0xFFE6D7C3), // キャラメル色の境界線
       'bottomNavigationSelectedColor': Color(0xFFD2691E), // ゴールデンクリーム色
-      'bottomNavigationUnselectedColor': Color(0xFFBDBDBD), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // 薄いブラウン（深い背景に対して）
       'settingsColor': Color(0xFF8B4513), // リッチなコーヒーブラウン
     },
     'ダーク': {
@@ -292,7 +337,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFF2A2A2A),
       'borderColor': Color(0xFF424242),
       'bottomNavigationSelectedColor': Color(0xFF81C784),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF424242), // ダークグレー（黒背景に対して）
       'settingsColor': Color(0xFF2E7D32), // ダークグリーン
     },
     'ライト': {
@@ -315,7 +360,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF2196F3),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF1976D2), // ダークブルー
     },
 
@@ -340,7 +385,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFD7CCC8),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // 薄いブラウン（深い背景に対して）
       'settingsColor': Color(0xFF5D4037), // ダークブラウン
     },
     'ベージュ': {
@@ -363,7 +408,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFE4C441),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // 薄いブラウン（深い背景に対して）
       'settingsColor': Color(0xFF8D6E63), // ダークベージュ
     },
     'エスプレッソ': {
@@ -387,7 +432,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFD4AF37),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFFFFFFF), // 白
       'settingsColor': Color(0xFF3E2723), // ダークブラウン
     },
     'カプチーノ': {
@@ -411,7 +456,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFCD853F),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // 薄いブラウン（深い背景に対して）
       'settingsColor': Color(0xFF6D4C41), // ダークブラウン
     },
     // 赤・ピンク系（より洗練された色調）
@@ -436,7 +481,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFF80AB),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFE1BEE7), // 薄いピンク（深い背景に対して）
       'settingsColor': Color(0xFFC2185B), // ダークピンク
     },
     // グリーン系（自然で現代的）
@@ -461,6 +506,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF81C784),
+      'bottomNavigationUnselectedColor': Color(0xFFA5D6A7), // 薄いグリーン（深い背景に対して）
       'settingsColor': Color(0xFF2E7D32), // ダークグリーン
     },
     'ティール': {
@@ -484,7 +530,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF80CBC4),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFB2DFDB), // 薄いティール（深い背景に対して）
       'settingsColor': Color(0xFF00695C), // ダークティール
     },
     'ミントグリーン': {
@@ -508,7 +554,9 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF4DB6AC),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(
+        0xFFB2DFDB,
+      ), // 薄いミントグリーン（深い背景に対して）
       'settingsColor': Color(0xFF00796B), // ダークミントグリーン
     },
     // ブルー系（クリーンで現代的）
@@ -533,7 +581,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF4FC3F7),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFFFFFFF), // 白
       'settingsColor': Color(0xFF0277BD), // ダークオーシャン
     },
     'ネイビー': {
@@ -556,7 +604,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF7986CB),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFC5CAE9), // 薄いネイビー（深い背景に対して）
       'settingsColor': Color(0xFF1A237E), // ダークネイビー
     },
     // パープル系（エレガント）
@@ -581,7 +629,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFCE93D8),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFE1BEE7), // 薄いラベンダー（深い背景に対して）
       'settingsColor': Color(0xFF7B1FA2), // ダークラベンダー
     },
     // ゴールド系（エレガント）
@@ -605,7 +653,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFFFF8DC), // 薄いゴールドの境界線
       'bottomNavigationSelectedColor': Color(0xFFFFD700),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFFFF8DC), // 薄いゴールド（深い背景に対して）
       'settingsColor': Color(0xFFB8860B), // ダークゴールド
     },
     // シルバー系（エレガント）
@@ -629,7 +677,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE8E8E8), // 薄いグレーの境界線
       'bottomNavigationSelectedColor': Color(0xFFC0C0C0),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFD3D3D3), // 薄いシルバー（深い背景に対して）
       'settingsColor': Color(0xFF696969), // ダークグレー
     },
     // レッド・オレンジ系テーマ
@@ -653,7 +701,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFEF5350),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFFFCDD2), // 薄いレッド（深い背景に対して）
       'settingsColor': Color(0xFFC62828), // ダークレッド
     },
     'オレンジ': {
@@ -677,7 +725,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFB74D),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFFFE0B2), // 薄いオレンジ（深い背景に対して）
       'settingsColor': Color(0xFFE65100), // ダークオレンジ
     },
     'タンジェリン': {
@@ -701,6 +749,8 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFCC02),
+      'bottomNavigationUnselectedColor': Color(0xFFFFE0B2), // 薄いオレンジ（深い背景に対して）
+      'settingsColor': Color(0xFFFF6F00), // ダークタンジェリン
     },
     'アンバー': {
       // 新追加
@@ -720,7 +770,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFDD835),
+      'bottomNavigationUnselectedColor': Color(0xFFFFECB3), // 薄いアンバー（深い背景に対して）
+      'settingsColor': Color(0xFFFF8F00), // ダークアンバー
     },
     'キャラメル': {
       // 新追加
@@ -740,7 +794,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFDAA520),
+      'bottomNavigationUnselectedColor': Color(0xFFF3E5AB), // 薄いキャラメル（深い背景に対して）
+      'settingsColor': Color(0xFFB8860B), // ダークキャラメル
     },
     'パンプキン': {
       // 新追加
@@ -760,7 +818,11 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
+      'cardBackgroundColor': Color(0xFFFFFFFF),
+      'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFB347),
+      'bottomNavigationUnselectedColor': Color(0xFFFFD8B1), // 薄いパンプキン（深い背景に対して）
+      'settingsColor': Color(0xFFCD853F), // ダークパンプキン
     },
     // 新しいトレンドカラー
     'サンセット': {
@@ -784,7 +846,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFAB91),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFFFFCCBC), // 薄いサンセット（深い背景に対して）
       'settingsColor': Color(0xFFD84315), // ダークオレンジ
     },
     // パステル系テーマ
@@ -808,7 +870,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFFFE1F2), // 薄いピンクの境界線
       'bottomNavigationSelectedColor': Color(0xFFF48FB1),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFFE91E63), // ダークピンク
     },
     'ブルー': {
@@ -831,7 +893,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE1F5FE), // 薄いブルーの境界線
       'bottomNavigationSelectedColor': Color(0xFF4FC3F7),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF0277BD), // ダークブルー
     },
     'グリーン': {
@@ -854,7 +916,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE8F5E8), // 薄いグリーンの境界線
       'bottomNavigationSelectedColor': Color(0xFF81C784),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF388E3C), // ダークグリーン
     },
     'イエロー': {
@@ -877,7 +939,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFFFF8E1), // 薄いイエローの境界線
       'bottomNavigationSelectedColor': Color(0xFFFFF176),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFFF57F17), // ダークイエロー
     },
     'パープル': {
@@ -900,7 +962,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFF3E5F5), // 薄いパープルの境界線
       'bottomNavigationSelectedColor': Color(0xFFBA68C8),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF8E24AA), // ダークパープル
     },
     'ピーチ': {
@@ -923,7 +985,7 @@ class ThemeSettings extends ChangeNotifier {
       'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFFFE0B2), // 薄いピーチの境界線
       'bottomNavigationSelectedColor': Color(0xFFFF8A65),
-      'bottomNavigationUnselectedColor': Color(0xFF9E9E9E), // 薄いグレー
+      'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFFD84315), // ダークピーチ
     },
 
@@ -984,6 +1046,9 @@ class ThemeSettings extends ChangeNotifier {
         'theme_inputTextColor',
         'theme_fontSizeScale',
         'theme_fontFamily',
+        'theme_bottomNavigationSelectedColor',
+        'theme_bottomNavigationUnselectedColor',
+        'theme_settingsColor',
         'custom_themes',
       ]);
 
@@ -1058,13 +1123,27 @@ class ThemeSettings extends ChangeNotifier {
           settings['theme_fontFamily'] ?? 'Noto Sans JP',
         ),
         bottomNavigationSelectedColor:
-            defaultTheme['bottomNavigationSelectedColor'],
+            settings['theme_bottomNavigationSelectedColor'] != null
+            ? Color(settings['theme_bottomNavigationSelectedColor'])
+            : defaultTheme['bottomNavigationSelectedColor'],
+        bottomNavigationUnselectedColor:
+            settings['theme_bottomNavigationUnselectedColor'] != null
+            ? Color(settings['theme_bottomNavigationUnselectedColor'])
+            : defaultTheme['bottomNavigationUnselectedColor'],
         calculatorColor: Color(0xFF1565C0), // 計算機らしい深い青
-        settingsColor: Color(0xFFE67E22), // オレンジ色
+        settingsColor: settings['theme_settingsColor'] != null
+            ? Color(settings['theme_settingsColor'])
+            : defaultTheme['settingsColor']!,
         todoColor: Color(0xFF2E7D32), // タスクらしい深い緑
         tastingColor: Color(0xFFD84315), // コーヒーらしい深いオレンジ
-        customBottomNavigationSelectedColor: null,
-        customBottomNavigationUnselectedColor: null,
+        customBottomNavigationSelectedColor:
+            settings['customBottomNavigationSelectedColor'] != null
+            ? Color(settings['customBottomNavigationSelectedColor'])
+            : null,
+        customBottomNavigationUnselectedColor:
+            settings['customBottomNavigationUnselectedColor'] != null
+            ? Color(settings['customBottomNavigationUnselectedColor'])
+            : null,
       );
     } catch (e) {
       print('テーマ設定読み込みエラー: $e');
@@ -1094,8 +1173,10 @@ class ThemeSettings extends ChangeNotifier {
         fontFamily: 'Noto Sans JP',
         bottomNavigationSelectedColor:
             defaultTheme['bottomNavigationSelectedColor'],
+        bottomNavigationUnselectedColor:
+            defaultTheme['bottomNavigationUnselectedColor'],
         calculatorColor: Color(0xFF1565C0),
-        settingsColor: Color(0xFFE67E22),
+        settingsColor: defaultTheme['settingsColor']!,
         todoColor: Color(0xFF2E7D32),
         tastingColor: Color(0xFFD84315),
         customBottomNavigationSelectedColor: null,
@@ -1127,6 +1208,8 @@ class ThemeSettings extends ChangeNotifier {
         'cardBackgroundColor': cardBackgroundColor.value,
         'borderColor': borderColor.value,
         'bottomNavigationSelectedColor': bottomNavigationSelectedColor.value,
+        'bottomNavigationUnselectedColor':
+            bottomNavigationUnselectedColor.value,
         'settingsColor': settingsColor.value,
         'fontSizeScale': fontSizeScale,
         'fontFamily': fontFamily,
@@ -1155,6 +1238,11 @@ class ThemeSettings extends ChangeNotifier {
         'theme_dialogBackgroundColor': dialogBackgroundColor.value,
         'theme_dialogTextColor': dialogTextColor.value,
         'theme_inputTextColor': inputTextColor.value,
+        'theme_bottomNavigationSelectedColor':
+            bottomNavigationSelectedColor.value,
+        'theme_bottomNavigationUnselectedColor':
+            bottomNavigationUnselectedColor.value,
+        'theme_settingsColor': settingsColor.value,
         'theme_fontSizeScale': fontSizeScale,
         'theme_fontFamily': fontFamily,
         'custom_themes': themeData,
@@ -1337,8 +1425,13 @@ class ThemeSettings extends ChangeNotifier {
       inputTextColor = preset['inputTextColor']!;
       cardBackgroundColor = preset['cardBackgroundColor']!;
       borderColor = preset['borderColor']!;
-      customBottomNavigationSelectedColor =
-          preset['bottomNavigationSelectedColor']!;
+      // カスタム設定をクリアしてプリセットの値を使用
+      customBottomNavigationSelectedColor = null;
+      customBottomNavigationUnselectedColor = null;
+      // プリセットの選択色と未選択色を設定
+      _bottomNavigationSelectedColor = preset['bottomNavigationSelectedColor'];
+      _bottomNavigationUnselectedColor =
+          preset['bottomNavigationUnselectedColor'];
       settingsColor = preset['iconColor']!; // アイコンの色と同じ値に設定
       // ここで一度だけ通知
       notifyListeners();

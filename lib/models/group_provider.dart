@@ -389,6 +389,15 @@ class GroupProvider extends ChangeNotifier {
       // グループリストを再読み込み
       await loadUserGroups();
 
+      // 現在のグループの監視を開始
+      if (_currentGroup != null) {
+        print('GroupProvider: 招待承諾後、グループ監視を開始: ${_currentGroup!.id}');
+        watchGroup(_currentGroup!.id);
+
+        // ゲーミフィケーションプロフィールの監視も開始
+        watchGroupGamificationProfile(_currentGroup!.id);
+      }
+
       _safeNotifyListeners();
       return true;
     } catch (e) {
@@ -419,6 +428,15 @@ class GroupProvider extends ChangeNotifier {
 
       // グループリストを再読み込み
       await loadUserGroups();
+
+      // 現在のグループの監視を開始
+      if (_currentGroup != null) {
+        print('GroupProvider: 招待コード参加後、グループ監視を開始: ${_currentGroup!.id}');
+        watchGroup(_currentGroup!.id);
+
+        // ゲーミフィケーションプロフィールの監視も開始
+        watchGroupGamificationProfile(_currentGroup!.id);
+      }
 
       _safeNotifyListeners();
       return true;
@@ -671,28 +689,47 @@ class GroupProvider extends ChangeNotifier {
   /// Firestoreのグループドキュメントをリアルタイム監視し、変更があれば即時反映
   void watchGroup(String groupId) {
     if (_groupWatchers.containsKey(groupId)) return;
+
+    print('GroupProvider: グループ監視開始: $groupId');
+
     final sub = FirebaseFirestore.instance
         .collection('groups')
         .doc(groupId)
         .snapshots()
-        .listen((doc) {
-          if (doc.exists) {
-            final updated = Group.fromJson(doc.data()!);
-            final idx = _groups.indexWhere((g) => g.id == groupId);
-            if (idx != -1) {
-              _groups[idx] = updated;
+        .listen(
+          (doc) {
+            if (doc.exists) {
+              final updated = Group.fromJson(doc.data()!);
+              final idx = _groups.indexWhere((g) => g.id == groupId);
+
+              print(
+                'GroupProvider: グループ更新検知 - ID: $groupId, メンバー数: ${updated.members.length}',
+              );
+
+              if (idx != -1) {
+                _groups[idx] = updated;
+                print('GroupProvider: 既存グループを更新');
+              } else {
+                _groups.add(updated);
+                print('GroupProvider: 新しいグループを追加');
+              }
+
+              if (_currentGroup?.id == groupId) {
+                _currentGroup = updated;
+                print('GroupProvider: 現在のグループを更新');
+              }
+
+              notifyListeners();
             } else {
-              _groups.add(updated);
+              // グループが削除された場合の処理
+              _handleGroupDeleted(groupId);
             }
-            if (_currentGroup?.id == groupId) {
-              _currentGroup = updated;
-            }
-            notifyListeners();
-          } else {
-            // グループが削除された場合の処理
-            _handleGroupDeleted(groupId);
-          }
-        });
+          },
+          onError: (error) {
+            print('GroupProvider: グループ監視エラー: $error');
+          },
+        );
+
     _groupWatchers[groupId] = sub;
   }
 
@@ -1065,7 +1102,8 @@ class GroupProvider extends ChangeNotifier {
       final result = await GroupGamificationService.recordAttendance(groupId);
 
       if (result.success) {
-        // プロフィールを更新
+        // キャッシュをクリアして最新のプロフィールを取得
+        GroupGamificationService.clearCache(groupId);
         final profile = await GroupGamificationService.getGroupProfile(groupId);
         _groupGamificationProfiles[groupId] = profile;
         _safeNotifyListeners();
@@ -1104,7 +1142,8 @@ class GroupProvider extends ChangeNotifier {
       );
 
       if (result.success) {
-        // プロフィールを更新
+        // キャッシュをクリアして最新のプロフィールを取得
+        GroupGamificationService.clearCache(groupId);
         final profile = await GroupGamificationService.getGroupProfile(groupId);
         _groupGamificationProfiles[groupId] = profile;
         _safeNotifyListeners();
@@ -1153,7 +1192,8 @@ class GroupProvider extends ChangeNotifier {
       );
 
       if (result.success) {
-        // プロフィールを更新
+        // キャッシュをクリアして最新のプロフィールを取得
+        GroupGamificationService.clearCache(groupId);
         final profile = await GroupGamificationService.getGroupProfile(groupId);
         _groupGamificationProfiles[groupId] = profile;
         _safeNotifyListeners();
@@ -1192,7 +1232,8 @@ class GroupProvider extends ChangeNotifier {
       );
 
       if (result.success) {
-        // プロフィールを更新
+        // キャッシュをクリアして最新のプロフィールを取得
+        GroupGamificationService.clearCache(groupId);
         final profile = await GroupGamificationService.getGroupProfile(groupId);
         _groupGamificationProfiles[groupId] = profile;
         _safeNotifyListeners();
@@ -1227,7 +1268,8 @@ class GroupProvider extends ChangeNotifier {
       final result = await GroupGamificationService.recordTasting(groupId);
 
       if (result.success) {
-        // プロフィールを更新
+        // キャッシュをクリアして最新のプロフィールを取得
+        GroupGamificationService.clearCache(groupId);
         final profile = await GroupGamificationService.getGroupProfile(groupId);
         _groupGamificationProfiles[groupId] = profile;
         _safeNotifyListeners();
@@ -1262,7 +1304,8 @@ class GroupProvider extends ChangeNotifier {
       final result = await GroupGamificationService.recordWorkProgress(groupId);
 
       if (result.success) {
-        // プロフィールを更新
+        // キャッシュをクリアして最新のプロフィールを取得
+        GroupGamificationService.clearCache(groupId);
         final profile = await GroupGamificationService.getGroupProfile(groupId);
         _groupGamificationProfiles[groupId] = profile;
         _safeNotifyListeners();

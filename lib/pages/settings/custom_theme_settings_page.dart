@@ -190,6 +190,8 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
                 setState(() {
                   themeSettings.customBottomNavigationSelectedColor = color;
                 });
+                themeSettings.notifyListeners();
+                themeSettings.save();
               },
             ),
             const SizedBox(height: 16),
@@ -202,6 +204,8 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
                 setState(() {
                   themeSettings.customBottomNavigationUnselectedColor = color;
                 });
+                themeSettings.notifyListeners();
+                themeSettings.save();
               },
             ),
             const SizedBox(height: 16),

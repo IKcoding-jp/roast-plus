@@ -40,10 +40,18 @@ class _CalendarPageState extends State<CalendarPage> {
     super.initState();
     _selectedDate = widget.initialDate ?? DateTime.now();
     _focusedDate = widget.initialDate ?? DateTime.now();
-    _loadSelectedDateData();
+
+    // 初期データ読み込みを遅延実行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadSelectedDateData();
+      }
+    });
   }
 
   Future<void> _loadSelectedDateData() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
@@ -51,94 +59,128 @@ class _CalendarPageState extends State<CalendarPage> {
     try {
       final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-      // 並行してデータを取得
-      await Future.wait([
-        _loadTodaySchedule(dateKey),
-        _loadRoastSchedule(dateKey),
-        _loadAssignmentHistory(dateKey),
-        _loadAssignmentMembers(),
-        _loadDripPackRecords(_selectedDate),
-        _loadWorkProgressRecords(_selectedDate),
-      ]);
+      // データを順次読み込み（並行実行を避ける）
+      await _loadTodaySchedule(dateKey);
+      if (!mounted) return;
+
+      await _loadRoastSchedule(dateKey);
+      if (!mounted) return;
+
+      await _loadAssignmentHistory(dateKey);
+      if (!mounted) return;
+
+      await _loadAssignmentMembers();
+      if (!mounted) return;
+
+      await _loadDripPackRecords(_selectedDate);
+      if (!mounted) return;
+
+      await _loadWorkProgressRecords(_selectedDate);
     } catch (e) {
       print('カレンダーデータ読み込みエラー: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _loadTodaySchedule(String dateKey) async {
+    if (!mounted) return;
+
     try {
       // 指定した日付のスケジュールを取得するためのカスタム関数を作成
       final schedule = await _loadScheduleForDate(dateKey);
-      setState(() {
-        _todaySchedule = schedule;
-      });
+      if (mounted) {
+        setState(() {
+          _todaySchedule = schedule;
+        });
+      }
     } catch (e) {
       print('本日のスケジュール読み込みエラー: $e');
     }
   }
 
   Future<void> _loadRoastSchedule(String dateKey) async {
+    if (!mounted) return;
+
     try {
       // 指定した日付のローストスケジュールを取得するためのカスタム関数を作成
       final schedule = await _loadRoastScheduleForDate(dateKey);
-      setState(() {
-        _roastSchedule = schedule;
-      });
+      if (mounted) {
+        setState(() {
+          _roastSchedule = schedule;
+        });
+      }
     } catch (e) {
       print('ローストスケジュール読み込みエラー: $e');
     }
   }
 
   Future<void> _loadAssignmentHistory(String dateKey) async {
+    if (!mounted) return;
+
     try {
       final history =
           await AssignmentFirestoreService.loadAssignmentHistoryWithLabels(
             dateKey,
           );
-      setState(() {
-        _assignmentHistoryWithLabels = history;
-      });
+      if (mounted) {
+        setState(() {
+          _assignmentHistoryWithLabels = history;
+        });
+      }
     } catch (e) {
       print('担当履歴読み込みエラー: $e');
     }
   }
 
   Future<void> _loadAssignmentMembers() async {
+    if (!mounted) return;
+
     try {
       final members = await AssignmentFirestoreService.loadAssignmentMembers();
-      setState(() {
-        _assignmentMembers = members;
-      });
+      if (mounted) {
+        setState(() {
+          _assignmentMembers = members;
+        });
+      }
     } catch (e) {
       print('担当表メンバー読み込みエラー: $e');
     }
   }
 
   Future<void> _loadDripPackRecords(DateTime date) async {
+    if (!mounted) return;
+
     try {
       final records =
           await DripCounterFirestoreService.loadDripPackRecordsAddedOnDate(
             date: date,
           );
-      setState(() {
-        _dripPackRecords = records;
-      });
+      if (mounted) {
+        setState(() {
+          _dripPackRecords = records;
+        });
+      }
     } catch (e) {
       print('ドリップパック記録読み込みエラー: $e');
     }
   }
 
   Future<void> _loadWorkProgressRecords(DateTime date) async {
+    if (!mounted) return;
+
     try {
       final records =
           await WorkProgressFirestoreService.getWorkProgressRecordsByDate(date);
-      setState(() {
-        _workProgressRecords = records;
-      });
+      if (mounted) {
+        setState(() {
+          _workProgressRecords = records;
+        });
+      }
     } catch (e) {
       print('作業状況記録読み込みエラー: $e');
     }
@@ -215,11 +257,19 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   void _onDateSelected(DateTime selectedDate, DateTime focusedDate) {
+    if (!mounted) return;
+
     setState(() {
       _selectedDate = selectedDate;
       _focusedDate = focusedDate;
     });
-    _loadSelectedDateData();
+
+    // データ読み込みを遅延実行
+    Future.delayed(Duration(milliseconds: 100), () {
+      if (mounted) {
+        _loadSelectedDateData();
+      }
+    });
   }
 
   void _showCalendarDialog(BuildContext context, ThemeSettings themeSettings) {
@@ -664,79 +714,88 @@ class _CalendarPageState extends State<CalendarPage> {
       themeSettings: themeSettings,
       child:
           _assignmentHistoryWithLabels != null &&
-              _assignmentHistoryWithLabels!['assignments'].isNotEmpty
+              _assignmentHistoryWithLabels!['assignments'] != null &&
+              (_assignmentHistoryWithLabels!['assignments'] as List).isNotEmpty
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children:
-                  (_assignmentHistoryWithLabels!['assignments'] as List<String>)
-                      .asMap()
-                      .entries
-                      .map((entry) {
-                        final index = entry.key;
-                        final assignment = entry.value;
-                        final parts = assignment.split('-');
+              children: (_assignmentHistoryWithLabels!['assignments'] as List)
+                  .map((assignment) => assignment.toString())
+                  .toList()
+                  .asMap()
+                  .entries
+                  .map((entry) {
+                    final index = entry.key;
+                    final assignment = entry.value;
+                    final parts = assignment.split('-');
 
-                        if (parts.length == 2) {
-                          final leftLabels =
-                              _assignmentHistoryWithLabels!['leftLabels']
-                                  as List<String>? ??
-                              [];
-                          final rightLabels =
-                              _assignmentHistoryWithLabels!['rightLabels']
-                                  as List<String>? ??
-                              [];
+                    if (parts.length == 2) {
+                      final leftLabelsRaw =
+                          _assignmentHistoryWithLabels!['leftLabels']
+                              as List? ??
+                          [];
+                      final rightLabelsRaw =
+                          _assignmentHistoryWithLabels!['rightLabels']
+                              as List? ??
+                          [];
 
-                          final leftLabel = index < leftLabels.length
-                              ? leftLabels[index]
-                              : '';
-                          final rightLabel = index < rightLabels.length
-                              ? rightLabels[index]
-                              : '';
+                      final leftLabels = leftLabelsRaw
+                          .map((label) => label.toString())
+                          .toList();
+                      final rightLabels = rightLabelsRaw
+                          .map((label) => label.toString())
+                          .toList();
 
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: 8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      final leftLabel = index < leftLabels.length
+                          ? leftLabels[index]
+                          : '';
+                      final rightLabel = index < rightLabels.length
+                          ? rightLabels[index]
+                          : '';
+
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.person,
-                                      size: 16,
-                                      color: themeSettings.iconColor,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      '${parts[0]} - ${parts[1]}',
-                                      style: TextStyle(
-                                        color: themeSettings.fontColor1,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
+                                Icon(
+                                  Icons.person,
+                                  size: 16,
+                                  color: themeSettings.iconColor,
                                 ),
-                                if (leftLabel.isNotEmpty ||
-                                    rightLabel.isNotEmpty)
-                                  Padding(
-                                    padding: EdgeInsets.only(left: 20, top: 2),
-                                    child: Text(
-                                      '${leftLabel.isNotEmpty ? leftLabel : ''}${leftLabel.isNotEmpty && rightLabel.isNotEmpty ? ' / ' : ''}${rightLabel.isNotEmpty ? rightLabel : ''}',
-                                      style: TextStyle(
-                                        color: themeSettings.fontColor1
-                                            .withOpacity(0.7),
-                                        fontSize: 12,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
+                                SizedBox(width: 4),
+                                Text(
+                                  '${parts[0]} - ${parts[1]}',
+                                  style: TextStyle(
+                                    color: themeSettings.fontColor1,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
                                   ),
+                                ),
                               ],
                             ),
-                          );
-                        }
-                        return SizedBox.shrink();
-                      })
-                      .toList(),
+                            if (leftLabel.isNotEmpty || rightLabel.isNotEmpty)
+                              Padding(
+                                padding: EdgeInsets.only(left: 20, top: 2),
+                                child: Text(
+                                  '${leftLabel.isNotEmpty ? leftLabel : ''}${leftLabel.isNotEmpty && rightLabel.isNotEmpty ? ' / ' : ''}${rightLabel.isNotEmpty ? rightLabel : ''}',
+                                  style: TextStyle(
+                                    color: themeSettings.fontColor1.withOpacity(
+                                      0.7,
+                                    ),
+                                    fontSize: 12,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    }
+                    return SizedBox.shrink();
+                  })
+                  .toList(),
             )
           : Text(
               '担当が設定されていません',
@@ -977,11 +1036,19 @@ class _CalendarPageState extends State<CalendarPage> {
 
     return GestureDetector(
       onTap: () {
+        if (!mounted) return;
+
         setState(() {
           _selectedDate = targetDate;
           _focusedDate = targetDate;
         });
-        _loadSelectedDateData();
+
+        // データ読み込みを遅延実行
+        Future.delayed(Duration(milliseconds: 100), () {
+          if (mounted) {
+            _loadSelectedDateData();
+          }
+        });
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),

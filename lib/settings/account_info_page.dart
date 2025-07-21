@@ -299,18 +299,23 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
+                                          // ユーザー名と編集ボタン
                                           Row(
                                             children: [
-                                              Text(
-                                                _userName ?? '',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 18,
-                                                  color:
-                                                      Provider.of<
-                                                            ThemeSettings
-                                                          >(context)
-                                                          .fontColor1,
+                                              Expanded(
+                                                child: Text(
+                                                  _userName ?? '',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                               SizedBox(width: 4),
@@ -327,7 +332,21 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                                 tooltip: '表示名を編集',
                                                 onPressed: _editDisplayName,
                                               ),
-                                              SizedBox(width: 8),
+                                            ],
+                                          ),
+                                          Text(
+                                            'ログイン済み',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Provider.of<ThemeSettings>(
+                                                context,
+                                              ).fontColor1,
+                                            ),
+                                          ),
+                                          SizedBox(height: 8),
+                                          // バッジ類をログイン済みの下に配置
+                                          Row(
+                                            children: [
                                               if (_userEmail ==
                                                   'kensaku.ikeda04@gmail.com')
                                                 Container(
@@ -352,6 +371,9 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                                     ),
                                                   ),
                                                 ),
+                                              if (_userEmail ==
+                                                  'kensaku.ikeda04@gmail.com')
+                                                SizedBox(width: 8),
                                               FutureBuilder<bool>(
                                                 future: isDonorUser(),
                                                 builder: (context, snapshot) {
@@ -392,111 +414,12 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                               ),
                                             ],
                                           ),
-                                          Text(
-                                            'ログイン済み',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor1,
-                                            ),
-                                          ),
                                         ],
                                       ),
                                     ),
                                   ],
                                 ),
                                 SizedBox(height: 24),
-                                // データ同期セクション
-                                Card(
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  color:
-                                      Provider.of<ThemeSettings>(
-                                        context,
-                                      ).backgroundColor2 ??
-                                      Colors.white,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.sync,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).iconColor,
-                                              size: 20,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              'データ同期',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color:
-                                                    Provider.of<ThemeSettings>(
-                                                      context,
-                                                    ).fontColor1,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          'アプリの全データをクラウドと同期します\n自分のデータをアップロードし、クラウドのデータをダウンロードします',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Provider.of<ThemeSettings>(
-                                              context,
-                                            ).fontColor1,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Container(
-                                          padding: EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            border: Border.all(
-                                              color: Colors.blue.withOpacity(
-                                                0.3,
-                                              ),
-                                            ),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.sync,
-                                                color: Colors.blue,
-                                                size: 20,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  'データは自動で同期されます',
-                                                  style: TextStyle(
-                                                    color: Colors.blue[800],
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(

@@ -427,10 +427,19 @@ class GroupFirestoreService {
           'joinedAt': DateTime.now().toIso8601String(),
         });
 
+    print(
+      'GroupFirestoreService: 招待コード参加完了 - グループID: ${group.id}, メンバー数: ${updatedGroup.members.length}',
+    );
+
     // 招待を更新
     await _firestore.collection('invitations').doc(invitationId).update({
       'isAccepted': true,
+      'acceptedAt': DateTime.now().toIso8601String(),
     });
+
+    print(
+      'GroupFirestoreService: 招待承諾完了 - グループID: ${group.id}, メンバー数: ${updatedGroup.members.length}',
+    );
   }
 
   /// 招待コードでグループに参加

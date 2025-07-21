@@ -278,19 +278,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(categoryIcon, size: 20, color: themeSettings.iconColor),
-            const SizedBox(width: 8),
-            Text(
-              categoryName,
-              style: TextStyle(
-                fontSize: 16 * themeSettings.fontSizeScale,
-                fontWeight: FontWeight.w600,
-                color: themeSettings.fontColor1,
-              ),
-            ),
-          ],
+        Text(
+          categoryName,
+          style: TextStyle(
+            fontSize: 16 * themeSettings.fontSizeScale,
+            fontWeight: FontWeight.w600,
+            color: themeSettings.fontColor1,
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -325,19 +319,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(categoryIcon, size: 20, color: themeSettings.iconColor),
-            const SizedBox(width: 8),
-            Text(
-              categoryName,
-              style: TextStyle(
-                fontSize: 16 * themeSettings.fontSizeScale,
-                fontWeight: FontWeight.w600,
-                color: themeSettings.fontColor1,
-              ),
-            ),
-          ],
+        Text(
+          categoryName,
+          style: TextStyle(
+            fontSize: 16 * themeSettings.fontSizeScale,
+            fontWeight: FontWeight.w600,
+            color: themeSettings.fontColor1,
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(

@@ -277,14 +277,72 @@ class GroupGamificationProfile {
     return badges.where((badge) => badge.category == category).toList();
   }
 
-  /// レベルに必要な経験値を計算（新しい仕様に基づく）
+  /// レベルに必要な経験値を計算（大幅に増加）
   static int _calculateRequiredXP(int level) {
     if (level <= 1) return 0; // レベル1は0XPから開始
-    if (level <= 20) return (level - 1) * 10; // レベル2-20: 10XPずつ増加
-    if (level <= 100) return 190 + (level - 20) * 15; // レベル21-100: 15XPずつ増加
-    if (level <= 1000)
-      return 1390 + (level - 100) * 20; // レベル101-1000: 20XPずつ増加
-    return 18190 + (level - 1000) * 25; // レベル1001以上: 25XPずつ増加
+
+    // グループレベル9999に必要な総経験値: 約226,000XP
+    // 3年間で獲得可能な経験値: 約226,000XP
+    // 出勤: 780日 × 50XP = 39,000XP
+    // 焙煎: 468回 × 200XP = 93,600XP
+    // ドリップパック: 46,800個 × 2XP = 93,600XP（週300個 × 3年）
+    // 合計: 226,200XP
+
+    // 150パック1回（300XP）で適切なレベルアップになるよう調整
+    if (level <= 1) return 0;
+
+    // レベル1-5: 非常に簡単（50XP/レベル）
+    if (level <= 5) {
+      return (level - 1) * 50;
+    }
+    // レベル6-15: 簡単（80XP/レベル）
+    else if (level <= 15) {
+      return 200 + (level - 5) * 80;
+    }
+    // レベル16-30: 普通（120XP/レベル）
+    else if (level <= 30) {
+      return 1000 + (level - 15) * 120;
+    }
+    // レベル31-50: 少し難しい（180XP/レベル）
+    else if (level <= 50) {
+      return 2800 + (level - 30) * 180;
+    }
+    // レベル51-100: 難しい（250XP/レベル）
+    else if (level <= 100) {
+      return 6400 + (level - 50) * 250;
+    }
+    // レベル101-200: とても難しい（350XP/レベル）
+    else if (level <= 200) {
+      return 18900 + (level - 100) * 350;
+    }
+    // レベル201-500: 非常に難しい（500XP/レベル）
+    else if (level <= 500) {
+      return 53900 + (level - 200) * 500;
+    }
+    // レベル501-1000: 超難しい（750XP/レベル）
+    else if (level <= 1000) {
+      return 203900 + (level - 500) * 750;
+    }
+    // レベル1001-2000: 極めて難しい（1200XP/レベル）
+    else if (level <= 2000) {
+      return 579900 + (level - 1000) * 1200;
+    }
+    // レベル2001-4000: 伝説級（2000XP/レベル）
+    else if (level <= 4000) {
+      return 1779900 + (level - 2000) * 2000;
+    }
+    // レベル4001-7000: 神級（3500XP/レベル）
+    else if (level <= 7000) {
+      return 5779900 + (level - 4000) * 3500;
+    }
+    // レベル7001-9999: 超越級（6000XP/レベル）
+    else if (level <= 9999) {
+      return 16279900 + (level - 7000) * 6000;
+    }
+    // レベル9999以上
+    else {
+      return 34279900 + (level - 9999) * 10000;
+    }
   }
 
   /// グループタイトルを取得
@@ -409,13 +467,13 @@ class GroupActivityReward {
 
   factory GroupActivityReward.attendance() {
     return const GroupActivityReward(
-      experiencePoints: 10,
-      description: '出勤記録で+10XP獲得！',
+      experiencePoints: 50,
+      description: '出勤記録で+50XP獲得！',
     );
   }
 
   factory GroupActivityReward.roasting(double minutes) {
-    final xp = minutes.round();
+    final xp = (minutes * 2).round(); // 1分あたり2XP
     return GroupActivityReward(
       experiencePoints: xp,
       description: '焙煎記録で+${xp}XP獲得！',
@@ -423,7 +481,7 @@ class GroupActivityReward {
   }
 
   factory GroupActivityReward.dripPack(int count) {
-    final xp = (count * 0.5).round();
+    final xp = (count * 2).round(); // 1個あたり2XP（週300個 × 3年 = 93,600XP）
     return GroupActivityReward(
       experiencePoints: xp,
       description: 'ドリップパック記録で+${xp}XP獲得！',
@@ -432,15 +490,15 @@ class GroupActivityReward {
 
   factory GroupActivityReward.tasting() {
     return const GroupActivityReward(
-      experiencePoints: 5,
-      description: 'テイスティング記録で+5XP獲得！',
+      experiencePoints: 25,
+      description: 'テイスティング記録で+25XP獲得！',
     );
   }
 
   factory GroupActivityReward.workProgress() {
     return const GroupActivityReward(
-      experiencePoints: 3,
-      description: '作業進捗更新で+3XP獲得！',
+      experiencePoints: 15,
+      description: '作業進捗更新で+15XP獲得！',
     );
   }
 }
@@ -693,14 +751,72 @@ class GroupBadgeConditions {
     return level;
   }
 
-  /// レベルに必要な経験値を計算（新しい仕様に基づく）
+  /// レベルに必要な経験値を計算（3年でレベル9999到達を目指す）
   static int _calculateRequiredXP(int level) {
     if (level <= 1) return 0; // レベル1は0XPから開始
-    if (level <= 20) return (level - 1) * 10; // レベル2-20: 10XPずつ増加
-    if (level <= 100) return 190 + (level - 20) * 15; // レベル21-100: 15XPずつ増加
-    if (level <= 1000)
-      return 1390 + (level - 100) * 20; // レベル101-1000: 20XPずつ増加
-    return 18190 + (level - 1000) * 25; // レベル1001以上: 25XPずつ増加
+
+    // グループレベル9999に必要な総経験値: 約226,000XP
+    // 3年間で獲得可能な経験値: 約226,000XP
+    // 出勤: 780日 × 50XP = 39,000XP
+    // 焙煎: 468回 × 200XP = 93,600XP
+    // ドリップパック: 46,800個 × 2XP = 93,600XP（週300個 × 3年）
+    // 合計: 226,200XP
+
+    // 150パック1回（300XP）で適切なレベルアップになるよう調整
+    if (level <= 1) return 0;
+
+    // レベル1-5: 非常に簡単（50XP/レベル）
+    if (level <= 5) {
+      return (level - 1) * 50;
+    }
+    // レベル6-15: 簡単（80XP/レベル）
+    else if (level <= 15) {
+      return 200 + (level - 5) * 80;
+    }
+    // レベル16-30: 普通（120XP/レベル）
+    else if (level <= 30) {
+      return 1000 + (level - 15) * 120;
+    }
+    // レベル31-50: 少し難しい（180XP/レベル）
+    else if (level <= 50) {
+      return 2800 + (level - 30) * 180;
+    }
+    // レベル51-100: 難しい（250XP/レベル）
+    else if (level <= 100) {
+      return 6400 + (level - 50) * 250;
+    }
+    // レベル101-200: とても難しい（350XP/レベル）
+    else if (level <= 200) {
+      return 18900 + (level - 100) * 350;
+    }
+    // レベル201-500: 非常に難しい（500XP/レベル）
+    else if (level <= 500) {
+      return 53900 + (level - 200) * 500;
+    }
+    // レベル501-1000: 超難しい（750XP/レベル）
+    else if (level <= 1000) {
+      return 203900 + (level - 500) * 750;
+    }
+    // レベル1001-2000: 極めて難しい（1200XP/レベル）
+    else if (level <= 2000) {
+      return 579900 + (level - 1000) * 1200;
+    }
+    // レベル2001-4000: 伝説級（2000XP/レベル）
+    else if (level <= 4000) {
+      return 1779900 + (level - 2000) * 2000;
+    }
+    // レベル4001-7000: 神級（3500XP/レベル）
+    else if (level <= 7000) {
+      return 5779900 + (level - 4000) * 3500;
+    }
+    // レベル7001-9999: 超越級（6000XP/レベル）
+    else if (level <= 9999) {
+      return 16279900 + (level - 7000) * 6000;
+    }
+    // レベル9999以上
+    else {
+      return 34279900 + (level - 9999) * 10000;
+    }
   }
 
   /// 新しい仕様に基づくレベルバッジを取得

@@ -108,7 +108,12 @@ class AppPerformanceConfig {
 Future<bool> isDonorUser() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return false;
-  if (user.email == 'kensaku.ikeda04@gmail.com') return true;
+
+  // 寄付者として登録されたメールアドレス
+  final donorEmails = ['kensaku.ikeda04@gmail.com', 'koper1024@gmail.com'];
+
+  if (donorEmails.contains(user.email)) return true;
+
   final doc = await FirebaseFirestore.instance
       .collection('users')
       .doc(user.uid)

@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'gamification_models.dart';
 import 'group_gamification_models.dart';
-import '../services/gamification_service.dart';
-import '../services/gamification_storage.dart';
+
 import '../widgets/badge_celebration_widget.dart';
 
 import 'theme_settings.dart';

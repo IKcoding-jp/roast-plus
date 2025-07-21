@@ -162,6 +162,10 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   @override
   void initState() {
     super.initState();
+
+    // 権限の初期値を設定（グループ未参加時は編集可能・担当決定可能）
+    _canEditAssignment = true;
+
     _loadState();
     _loadTodayAttendance();
     _initializeGroupMonitoring();
@@ -457,7 +461,14 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     GroupSettings groupSettings,
     GroupProvider groupProvider,
   ) {
-    if (!mounted) return;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print('未ログインのため権限チェックをスキップ');
+      setState(() {
+        _canEditAssignment = false;
+      });
+      return;
+    }
 
     print('AssignmentBoard: _checkEditPermissionFromSettings開始');
     print('AssignmentBoard: 現在の権限状態: $_canEditAssignment');
@@ -467,17 +478,6 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     );
 
     try {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        print('AssignmentBoard: ユーザーが認証されていません');
-        setState(() {
-          _canEditAssignment = false;
-        });
-        return;
-      }
-
-      print('AssignmentBoard: 現在のユーザーID: ${currentUser.uid}');
-
       final userRole = groupProvider.currentGroup!.getMemberRole(
         currentUser.uid,
       );
@@ -498,17 +498,14 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         'assignment_board',
         userRole,
       );
-      print(
-        'AssignmentBoard: 設定変更による権限チェック - ユーザーロール: $userRole, 権限: $canEdit',
-      );
 
       print(
-        'AssignmentBoard: 権限変更チェック - 現在: $_canEditAssignment, 新しい値: $canEdit',
+        'AssignmentBoard: 設定変更による権限チェック - ユーザーロール: $userRole, 編集権限: $canEdit',
       );
 
       if (mounted && _canEditAssignment != canEdit) {
         print(
-          'AssignmentBoard: 権限状態を更新します - 変更前: $_canEditAssignment, 変更後: $canEdit',
+          'AssignmentBoard: 権限状態を更新します - 編集権限: $_canEditAssignment -> $canEdit',
         );
         setState(() {
           _canEditAssignment = canEdit;
@@ -547,24 +544,28 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         final groupSettings = await GroupFirestoreService.getGroupSettings(
           group.id,
         );
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser == null) {
+          print('未ログインのため権限チェックをスキップ');
+          setState(() {
+            _canEditAssignment = false;
+          });
+          return;
+        }
         if (groupSettings != null) {
-          final currentUser = FirebaseAuth.instance.currentUser;
-          if (currentUser != null) {
-            final userRole = group.getMemberRole(currentUser.uid);
-            if (userRole != null) {
-              final canEdit = groupSettings.canEditDataType(
-                'assignment_board',
-                userRole,
-              );
-              print(
-                'AssignmentBoard: 初期権限チェック結果 - ユーザーロール: $userRole, 権限: $canEdit',
-              );
-
-              setState(() {
-                _canEditAssignment = canEdit;
-              });
-              return;
-            }
+          final userRole = group.getMemberRole(currentUser.uid);
+          if (userRole != null) {
+            final canEdit = groupSettings.canEditDataType(
+              'assignment_board',
+              userRole,
+            );
+            print(
+              'AssignmentBoard: 初期権限チェック結果 - ユーザーロール: $userRole, 編集権限: $canEdit',
+            );
+            setState(() {
+              _canEditAssignment = canEdit;
+            });
+            return;
           }
         }
 
@@ -574,21 +575,26 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           dataType: 'assignment_board',
         );
 
-        print('AssignmentBoard: フォールバック権限チェック結果 - canEdit: $canEdit');
+        // フォールバック時はメンバー以上に担当決定権限を付与
+        final canAssignToday = true;
+
+        print(
+          'AssignmentBoard: フォールバック権限チェック結果 - canEdit: $canEdit, canAssignToday: $canAssignToday',
+        );
 
         setState(() {
           _canEditAssignment = canEdit;
         });
       } else {
-        // グループ未参加時も編集可
-        print('AssignmentBoard: グループ未参加 - 編集可能に設定');
+        // グループ未参加時も編集可・担当決定可
+        print('AssignmentBoard: グループ未参加 - 編集可能・担当決定可能に設定');
         setState(() {
           _canEditAssignment = true;
         });
       }
     } catch (e) {
-      // エラーの場合は編集可能として扱う（グループに参加していない場合など）
-      print('AssignmentBoard: 権限チェックエラー - $e, 編集可能に設定');
+      // エラーの場合は編集可能・担当決定可能として扱う（グループに参加していない場合など）
+      print('AssignmentBoard: 権限チェックエラー - $e, 編集可能・担当決定可能に設定');
       setState(() {
         _canEditAssignment = true;
       });
@@ -599,6 +605,15 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   void _checkEditPermissionRealtime(GroupProvider groupProvider) {
     if (!mounted) return; // ウィジェットが破棄されている場合は処理しない
 
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print('未ログインのため権限チェックをスキップ');
+      setState(() {
+        _canEditAssignment = false;
+      });
+      return;
+    }
+
     if (groupProvider.hasGroup) {
       final group = groupProvider.currentGroup!;
       print('AssignmentBoard: リアルタイム権限チェック開始 - groupId: ${group.id}');
@@ -608,8 +623,14 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             dataType: 'assignment_board',
           )
           .then((canEdit) {
+            // リアルタイムチェック時の権限判定
+            final groupSettings = groupProvider.getCurrentGroupSettings();
+            final userRole = group.getMemberRole(currentUser.uid);
+            final accessLevel = groupSettings?.getPermissionForDataType(
+              'assignment_board',
+            );
             print(
-              'AssignmentBoard: リアルタイム権限チェック結果 - canEdit: $canEdit, 現在: $_canEditAssignment',
+              'AssignmentBoard: リアルタイム権限判定 - userRole: $userRole, accessLevel: $accessLevel',
             );
             if (mounted && _canEditAssignment != canEdit) {
               setState(() {
@@ -618,9 +639,9 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             }
           })
           .catchError((e) {
-            // エラーの場合は編集可能として扱う
+            // エラーの場合は編集可能・担当決定可能として扱う
             print('AssignmentBoard: リアルタイム権限チェックエラー - $e');
-            if (mounted && _canEditAssignment != true) {
+            if (mounted && (_canEditAssignment != true)) {
               setState(() {
                 _canEditAssignment = true;
               });
@@ -1241,6 +1262,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     }).toList();
     return Consumer<GroupProvider>(
       builder: (context, groupProvider, child) {
+        // リアルタイム権限チェックを実行
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _checkEditPermissionRealtime(groupProvider);
+        });
+
         // グループデータの監視状態を確認
         if (groupProvider.hasGroup && !groupProvider.isWatchingGroupData) {
           // グループデータの監視を開始
@@ -1612,7 +1638,16 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                   ),
                   SizedBox(height: 32),
                   // 担当決定ボタン（編集権限がある場合のみ表示）
-                  if (_canEditAssignment != null && _canEditAssignment == true)
+                  if (_canEditAssignment == true) ...[
+                    // デバッグ情報を表示（開発時のみ）
+                    if (isDeveloperMode)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'デバッグ: 編集権限=$_canEditAssignment',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
                     ElevatedButton(
                       onPressed: isButtonDisabled ? null : _shuffleAssignments,
                       child: Text(() {
@@ -1621,8 +1656,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                         if (isShuffling) return 'シャッフル中...';
                         return '今日の担当を決める';
                       }()),
-                    )
-                  else
+                    ),
+                  ] else
                     SizedBox.shrink(),
                   SizedBox(height: 20), // 下部に余白を追加
                 ],

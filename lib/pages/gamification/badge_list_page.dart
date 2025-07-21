@@ -6,7 +6,6 @@ import '../../models/gamification_provider.dart';
 import '../../models/gamification_models.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_gamification_models.dart';
-import '../../services/gamification_service.dart';
 
 class BadgeListPage extends StatefulWidget {
   const BadgeListPage({super.key});

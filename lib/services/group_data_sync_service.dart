@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_models.dart';
 import '../models/gamification_models.dart';
+import '../models/group_gamification_models.dart';
 import 'group_firestore_service.dart';
 import 'gamification_firestore_service.dart';
-import 'gamification_storage.dart';
 
 class GroupDataSyncService {
   static final _firestore = FirebaseFirestore.instance;
@@ -574,7 +574,7 @@ class GroupDataSyncService {
   /// グループのゲーミフィケーションデータを同期
   static Future<void> syncGamificationData(
     String groupId,
-    UserProfile profile,
+    Map<String, dynamic> data,
   ) async {
     print('GroupDataSyncService: ゲーミフィケーションデータの同期権限チェック開始');
 
@@ -591,15 +591,12 @@ class GroupDataSyncService {
     print('GroupDataSyncService: ゲーミフィケーションデータの同期権限チェック完了');
 
     print('GroupDataSyncService: ゲーミフィケーションデータをFirestoreに保存中...');
-    await GamificationFirestoreService.saveGroupGamificationData(
-      groupId,
-      profile.toJson(),
-    );
+    await GamificationFirestoreService.saveGroupGamificationData(groupId, data);
     print('GroupDataSyncService: ゲーミフィケーションデータの保存完了');
   }
 
   /// グループのゲーミフィケーションデータを取得
-  static Future<UserProfile?> getGroupGamificationData(
+  static Future<Map<String, dynamic>?> getGroupGamificationData(
     String groupId,
     String userId,
   ) async {
@@ -608,8 +605,7 @@ class GroupDataSyncService {
         groupId,
         userId,
       );
-      if (data == null) return null;
-      return UserProfile.fromJson(data);
+      return data;
     } catch (e) {
       print('グループゲーミフィケーションデータ取得エラー: $e');
       return null;
@@ -617,7 +613,7 @@ class GroupDataSyncService {
   }
 
   /// グループメンバー全員のゲーミフィケーションデータを取得
-  static Future<List<UserProfile>> getGroupMembersGamificationData(
+  static Future<List<GroupGamificationProfile>> getGroupMembersGamificationData(
     String groupId,
   ) async {
     return await GamificationFirestoreService.loadGroupMembersGamificationData(
@@ -902,8 +898,9 @@ class GroupDataSyncService {
     // ゲーミフィケーションデータを同期
     try {
       print('GroupDataSyncService: ゲーミフィケーションデータ同期を開始');
-      final profile = await GamificationStorage.loadUserProfile();
-      await syncGamificationData(groupId, profile);
+      // 個人レベルシステムは削除されたため、グループゲーミフィケーションのみを使用
+      return null;
+      // 個人レベルシステムは削除されたため、グループゲーミフィケーションのみを使用
       print('GroupDataSyncService: ゲーミフィケーションデータの同期完了');
     } catch (e) {
       print('GroupDataSyncService: ゲーミフィケーションデータ同期エラー: $e');

@@ -71,13 +71,17 @@ class DripCounterPageState extends State<DripCounterPage>
         );
     _loadDripRecordsFromFirestore();
     _startDripRecordsListener();
-    _startPermissionListener();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _checkGroupChange();
+    // 権限チェックとリスナーの開始
+    if (_isCheckingPermission) {
+      _checkPermission();
+      _startPermissionListener();
+    }
   }
 
   /// グループ変更をチェックして、必要に応じてデータをクリア
@@ -105,29 +109,45 @@ class DripCounterPageState extends State<DripCounterPage>
   /// 権限チェック
   Future<void> _checkPermission() async {
     try {
-      final groupProvider = context.read<GroupProvider>();
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
       if (groupProvider.hasGroup) {
         final canUse = await PermissionUtils.canCreateDataType(
           groupId: groupProvider.currentGroup!.id,
           dataType: 'dripCounter',
         );
-        setState(() {
-          _canUseDripCounter = canUse;
-          _isCheckingPermission = false;
-        });
+        if (mounted) {
+          setState(() {
+            _canUseDripCounter = canUse;
+            _isCheckingPermission = false;
+          });
+        }
       } else {
-        setState(() {
-          _canUseDripCounter = true;
-          _isCheckingPermission = false;
-        });
+        if (mounted) {
+          setState(() {
+            _canUseDripCounter = true;
+            _isCheckingPermission = false;
+          });
+        }
       }
     } catch (e) {
       print('ドリップパックカウンター権限チェックエラー: $e');
-      setState(() {
-        _canUseDripCounter = false;
-        _isCheckingPermission = false;
-      });
+      if (mounted) {
+        setState(() {
+          _canUseDripCounter = false;
+          _isCheckingPermission = false;
+        });
+      }
     }
+
+    // タイムアウト処理（5秒後に強制的に権限チェックを終了）
+    Future.delayed(Duration(seconds: 5), () {
+      if (mounted && _isCheckingPermission) {
+        setState(() {
+          _canUseDripCounter = true; // デフォルトで許可
+          _isCheckingPermission = false;
+        });
+      }
+    });
   }
 
   Future<void> _loadDripRecordsFromFirestore() async {
@@ -181,25 +201,30 @@ class DripCounterPageState extends State<DripCounterPage>
   }
 
   void _startPermissionListener() {
-    final groupProvider = context.read<GroupProvider>();
+    // didChangeDependenciesで呼ばれるため、contextが利用可能
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
     if (groupProvider.hasGroup) {
       _permissionSubscription?.cancel();
       _permissionSubscription = PermissionUtils.listenForPermissionChange(
         groupId: groupProvider.currentGroup!.id,
         dataType: 'dripCounter',
         onPermissionChange: (canUse) {
-          setState(() {
-            _canUseDripCounter = canUse;
-            _isCheckingPermission = false;
-          });
+          if (mounted) {
+            setState(() {
+              _canUseDripCounter = canUse;
+              _isCheckingPermission = false;
+            });
+          }
         },
       );
     } else {
       _permissionSubscription?.cancel();
-      setState(() {
-        _canUseDripCounter = true;
-        _isCheckingPermission = false;
-      });
+      if (mounted) {
+        setState(() {
+          _canUseDripCounter = true;
+          _isCheckingPermission = false;
+        });
+      }
     }
   }
 
@@ -307,6 +332,7 @@ class DripCounterPageState extends State<DripCounterPage>
     final cardElevation = 8.0;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true, // キーボードに応じてレイアウトを調整
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
@@ -332,319 +358,347 @@ class DripCounterPageState extends State<DripCounterPage>
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final double sectionHeight = (constraints.maxHeight - 32) / 3;
+            // キーボードの高さを考慮
+            final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+            final availableHeight = constraints.maxHeight - 32 - keyboardHeight;
+            final double minSectionHeight = 120; // 最小高さを設定
+            final double sectionHeight = (availableHeight / 3).clamp(
+              minSectionHeight,
+              double.infinity,
+            );
             final double buttonFont = 28;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                children: [
-                  // 1. カウンター枠
-                  SizedBox(
-                    height: sectionHeight,
-                    width: double.infinity,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: cardGradient,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
-                          ),
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.8),
-                            blurRadius: 1,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        children: [
-                          // 背景装飾
-                          Positioned(
-                            top: -20,
-                            right: -20,
-                            child: Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                gradient: RadialGradient(
-                                  colors: [
-                                    themeSettings.buttonColor.withOpacity(0.1),
-                                    Colors.transparent,
-                                  ],
-                                ),
-                                shape: BoxShape.circle,
-                              ),
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Column(
+                  children: [
+                    // 1. カウンター枠
+                    SizedBox(
+                      height: sectionHeight,
+                      width: double.infinity,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: cardGradient,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: Offset(0, 8),
                             ),
-                          ),
-                          // カウンター数字
-                          Center(
-                            child: AnimatedBuilder(
-                              animation: _scaleAnimation,
-                              builder: (context, child) {
-                                return Transform.scale(
-                                  scale: _scaleAnimation.value,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        '$_counter',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 120,
-                                          fontWeight: FontWeight.w900,
-                                          foreground: Paint()
-                                            ..shader =
-                                                LinearGradient(
-                                                  colors: [
-                                                    themeSettings.fontColor1,
-                                                    themeSettings.fontColor1
-                                                        .withOpacity(0.8),
-                                                  ],
-                                                  begin: Alignment.topCenter,
-                                                  end: Alignment.bottomCenter,
-                                                ).createShader(
-                                                  Rect.fromLTWH(0, 0, 200, 120),
-                                                ),
-                                          letterSpacing: 2,
-                                          fontFamily: 'Arial',
-                                          shadows: [
-                                            Shadow(
-                                              color: Colors.black.withOpacity(
-                                                0.1,
-                                              ),
-                                              blurRadius: 8,
-                                              offset: Offset(2, 2),
-                                            ),
-                                            Shadow(
-                                              color: Colors.white.withOpacity(
-                                                0.8,
-                                              ),
-                                              blurRadius: 2,
-                                              offset: Offset(0, 1),
-                                            ),
-                                          ],
-                                        ),
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.8),
+                              blurRadius: 1,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          children: [
+                            // 背景装飾
+                            Positioned(
+                              top: -20,
+                              right: -20,
+                              child: Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      themeSettings.buttonColor.withOpacity(
+                                        0.1,
                                       ),
+                                      Colors.transparent,
                                     ],
                                   ),
-                                );
-                              },
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                             ),
-                          ),
-                          // リセットボタン（右上）
-                          Positioned(
-                            top: 12,
-                            right: 12,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    themeSettings.iconColor.withOpacity(0.1),
-                                    themeSettings.iconColor.withOpacity(0.05),
+                            // カウンター数字
+                            Center(
+                              child: AnimatedBuilder(
+                                animation: _scaleAnimation,
+                                builder: (context, child) {
+                                  return Transform.scale(
+                                    scale: _scaleAnimation.value,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '$_counter',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 120,
+                                            fontWeight: FontWeight.w900,
+                                            foreground: Paint()
+                                              ..shader =
+                                                  LinearGradient(
+                                                    colors: [
+                                                      themeSettings.fontColor1,
+                                                      themeSettings.fontColor1
+                                                          .withOpacity(0.8),
+                                                    ],
+                                                    begin: Alignment.topCenter,
+                                                    end: Alignment.bottomCenter,
+                                                  ).createShader(
+                                                    Rect.fromLTWH(
+                                                      0,
+                                                      0,
+                                                      200,
+                                                      120,
+                                                    ),
+                                                  ),
+                                            letterSpacing: 2,
+                                            fontFamily: 'Arial',
+                                            shadows: [
+                                              Shadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.1,
+                                                ),
+                                                blurRadius: 8,
+                                                offset: Offset(2, 2),
+                                              ),
+                                              Shadow(
+                                                color: Colors.white.withOpacity(
+                                                  0.8,
+                                                ),
+                                                blurRadius: 2,
+                                                offset: Offset(0, 1),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            // リセットボタン（右上）
+                            Positioned(
+                              top: 12,
+                              right: 12,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      themeSettings.iconColor.withOpacity(0.1),
+                                      themeSettings.iconColor.withOpacity(0.05),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: themeSettings.iconColor.withOpacity(
+                                      0.2,
+                                    ),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
                                   ],
                                 ),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: themeSettings.iconColor.withOpacity(
-                                    0.2,
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.refresh,
+                                    color: themeSettings.iconColor,
+                                    size: 20,
                                   ),
-                                  width: 1.5,
+                                  onPressed: () {
+                                    setState(() {
+                                      _counter = 0;
+                                    });
+                                  },
+                                  tooltip: 'カウンターをリセット',
+                                  padding: EdgeInsets.all(8),
+                                  constraints: BoxConstraints(
+                                    minWidth: 40,
+                                    minHeight: 40,
+                                  ),
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // 2. ボタン枠
+                    SizedBox(
+                      height: sectionHeight,
+                      width: double.infinity,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: cardGradient,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: Offset(0, 8),
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.8),
+                              blurRadius: 1,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              for (final v in [-10, -5, -1, 1, 5, 10])
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                    ),
+                                    child: SizedBox(
+                                      height: sectionHeight * 0.7,
+                                      child: _buildCountButton(
+                                        v,
+                                        fontSize: buttonFont,
+                                        primaryGradient: primaryGradient,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // 3. 入力フォーム枠
+                    Container(
+                      width: double.infinity,
+                      constraints: BoxConstraints(
+                        minHeight: minSectionHeight,
+                        maxHeight: sectionHeight * 1.5, // 最大高さを設定
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: cardGradient,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: Offset(0, 8),
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.8),
+                              blurRadius: 1,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: _buildInputField(
+                                      label: '豆の種類',
+                                      controller: _beanController,
+                                      icon: Icons.coffee,
+                                      hint: '例: グアテマラ',
+                                      fontSize: 17,
+                                      iconSize: 22,
+                                      labelFontSize: 16,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 10,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: _buildRoastDropdown(
+                                      fontSize: 17,
+                                      iconSize: 22,
+                                      labelFontSize: 16,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 10,
+                                          ),
+                                    ),
                                   ),
                                 ],
                               ),
-                              child: IconButton(
-                                icon: Icon(
-                                  Icons.refresh,
-                                  color: themeSettings.iconColor,
-                                  size: 20,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _counter = 0;
-                                  });
-                                },
-                                tooltip: 'カウンターをリセット',
-                                padding: EdgeInsets.all(8),
-                                constraints: BoxConstraints(
-                                  minWidth: 40,
-                                  minHeight: 40,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // 2. ボタン枠
-                  SizedBox(
-                    height: sectionHeight,
-                    width: double.infinity,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: cardGradient,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
-                          ),
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.8),
-                            blurRadius: 1,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            for (final v in [-10, -5, -1, 1, 5, 10])
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: primaryGradient,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: themeSettings.buttonColor
+                                            .withOpacity(0.3),
+                                        blurRadius: 12,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ],
                                   ),
-                                  child: SizedBox(
-                                    height: sectionHeight * 0.7,
-                                    child: _buildCountButton(
-                                      v,
-                                      fontSize: buttonFont,
-                                      primaryGradient: primaryGradient,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // 3. 入力フォーム枠
-                  SizedBox(
-                    height: sectionHeight,
-                    width: double.infinity,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: cardGradient,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
-                          ),
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.8),
-                            blurRadius: 1,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 12,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: _buildInputField(
-                                    label: '豆の種類',
-                                    controller: _beanController,
-                                    icon: Icons.coffee,
-                                    hint: '例: グアテマラ',
-                                    fontSize: 17,
-                                    iconSize: 22,
-                                    labelFontSize: 16,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 10,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: _buildRoastDropdown(
-                                    fontSize: 17,
-                                    iconSize: 22,
-                                    labelFontSize: 16,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 10,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: primaryGradient,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: themeSettings.buttonColor
-                                          .withOpacity(0.3),
-                                      blurRadius: 12,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.save, size: 22),
-                                  label: const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 8),
-                                    child: Text(
-                                      '記録を保存',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.1,
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(Icons.save, size: 22),
+                                    label: const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
+                                      child: Text(
+                                        '記録を保存',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.1,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    foregroundColor: Colors.white,
-                                    shadowColor: Colors.transparent,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      foregroundColor: Colors.white,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      elevation: 0,
                                     ),
-                                    elevation: 0,
+                                    onPressed: _addRecord,
                                   ),
-                                  onPressed: _addRecord,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },

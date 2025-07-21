@@ -16,7 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/tasting_models.dart';
 import '../models/work_progress_models.dart';
 import '../models/gamification_provider.dart';
-import '../services/gamification_storage.dart';
+
 import '../services/user_settings_firestore_service.dart';
 
 // TodoPage用のグローバルKeyを用意
@@ -215,7 +215,7 @@ Future<void> syncAllFirestoreData(
       listen: false,
     );
     // Firestoreからデータを読み込んでローカルと同期
-    await GamificationStorage.migrateDataIfNeeded();
+    // 個人レベルシステムは削除されたため、グループゲーミフィケーションのみを使用
     // プロバイダーを初期化（最新データで更新）
     await gamificationProvider.initialize();
     print('ゲーミフィケーションデータの同期完了');
