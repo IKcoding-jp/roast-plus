@@ -18,18 +18,35 @@ class TastingRecordPage extends StatefulWidget {
 
 class _TastingRecordPageState extends State<TastingRecordPage>
     with WidgetsBindingObserver {
+  String? _lastGroupId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.hasGroup) {
-        context.read<TastingProvider>().loadTastingRecords(
-          groupId: groupProvider.currentGroup!.id,
+      final groupId = groupProvider.hasGroup
+          ? groupProvider.currentGroup!.id
+          : null;
+      _lastGroupId = groupId;
+      context.read<TastingProvider>().subscribeTastingRecords(groupId: groupId);
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final groupProvider = context.read<GroupProvider>();
+      final groupId = groupProvider.hasGroup
+          ? groupProvider.currentGroup!.id
+          : null;
+      if (_lastGroupId != groupId) {
+        _lastGroupId = groupId;
+        context.read<TastingProvider>().subscribeTastingRecords(
+          groupId: groupId,
         );
-      } else {
-        context.read<TastingProvider>().loadTastingRecords();
       }
     });
   }
@@ -44,15 +61,11 @@ class _TastingRecordPageState extends State<TastingRecordPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      // アプリが復帰した時にデータを再読み込み
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.hasGroup) {
-        context.read<TastingProvider>().loadTastingRecords(
-          groupId: groupProvider.currentGroup!.id,
-        );
-      } else {
-        context.read<TastingProvider>().loadTastingRecords();
-      }
+      final groupId = groupProvider.hasGroup
+          ? groupProvider.currentGroup!.id
+          : null;
+      context.read<TastingProvider>().subscribeTastingRecords(groupId: groupId);
     }
   }
 
@@ -160,19 +173,19 @@ class _TastingRecordPageState extends State<TastingRecordPage>
     final tastingProvider = context.read<TastingProvider>();
 
     // ページが表示されるたびにデータを読み込む
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final groupProvider = context.read<GroupProvider>();
-      if (!tastingProvider.isLoading &&
-          tastingProvider.tastingRecords.isEmpty) {
-        if (groupProvider.hasGroup) {
-          tastingProvider.loadTastingRecords(
-            groupId: groupProvider.currentGroup!.id,
-          );
-        } else {
-          tastingProvider.loadTastingRecords();
-        }
-      }
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   final groupProvider = context.read<GroupProvider>();
+    //   if (!tastingProvider.isLoading &&
+    //       tastingProvider.tastingRecords.isEmpty) {
+    //     if (groupProvider.hasGroup) {
+    //       tastingProvider.loadTastingRecords(
+    //         groupId: groupProvider.currentGroup!.id,
+    //       );
+    //     } else {
+    //       tastingProvider.loadTastingRecords();
+    //     }
+    //   }
+    // });
 
     return Scaffold(
       appBar: AppBar(
@@ -370,8 +383,14 @@ class _TastingRecordPageState extends State<TastingRecordPage>
 
                                   if (confirmed == true) {
                                     try {
+                                      final groupProvider = context
+                                          .read<GroupProvider>();
+                                      final groupId = groupProvider.hasGroup
+                                          ? groupProvider.currentGroup!.id
+                                          : null;
                                       await tastingProvider.deleteTastingRecord(
                                         latestRecord.id,
+                                        groupId: groupId,
                                       );
                                       ScaffoldMessenger.of(
                                         context,

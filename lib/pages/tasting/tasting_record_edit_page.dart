@@ -265,10 +265,13 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
     }
 
     final tastingProvider = context.read<TastingProvider>();
+    final groupProvider = context.read<GroupProvider>();
     final beanName = _beanNameController.text.trim();
     final roastLevel = _selectedRoastLevel;
-
     final now = DateTime.now();
+    final groupId = groupProvider.hasGroup
+        ? groupProvider.currentGroup!.id
+        : null;
 
     // 既存レコードを検索
     final existing = tastingProvider.getExistingTastings(beanName, roastLevel);
@@ -295,20 +298,22 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
       createdAt: createdAt,
       updatedAt: now,
       userId: userId,
+      groupId: groupId,
     );
 
     try {
       if (_isEditing || (!_isEditing && existing.isNotEmpty)) {
-        await tastingProvider.updateTastingRecord(tastingRecord);
+        await tastingProvider.updateTastingRecord(
+          tastingRecord,
+          groupId: groupId,
+        );
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('試飲感想記録を更新しました')));
       } else {
-        await tastingProvider.addTastingRecord(tastingRecord);
-
+        await tastingProvider.addTastingRecord(tastingRecord, groupId: groupId);
         // グループレベルシステムで試飲記録を処理
         await _processTastingForGroup();
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('試飲感想記録を保存しました'),
@@ -379,9 +384,26 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
 
                 if (confirmed == true) {
                   try {
-                    await context.read<TastingProvider>().deleteTastingRecord(
-                      widget.tastingRecord!.id,
+                    final groupProvider = context.read<GroupProvider>();
+                    final groupId = groupProvider.hasGroup
+                        ? groupProvider.currentGroup!.id
+                        : null;
+                    final tastingProvider = context.read<TastingProvider>();
+                    final recordId = widget.tastingRecord!.id;
+
+                    await tastingProvider.deleteTastingRecord(
+                      recordId,
+                      groupId: groupId,
                     );
+
+                    // ストリームでリストから消えるまで待つ
+                    await Future.doWhile(() async {
+                      await Future.delayed(Duration(milliseconds: 100));
+                      return tastingProvider.tastingRecords.any(
+                        (r) => r.id == recordId,
+                      );
+                    });
+
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text('削除しました')));

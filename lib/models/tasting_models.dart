@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/tasting_firestore_service.dart';
 import '../services/user_settings_firestore_service.dart';
+import 'dart:async';
 
 class TastingRecord {
   final String id;
@@ -17,6 +18,7 @@ class TastingRecord {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String userId;
+  final String? groupId; // 追加: グループID（個人用はnull）
 
   TastingRecord({
     required this.id,
@@ -31,6 +33,7 @@ class TastingRecord {
     required this.createdAt,
     required this.updatedAt,
     required this.userId,
+    this.groupId,
   });
 
   Map<String, dynamic> toMap() {
@@ -47,6 +50,7 @@ class TastingRecord {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'userId': userId,
+      'groupId': groupId,
     };
   }
 
@@ -65,6 +69,7 @@ class TastingRecord {
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: DateTime.parse(map['updatedAt']),
       userId: map['userId'] ?? '',
+      groupId: map['groupId'],
     );
   }
 
@@ -81,6 +86,7 @@ class TastingRecord {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? userId,
+    String? groupId,
   }) {
     return TastingRecord(
       id: id ?? this.id,
@@ -95,6 +101,7 @@ class TastingRecord {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       userId: userId ?? this.userId,
+      groupId: groupId ?? this.groupId,
     );
   }
 }
@@ -161,6 +168,8 @@ class TastingProvider extends ChangeNotifier {
   bool _isLoading = false;
   static const String _storageKey = 'tasting_records';
 
+  StreamSubscription<List<TastingRecord>>? _tastingStreamSub;
+
   List<TastingRecord> get tastingRecords => _tastingRecords;
   bool get isLoading => _isLoading;
 
@@ -170,6 +179,37 @@ class TastingProvider extends ChangeNotifier {
     notifyListeners();
   }
   // --- ここまで追加 ---
+
+  /// ストリーム購読を開始（グループID指定でグループ用、未指定で個人用）
+  void subscribeTastingRecords({String? groupId}) {
+    _tastingStreamSub?.cancel();
+    _isLoading = true;
+    notifyListeners();
+    Stream<List<TastingRecord>> stream;
+    if (groupId != null && groupId.isNotEmpty) {
+      stream = TastingFirestoreService.getGroupTastingRecordsStream(groupId);
+    } else {
+      stream = TastingFirestoreService.getTastingRecordsStream();
+    }
+    _tastingStreamSub = stream.listen(
+      (records) {
+        _tastingRecords = List.from(records);
+        _isLoading = false;
+        notifyListeners();
+      },
+      onError: (e) {
+        print('テイスティング記録ストリーム購読エラー: $e');
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _tastingStreamSub?.cancel();
+    super.dispose();
+  }
 
   /// 同じ豆の評価をグループ化して返す
   List<TastingGroup> getTastingGroups() {
@@ -273,18 +313,62 @@ class TastingProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> addTastingRecord(TastingRecord tastingRecord) async {
+  Future<bool> _existsTastingRecordOnFirestore(
+    String id, {
+    String? groupId,
+  }) async {
+    try {
+      if (groupId != null && groupId.isNotEmpty) {
+        // グループ用
+        final doc = await TastingFirestoreService.getGroupTastingRecordDoc(
+          groupId,
+          id,
+        );
+        return doc.exists;
+      } else {
+        // 個人用
+        final doc = await TastingFirestoreService.getTastingRecordDoc(id);
+        return doc.exists;
+      }
+    } catch (e) {
+      print('Firestore存在確認エラー: $e');
+      return false;
+    }
+  }
+
+  Future<void> addTastingRecord(
+    TastingRecord tastingRecord, {
+    String? groupId,
+  }) async {
     try {
       final newTastingRecord = tastingRecord.copyWith(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         userId: 'local_user', // ローカル保存なので固定ID
+        groupId: groupId,
       );
+
+      // Firestore上に同じIDが存在する場合は保存しない
+      final exists = await _existsTastingRecordOnFirestore(
+        newTastingRecord.id,
+        groupId: groupId,
+      );
+      if (exists) {
+        print('同じIDのレコードがFirestoreに存在するため、保存をスキップします');
+        return;
+      }
 
       _tastingRecords.insert(0, newTastingRecord);
 
       // Firestoreに保存
       try {
-        await TastingFirestoreService.saveTastingRecord(newTastingRecord);
+        if (groupId != null && groupId.isNotEmpty) {
+          await TastingFirestoreService.saveGroupTastingRecord(
+            groupId,
+            newTastingRecord,
+          );
+        } else {
+          await TastingFirestoreService.saveTastingRecord(newTastingRecord);
+        }
       } catch (e) {
         print('Firestore保存エラー: $e');
         // Firestore保存に失敗してもローカル保存は続行
@@ -298,17 +382,28 @@ class TastingProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateTastingRecord(TastingRecord tastingRecord) async {
+  Future<void> updateTastingRecord(
+    TastingRecord tastingRecord, {
+    String? groupId,
+  }) async {
     try {
       final index = _tastingRecords.indexWhere(
         (tr) => tr.id == tastingRecord.id,
       );
       if (index != -1) {
-        _tastingRecords[index] = tastingRecord;
+        final updatedRecord = tastingRecord.copyWith(groupId: groupId);
+        _tastingRecords[index] = updatedRecord;
 
         // Firestoreに更新
         try {
-          await TastingFirestoreService.updateTastingRecord(tastingRecord);
+          if (groupId != null && groupId.isNotEmpty) {
+            await TastingFirestoreService.updateGroupTastingRecord(
+              groupId,
+              updatedRecord,
+            );
+          } else {
+            await TastingFirestoreService.updateTastingRecord(updatedRecord);
+          }
         } catch (e) {
           print('Firestore更新エラー: $e');
           // Firestore更新に失敗してもローカル保存は続行
@@ -323,13 +418,17 @@ class TastingProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteTastingRecord(String id) async {
+  Future<void> deleteTastingRecord(String id, {String? groupId}) async {
     try {
       _tastingRecords.removeWhere((tr) => tr.id == id);
 
       // Firestoreから削除
       try {
-        await TastingFirestoreService.deleteTastingRecord(id);
+        if (groupId != null && groupId.isNotEmpty) {
+          await TastingFirestoreService.deleteGroupTastingRecord(groupId, id);
+        } else {
+          await TastingFirestoreService.deleteTastingRecord(id);
+        }
       } catch (e) {
         print('Firestore削除エラー: $e');
         // Firestore削除に失敗してもローカル保存は続行

@@ -218,4 +218,52 @@ class TastingFirestoreService {
       rethrow;
     }
   }
+
+  /// グループのテイスティング記録のストリームを取得
+  static Stream<List<TastingRecord>> getGroupTastingRecordsStream(
+    String groupId,
+  ) {
+    try {
+      return _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('tasting_records')
+          .orderBy('tastingDate', descending: true)
+          .snapshots()
+          .map((snapshot) {
+            return snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return TastingRecord.fromMap(data);
+            }).toList();
+          });
+    } catch (e) {
+      print('グループテイスティング記録ストリームエラー: $e');
+      return Stream.value([]);
+    }
+  }
+
+  /// 個人用テイスティング記録のドキュメント参照を取得
+  static Future<DocumentSnapshot<Map<String, dynamic>>> getTastingRecordDoc(
+    String id,
+  ) async {
+    if (_uid == null) throw Exception('未ログイン');
+    return await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('tasting_records')
+        .doc(id)
+        .get();
+  }
+
+  /// グループ用テイスティング記録のドキュメント参照を取得
+  static Future<DocumentSnapshot<Map<String, dynamic>>>
+  getGroupTastingRecordDoc(String groupId, String id) async {
+    return await _firestore
+        .collection('groups')
+        .doc(groupId)
+        .collection('tasting_records')
+        .doc(id)
+        .get();
+  }
 }
