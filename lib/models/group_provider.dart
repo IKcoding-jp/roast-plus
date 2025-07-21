@@ -873,6 +873,14 @@ class GroupProvider extends ChangeNotifier {
     }
   }
 
+  /// グループ設定（settings）のみを更新し、リスナーに通知
+  void updateCurrentGroupSettings(Map<String, dynamic> newSettings) {
+    if (_currentGroup != null) {
+      _currentGroup = _currentGroup!.copyWith(settings: newSettings);
+      _safeNotifyListeners();
+    }
+  }
+
   // グループデータの監視を開始
   void startWatchingGroupData() {
     if (isWatchingGroupData) {

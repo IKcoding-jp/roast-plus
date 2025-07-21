@@ -820,20 +820,13 @@ class GroupFirestoreService {
     print('GroupFirestoreService: 権限チェック完了');
 
     final updatedSettings = settings.copyWith(updatedAt: DateTime.now());
-    final updatedGroup = group.copyWith(
-      settings: updatedSettings.toJson(),
-      updatedAt: DateTime.now(),
-    );
+    // settingsフィールドのみをmergeでsetする
+    await _firestore.collection('groups').doc(groupId).set({
+      'settings': updatedSettings.toJson(),
+      'updatedAt': DateTime.now().toIso8601String(),
+    }, SetOptions(merge: true));
 
-    print('GroupFirestoreService: グループ更新データ準備完了');
-    print('GroupFirestoreService: 更新後のグループ設定: ${updatedGroup.settings}');
-
-    await _firestore
-        .collection('groups')
-        .doc(groupId)
-        .update(updatedGroup.toJson());
-
-    print('GroupFirestoreService: Firestore更新完了');
+    print('GroupFirestoreService: Firestore set(merge: true)で更新完了');
   }
 
   /// 指定されたデータタイプの編集権限をチェック

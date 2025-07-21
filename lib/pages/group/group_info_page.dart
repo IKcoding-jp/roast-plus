@@ -2967,9 +2967,27 @@ class _GroupInfoPageState extends State<GroupInfoPage>
   }
 
   Widget _buildMembersList(ThemeSettings themeSettings, Group group) {
+    final user = FirebaseAuth.instance.currentUser;
+    final isCurrentUserAdmin =
+        user != null && group.getMemberRole(user.uid) == GroupRole.admin;
+
+    // 管理者→リーダー→メンバーの順でソート
+    final sortedMembers = List<GroupMember>.from(group.members);
+    sortedMembers.sort((a, b) {
+      int roleOrder(GroupRole? role) {
+        if (role == GroupRole.admin) return 0;
+        if (role == GroupRole.leader) return 1;
+        return 2; // member
+      }
+
+      return roleOrder(
+        group.getMemberRole(a.uid),
+      ).compareTo(roleOrder(group.getMemberRole(b.uid)));
+    });
+
     return Row(
       children: [
-        ...group.members.take(8).map((member) {
+        ...sortedMembers.take(8).map((member) {
           final role = group.getMemberRole(member.uid);
           Color roleColor;
           IconData roleIcon;
@@ -2987,13 +3005,106 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             roleIcon = Icons.person;
             roleText = 'メンバー';
           }
-          return Container(
-            margin: EdgeInsets.only(right: 8),
+          return GestureDetector(
+            onTap: isCurrentUserAdmin && member.uid != user?.uid
+                ? () => _showMemberRoleDialog(context, member, group)
+                : null,
+            child: Container(
+              margin: EdgeInsets.only(right: 8),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: roleColor.withOpacity(0.1),
+                    backgroundImage: member.photoUrl != null
+                        ? NetworkImage(member.photoUrl!)
+                        : null,
+                    child: member.photoUrl == null
+                        ? Text(
+                            member.displayName.isNotEmpty
+                                ? member.displayName[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: roleColor,
+                            ),
+                          )
+                        : null,
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(roleIcon, color: roleColor, size: 12),
+                      SizedBox(width: 2),
+                      Text(
+                        roleText,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: roleColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        if (sortedMembers.length > 8)
+          Text(
+            '+${sortedMembers.length - 8}',
+            style: TextStyle(
+              fontSize: 16,
+              color: themeSettings.fontColor1.withOpacity(0.6),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showMemberRoleDialog(
+    BuildContext context,
+    GroupMember member,
+    Group group,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    final isCurrentUserAdmin =
+        user != null && group.getMemberRole(user.uid) == GroupRole.admin;
+    final isTargetAdmin = group.getMemberRole(member.uid) == GroupRole.admin;
+    final isTargetLeader = group.getMemberRole(member.uid) == GroupRole.leader;
+    final isTargetMember = group.getMemberRole(member.uid) == GroupRole.member;
+    final roleColor = isTargetAdmin
+        ? Colors.red
+        : isTargetLeader
+        ? Colors.orange
+        : Colors.blue;
+    final roleText = isTargetAdmin
+        ? '管理者'
+        : isTargetLeader
+        ? 'リーダー'
+        : 'メンバー';
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.3),
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // 上部に大きなアイコンと名前
                 CircleAvatar(
-                  radius: 20,
-                  backgroundColor: roleColor.withOpacity(0.1),
+                  radius: 32,
+                  backgroundColor: roleColor.withOpacity(0.12),
                   backgroundImage: member.photoUrl != null
                       ? NetworkImage(member.photoUrl!)
                       : null,
@@ -3003,42 +3114,257 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                               ? member.displayName[0].toUpperCase()
                               : '?',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: roleColor,
                           ),
                         )
                       : null,
                 ),
-                SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(roleIcon, color: roleColor, size: 12),
-                    SizedBox(width: 2),
-                    Text(
-                      roleText,
-                      style: TextStyle(
-                        fontSize: 10,
+                SizedBox(height: 12),
+                Text(
+                  member.displayName,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 8),
+                // 役割バッジ
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: roleColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isTargetAdmin
+                            ? Icons.admin_panel_settings
+                            : isTargetLeader
+                            ? Icons.star
+                            : Icons.person,
                         color: roleColor,
-                        fontWeight: FontWeight.bold,
+                        size: 18,
                       ),
+                      SizedBox(width: 6),
+                      Text(
+                        roleText,
+                        style: TextStyle(
+                          color: roleColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 18),
+                // 説明文
+                Text(
+                  'このメンバーの役割を変更できます。\n管理者権限を渡すと、あなたはメンバーになります。',
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 18),
+                // ボタン群
+                if (isCurrentUserAdmin && !isTargetAdmin)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: _roleActionButton(
+                          icon: Icons.admin_panel_settings,
+                          label: '管理者権限を渡す',
+                          color: Colors.red,
+                          onPressed: () async {
+                            Navigator.of(context).pop();
+                            await _transferAdminRole(member, group);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                SizedBox(height: 8),
+                if (isCurrentUserAdmin && (!isTargetLeader || !isTargetMember))
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!isTargetLeader)
+                        Expanded(
+                          child: _roleActionButton(
+                            icon: Icons.star,
+                            label: 'リーダーにする',
+                            color: Colors.orange,
+                            onPressed: () async {
+                              Navigator.of(context).pop();
+                              await _changeMemberRole(
+                                member,
+                                group,
+                                GroupRole.leader,
+                              );
+                            },
+                          ),
+                        ),
+                      if (!isTargetMember)
+                        Expanded(
+                          child: _roleActionButton(
+                            icon: Icons.person,
+                            label: 'メンバーにする',
+                            color: Colors.blue,
+                            onPressed: () async {
+                              Navigator.of(context).pop();
+                              await _changeMemberRole(
+                                member,
+                                group,
+                                GroupRole.member,
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                SizedBox(height: 16),
+                // 注意書き
+                if (isCurrentUserAdmin && !isTargetAdmin)
+                  Text(
+                    '※ この操作は元に戻せません',
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
+                  ),
+                SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    '閉じる',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
-          );
-        }),
-        if (group.members.length > 8)
-          Text(
-            '+${group.members.length - 8}',
-            style: TextStyle(
-              fontSize: 16,
-              color: themeSettings.fontColor1.withOpacity(0.6),
-            ),
           ),
-      ],
+        );
+      },
     );
+  }
+
+  Widget _roleActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: ElevatedButton.icon(
+        icon: Icon(icon, color: Colors.white, size: 20),
+        label: Text(
+          label,
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 3,
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+        onPressed: onPressed,
+      ),
+    );
+  }
+
+  Future<void> _transferAdminRole(GroupMember member, Group group) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final provider = context.read<GroupProvider>();
+    try {
+      // 1. 対象をadminに
+      await provider.changeMemberRole(
+        groupId: group.id,
+        memberUid: member.uid,
+        newRole: GroupRole.admin,
+      );
+      // 2. 自分をmemberに
+      await provider.changeMemberRole(
+        groupId: group.id,
+        memberUid: user.uid,
+        newRole: GroupRole.member,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('管理者権限を${member.displayName}さんに渡しました'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('権限の譲渡に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeMemberRole(
+    GroupMember member,
+    Group group,
+    GroupRole newRole,
+  ) async {
+    final provider = context.read<GroupProvider>();
+    try {
+      await provider.changeMemberRole(
+        groupId: group.id,
+        memberUid: member.uid,
+        newRole: newRole,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${member.displayName}さんを${_roleText(newRole)}に変更しました',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('権限変更に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _roleText(GroupRole role) {
+    switch (role) {
+      case GroupRole.admin:
+        return '管理者';
+      case GroupRole.leader:
+        return 'リーダー';
+      case GroupRole.member:
+      default:
+        return 'メンバー';
+    }
   }
 
   Widget _buildMemberCard(

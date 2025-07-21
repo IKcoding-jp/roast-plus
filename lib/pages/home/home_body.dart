@@ -189,7 +189,7 @@ class _HomeBodyState extends State<HomeBody> {
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
-        title: '試飲記録',
+        title: '試飲感想記録',
         icon: Icons.local_cafe,
         onTap: () => Navigator.pushNamed(context, '/tasting'),
         customColor: Color(0xFF6F4E37), // コーヒー色（セピアブラウン）

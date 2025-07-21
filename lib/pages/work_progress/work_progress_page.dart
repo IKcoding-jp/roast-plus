@@ -5,8 +5,21 @@ import '../../models/theme_settings.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 import 'work_progress_edit_page.dart';
 import '../../models/group_provider.dart';
+import '../../models/group_models.dart';
 import '../../services/user_settings_firestore_service.dart';
 import '../../widgets/lottie_animation_widget.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
+// GroupProviderのsettingsを更新するメソッドを追加（本体に追加する想定）
+// lib/models/group_provider.dart に以下を追加してください:
+//
+// void updateCurrentGroupSettings(Map<String, dynamic> newSettings) {
+//   if (_currentGroup != null) {
+//     _currentGroup = _currentGroup!.copyWith(settings: newSettings);
+//     _safeNotifyListeners();
+//   }
+// }
 
 class WorkProgressPage extends StatefulWidget {
   const WorkProgressPage({super.key});
@@ -17,25 +30,116 @@ class WorkProgressPage extends StatefulWidget {
 
 class _WorkProgressPageState extends State<WorkProgressPage>
     with WidgetsBindingObserver {
+  Stream? _groupWorkProgressStream;
+  StreamSubscription? _groupWorkProgressSubscription;
+  StreamSubscription<DocumentSnapshot>? _settingsSubscription;
+  bool _canEdit = true;
+  GroupProvider? _groupProvider;
+  String? _currentGroupId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.hasGroup) {
-        context.read<WorkProgressProvider>().loadWorkProgress(
-          groupId: groupProvider.currentGroup!.id,
-        );
-      } else {
-        context.read<WorkProgressProvider>().loadWorkProgress();
-      }
+      _groupProvider = context.read<GroupProvider>();
+      _groupProvider?.addListener(_onGroupProviderChanged);
+      _setupWorkProgressAndSettingsListener();
     });
+  }
+
+  void _setupWorkProgressAndSettingsListener() {
+    final groupProvider = context.read<GroupProvider>();
+    final workProgressProvider = context.read<WorkProgressProvider>();
+    final newGroupId = groupProvider.currentGroup?.id;
+    if (_currentGroupId == newGroupId) return;
+    _currentGroupId = newGroupId;
+    _settingsSubscription?.cancel();
+    if (newGroupId != null) {
+      print('[DEBUG] settings listener set for groupId: $newGroupId');
+      _settingsSubscription = FirebaseFirestore.instance
+          .collection('groups')
+          .doc(newGroupId)
+          .snapshots()
+          .listen((doc) {
+            if (!mounted) return;
+            final settings = doc.data()?['settings'];
+            print('[DEBUG] settings snapshot fired: $settings');
+            if (settings != null && settings['dataPermissions'] != null) {
+              final dataPermissions =
+                  settings['dataPermissions'] as Map<String, dynamic>;
+              // work_progressが無い場合はtaskStatusも参照（後方互換）
+              final accessStr =
+                  dataPermissions['work_progress'] ??
+                  dataPermissions['taskStatus'];
+              final access = AccessLevel.values.firstWhere(
+                (e) => e.name == accessStr,
+                orElse: () => AccessLevel.admin_leader,
+              );
+              final groupRole = groupProvider.getCurrentUserRole();
+              print(
+                '[DEBUG] work_progress access: $access, groupRole: $groupRole',
+              );
+              if (groupRole != null) {
+                bool canEdit = false;
+                if (access == AccessLevel.all_members) {
+                  canEdit = true;
+                } else if (access == AccessLevel.admin_leader) {
+                  canEdit =
+                      groupRole == GroupRole.admin ||
+                      groupRole == GroupRole.leader;
+                } else if (access == AccessLevel.admin_only) {
+                  canEdit = groupRole == GroupRole.admin;
+                }
+                print('[DEBUG] canEdit判定: $canEdit');
+                setState(() {
+                  _canEdit = canEdit;
+                });
+              }
+              // GroupProviderのsettingsも更新
+              print('[DEBUG] updateCurrentGroupSettings呼び出し: $settings');
+              groupProvider.updateCurrentGroupSettings(settings);
+            }
+          });
+    }
+    // work_progressの監視もグループIDごとに再設置
+    _groupWorkProgressSubscription?.cancel();
+    if (newGroupId != null) {
+      _groupWorkProgressStream = FirebaseFirestore.instance
+          .collection('groups')
+          .doc(newGroupId)
+          .collection('work_progress')
+          .orderBy('createdAt', descending: true)
+          .snapshots();
+      _groupWorkProgressSubscription = _groupWorkProgressStream!.listen((
+        snapshot,
+      ) {
+        final docs = (snapshot as QuerySnapshot).docs;
+        final records = docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          data['id'] = doc.id;
+          return WorkProgress.fromMap(data);
+        }).toList();
+        workProgressProvider.replaceAll(records);
+      });
+      workProgressProvider.loadWorkProgress(groupId: newGroupId);
+    } else {
+      workProgressProvider.loadWorkProgress();
+    }
+  }
+
+  void _onGroupProviderChanged() {
+    if (!mounted) return;
+    _setupWorkProgressAndSettingsListener();
+    setState(() {});
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _groupWorkProgressSubscription?.cancel();
+    _settingsSubscription?.cancel();
+    _groupProvider?.removeListener(_onGroupProviderChanged);
     super.dispose();
   }
 
@@ -45,12 +149,31 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     if (state == AppLifecycleState.resumed) {
       // アプリが復帰した時にデータを再読み込み
       final groupProvider = context.read<GroupProvider>();
+      final workProgressProvider = context.read<WorkProgressProvider>();
       if (groupProvider.hasGroup) {
-        context.read<WorkProgressProvider>().loadWorkProgress(
+        _groupWorkProgressSubscription?.cancel();
+        _groupWorkProgressStream = FirebaseFirestore.instance
+            .collection('groups')
+            .doc(groupProvider.currentGroup!.id)
+            .collection('work_progress')
+            .orderBy('createdAt', descending: true)
+            .snapshots();
+        _groupWorkProgressSubscription = _groupWorkProgressStream!.listen((
+          snapshot,
+        ) {
+          final docs = (snapshot as QuerySnapshot).docs;
+          final records = docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return WorkProgress.fromMap(data);
+          }).toList();
+          workProgressProvider.replaceAll(records);
+        });
+        workProgressProvider.loadWorkProgress(
           groupId: groupProvider.currentGroup!.id,
         );
       } else {
-        context.read<WorkProgressProvider>().loadWorkProgress();
+        workProgressProvider.loadWorkProgress();
       }
     }
   }
@@ -80,6 +203,8 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     switch (status) {
       case WorkStatus.before:
         return '前';
+      case WorkStatus.inProgress:
+        return '途中';
       case WorkStatus.after:
         return '済';
     }
@@ -90,6 +215,8 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     switch (status) {
       case WorkStatus.before:
         return Icons.close; // 未完了はバツ
+      case WorkStatus.inProgress:
+        return Icons.timelapse; // 途中は時計アイコン
       case WorkStatus.after:
         return _getStageIcon(stage); // 完了は作業種別アイコン
     }
@@ -104,6 +231,8 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     switch (status) {
       case WorkStatus.before:
         return Colors.grey;
+      case WorkStatus.inProgress:
+        return Colors.orange;
       case WorkStatus.after:
         return _getStageColor(context, stage);
     }
@@ -118,6 +247,8 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     switch (status) {
       case WorkStatus.before:
         return Colors.grey.withOpacity(0.08);
+      case WorkStatus.inProgress:
+        return Colors.orange.withOpacity(0.12);
       case WorkStatus.after:
         return _getStageColor(context, stage).withOpacity(0.18);
     }
@@ -185,6 +316,10 @@ class _WorkProgressPageState extends State<WorkProgressPage>
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
     final workProgressProvider = context.read<WorkProgressProvider>();
+    final groupProvider = context.watch<GroupProvider>();
+
+    // 権限チェック（リアルタイム反映対応）
+    final canEdit = _canEdit;
 
     // ページが表示されるたびにデータを読み込む
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -260,13 +395,14 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                     ),
                   ),
                   SizedBox(height: 8),
-                  Text(
-                    '右下のボタンから新しい記録を作成してください',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: themeSettings.fontColor1.withOpacity(0.7),
+                  if (canEdit)
+                    Text(
+                      '右下のボタンから新しい記録を作成してください',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: themeSettings.fontColor1.withOpacity(0.7),
+                      ),
                     ),
-                  ),
                 ],
               ),
             );
@@ -284,15 +420,25 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            WorkProgressEditPage(workProgress: workProgress),
-                      ),
-                    );
-                  },
+                  onTap: canEdit && groupProvider.currentGroup != null
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => WorkProgressEditPage(
+                                workProgress: workProgress,
+                                groupId: groupProvider.currentGroup!.id,
+                              ),
+                            ),
+                          ).then((result) {
+                            if (result == true) {
+                              workProgressProvider.loadWorkProgress(
+                                groupId: groupProvider.currentGroup!.id,
+                              );
+                            }
+                          });
+                        }
+                      : null,
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
                     padding: EdgeInsets.all(16),
@@ -387,92 +533,105 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                               ),
                               SizedBox(width: 8),
                             ],
-                            PopupMenuButton<String>(
-                              onSelected: (value) async {
-                                if (value == 'edit') {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          WorkProgressEditPage(
-                                            workProgress: workProgress,
+                            if (canEdit)
+                              PopupMenuButton<String>(
+                                onSelected: (value) async {
+                                  if (value == 'edit') {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            WorkProgressEditPage(
+                                              workProgress: workProgress,
+                                              groupId: groupProvider.hasGroup
+                                                  ? groupProvider
+                                                        .currentGroup!
+                                                        .id
+                                                  : null,
+                                            ),
+                                      ),
+                                    );
+                                  } else if (value == 'delete') {
+                                    final confirmed = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: Text('削除確認'),
+                                        content: Text('この作業状況記録を削除しますか？'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
+                                            child: Text('キャンセル'),
                                           ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
+                                            child: Text('削除'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    if (confirmed == true) {
+                                      try {
+                                        await workProgressProvider
+                                            .deleteWorkProgress(
+                                              workProgress.id,
+                                              groupId: groupProvider.hasGroup
+                                                  ? groupProvider
+                                                        .currentGroup!
+                                                        .id
+                                                  : null,
+                                            );
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(content: Text('削除しました')),
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(content: Text('削除に失敗しました')),
+                                        );
+                                      }
+                                    }
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit, size: 20),
+                                        SizedBox(width: 8),
+                                        Text('編集'),
+                                      ],
                                     ),
-                                  );
-                                } else if (value == 'delete') {
-                                  final confirmed = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text('削除確認'),
-                                      content: Text('この作業状況記録を削除しますか？'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: Text('キャンセル'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.delete,
+                                          size: 20,
+                                          color: Colors.red,
                                         ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: Text('削除'),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          '削除',
+                                          style: TextStyle(color: Colors.red),
                                         ),
                                       ],
                                     ),
-                                  );
-
-                                  if (confirmed == true) {
-                                    try {
-                                      await workProgressProvider
-                                          .deleteWorkProgress(workProgress.id);
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(content: Text('削除しました')),
-                                      );
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(content: Text('削除に失敗しました')),
-                                      );
-                                    }
-                                  }
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 20),
-                                      SizedBox(width: 8),
-                                      Text('編集'),
-                                    ],
                                   ),
+                                ],
+                                child: Icon(
+                                  Icons.more_vert,
+                                  color: themeSettings.iconColor,
                                 ),
-                                PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.delete,
-                                        size: 20,
-                                        color: Colors.red,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        '削除',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              child: Icon(
-                                Icons.more_vert,
-                                color: themeSettings.iconColor,
                               ),
-                            ),
                           ],
                         ),
                         SizedBox(height: 8),
@@ -528,17 +687,29 @@ class _WorkProgressPageState extends State<WorkProgressPage>
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => WorkProgressEditPage()),
-          );
-        },
-        backgroundColor: themeSettings.buttonColor,
-        foregroundColor: themeSettings.fontColor2,
-        child: Icon(Icons.add),
-      ),
+      floatingActionButton: canEdit
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WorkProgressEditPage(
+                      groupId: groupProvider.currentGroup?.id,
+                    ),
+                  ),
+                ).then((result) {
+                  if (result == true && groupProvider.currentGroup != null) {
+                    workProgressProvider.loadWorkProgress(
+                      groupId: groupProvider.currentGroup!.id,
+                    );
+                  }
+                });
+              },
+              backgroundColor: themeSettings.buttonColor,
+              foregroundColor: themeSettings.fontColor2,
+              child: Icon(Icons.add),
+            )
+          : null,
     );
   }
 }

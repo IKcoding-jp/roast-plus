@@ -17,6 +17,7 @@ enum WorkStage {
 
 enum WorkStatus {
   before, // 前
+  inProgress, // 途中
   after, // 済
 }
 
@@ -121,13 +122,13 @@ class WorkProgressProvider extends ChangeNotifier {
     try {
       List<WorkProgress> firestoreRecords = [];
       if (groupId != null && groupId.isNotEmpty) {
-        // グループ用API
+        // グループ用APIのみ
         firestoreRecords =
             await WorkProgressFirestoreService.getGroupWorkProgressRecords(
               groupId,
             );
       } else {
-        // 個人用API
+        // 個人用APIのみ
         firestoreRecords =
             await WorkProgressFirestoreService.getWorkProgressRecords();
       }
@@ -137,28 +138,34 @@ class WorkProgressProvider extends ChangeNotifier {
         // 作成日順にソート（新しい順）
         _workProgressList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       } else {
-        // Firestoreにデータがない場合はFirebaseから読み込み
-        try {
-          final jsonString = await UserSettingsFirestoreService.getSetting(
-            _storageKey,
-          );
-
-          if (jsonString != null) {
-            final List<dynamic> jsonList = jsonString;
-            _workProgressList = jsonList
-                .map((json) => WorkProgress.fromMap(json))
-                .toList();
-
-            // 作成日順にソート（新しい順）
-            _workProgressList.sort(
-              (a, b) => b.createdAt.compareTo(a.createdAt),
+        // Firestoreにデータがない場合
+        if (groupId != null && groupId.isNotEmpty) {
+          // グループ時は何も読み込まない
+          _workProgressList = [];
+        } else {
+          // 個人用のみローカルストレージを参照
+          try {
+            final jsonString = await UserSettingsFirestoreService.getSetting(
+              _storageKey,
             );
-          } else {
+
+            if (jsonString != null) {
+              final List<dynamic> jsonList = jsonString;
+              _workProgressList = jsonList
+                  .map((json) => WorkProgress.fromMap(json))
+                  .toList();
+
+              // 作成日順にソート（新しい順）
+              _workProgressList.sort(
+                (a, b) => b.createdAt.compareTo(a.createdAt),
+              );
+            } else {
+              _workProgressList = [];
+            }
+          } catch (e) {
+            print('Firebaseからの作業進捗読み込みエラー: $e');
             _workProgressList = [];
           }
-        } catch (e) {
-          print('Firebaseからの作業進捗読み込みエラー: $e');
-          _workProgressList = [];
         }
       }
     } catch (e) {
@@ -170,7 +177,9 @@ class WorkProgressProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveToStorage() async {
+  Future<void> _saveToStorage({String? groupId}) async {
+    // グループ時はローカル保存しない
+    if (groupId != null && groupId.isNotEmpty) return;
     try {
       final jsonString = _workProgressList.map((wp) => wp.toMap()).toList();
       await UserSettingsFirestoreService.saveSetting(_storageKey, jsonString);
@@ -180,7 +189,10 @@ class WorkProgressProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> addWorkProgress(WorkProgress workProgress) async {
+  Future<void> addWorkProgress(
+    WorkProgress workProgress, {
+    String? groupId,
+  }) async {
     try {
       final newWorkProgress = workProgress.copyWith(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -191,15 +203,24 @@ class WorkProgressProvider extends ChangeNotifier {
 
       // Firestoreに保存
       try {
-        await WorkProgressFirestoreService.saveWorkProgressRecord(
-          newWorkProgress,
-        );
+        if (groupId != null && groupId.isNotEmpty) {
+          await WorkProgressFirestoreService.saveGroupWorkProgressRecord(
+            groupId,
+            newWorkProgress,
+          );
+          // グループ時は個人Firestoreやローカルストレージに保存しない
+          return;
+        } else {
+          await WorkProgressFirestoreService.saveWorkProgressRecord(
+            newWorkProgress,
+          );
+        }
       } catch (e) {
         print('Firestore保存エラー: $e');
         // Firestore保存に失敗してもローカル保存は続行
       }
 
-      await _saveToStorage();
+      await _saveToStorage(groupId: groupId);
       notifyListeners();
     } catch (e) {
       print('Error adding work progress: $e');
@@ -207,7 +228,10 @@ class WorkProgressProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateWorkProgress(WorkProgress workProgress) async {
+  Future<void> updateWorkProgress(
+    WorkProgress workProgress, {
+    String? groupId,
+  }) async {
     try {
       final index = _workProgressList.indexWhere(
         (wp) => wp.id == workProgress.id,
@@ -217,15 +241,24 @@ class WorkProgressProvider extends ChangeNotifier {
 
         // Firestoreに更新
         try {
-          await WorkProgressFirestoreService.updateWorkProgressRecord(
-            workProgress,
-          );
+          if (groupId != null && groupId.isNotEmpty) {
+            await WorkProgressFirestoreService.updateGroupWorkProgressRecord(
+              groupId,
+              workProgress,
+            );
+            // グループ時は個人Firestoreやローカルストレージに保存しない
+            return;
+          } else {
+            await WorkProgressFirestoreService.updateWorkProgressRecord(
+              workProgress,
+            );
+          }
         } catch (e) {
           print('Firestore更新エラー: $e');
           // Firestore更新に失敗してもローカル保存は続行
         }
 
-        await _saveToStorage();
+        await _saveToStorage(groupId: groupId);
         notifyListeners();
       }
     } catch (e) {
@@ -234,20 +267,32 @@ class WorkProgressProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteWorkProgress(String id) async {
+  Future<void> deleteWorkProgress(String id, {String? groupId}) async {
     try {
-      _workProgressList.removeWhere((wp) => wp.id == id);
+      final index = _workProgressList.indexWhere((wp) => wp.id == id);
+      if (index != -1) {
+        final deleted = _workProgressList.removeAt(index);
 
-      // Firestoreから削除
-      try {
-        await WorkProgressFirestoreService.deleteWorkProgressRecord(id);
-      } catch (e) {
-        print('Firestore削除エラー: $e');
-        // Firestore削除に失敗してもローカル保存は続行
+        // Firestoreから削除
+        try {
+          if (groupId != null && groupId.isNotEmpty) {
+            await WorkProgressFirestoreService.deleteGroupWorkProgressRecord(
+              groupId,
+              id,
+            );
+            // グループ時は個人Firestoreやローカルストレージに保存しない
+            return;
+          } else {
+            await WorkProgressFirestoreService.deleteWorkProgressRecord(id);
+          }
+        } catch (e) {
+          print('Firestore削除エラー: $e');
+          // Firestore削除に失敗してもローカル保存は続行
+        }
+
+        await _saveToStorage(groupId: groupId);
+        notifyListeners();
       }
-
-      await _saveToStorage();
-      notifyListeners();
     } catch (e) {
       print('Error deleting work progress: $e');
       rethrow;

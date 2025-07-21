@@ -55,17 +55,19 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     });
 
     try {
+      print('GroupSettingsPage: 手動保存時のsettings: ${_settings!.toJson()}');
       await GroupFirestoreService.updateGroupSettings(
         groupId: widget.group.id,
         settings: _settings!,
       );
-
+      print('GroupSettingsPage: 手動保存完了');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('設定を保存しました'), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
+      print('GroupSettingsPage: 手動保存エラー: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -103,6 +105,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     });
 
     print('GroupSettingsPage: setState完了');
+    print(
+      'GroupSettingsPage: setState後の_settings.dataPermissions: ${_settings!.dataPermissions}',
+    );
 
     // 設定をリアルタイムで保存
     _saveSettingsRealtime();
@@ -113,14 +118,16 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     if (_settings == null) return;
 
     try {
-      print('GroupSettingsPage: リアルタイム設定保存開始');
+      print(
+        'GroupSettingsPage: Firestoreに保存するsettings: ${_settings!.toJson()}',
+      );
       await GroupFirestoreService.updateGroupSettings(
         groupId: widget.group.id,
         settings: _settings!,
       );
-      print('GroupSettingsPage: リアルタイム設定保存完了');
+      print('GroupSettingsPage: Firestore保存完了');
     } catch (e) {
-      print('GroupSettingsPage: リアルタイム設定保存エラー: $e');
+      print('GroupSettingsPage: Firestore保存エラー: $e');
     }
   }
 
@@ -283,12 +290,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
     final themeSettings = Provider.of<ThemeSettings>(context);
     final dataTypes = {
-      'roastRecordInput': '焙煎記録入力',
+      'work_progress': '作業状況記録',
       'roastRecords': '焙煎記録一覧',
       'dripCounter': 'ドリップパックカウンター',
       'assignment_board': '担当表', // 担当表関連の権限を一本化
       'todaySchedule': '本日のスケジュール',
-      'taskStatus': '作業状況記録',
       'cuppingNotes': '試飲感想記録',
       'circleStamps': '丸シール設定',
     };

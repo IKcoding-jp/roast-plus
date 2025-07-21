@@ -6,8 +6,9 @@ import '../../models/group_provider.dart';
 
 class WorkProgressEditPage extends StatefulWidget {
   final WorkProgress? workProgress;
+  final String? groupId;
 
-  const WorkProgressEditPage({this.workProgress, super.key});
+  const WorkProgressEditPage({this.workProgress, this.groupId, super.key});
 
   @override
   State<WorkProgressEditPage> createState() => _WorkProgressEditPageState();
@@ -21,6 +22,9 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
   WorkStatus? _selectedStatus = WorkStatus.before; // デフォルトで「前」を選択
 
   bool _isLoading = false;
+  bool _canEdit = true;
+  String? _permissionMessage;
+  bool _didCheckPermission = false;
 
   @override
   void initState() {
@@ -39,7 +43,47 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didCheckPermission || !mounted) return;
+    _didCheckPermission = true;
+    final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+    if (groupProvider.hasGroup) {
+      final userRole = groupProvider.getCurrentUserRole();
+      final groupSettings = groupProvider.getCurrentGroupSettings();
+      if (userRole != null && groupSettings != null) {
+        if (mounted) {
+          setState(() {
+            _canEdit = groupSettings.canEditDataType(
+              'work_progress', // ←ここを修正
+              userRole,
+            );
+            _permissionMessage = _canEdit
+                ? null
+                : 'このグループで作業状況記録の追加・編集権限がありません。';
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _canEdit = false;
+            _permissionMessage = '権限情報の取得に失敗しました。';
+          });
+        }
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _canEdit = true;
+          _permissionMessage = null;
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    _didCheckPermission = false;
     _beanNameController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -96,10 +140,10 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
       );
 
       if (widget.workProgress == null) {
-        await workProgressProvider.addWorkProgress(workProgress);
-
-        // グループレベルシステムで作業進捗を処理
-        await _processWorkProgressForGroup();
+        await workProgressProvider.addWorkProgress(
+          workProgress,
+          groupId: widget.groupId,
+        );
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -108,17 +152,16 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
           ),
         );
       } else {
-        await workProgressProvider.updateWorkProgress(workProgress);
+        await workProgressProvider.updateWorkProgress(
+          workProgress,
+          groupId: widget.groupId,
+        );
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('作業状況記録を更新しました')));
       }
 
-      Navigator.pop(context);
-      // 少し遅延を入れてからデータを再読み込み
-      Future.delayed(Duration(milliseconds: 100), () {
-        workProgressProvider.loadWorkProgress();
-      });
+      Navigator.pop(context, true); // 保存完了を親画面に伝える
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -127,23 +170,6 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
       setState(() {
         _isLoading = false;
       });
-    }
-  }
-
-  /// グループレベルシステムで作業進捗を処理
-  Future<void> _processWorkProgressForGroup() async {
-    try {
-      // グループプロバイダーを取得
-      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
-
-      if (groupProvider.hasGroup) {
-        final groupId = groupProvider.currentGroup!.id;
-
-        // グループのゲーミフィケーションシステムに通知
-        await groupProvider.processGroupWorkProgress(groupId, context: context);
-      }
-    } catch (e) {
-      print('グループレベルシステム処理エラー: $e');
     }
   }
 
@@ -169,6 +195,30 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (_permissionMessage != null)
+                      Container(
+                        margin: EdgeInsets.only(bottom: 16),
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock, color: Colors.red),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _permissionMessage!,
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     // 豆の名前
                     TextFormField(
                       controller: _beanNameController,
@@ -186,6 +236,7 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
                         }
                         return null;
                       },
+                      enabled: _canEdit,
                     ),
                     SizedBox(height: 24),
 
@@ -223,15 +274,17 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
                           );
                         }),
                       ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedStage = value;
-                          // 作業段階が変更されたら状況もリセット
-                          if (value != _selectedStage) {
-                            _selectedStatus = WorkStatus.before;
-                          }
-                        });
-                      },
+                      onChanged: _canEdit
+                          ? (value) {
+                              setState(() {
+                                _selectedStage = value;
+                                // 作業段階が変更されたら状況もリセット
+                                if (value != _selectedStage) {
+                                  _selectedStatus = WorkStatus.before;
+                                }
+                              });
+                            }
+                          : null,
                     ),
                     SizedBox(height: 16),
 
@@ -245,58 +298,40 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
                           color: themeSettings.fontColor1,
                         ),
                       ),
-                      SizedBox(height: 12),
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _getStageDisplayName(_selectedStage!),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: themeSettings.fontColor1,
-                                ),
-                              ),
-                              SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: RadioListTile<WorkStatus>(
-                                      title: Text('前'),
-                                      value: WorkStatus.before,
-                                      groupValue: _selectedStatus,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedStatus = value;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: RadioListTile<WorkStatus>(
-                                      title: Text('済'),
-                                      value: WorkStatus.after,
-                                      groupValue: _selectedStatus,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedStatus = value;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                      SizedBox(height: 8),
+                      DropdownButtonFormField<WorkStatus>(
+                        value: _selectedStatus,
+                        decoration: InputDecoration(
+                          labelText: '作業状況を選択',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          filled: true,
+                          fillColor: themeSettings.inputBackgroundColor,
                         ),
+                        items: [
+                          DropdownMenuItem(
+                            value: WorkStatus.before,
+                            child: Text('前'),
+                          ),
+                          DropdownMenuItem(
+                            value: WorkStatus.inProgress,
+                            child: Text('途中'),
+                          ),
+                          DropdownMenuItem(
+                            value: WorkStatus.after,
+                            child: Text('済'),
+                          ),
+                        ],
+                        onChanged: _canEdit
+                            ? (value) {
+                                setState(() {
+                                  _selectedStatus = value;
+                                });
+                              }
+                            : null,
                       ),
+                      SizedBox(height: 24),
                     ],
 
                     SizedBox(height: 24),
@@ -313,6 +348,7 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
                         fillColor: themeSettings.inputBackgroundColor,
                       ),
                       maxLines: 3,
+                      enabled: _canEdit,
                     ),
                     SizedBox(height: 32),
 
@@ -320,7 +356,7 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _saveWorkProgress,
+                        onPressed: _canEdit ? _saveWorkProgress : null,
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(

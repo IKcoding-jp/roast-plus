@@ -75,6 +75,7 @@ class GroupSettings {
     return const GroupSettings(
       dataPermissions: {
         'roastRecordInput': AccessLevel.all_members,
+        'work_progress': AccessLevel.admin_leader, // ← 追加
         'roastRecords': AccessLevel.admin_leader,
         'dripCounter': AccessLevel.all_members,
         'assignment_board': AccessLevel.all_members, // 担当表関連の権限を一本化
@@ -99,6 +100,16 @@ class GroupSettings {
       final permission = dataPermissions[dataType]!;
       print('GroupSettings: 明示的に設定された権限を使用: $permission');
       return permission;
+    }
+
+    // work_progressの権限が存在しない場合はroastRecordInputの権限を参照（後方互換）
+    if (dataType == 'work_progress' &&
+        dataPermissions.containsKey('roastRecordInput')) {
+      final fallbackPermission = dataPermissions['roastRecordInput']!;
+      print(
+        'GroupSettings: work_progress権限が存在しないため、roastRecordInput権限を参照: $fallbackPermission',
+      );
+      return fallbackPermission;
     }
 
     // today_scheduleの権限が存在しない場合はtodayScheduleの権限を参照
