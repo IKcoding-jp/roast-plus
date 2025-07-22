@@ -1,0 +1,27 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "dart.projectSearchDepth": 5,
+    "dart.flutterSdkPath": null,
+    "dart.previewFlutterUiGuides": true,
+    "dart.previewFlutterUiGuidesCustomTracking": true,
+    "dart.analyzeAngularTemplates": false,
+    "files.associations": {
+      "*.dart": "dart"
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "dart-code.flutter",
+      "dart-code.dart-code"
+    ]
+  }
+} 
