@@ -297,6 +297,12 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
               color: themeSettings.dialogBackgroundColor,
               onColorChanged: themeSettings.updateDialogBackgroundColor,
             ),
+            const SizedBox(height: 16),
+            _ColorPickerTile(
+              label: '電卓の色',
+              color: themeSettings.calculatorColor,
+              onColorChanged: themeSettings.updateCalculatorColor,
+            ),
           ],
         ),
       ),

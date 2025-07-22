@@ -170,19 +170,36 @@ class _CalculatorPageState extends State<CalculatorPage> {
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
 
+    // デバッグ用：現在のcalculatorColorの値をログ出力
+    print(
+      'CalculatorPage: 現在のcalculatorColor: ${themeSettings.calculatorColor}',
+    );
+    print(
+      'CalculatorPage: calculatorColorの値: ${themeSettings.calculatorColor.value}',
+    );
+    print('CalculatorPage: 現在のiconColor: ${themeSettings.iconColor}');
+    print('CalculatorPage: iconColorの値: ${themeSettings.iconColor.value}');
+
     return Scaffold(
       backgroundColor: themeSettings.backgroundColor,
       appBar: AppBar(
-        title: Text(
-          '電卓',
-          style: TextStyle(
-            color: themeSettings.appBarTextColor,
-            fontSize: 20 * themeSettings.fontSizeScale,
-            fontWeight: FontWeight.bold,
-            fontFamily: themeSettings.fontFamily,
-          ),
+        title: Row(
+          children: [
+            Icon(Icons.calculate, color: themeSettings.calculatorColor),
+            SizedBox(width: 8),
+            Text(
+              '電卓',
+              style: TextStyle(
+                color: themeSettings.appBarTextColor,
+                fontSize: 20 * themeSettings.fontSizeScale,
+                fontWeight: FontWeight.bold,
+                fontFamily: themeSettings.fontFamily,
+              ),
+            ),
+          ],
         ),
         backgroundColor: themeSettings.appBarColor,
+        foregroundColor: themeSettings.calculatorColor,
         iconTheme: IconThemeData(color: themeSettings.calculatorColor),
       ),
       body: SafeArea(
@@ -261,7 +278,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
                           _buildButton(
                             text: '÷',
                             onPressed: () => _onButtonPressed('÷'),
-                            backgroundColor: Colors.blue.withOpacity(0.8),
+                            backgroundColor: themeSettings.calculatorColor
+                                .withOpacity(0.8),
                             textColor: Colors.white,
                           ),
                         ],
@@ -287,7 +305,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
                           _buildButton(
                             text: '×',
                             onPressed: () => _onButtonPressed('×'),
-                            backgroundColor: Colors.blue.withOpacity(0.8),
+                            backgroundColor: themeSettings.calculatorColor
+                                .withOpacity(0.8),
                             textColor: Colors.white,
                           ),
                         ],
@@ -313,7 +332,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
                           _buildButton(
                             text: '-',
                             onPressed: () => _onButtonPressed('-'),
-                            backgroundColor: Colors.blue.withOpacity(0.8),
+                            backgroundColor: themeSettings.calculatorColor
+                                .withOpacity(0.8),
                             textColor: Colors.white,
                           ),
                         ],
@@ -339,7 +359,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
                           _buildButton(
                             text: '+',
                             onPressed: () => _onButtonPressed('+'),
-                            backgroundColor: Colors.blue.withOpacity(0.8),
+                            backgroundColor: themeSettings.calculatorColor
+                                .withOpacity(0.8),
                             textColor: Colors.white,
                           ),
                         ],

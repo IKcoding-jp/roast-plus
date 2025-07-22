@@ -72,6 +72,7 @@ class ThemeSettings extends ChangeNotifier {
       customBottomNavigationUnselectedColor = null;
       settingsColor = defaultTheme['settingsColor']!;
       todoColor = defaultTheme['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
+      calculatorColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
       fontSizeScale = 1.0;
       fontFamily = 'ZenMaruGothic';
       notifyListeners();
@@ -112,6 +113,7 @@ class ThemeSettings extends ChangeNotifier {
       customBottomNavigationUnselectedColor = null;
       settingsColor = defaultTheme['settingsColor']!; // デフォルトテーマの設定色を使用
       todoColor = defaultTheme['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
+      calculatorColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
       fontSizeScale = 1.0;
       fontFamily = 'ZenMaruGothic';
 
@@ -158,6 +160,7 @@ class ThemeSettings extends ChangeNotifier {
           themeData['customBottomNavigationUnselectedColor'];
       settingsColor = themeData['settingsColor'] ?? settingsColor;
       todoColor = themeData['todoColor'] ?? todoColor;
+      calculatorColor = themeData['calculatorColor'] ?? calculatorColor;
       debugPrint('ThemeSettings: 更新後のiconColor: $iconColor');
       debugPrint(
         'ThemeSettings: 更新後のcustomBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
@@ -226,6 +229,7 @@ class ThemeSettings extends ChangeNotifier {
                   themeData['customBottomNavigationUnselectedColor'];
               settingsColor = themeData['settingsColor'] ?? settingsColor;
               todoColor = themeData['todoColor'] ?? todoColor;
+              calculatorColor = themeData['calculatorColor'] ?? calculatorColor;
               debugPrint('ThemeSettings: 更新後のiconColor: $iconColor');
               debugPrint(
                 'ThemeSettings: 更新後のcustomBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
@@ -1033,6 +1037,7 @@ class ThemeSettings extends ChangeNotifier {
         'theme_bottomNavigationUnselectedColor',
         'theme_settingsColor',
         'theme_todoColor',
+        'theme_calculatorColor',
         'custom_themes',
       ]);
 
@@ -1118,7 +1123,9 @@ class ThemeSettings extends ChangeNotifier {
             settings['theme_bottomNavigationUnselectedColor'] != null
             ? Color(settings['theme_bottomNavigationUnselectedColor'])
             : defaultTheme['bottomNavigationUnselectedColor'],
-        calculatorColor: Color(0xFF1565C0), // 計算機らしい深い青
+        calculatorColor: settings['theme_calculatorColor'] != null
+            ? Color(settings['theme_calculatorColor'])
+            : Color(0xFF1565C0), // デフォルトは計算機らしい深い青
         settingsColor: settings['theme_settingsColor'] != null
             ? Color(settings['theme_settingsColor'])
             : defaultTheme['settingsColor']!,
@@ -1165,7 +1172,7 @@ class ThemeSettings extends ChangeNotifier {
             defaultTheme['bottomNavigationSelectedColor'],
         bottomNavigationUnselectedColor:
             defaultTheme['bottomNavigationUnselectedColor'],
-        calculatorColor: Color(0xFF1565C0),
+        calculatorColor: defaultTheme['iconColor']!,
         settingsColor: defaultTheme['settingsColor']!,
         todoColor: defaultTheme['iconColor']!,
         tastingColor: Color(0xFFD84315),
@@ -1235,6 +1242,7 @@ class ThemeSettings extends ChangeNotifier {
             .toARGB32(),
         'theme_settingsColor': settingsColor.toARGB32(),
         'theme_todoColor': todoColor.toARGB32(),
+        'theme_calculatorColor': calculatorColor.toARGB32(),
         'theme_fontSizeScale': fontSizeScale,
         'theme_fontFamily': fontFamily,
         'custom_themes': themeData,
@@ -1295,6 +1303,12 @@ class ThemeSettings extends ChangeNotifier {
 
   void updateTodoColor(Color color) {
     todoColor = color;
+    notifyListeners();
+    save();
+  }
+
+  void updateCalculatorColor(Color color) {
+    calculatorColor = color;
     notifyListeners();
     save();
   }
@@ -1396,6 +1410,7 @@ class ThemeSettings extends ChangeNotifier {
         defaultTheme['bottomNavigationSelectedColor']!;
     settingsColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
     todoColor = defaultTheme['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
+    calculatorColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
     fontSizeScale = 1.0;
     fontFamily = 'ZenMaruGothic';
     notifyListeners();
@@ -1433,6 +1448,7 @@ class ThemeSettings extends ChangeNotifier {
           preset['bottomNavigationUnselectedColor'];
       settingsColor = preset['iconColor']!; // アイコンの色と同じ値に設定
       todoColor = preset['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
+      calculatorColor = preset['iconColor']!; // アイコンの色と同じ値に設定
       // ここで一度だけ通知
       notifyListeners();
       save();
