@@ -557,7 +557,7 @@ class TodoListTabState extends State<TodoListTab> {
                             Icons.add_task,
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).iconColor,
+                            ).todoColor,
                             size: 24,
                           ),
                           SizedBox(width: 8),
@@ -609,25 +609,15 @@ class TodoListTabState extends State<TodoListTab> {
                           SizedBox(width: 12),
                           Container(
                             decoration: BoxDecoration(
-                              color:
-                                  Theme.of(context)
-                                      .elevatedButtonTheme
-                                      .style
-                                      ?.backgroundColor
-                                      ?.resolve({}) ??
-                                  Theme.of(context).colorScheme.primary,
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).todoColor,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: IconButton(
                               icon: Icon(
                                 Icons.access_time,
-                                color:
-                                    Theme.of(context)
-                                        .elevatedButtonTheme
-                                        .style
-                                        ?.foregroundColor
-                                        ?.resolve({}) ??
-                                    Colors.white,
+                                color: Colors.white,
                                 size: 20,
                               ),
                               onPressed: _pickTime,
@@ -638,25 +628,15 @@ class TodoListTabState extends State<TodoListTab> {
                           SizedBox(width: 8),
                           Container(
                             decoration: BoxDecoration(
-                              color:
-                                  Theme.of(context)
-                                      .elevatedButtonTheme
-                                      .style
-                                      ?.backgroundColor
-                                      ?.resolve({}) ??
-                                  Theme.of(context).colorScheme.primary,
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).todoColor,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: IconButton(
                               icon: Icon(
                                 Icons.add,
-                                color:
-                                    Theme.of(context)
-                                        .elevatedButtonTheme
-                                        .style
-                                        ?.foregroundColor
-                                        ?.resolve({}) ??
-                                    Colors.white,
+                                color: Colors.white,
                                 size: 20,
                               ),
                               onPressed: _canEditTodoList ? _addTodo : null,
@@ -678,7 +658,7 @@ class TodoListTabState extends State<TodoListTab> {
                                 size: 16,
                                 color: Provider.of<ThemeSettings>(
                                   context,
-                                ).iconColor,
+                                ).todoColor,
                               ),
                               SizedBox(width: 8),
                               Text(
@@ -728,7 +708,7 @@ class TodoListTabState extends State<TodoListTab> {
                                     size: 64,
                                     color: Provider.of<ThemeSettings>(
                                       context,
-                                    ).iconColor,
+                                    ).todoColor,
                                   ),
                                   SizedBox(height: 16),
                                   Text(
@@ -797,10 +777,10 @@ class TodoListTabState extends State<TodoListTab> {
                                     color: item.isDone
                                         ? Provider.of<ThemeSettings>(
                                             context,
-                                          ).iconColor
+                                          ).todoColor
                                         : Provider.of<ThemeSettings>(
                                             context,
-                                          ).iconColor,
+                                          ).todoColor,
                                     size: 24,
                                   ),
                                 ),
@@ -832,7 +812,7 @@ class TodoListTabState extends State<TodoListTab> {
                                             size: 16,
                                             color: Provider.of<ThemeSettings>(
                                               context,
-                                            ).iconColor,
+                                            ).todoColor,
                                           ),
                                           SizedBox(width: 4),
                                           Text(

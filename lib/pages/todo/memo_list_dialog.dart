@@ -105,10 +105,13 @@ class _MemoListDialogState extends State<MemoListDialog> {
         await _loadMemos();
 
         if (mounted) {
-          final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+          final themeSettings = Provider.of<ThemeSettings>(
+            context,
+            listen: false,
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('メモを削除しました'), 
+              content: Text('メモを削除しました'),
               backgroundColor: themeSettings.buttonColor,
             ),
           );
@@ -201,7 +204,7 @@ class _MemoListDialogState extends State<MemoListDialog> {
                           Icon(
                             Icons.note_outlined,
                             size: 64,
-                            color: themeSettings.iconColor,
+                            color: themeSettings.todoColor,
                           ),
                           SizedBox(height: 16),
                           Text(
@@ -248,7 +251,7 @@ class _MemoListDialogState extends State<MemoListDialog> {
                                 memo.isPinned ? Icons.push_pin : Icons.note,
                                 color: memo.isPinned
                                     ? Colors.orange
-                                    : themeSettings.iconColor,
+                                    : themeSettings.todoColor,
                                 size: 24,
                               ),
                             ),
@@ -302,7 +305,7 @@ class _MemoListDialogState extends State<MemoListDialog> {
                                         : Icons.push_pin_outlined,
                                     color: memo.isPinned
                                         ? Colors.orange
-                                        : themeSettings.iconColor,
+                                        : themeSettings.todoColor,
                                   ),
                                   onPressed: _canEditMemos
                                       ? () => _togglePinMemo(memo)

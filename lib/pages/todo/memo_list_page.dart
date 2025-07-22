@@ -105,10 +105,13 @@ class _MemoListPageState extends State<MemoListPage> {
         await _loadMemos();
 
         if (mounted) {
-          final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+          final themeSettings = Provider.of<ThemeSettings>(
+            context,
+            listen: false,
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('メモを削除しました'), 
+              content: Text('メモを削除しました'),
               backgroundColor: themeSettings.buttonColor,
             ),
           );
@@ -151,10 +154,13 @@ class _MemoListPageState extends State<MemoListPage> {
       await MemoFirestoreService.updateMemo(updatedMemo);
       await _loadMemos();
       if (mounted) {
-        final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+        final themeSettings = Provider.of<ThemeSettings>(
+          context,
+          listen: false,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('メモを更新しました'), 
+            content: Text('メモを更新しました'),
             backgroundColor: themeSettings.buttonColor,
           ),
         );
@@ -178,6 +184,7 @@ class _MemoListPageState extends State<MemoListPage> {
         title: Text('保存されたメモ'),
         backgroundColor: themeSettings.appBarColor,
         foregroundColor: themeSettings.appBarTextColor,
+        iconTheme: IconThemeData(color: themeSettings.todoColor),
         actions: [IconButton(icon: Icon(Icons.refresh), onPressed: _loadMemos)],
       ),
       backgroundColor: themeSettings.backgroundColor,
@@ -193,7 +200,7 @@ class _MemoListPageState extends State<MemoListPage> {
                   Icon(
                     Icons.note_outlined,
                     size: 64,
-                    color: themeSettings.iconColor,
+                    color: themeSettings.todoColor,
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -240,7 +247,7 @@ class _MemoListPageState extends State<MemoListPage> {
                         memo.isPinned ? Icons.push_pin : Icons.note,
                         color: memo.isPinned
                             ? Colors.orange
-                            : themeSettings.iconColor,
+                            : themeSettings.todoColor,
                         size: 24,
                       ),
                     ),
@@ -292,7 +299,7 @@ class _MemoListPageState extends State<MemoListPage> {
                                 : Icons.push_pin_outlined,
                             color: memo.isPinned
                                 ? Colors.orange
-                                : themeSettings.iconColor,
+                                : themeSettings.todoColor,
                           ),
                           onPressed: _canEditMemos
                               ? () => _togglePinMemo(memo)

@@ -71,6 +71,7 @@ class ThemeSettings extends ChangeNotifier {
       customBottomNavigationSelectedColor = null;
       customBottomNavigationUnselectedColor = null;
       settingsColor = defaultTheme['settingsColor']!;
+      todoColor = defaultTheme['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
       fontSizeScale = 1.0;
       fontFamily = 'ZenMaruGothic';
       notifyListeners();
@@ -110,6 +111,7 @@ class ThemeSettings extends ChangeNotifier {
       customBottomNavigationSelectedColor = null;
       customBottomNavigationUnselectedColor = null;
       settingsColor = defaultTheme['settingsColor']!; // デフォルトテーマの設定色を使用
+      todoColor = defaultTheme['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
       fontSizeScale = 1.0;
       fontFamily = 'ZenMaruGothic';
 
@@ -155,6 +157,7 @@ class ThemeSettings extends ChangeNotifier {
       customBottomNavigationUnselectedColor =
           themeData['customBottomNavigationUnselectedColor'];
       settingsColor = themeData['settingsColor'] ?? settingsColor;
+      todoColor = themeData['todoColor'] ?? todoColor;
       debugPrint('ThemeSettings: 更新後のiconColor: $iconColor');
       debugPrint(
         'ThemeSettings: 更新後のcustomBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
@@ -222,6 +225,7 @@ class ThemeSettings extends ChangeNotifier {
               customBottomNavigationUnselectedColor =
                   themeData['customBottomNavigationUnselectedColor'];
               settingsColor = themeData['settingsColor'] ?? settingsColor;
+              todoColor = themeData['todoColor'] ?? todoColor;
               debugPrint('ThemeSettings: 更新後のiconColor: $iconColor');
               debugPrint(
                 'ThemeSettings: 更新後のcustomBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
@@ -1028,6 +1032,7 @@ class ThemeSettings extends ChangeNotifier {
         'theme_bottomNavigationSelectedColor',
         'theme_bottomNavigationUnselectedColor',
         'theme_settingsColor',
+        'theme_todoColor',
         'custom_themes',
       ]);
 
@@ -1117,9 +1122,9 @@ class ThemeSettings extends ChangeNotifier {
         settingsColor: settings['theme_settingsColor'] != null
             ? Color(settings['theme_settingsColor'])
             : defaultTheme['settingsColor']!,
-        todoColor: settings['theme_iconColor'] != null
-            ? Color(settings['theme_iconColor'])
-            : defaultTheme['iconColor']!, // アイコン色と同じ
+        todoColor: settings['theme_todoColor'] != null
+            ? Color(settings['theme_todoColor'])
+            : defaultTheme['iconColor']!, // デフォルトはアイコン色と同じ
         tastingColor: Color(0xFFD84315), // コーヒーらしい深いオレンジ
         customBottomNavigationSelectedColor:
             settings['customBottomNavigationSelectedColor'] != null
@@ -1229,6 +1234,7 @@ class ThemeSettings extends ChangeNotifier {
         'theme_bottomNavigationUnselectedColor': bottomNavigationUnselectedColor
             .toARGB32(),
         'theme_settingsColor': settingsColor.toARGB32(),
+        'theme_todoColor': todoColor.toARGB32(),
         'theme_fontSizeScale': fontSizeScale,
         'theme_fontFamily': fontFamily,
         'custom_themes': themeData,
@@ -1283,6 +1289,12 @@ class ThemeSettings extends ChangeNotifier {
     iconColor = color;
     // 設定アイコンの色も同時に更新
     settingsColor = color;
+    notifyListeners();
+    save();
+  }
+
+  void updateTodoColor(Color color) {
+    todoColor = color;
     notifyListeners();
     save();
   }
@@ -1383,6 +1395,7 @@ class ThemeSettings extends ChangeNotifier {
     customBottomNavigationSelectedColor =
         defaultTheme['bottomNavigationSelectedColor']!;
     settingsColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
+    todoColor = defaultTheme['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
     fontSizeScale = 1.0;
     fontFamily = 'ZenMaruGothic';
     notifyListeners();
@@ -1419,6 +1432,7 @@ class ThemeSettings extends ChangeNotifier {
       _bottomNavigationUnselectedColor =
           preset['bottomNavigationUnselectedColor'];
       settingsColor = preset['iconColor']!; // アイコンの色と同じ値に設定
+      todoColor = preset['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
       // ここで一度だけ通知
       notifyListeners();
       save();

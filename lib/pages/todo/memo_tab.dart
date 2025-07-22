@@ -91,10 +91,13 @@ class _MemoTabState extends State<MemoTab> {
       _contentController.clear();
 
       if (mounted) {
-        final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+        final themeSettings = Provider.of<ThemeSettings>(
+          context,
+          listen: false,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('メモを保存しました'), 
+            content: Text('メモを保存しました'),
             backgroundColor: themeSettings.buttonColor,
           ),
         );
@@ -135,7 +138,7 @@ class _MemoTabState extends State<MemoTab> {
                       children: [
                         Icon(
                           Icons.note_add,
-                          color: themeSettings.iconColor,
+                          color: themeSettings.todoColor,
                           size: 24,
                         ),
                         SizedBox(width: 8),
@@ -161,7 +164,7 @@ class _MemoTabState extends State<MemoTab> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                            color: themeSettings.iconColor,
+                            color: themeSettings.todoColor,
                             width: 2,
                           ),
                         ),
@@ -194,7 +197,7 @@ class _MemoTabState extends State<MemoTab> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                            color: themeSettings.iconColor,
+                            color: themeSettings.todoColor,
                             width: 2,
                           ),
                         ),

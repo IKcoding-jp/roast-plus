@@ -49,6 +49,10 @@ class TodoPageState extends State<TodoPage>
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
 
+    // デバッグ用：現在のtodoColorの値をログ出力
+    print('TodoPage: 現在のtodoColor: ${themeSettings.todoColor}');
+    print('TodoPage: 現在のiconColor: ${themeSettings.iconColor}');
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
