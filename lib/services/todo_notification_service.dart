@@ -17,7 +17,7 @@ class TodoNotificationService {
   Timer? _checkTimer;
   AudioPlayer? _audioPlayer;
   bool _isPlaying = false;
-  Set<String> _notifiedTodos = {};
+  final Set<String> _notifiedTodos = {};
 
   // グローバルナビゲーションキー（どの画面からでもダイアログを表示するため）
   GlobalKey<NavigatorState>? _navigatorKey;
