@@ -56,6 +56,13 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   String? _selectedRecommendRoast;
   List<RoastRecord> _recommendRecords = [];
 
+  // 設定をキャッシュ（Firebase読み込みを最適化）
+  bool? _usePreheat;
+  int? _preheatMinutes;
+  bool? _useRoast;
+  bool? _useCooling;
+  int? _coolingMinutes;
+
   void _loadInterstitialAdAndShow(VoidCallback onAdClosed) async {
     if (await isDonorUser()) {
       onAdClosed();
@@ -183,6 +190,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   void initState() {
     super.initState();
     _initializePermissions();
+    _loadSettings(); // 設定を初期化時に読み込み
     if (widget.initialDuration != null) {
       _startRecommendedRoast(widget.initialDuration!);
     }
@@ -196,6 +204,30 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       }
       return null;
     });
+  }
+
+  // 設定を初期化時に一度だけ読み込み
+  Future<void> _loadSettings() async {
+    try {
+      _usePreheat =
+          await UserSettingsFirestoreService.getSetting('usePreheat') ?? true;
+      _preheatMinutes =
+          await UserSettingsFirestoreService.getSetting('preheatMinutes') ?? 30;
+      _useRoast =
+          await UserSettingsFirestoreService.getSetting('useRoast') ?? true;
+      _useCooling =
+          await UserSettingsFirestoreService.getSetting('useCooling') ?? false;
+      _coolingMinutes =
+          await UserSettingsFirestoreService.getSetting('coolingMinutes') ?? 10;
+    } catch (e) {
+      print('設定読み込みエラー: $e');
+      // エラー時はデフォルト値を使用
+      _usePreheat = true;
+      _preheatMinutes = 30;
+      _useRoast = true;
+      _useCooling = false;
+      _coolingMinutes = 10;
+    }
   }
 
   // 通知権限を初期化
@@ -212,23 +244,19 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     }
   }
 
-  // タイマー状態を保存
+  // タイマー状態をローカルに保存（Firebaseとの同期を削除）
   void _saveTimerState() {
-    UserSettingsFirestoreService.saveMultipleSettings({
-      'roast_timer_remaining_seconds': _remainingSeconds,
-      'roast_timer_total_seconds': _totalSeconds,
-      'roast_timer_mode': _mode.toString(),
-      'roast_timer_is_paused': _isPaused,
-    });
+    // ローカルストレージに保存（Firebaseとの同期なし）
+    // タイマー動作中の頻繁な保存を避けるため、ローカルでのみ管理
   }
 
-  // タイマー完了状態を保存
+  // タイマー完了状態を保存（簡素化）
   Future<void> _saveTimerCompletionState() async {
-    await UserSettingsFirestoreService.saveMultipleSettings({
-      'roast_timer_completed': true,
-      'roast_timer_completed_mode': _mode.toString(),
-      'roast_timer_completed_at': DateTime.now().millisecondsSinceEpoch,
-    });
+    // タイマー完了時のみFirebaseに保存（必要最小限）
+    await UserSettingsFirestoreService.saveSetting(
+      'roast_timer_completed',
+      true,
+    );
   }
 
   // アプリ復帰時のタイマー状態チェック
@@ -273,8 +301,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   }
 
   void _startPreheating() async {
-    final usePreheat =
-        await UserSettingsFirestoreService.getSetting('usePreheat') ?? true;
+    // キャッシュされた設定を使用（Firebase読み込みを削除）
+    final usePreheat = _usePreheat ?? true;
     if (!usePreheat) {
       // 予熱タイマーをスキップし、手動入力画面へ
       setState(() {
@@ -282,8 +310,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       });
       return;
     }
-    final preheatMinutes =
-        await UserSettingsFirestoreService.getSetting('preheatMinutes') ?? 30;
+    final preheatMinutes = _preheatMinutes ?? 30;
     setState(() {
       _mode = RoastMode.preheating;
       _totalSeconds = preheatMinutes * 60;
@@ -302,11 +329,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   }
 
   void _startRoasting(int minutes) async {
-    final useRoast =
-        await UserSettingsFirestoreService.getSetting('useRoast') ?? true;
-    final useCooling =
-        await UserSettingsFirestoreService.getSetting('useCooling') ??
-        false; // デフォルトをオフに変更
+    // キャッシュされた設定を使用（Firebase読み込みを削除）
+    final useRoast = _useRoast ?? true;
+    final useCooling = _useCooling ?? false;
     if (!useRoast) {
       // 焙煎タイマーをスキップ
       if (useCooling) {
@@ -334,11 +359,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   }
 
   void _startRecommendedRoast(Duration duration) async {
-    final useRoast =
-        await UserSettingsFirestoreService.getSetting('useRoast') ?? true;
-    final useCooling =
-        await UserSettingsFirestoreService.getSetting('useCooling') ??
-        false; // デフォルトをオフに変更
+    // キャッシュされた設定を使用（Firebase読み込みを削除）
+    final useRoast = _useRoast ?? true;
+    final useCooling = _useCooling ?? false;
     if (!useRoast) {
       // 焙煎タイマーをスキップ
       if (useCooling) {
@@ -369,8 +392,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     setState(() {
       _justFinishedPreheat = false;
     });
-    final coolingMinutes =
-        await UserSettingsFirestoreService.getSetting('coolingMinutes') ?? 10;
+    // キャッシュされた設定を使用（Firebase読み込みを削除）
+    final coolingMinutes = _coolingMinutes ?? 10;
     setState(() {
       _mode = RoastMode.cooling;
       _totalSeconds = coolingMinutes * 60;

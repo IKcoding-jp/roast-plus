@@ -428,7 +428,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         const LoadingAnimationWidget(),
                         SizedBox(height: 16),
                         Text(
-                          'データを読み込み中...',
+                          'Loading...',
                           style: TextStyle(
                             color: themeSettings.fontColor1,
                             fontSize: 14,

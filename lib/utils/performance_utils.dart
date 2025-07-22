@@ -8,7 +8,7 @@ class PerformanceUtils {
   /// デバッグモードでのみログを出力
   static void debugLog(String message) {
     if (kDebugMode) {
-      print('Performance: $message');
+      print('パフォーマンス: $message');
     }
   }
 

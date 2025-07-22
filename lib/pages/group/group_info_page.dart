@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
@@ -53,6 +54,16 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     _initializeControllers();
 
     _loadGroupData();
+
+    // GroupProviderの変更を監視
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final groupProvider = context.read<GroupProvider>();
+      _groupProvider = groupProvider;
+      _currentGroupId = groupProvider.currentGroup?.id;
+
+      // グループ設定の変更を監視
+      groupProvider.addListener(_onGroupProviderChanged);
+    });
   }
 
   void _initializeControllers() {
@@ -63,6 +74,36 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     _descriptionController = TextEditingController(
       text: group?.description ?? '',
     );
+  }
+
+  /// GroupProviderの変更を監視するコールバック
+  void _onGroupProviderChanged() {
+    if (!mounted) return;
+
+    final groupProvider = context.read<GroupProvider>();
+    final currentGroup = groupProvider.currentGroup;
+
+    // グループが変更された場合
+    if (currentGroup?.id != _currentGroupId) {
+      _currentGroupId = currentGroup?.id;
+      _loadGroupData();
+      return;
+    }
+
+    // グループ設定が変更された場合
+    if (currentGroup != null && _groupSettings != null) {
+      final newSettings = GroupSettings.fromJson(currentGroup.settings);
+      if (_groupSettings!.allowLeaderManageGroup !=
+          newSettings.allowLeaderManageGroup) {
+        print('GroupInfoPage: リーダー管理権限が変更されました');
+        print('GroupInfoPage: 古い設定: ${_groupSettings!.allowLeaderManageGroup}');
+        print('GroupInfoPage: 新しい設定: ${newSettings.allowLeaderManageGroup}');
+
+        setState(() {
+          _groupSettings = newSettings;
+        });
+      }
+    }
   }
 
   @override
@@ -101,6 +142,15 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       }
     } catch (e) {
       print('ゲーミフィケーション監視停止エラー: $e');
+    }
+
+    // GroupProviderのリスナーを削除
+    try {
+      if (_groupProvider != null) {
+        _groupProvider!.removeListener(_onGroupProviderChanged);
+      }
+    } catch (e) {
+      print('GroupProviderリスナー削除エラー: $e');
     }
 
     super.dispose();
@@ -386,10 +436,6 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         });
 
         print('GroupInfoPage: ローカル状態更新完了');
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('設定を更新しました'), backgroundColor: Colors.green),
-        );
       }
     } catch (e) {
       print('GroupInfoPage: 設定更新エラー: $e');
@@ -411,9 +457,16 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
     if (user == null || group == null) return false;
 
-    // 管理者またはリーダーの場合に編集可能
+    // 管理者は常に編集可能
     final memberRole = group.getMemberRole(user.uid);
-    return memberRole == GroupRole.admin || memberRole == GroupRole.leader;
+    if (memberRole == GroupRole.admin) return true;
+
+    // リーダーの場合は設定を確認
+    if (memberRole == GroupRole.leader) {
+      return _groupSettings?.allowLeaderManageGroup ?? false;
+    }
+
+    return false;
   }
 
   bool get _canShowQRCode {
@@ -440,6 +493,8 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      enableDrag: true,
+      isDismissible: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) =>
             _buildSettingsBottomSheet(setModalState),
@@ -451,7 +506,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     final themeSettings = Provider.of<ThemeSettings>(context);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.9,
       decoration: BoxDecoration(
         color: themeSettings.backgroundColor2,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -499,12 +554,18 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           // 設定内容
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: 40, // 下部に余白を追加
+              ),
               child: Column(
                 children: [
                   _buildDataPermissionSettings(setModalState),
                   SizedBox(height: 20),
                   _buildMemberPermissionSettings(setModalState),
+                  SizedBox(height: 20), // 最後に余白を追加
                 ],
               ),
             ),
@@ -704,7 +765,8 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
         final stats = groupGamificationProfile?.stats;
         final badgeCount = groupGamificationProfile?.badges.length ?? 0;
-        final allBadgeCount = 30; // グループバッジの総数（固定値）
+        final allBadgeCount =
+            GroupBadgeConditions.conditions.length; // グループバッジの総数（動的）
         final currentLevel = groupGamificationProfile?.level ?? 1;
         final experiencePoints =
             groupGamificationProfile?.experiencePoints ?? 0;
@@ -718,6 +780,16 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         print(
           'GroupInfoPage: メンバー一覧: ${group.members.map((m) => '${m.displayName}(${m.email})').join(', ')}',
         );
+        print('GroupInfoPage: グループゲーミフィケーションプロファイル: $groupGamificationProfile');
+        print('GroupInfoPage: バッジ数: $badgeCount / $allBadgeCount');
+        print(
+          'GroupInfoPage: 利用可能なバッジID: ${GroupBadgeConditions.conditions.map((c) => c.badgeId).toList()}',
+        );
+        if (groupGamificationProfile?.badges.isNotEmpty == true) {
+          print(
+            'GroupInfoPage: 獲得済みバッジ: ${groupGamificationProfile!.badges.map((b) => '${b.name}(${b.id})').join(', ')}',
+          );
+        }
 
         return Center(
           child: Container(
@@ -919,126 +991,6 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                         ),
                         SizedBox(height: 24),
 
-                        // バッジ進捗
-                        Text(
-                          'バッジ進捗',
-                          style: TextStyle(
-                            fontSize: 22 * themeSettings.fontSizeScale,
-                            fontWeight: FontWeight.bold,
-                            color: themeSettings.fontColor1,
-                            fontFamily: themeSettings.fontFamily,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Container(
-                          padding: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: _isDarkTheme(themeSettings)
-                                ? Colors.white.withOpacity(0.05)
-                                : themeSettings.backgroundColor2.withOpacity(
-                                    0.1,
-                                  ),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: themeSettings.buttonColor.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.emoji_events,
-                                    color: themeSettings.iconColor,
-                                    size: 24,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    '$badgeCount / $allBadgeCount バッジ獲得',
-                                    style: TextStyle(
-                                      fontSize:
-                                          18 * themeSettings.fontSizeScale,
-                                      color: themeSettings.fontColor1,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: themeSettings.fontFamily,
-                                    ),
-                                  ),
-                                  Spacer(),
-                                  Text(
-                                    '${((badgeCount / allBadgeCount) * 100).toInt()}%',
-                                    style: TextStyle(
-                                      fontSize:
-                                          16 * themeSettings.fontSizeScale,
-                                      color: themeSettings.fontColor1
-                                          .withOpacity(0.7),
-                                      fontFamily: themeSettings.fontFamily,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 12),
-                              LinearProgressIndicator(
-                                value: (badgeCount / allBadgeCount).clamp(
-                                  0.0,
-                                  1.0,
-                                ),
-                                minHeight: 8,
-                                backgroundColor: themeSettings.fontColor1
-                                    .withOpacity(0.1),
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  themeSettings.buttonColor,
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: GroupBadgeConditions.conditions
-                                    .take(8)
-                                    .map((condition) {
-                                      final isEarned =
-                                          groupGamificationProfile?.badges.any(
-                                            (b) => b.id == condition.badgeId,
-                                          ) ??
-                                          false;
-                                      return Container(
-                                        padding: EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: isEarned
-                                              ? condition.color.withOpacity(0.1)
-                                              : themeSettings.fontColor1
-                                                    .withOpacity(0.05),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          border: Border.all(
-                                            color: isEarned
-                                                ? condition.color.withOpacity(
-                                                    0.3,
-                                                  )
-                                                : themeSettings.fontColor1
-                                                      .withOpacity(0.1),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          condition.icon,
-                                          color: isEarned
-                                              ? condition.color
-                                              : themeSettings.fontColor1
-                                                    .withOpacity(0.3),
-                                          size: 28,
-                                        ),
-                                      );
-                                    })
-                                    .toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 24),
-
                         // レベルタイトル
                         Container(
                           width: double.infinity,
@@ -1127,6 +1079,299 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                             },
                           ),
                         ),
+                        SizedBox(height: 24),
+
+                        // バッジ進捗
+                        Text(
+                          'バッジ進捗',
+                          style: TextStyle(
+                            fontSize: 22 * themeSettings.fontSizeScale,
+                            fontWeight: FontWeight.bold,
+                            color: themeSettings.fontColor1,
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: _isDarkTheme(themeSettings)
+                                ? Colors.white.withOpacity(0.05)
+                                : themeSettings.backgroundColor2.withOpacity(
+                                    0.1,
+                                  ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: themeSettings.buttonColor.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              // ヘッダー部分
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.emoji_events,
+                                    color: themeSettings.iconColor,
+                                    size: 24,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '$badgeCount / $allBadgeCount バッジ獲得',
+                                    style: TextStyle(
+                                      fontSize:
+                                          18 * themeSettings.fontSizeScale,
+                                      color: themeSettings.fontColor1,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: themeSettings.fontFamily,
+                                    ),
+                                  ),
+                                  Spacer(),
+                                  Text(
+                                    '${((badgeCount / allBadgeCount) * 100).toInt()}%',
+                                    style: TextStyle(
+                                      fontSize:
+                                          16 * themeSettings.fontSizeScale,
+                                      color: themeSettings.fontColor1
+                                          .withOpacity(0.7),
+                                      fontFamily: themeSettings.fontFamily,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              LinearProgressIndicator(
+                                value: (badgeCount / allBadgeCount).clamp(
+                                  0.0,
+                                  1.0,
+                                ),
+                                minHeight: 8,
+                                backgroundColor: themeSettings.fontColor1
+                                    .withOpacity(0.1),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  themeSettings.buttonColor,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+
+                              // 詳細なバッジ一覧
+                              Column(
+                                children: GroupBadgeConditions.conditions.map((
+                                  condition,
+                                ) {
+                                  final isEarned =
+                                      groupGamificationProfile?.badges.any(
+                                        (b) => b.id == condition.badgeId,
+                                      ) ??
+                                      false;
+
+                                  // デバッグ情報
+                                  if (condition.badgeId ==
+                                      'group_attendance_10') {
+                                    print(
+                                      'GroupInfoPage: バッジチェック - ${condition.name}: $isEarned',
+                                    );
+                                    print(
+                                      'GroupInfoPage: 全バッジID: ${groupGamificationProfile?.badges.map((b) => b.id).toList()}',
+                                    );
+                                  }
+                                  final earnedBadge = groupGamificationProfile
+                                      ?.badges
+                                      .firstWhere(
+                                        (b) => b.id == condition.badgeId,
+                                        orElse: () => GroupBadge(
+                                          id: condition.badgeId,
+                                          name: condition.name,
+                                          description: condition.description,
+                                          icon: condition.icon,
+                                          color: condition.color,
+                                          earnedAt: DateTime.now(),
+                                          earnedByUserId: '',
+                                          earnedByUserName: '',
+                                          category: BadgeCategory.special,
+                                        ),
+                                      );
+
+                                  return Container(
+                                    margin: EdgeInsets.only(bottom: 12),
+                                    padding: EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isEarned
+                                          ? condition.color.withOpacity(0.1)
+                                          : themeSettings.fontColor1
+                                                .withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isEarned
+                                            ? condition.color.withOpacity(0.3)
+                                            : themeSettings.fontColor1
+                                                  .withOpacity(0.1),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        // バッジアイコン
+                                        Container(
+                                          padding: EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: isEarned
+                                                ? condition.color.withOpacity(
+                                                    0.2,
+                                                  )
+                                                : themeSettings.fontColor1
+                                                      .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            condition.icon,
+                                            color: isEarned
+                                                ? condition.color
+                                                : themeSettings.fontColor1
+                                                      .withOpacity(0.3),
+                                            size: 24,
+                                          ),
+                                        ),
+                                        SizedBox(width: 12),
+
+                                        // バッジ情報
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                condition.name,
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      16 *
+                                                      themeSettings
+                                                          .fontSizeScale,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isEarned
+                                                      ? condition.color
+                                                      : themeSettings
+                                                            .fontColor1,
+                                                  fontFamily:
+                                                      themeSettings.fontFamily,
+                                                ),
+                                              ),
+                                              SizedBox(height: 4),
+                                              // レベル系バッジ以外の場合のみ説明文を表示
+                                              if (condition.category !=
+                                                  BadgeCategory.level) ...[
+                                                Text(
+                                                  condition.description,
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        14 *
+                                                        themeSettings
+                                                            .fontSizeScale,
+                                                    color: themeSettings
+                                                        .fontColor1
+                                                        .withOpacity(0.7),
+                                                    fontFamily: themeSettings
+                                                        .fontFamily,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                              // レベル系バッジの場合、達成条件を表示
+                                              if (condition.category ==
+                                                  BadgeCategory.level) ...[
+                                                SizedBox(height: 4),
+                                                Builder(
+                                                  builder: (context) {
+                                                    final requirement =
+                                                        _getLevelRequirement(
+                                                          condition.badgeId,
+                                                        );
+                                                    final requiredLevel =
+                                                        _getRequiredLevel(
+                                                          condition.badgeId,
+                                                        );
+                                                    final isAchievable =
+                                                        currentLevel >=
+                                                        requiredLevel;
+
+                                                    return Text(
+                                                      '$requirement${!isEarned && isAchievable ? ' ✓' : ''}',
+                                                      style: TextStyle(
+                                                        fontSize:
+                                                            14 *
+                                                            themeSettings
+                                                                .fontSizeScale,
+                                                        color: isEarned
+                                                            ? condition.color
+                                                                  .withOpacity(
+                                                                    0.8,
+                                                                  )
+                                                            : isAchievable
+                                                            ? Colors.green
+                                                                  .withOpacity(
+                                                                    0.8,
+                                                                  )
+                                                            : themeSettings
+                                                                  .fontColor1
+                                                                  .withOpacity(
+                                                                    0.7,
+                                                                  ),
+                                                        fontFamily:
+                                                            themeSettings
+                                                                .fontFamily,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                              if (isEarned &&
+                                                  earnedBadge?.earnedAt !=
+                                                      null) ...[
+                                                SizedBox(height: 4),
+                                                Text(
+                                                  '獲得日: ${DateFormat('yyyy/MM/dd').format(earnedBadge?.earnedAt ?? DateTime.now())}',
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        12 *
+                                                        themeSettings
+                                                            .fontSizeScale,
+                                                    color: condition.color
+                                                        .withOpacity(0.8),
+                                                    fontFamily: themeSettings
+                                                        .fontFamily,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+
+                                        // 獲得状況アイコン
+                                        Icon(
+                                          isEarned
+                                              ? Icons.check_circle
+                                              : Icons.radio_button_unchecked,
+                                          color: isEarned
+                                              ? condition.color
+                                              : themeSettings.fontColor1
+                                                    .withOpacity(0.3),
+                                          size: 24,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        ),
                         SizedBox(height: 40), // 最後に十分なスペースを追加
                       ],
                     ),
@@ -1138,6 +1383,27 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         );
       },
     );
+  }
+
+  /// レベル系バッジの達成条件を取得
+  String _getLevelRequirement(String badgeId) {
+    // バッジIDからレベルを抽出
+    final levelMatch = RegExp(r'group_level_(\d+)').firstMatch(badgeId);
+    if (levelMatch != null) {
+      final level = int.parse(levelMatch.group(1)!);
+      return 'グループレベル $level に到達';
+    }
+    return 'レベル達成';
+  }
+
+  /// レベル系バッジの必要レベルを取得
+  int _getRequiredLevel(String badgeId) {
+    // バッジIDからレベルを抽出
+    final levelMatch = RegExp(r'group_level_(\d+)').firstMatch(badgeId);
+    if (levelMatch != null) {
+      return int.parse(levelMatch.group(1)!);
+    }
+    return 0;
   }
 
   Widget _buildStatItem(
@@ -2003,6 +2269,29 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               setState(() {
                 _groupSettings = _groupSettings!.copyWith(
                   allowMemberViewMembers: value,
+                );
+              });
+            }
+            _updateGroupSettings(_groupSettings!);
+          },
+        ),
+        SizedBox(height: 16),
+        _buildPermissionSwitch(
+          title: 'リーダーがグループ管理できる',
+          description: 'リーダーが権限設定・グループ名変更・グループ削除を実行できる',
+          value: _groupSettings!.allowLeaderManageGroup,
+          onChanged: (value) {
+            print('GroupInfoPage: リーダーがグループ管理できる onChanged: $value');
+            if (setModalState != null) {
+              setModalState(() {
+                _groupSettings = _groupSettings!.copyWith(
+                  allowLeaderManageGroup: value,
+                );
+              });
+            } else {
+              setState(() {
+                _groupSettings = _groupSettings!.copyWith(
+                  allowLeaderManageGroup: value,
                 );
               });
             }

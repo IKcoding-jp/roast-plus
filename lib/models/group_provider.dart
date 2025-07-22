@@ -27,6 +27,10 @@ class GroupProvider extends ChangeNotifier {
   final Map<String, StreamSubscription<GroupGamificationProfile>>
   _gamificationWatchers = {};
 
+  // グループ設定監視
+  final Map<String, StreamSubscription<GroupSettings?>> _groupSettingsWatchers =
+      {};
+
   // グループ作成フラグ
   bool _showGroupCreationCelebration = false;
   String? _newlyCreatedGroupId;
@@ -699,6 +703,9 @@ class GroupProvider extends ChangeNotifier {
         );
 
     _groupWatchers[groupId] = sub;
+
+    // グループ設定の監視も開始
+    watchGroupSettings(groupId);
   }
 
   /// グループが削除された場合の処理
@@ -733,10 +740,52 @@ class GroupProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// グループ設定の変更をリアルタイム監視
+  void watchGroupSettings(String groupId) {
+    if (_groupSettingsWatchers.containsKey(groupId)) return;
+
+    debugPrint('GroupProvider: グループ設定監視開始: $groupId');
+
+    final sub = GroupFirestoreService.watchGroupSettings(groupId).listen(
+      (settings) {
+        if (settings != null) {
+          debugPrint('GroupProvider: グループ設定更新検知 - ID: $groupId');
+          debugPrint('GroupProvider: 新しい設定: $settings');
+
+          // 現在のグループの設定を更新
+          if (_currentGroup?.id == groupId) {
+            _currentGroup = _currentGroup!.copyWith(
+              settings: settings.toJson(),
+            );
+            debugPrint('GroupProvider: 現在のグループ設定を更新');
+          }
+
+          // グループリスト内の該当グループの設定も更新
+          final idx = _groups.indexWhere((g) => g.id == groupId);
+          if (idx != -1) {
+            _groups[idx] = _groups[idx].copyWith(settings: settings.toJson());
+            debugPrint('GroupProvider: グループリスト内の設定を更新');
+          }
+
+          notifyListeners();
+        }
+      },
+      onError: (error) {
+        debugPrint('GroupProvider: グループ設定監視エラー: $error');
+      },
+    );
+
+    _groupSettingsWatchers[groupId] = sub;
+  }
+
   /// Firestoreのグループ監視を解除
   void unwatchGroup(String groupId) {
     _groupWatchers[groupId]?.cancel();
     _groupWatchers.remove(groupId);
+
+    // グループ設定の監視も解除
+    _groupSettingsWatchers[groupId]?.cancel();
+    _groupSettingsWatchers.remove(groupId);
   }
 
   @override
@@ -746,6 +795,12 @@ class GroupProvider extends ChangeNotifier {
       sub.cancel();
     }
     _groupWatchers.clear();
+
+    // グループ設定監視を停止
+    for (final watcher in _groupSettingsWatchers.values) {
+      watcher.cancel();
+    }
+    _groupSettingsWatchers.clear();
 
     // ゲーミフィケーション監視を停止
     for (final watcher in _gamificationWatchers.values) {

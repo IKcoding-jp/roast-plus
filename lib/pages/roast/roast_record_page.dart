@@ -596,7 +596,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
               ),
               SizedBox(height: 16),
               Text(
-                '権限を確認中...',
+                'Loading...',
                 style: TextStyle(
                   color: Provider.of<ThemeSettings>(context).fontColor1,
                   fontSize: 16,

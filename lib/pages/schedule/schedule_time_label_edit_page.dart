@@ -26,6 +26,10 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
   void initState() {
     super.initState();
     _labels = List.from(widget.labels);
+
+    // 空のラベルを削除
+    _labels.removeWhere((label) => label.isEmpty || label.trim().isEmpty);
+
     print('ScheduleTimeLabelEditPage: initState - 初期ラベル: $_labels');
     print(
       'ScheduleTimeLabelEditPage: onLabelsChangedコールバック存在: ${widget.onLabelsChanged != null}',
@@ -63,8 +67,38 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
   }
 
   void _addLabel() async {
+    // 入力値のバリデーション
+    if (_hourController.text.isEmpty && _minuteController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('時間を入力してください'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
     final hour = int.tryParse(_hourController.text) ?? 0;
     final minute = int.tryParse(_minuteController.text) ?? 0;
+
+    // 時間の範囲チェック
+    if (hour < 0 || hour > 23) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('時間は0〜23の範囲で入力してください'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (minute < 0 || minute > 59) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('分は0〜59の範囲で入力してください'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final label =
         '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 
@@ -77,6 +111,12 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
 
     if (_labels.contains(label)) {
       print('ScheduleTimeLabelEditPage: ラベルが既に存在するため追加をスキップ');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('同じ時間のラベルが既に存在します'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
 
@@ -169,21 +209,64 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
           ),
           ElevatedButton(
             onPressed: () async {
+              // 入力値のバリデーション
+              if (_hourController.text.isEmpty &&
+                  _minuteController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('時間を入力してください'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+
               final hour = int.tryParse(_hourController.text) ?? 0;
               final minute = int.tryParse(_minuteController.text) ?? 0;
+
+              // 時間の範囲チェック
+              if (hour < 0 || hour > 23) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('時間は0〜23の範囲で入力してください'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              if (minute < 0 || minute > 59) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('分は0〜59の範囲で入力してください'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
               final newLabel =
                   '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-              if (newLabel.isNotEmpty && !_labels.contains(newLabel)) {
-                setState(() {
-                  _labels[index] = newLabel;
-                  _sortLabels();
-                  _hourController.clear();
-                  _minuteController.clear();
-                });
 
-                // 自動保存
-                await _autoSave();
+              if (_labels.contains(newLabel) && _labels[index] != newLabel) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('同じ時間のラベルが既に存在します'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
               }
+
+              setState(() {
+                _labels[index] = newLabel;
+                _sortLabels();
+                _hourController.clear();
+                _minuteController.clear();
+              });
+
+              // 自動保存
+              await _autoSave();
               Navigator.pop(context);
             },
             child: Text(

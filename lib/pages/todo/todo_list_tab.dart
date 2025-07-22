@@ -784,7 +784,9 @@ class TodoListTabState extends State<TodoListTab> {
                                   padding: EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: item.isDone
-                                        ? Color(0xFF4CAF50).withOpacity(0.2)
+                                        ? Provider.of<ThemeSettings>(
+                                            context,
+                                          ).iconColor.withOpacity(0.2)
                                         : Color(0xFF795548).withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -793,7 +795,9 @@ class TodoListTabState extends State<TodoListTab> {
                                         ? Icons.check_circle
                                         : Icons.radio_button_unchecked,
                                     color: item.isDone
-                                        ? Color(0xFF4CAF50)
+                                        ? Provider.of<ThemeSettings>(
+                                            context,
+                                          ).iconColor
                                         : Provider.of<ThemeSettings>(
                                             context,
                                           ).iconColor,

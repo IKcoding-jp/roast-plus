@@ -91,8 +91,12 @@ class _MemoTabState extends State<MemoTab> {
       _contentController.clear();
 
       if (mounted) {
+        final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('メモを保存しました'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text('メモを保存しました'), 
+            backgroundColor: themeSettings.buttonColor,
+          ),
         );
       }
     } catch (e) {

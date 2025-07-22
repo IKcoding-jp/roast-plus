@@ -246,7 +246,7 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingScreen(title: '認証中...');
+          return const LoadingScreen(title: 'Loading...');
         }
         if (!snapshot.hasData) {
           return GoogleSignInScreen();
@@ -289,7 +289,7 @@ class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
       builder: (context, groupProvider, child) {
         // データ読み込み中の場合はローディング画面を表示
         if (groupProvider.loading) {
-          return const LoadingScreen(title: 'グループ情報を読み込み中...');
+          return const LoadingScreen(title: 'Loading...');
         }
 
         // グループに参加していない場合はグループ参加ページを表示
@@ -524,7 +524,7 @@ class _PasscodeGateState extends State<PasscodeGate>
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const LoadingScreen(title: 'パスコード設定を確認中...');
+      return const LoadingScreen(title: 'Loading...');
     }
     if (!_unlocked && _passcode != null) {
       return PasscodeInputScreen(
@@ -718,9 +718,9 @@ class MainScaffoldState extends State<MainScaffold> {
   // ページを遅延読み込みするためのリスト
   final List<Widget> _pages = [
     RoastTimerPage(), // 焙煎タイマー
-    SchedulePage(), // スケジュール
-    HomePage(), // ホーム（中央）
     DripCounterPage(key: dripCounterPageKey), // カウンター
+    HomePage(), // ホーム（中央）
+    SchedulePage(), // スケジュール
     AssignmentBoard(key: assignmentBoardKey), // 担当表
   ];
 
@@ -985,16 +985,16 @@ class MainScaffoldState extends State<MainScaffold> {
                         label: '焙煎タイマー',
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.schedule, size: iconSize),
-                        label: 'スケジュール',
+                        icon: Icon(Icons.local_cafe, size: iconSize),
+                        label: 'カウンター',
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.home, size: iconSize),
                         label: 'ホーム',
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.local_cafe, size: iconSize),
-                        label: 'カウンター',
+                        icon: Icon(Icons.schedule, size: iconSize),
+                        label: 'スケジュール',
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.group, size: iconSize),

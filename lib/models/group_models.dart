@@ -13,12 +13,14 @@ enum AccessLevel { admin_only, admin_leader, all_members }
 class GroupSettings {
   final bool allowMemberInvite; // メンバーが招待できるか
   final bool allowMemberViewMembers; // メンバーがメンバー一覧を見れるか
+  final bool allowLeaderManageGroup; // リーダーがグループ管理（権限設定・名前変更・削除）できるか
   final Map<String, AccessLevel> dataPermissions; // データタイプごとの権限設定
   final DateTime? updatedAt;
 
   const GroupSettings({
     this.allowMemberInvite = false,
     this.allowMemberViewMembers = true,
+    this.allowLeaderManageGroup = false,
     this.dataPermissions = const {},
     this.updatedAt,
   });
@@ -30,6 +32,7 @@ class GroupSettings {
       ),
       'allowMemberInvite': allowMemberInvite,
       'allowMemberViewMembers': allowMemberViewMembers,
+      'allowLeaderManageGroup': allowLeaderManageGroup,
       'updatedAt': updatedAt?.toIso8601String(),
     };
   }
@@ -49,6 +52,7 @@ class GroupSettings {
           {},
       allowMemberInvite: json['allowMemberInvite'] as bool? ?? false,
       allowMemberViewMembers: json['allowMemberViewMembers'] as bool? ?? true,
+      allowLeaderManageGroup: json['allowLeaderManageGroup'] as bool? ?? false,
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'] as String)
           : null,
@@ -58,6 +62,7 @@ class GroupSettings {
   GroupSettings copyWith({
     bool? allowMemberInvite,
     bool? allowMemberViewMembers,
+    bool? allowLeaderManageGroup,
     Map<String, AccessLevel>? dataPermissions,
     DateTime? updatedAt,
   }) {
@@ -65,6 +70,8 @@ class GroupSettings {
       allowMemberInvite: allowMemberInvite ?? this.allowMemberInvite,
       allowMemberViewMembers:
           allowMemberViewMembers ?? this.allowMemberViewMembers,
+      allowLeaderManageGroup:
+          allowLeaderManageGroup ?? this.allowLeaderManageGroup,
       dataPermissions: dataPermissions ?? this.dataPermissions,
       updatedAt: updatedAt ?? this.updatedAt,
     );

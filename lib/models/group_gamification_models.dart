@@ -676,15 +676,7 @@ class GroupBadgeConditions {
       category: BadgeCategory.special,
       checkCondition: (stats) => stats.totalTastingRecords >= 1,
     ),
-    GroupBadgeCondition(
-      badgeId: 'group_early_bird',
-      name: '最速出勤記録',
-      description: '朝8:00以前に出勤登録された日がある',
-      icon: Icons.wb_sunny,
-      color: Colors.yellow.shade600,
-      category: BadgeCategory.special,
-      checkCondition: (stats) => _checkEarlyBirdAttendance(stats),
-    ),
+
     GroupBadgeCondition(
       badgeId: 'group_continuous_week',
       name: '皆勤チーム',
@@ -703,6 +695,15 @@ class GroupBadgeConditions {
       category: BadgeCategory.special,
       checkCondition: (stats) => stats.totalTastingRecords >= 100,
     ),
+    GroupBadgeCondition(
+      badgeId: 'group_recommended_timer',
+      name: 'おすすめタイマー使い',
+      description: 'おすすめ焙煎タイマーを使用して焙煎を記録',
+      icon: Icons.timer,
+      color: Colors.orange.shade500,
+      category: BadgeCategory.special,
+      checkCondition: (stats) => _checkRecommendedTimerUsage(stats),
+    ),
   ];
 
   /// 一週間連続出勤チェック（簡易版）
@@ -719,12 +720,14 @@ class GroupBadgeConditions {
     return stats.totalRoastDays >= 3;
   }
 
-  /// 早朝出勤チェック（簡易版）
-  static bool _checkEarlyBirdAttendance(GroupStats stats) {
-    // 実際の実装では、より詳細な時間チェックが必要
-    // ここでは簡易的に活動日数で判定
-    return stats.totalAttendanceDays >= 1;
+  /// おすすめタイマー使用チェック（簡易版）
+  static bool _checkRecommendedTimerUsage(GroupStats stats) {
+    // 実際の実装では、おすすめタイマー使用の記録をチェック
+    // ここでは簡易的に焙煎日数で判定
+    return stats.totalRoastDays >= 5;
   }
+
+
 
   /// グループレベルチェック（統計ベース - フォールバック用）
   static bool _checkGroupLevel(GroupStats stats, int requiredLevel) {

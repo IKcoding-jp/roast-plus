@@ -13,6 +13,7 @@ import '../../services/auto_sync_service.dart';
 import '../schedule/schedule_time_label_edit_page.dart';
 import '../../services/group_firestore_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:lottie/lottie.dart';
 
 // ▼▼▼ 範囲管理用クラスを追加 ▼▼▼
 class _ArrowRange {
@@ -37,7 +38,7 @@ class TodaySchedule extends StatefulWidget {
 
 class _TodayScheduleState extends State<TodaySchedule>
     with TickerProviderStateMixin {
-  List<String> _scheduleLabels = [''];
+  List<String> _scheduleLabels = [];
   Map<String, String> _scheduleContents = {};
   final Map<String, TextEditingController> _scheduleControllers = {};
   final List<_ArrowRange> _arrowRanges = [];
@@ -272,7 +273,7 @@ class _TodayScheduleState extends State<TodaySchedule>
       }
 
       // グループデータが読み込めない場合はローカルデータを読み込み
-      debugPrint('TodaySchedule: ローカルデータを読み込みます');
+      debugPrint('TodaySchedule: グループデータが読み込めないため、ローカルデータを読み込みます');
 
       // グループ参加時は権限チェックを実行
       if (groupProvider.groups.isNotEmpty) {
@@ -288,9 +289,14 @@ class _TodayScheduleState extends State<TodaySchedule>
       Map<String, String> loadedContents = {};
 
       if (settings['todaySchedule_labels'] != null) {
-        loadedLabels = List<String>.from(settings['todaySchedule_labels']);
-        debugPrint('TodaySchedule: 読み込んだラベル数: ${loadedLabels.length}');
-        debugPrint('TodaySchedule: 読み込んだラベル: $loadedLabels');
+        final rawLabels = settings['todaySchedule_labels'];
+        if (rawLabels is List) {
+          loadedLabels = List<String>.from(rawLabels);
+          debugPrint('TodaySchedule: 読み込んだラベル数: ${loadedLabels.length}');
+          debugPrint('TodaySchedule: 読み込んだラベル: $loadedLabels');
+        } else {
+          debugPrint('TodaySchedule: ラベルデータが不正な形式: $rawLabels');
+        }
       } else {
         debugPrint('TodaySchedule: ラベルデータがnull');
       }
@@ -300,10 +306,10 @@ class _TodayScheduleState extends State<TodaySchedule>
         );
       }
 
-      // ラベルが空の場合は初期ラベルを設定
+      // ラベルが空の場合は空のリストを設定（デフォルトラベルは設定しない）
       if (loadedLabels.isEmpty) {
-        loadedLabels = [''];
-        debugPrint('TodaySchedule: ラベルが空のため初期ラベルを設定');
+        loadedLabels = [];
+        debugPrint('TodaySchedule: ラベルが空のため空のリストを設定');
       }
 
       if (mounted) {
@@ -328,7 +334,7 @@ class _TodayScheduleState extends State<TodaySchedule>
       debugPrint('TodaySchedule: スケジュール読み込みエラー: $e');
       if (mounted) {
         setState(() {
-          _scheduleLabels = [''];
+          _scheduleLabels = [];
           _scheduleContents = {};
         });
         _initScheduleControllers();
@@ -1276,7 +1282,36 @@ class _TodayScheduleState extends State<TodaySchedule>
                       ],
                     ),
                     SizedBox(height: 16),
-                    if (_scheduleLabels.isEmpty ||
+
+                    // 初期化中の場合はローディング表示
+                    if (_isInitializing)
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Column(
+                            children: [
+                              Lottie.asset(
+                                'assets/animations/Loading coffee bean.json',
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.contain,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Loading...',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    // ラベルが空の場合は空の状態表示
+                    else if (_scheduleLabels.isEmpty ||
                         (_scheduleLabels.length == 1 &&
                             _scheduleLabels.first.isEmpty))
                       Center(
@@ -1305,6 +1340,7 @@ class _TodayScheduleState extends State<TodaySchedule>
                           ),
                         ),
                       )
+                    // ラベルがある場合はスケジュール表示
                     else
                       Column(children: _buildScheduleLabelWidgets()),
                   ],

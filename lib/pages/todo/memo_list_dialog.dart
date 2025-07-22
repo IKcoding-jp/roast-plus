@@ -105,8 +105,12 @@ class _MemoListDialogState extends State<MemoListDialog> {
         await _loadMemos();
 
         if (mounted) {
+          final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('メモを削除しました'), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text('メモを削除しました'), 
+              backgroundColor: themeSettings.buttonColor,
+            ),
           );
         }
       } catch (e) {

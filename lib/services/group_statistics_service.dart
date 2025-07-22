@@ -24,7 +24,7 @@ class GroupStatisticsService {
 
       return querySnapshot.docs.length;
     } catch (e) {
-      debugPrint('Error getting today roast records count: $e');
+      debugPrint('今日の焙煎記録数取得エラー: $e');
       return 0;
     }
   }
@@ -52,7 +52,7 @@ class GroupStatisticsService {
 
       return querySnapshot.docs.length;
     } catch (e) {
-      debugPrint('Error getting this week activity count: $e');
+      debugPrint('今週の活動回数取得エラー: $e');
       return 0;
     }
   }
@@ -84,7 +84,7 @@ class GroupStatisticsService {
 
       return (totalMinutes / 60).roundToDouble();
     } catch (e) {
-      debugPrint('Error getting total roast time: $e');
+      debugPrint('総焙煎時間取得エラー: $e');
       return 0.0;
     }
   }
@@ -102,7 +102,7 @@ class GroupStatisticsService {
         'totalRoastTime': totalTime,
       };
     } catch (e) {
-      debugPrint('Error getting group statistics: $e');
+      debugPrint('グループ統計情報取得エラー: $e');
       return {
         'todayRoastCount': 0,
         'thisWeekActivityCount': 0,

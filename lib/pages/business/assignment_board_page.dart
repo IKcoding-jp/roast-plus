@@ -1202,7 +1202,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         }
 
         if (_isLoading) {
-          return const LoadingScreen(title: '担当表を読み込み中...');
+          return const LoadingScreen(title: 'Loading...');
         }
 
         final todayIsWeekend = _isWeekend();

@@ -105,8 +105,12 @@ class _MemoListPageState extends State<MemoListPage> {
         await _loadMemos();
 
         if (mounted) {
+          final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('メモを削除しました'), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text('メモを削除しました'), 
+              backgroundColor: themeSettings.buttonColor,
+            ),
           );
         }
       } catch (e) {
@@ -147,8 +151,12 @@ class _MemoListPageState extends State<MemoListPage> {
       await MemoFirestoreService.updateMemo(updatedMemo);
       await _loadMemos();
       if (mounted) {
+        final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('メモを更新しました'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text('メモを更新しました'), 
+            backgroundColor: themeSettings.buttonColor,
+          ),
         );
       }
     } catch (e) {

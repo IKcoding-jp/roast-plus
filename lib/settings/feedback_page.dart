@@ -64,15 +64,15 @@ ${_messageController.text.trim()}
         queryParameters: {'subject': subject, 'body': body},
       );
 
-      print('Attempting to launch email URI: $emailUri');
+      print('メールURI起動を試行中: $emailUri');
 
       if (await canLaunchUrl(emailUri)) {
-        print('Can launch URL, attempting to launch...');
+        print('URL起動可能、起動を試行中...');
         final result = await launchUrl(
           emailUri,
           mode: LaunchMode.externalApplication,
         );
-        print('Launch result: $result');
+        print('起動結果: $result');
 
         if (result) {
           ScaffoldMessenger.of(
@@ -83,11 +83,11 @@ ${_messageController.text.trim()}
           throw Exception('メールアプリの起動に失敗しました');
         }
       } else {
-        print('Cannot launch URL: $emailUri');
+        print('URL起動不可: $emailUri');
         throw Exception('メールアプリを開けませんでした。デバイスにメールアプリがインストールされているか確認してください。');
       }
     } catch (e) {
-      print('Error in _sendFeedback: $e');
+      print('フィードバック送信エラー: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('エラーが発生しました: $e'),

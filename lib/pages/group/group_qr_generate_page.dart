@@ -172,7 +172,7 @@ class _GroupQRGeneratePageState extends State<GroupQRGeneratePage> {
               ),
               SizedBox(height: 16),
               Text(
-                '権限を確認中...',
+                'Loading...',
                 style: TextStyle(
                   color: themeSettings.fontColor1,
                   fontSize: 16 * themeSettings.fontSizeScale,

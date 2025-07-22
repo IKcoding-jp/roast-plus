@@ -36,10 +36,10 @@ class _HomeBodyState extends State<HomeBody> {
           HomeHeader(themeSettings: widget.themeSettings),
           SizedBox(height: 24),
 
-          // 焙煎業務セクション
+          // 業務セクション
           HomeFeatureSection(
             themeSettings: widget.themeSettings,
-            title: '焙煎業務',
+            title: '業務',
             icon: Icons.work,
             accentColor: Color(0xFF8B4513), // 中煎りのコーヒー豆のようなブラウン
             isExpanded: _expandedSections['business']!,
@@ -95,7 +95,7 @@ class _HomeBodyState extends State<HomeBody> {
     });
   }
 
-  /// 焙煎業務カードを構築
+  /// 業務カードを構築
   List<HomeFeatureCard> _buildBusinessFeatures() {
     return [
       HomeFeatureCard(
@@ -140,7 +140,7 @@ class _HomeBodyState extends State<HomeBody> {
         themeSettings: widget.themeSettings,
         title: 'スケジュール',
         icon: Icons.schedule,
-        onTap: () => _switchToBottomNavTab(1),
+        onTap: () => _switchToBottomNavTab(3),
         customColor: Colors.blue.shade600,
       ),
     ];
@@ -160,7 +160,7 @@ class _HomeBodyState extends State<HomeBody> {
         themeSettings: widget.themeSettings,
         title: 'ドリップパックカウンター',
         icon: Icons.add_circle_outline,
-        onTap: () => _switchToBottomNavTab(3),
+        onTap: () => _switchToBottomNavTab(1),
         customColor: Colors.orange.shade600,
       ),
       HomeFeatureCard(

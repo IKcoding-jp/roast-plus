@@ -230,7 +230,7 @@ class _BadgeListPageState extends State<BadgeListPage>
                   CircularProgressIndicator(color: themeSettings.iconColor),
                   SizedBox(height: 16),
                   Text(
-                    'バッジ情報を読み込み中...',
+                    'Loading...',
                     style: TextStyle(
                       color: themeSettings.fontColor2,
                       fontSize: 14,

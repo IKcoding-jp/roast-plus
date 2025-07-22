@@ -1060,9 +1060,11 @@ class TodoListPageState extends State<TodoListPage>
                                           padding: EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             color: item.isDone
-                                                ? Color(
-                                                    0xFF4CAF50,
-                                                  ).withOpacity(0.2)
+                                                ? PerformanceUtils.optimizedProviderOf<
+                                                        ThemeSettings
+                                                      >(context)
+                                                      .iconColor
+                                                      .withOpacity(0.2)
                                                 : Color(
                                                     0xFF795548,
                                                   ).withOpacity(0.2),
@@ -1075,7 +1077,10 @@ class TodoListPageState extends State<TodoListPage>
                                                 ? Icons.check_circle
                                                 : Icons.radio_button_unchecked,
                                             color: item.isDone
-                                                ? Color(0xFF4CAF50)
+                                                ? PerformanceUtils.optimizedProviderOf<
+                                                        ThemeSettings
+                                                      >(context)
+                                                      .iconColor
                                                 : PerformanceUtils.optimizedProviderOf<
                                                         ThemeSettings
                                                       >(context)

@@ -1117,7 +1117,9 @@ class ThemeSettings extends ChangeNotifier {
         settingsColor: settings['theme_settingsColor'] != null
             ? Color(settings['theme_settingsColor'])
             : defaultTheme['settingsColor']!,
-        todoColor: Color(0xFF2E7D32), // タスクらしい深い緑
+        todoColor: settings['theme_iconColor'] != null
+            ? Color(settings['theme_iconColor'])
+            : defaultTheme['iconColor']!, // アイコン色と同じ
         tastingColor: Color(0xFFD84315), // コーヒーらしい深いオレンジ
         customBottomNavigationSelectedColor:
             settings['customBottomNavigationSelectedColor'] != null
@@ -1160,7 +1162,7 @@ class ThemeSettings extends ChangeNotifier {
             defaultTheme['bottomNavigationUnselectedColor'],
         calculatorColor: Color(0xFF1565C0),
         settingsColor: defaultTheme['settingsColor']!,
-        todoColor: Color(0xFF2E7D32),
+        todoColor: defaultTheme['iconColor']!,
         tastingColor: Color(0xFFD84315),
         customBottomNavigationSelectedColor: null,
         customBottomNavigationUnselectedColor: null,

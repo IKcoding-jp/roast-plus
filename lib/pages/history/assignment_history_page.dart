@@ -604,7 +604,9 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                     data['leftLabels'],
                   );
 
-                  if (assignments.isEmpty) return SizedBox.shrink();
+                  if (assignments.isEmpty) {
+                    return SizedBox.shrink(); // 空の履歴は表示しない
+                  }
 
                   return Card(
                     elevation: 4,
@@ -674,6 +676,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                     ),
                   );
                 }
+                // データが取得できない場合（null）も表示しない
                 return SizedBox.shrink();
               },
             ),
@@ -687,11 +690,37 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
           ),
           body: items.isEmpty
               ? Center(
-                  child: Text(
-                    '履歴がまだありません',
-                    style: TextStyle(
-                      color: Provider.of<ThemeSettings>(context).fontColor1,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.history,
+                        size: 64,
+                        color: Provider.of<ThemeSettings>(
+                          context,
+                        ).iconColor.withOpacity(0.5),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        '担当履歴がありません',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Provider.of<ThemeSettings>(context).fontColor1,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '担当表で記録した履歴がここに表示されます',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).fontColor1.withOpacity(0.7),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 )
               : Container(
