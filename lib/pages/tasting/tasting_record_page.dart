@@ -189,7 +189,17 @@ class _TastingRecordPageState extends State<TastingRecordPage>
       appBar: AppBar(
         title: Row(
           children: [
-            Text('試飲感想記録'),
+            Icon(Icons.local_cafe, color: themeSettings.appBarTextColor, size: 24), // コーヒーアイコンを追加
+            SizedBox(width: 8),
+            Text(
+              '試飲感想記録',
+              style: TextStyle(
+                color: themeSettings.appBarTextColor,
+                fontSize: 20 * themeSettings.fontSizeScale,
+                fontWeight: FontWeight.bold,
+                fontFamily: themeSettings.fontFamily,
+              ),
+            ),
             // グループ状態バッジを追加
             Consumer<GroupProvider>(
               builder: (context, groupProvider, _) {
