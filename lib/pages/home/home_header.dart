@@ -37,7 +37,7 @@ class _HomeHeaderState extends State<HomeHeader> {
       return 'もうひと踏ん張り！素敵な焙煎タイムを！';
     } else if (hour >= 17 && hour < 19) {
       return '本日もお疲れ様でした。ゆっくり休憩しましょう。';
-    } else if (hour >= 19 || hour < 0) {
+    } else if (hour >= 19 || hour < 4) { // 午前0時から午前3時59分も含む
       return '一日お疲れ様でした。ゆっくりお休みくださいね。';
     } else {
       return '夜遅くまでお疲れ様です。無理せず休んでくださいね。';
@@ -93,4 +93,4 @@ class _HomeHeaderState extends State<HomeHeader> {
       ),
     );
   }
-}
+} 
