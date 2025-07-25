@@ -992,7 +992,7 @@ class MainScaffoldState extends State<MainScaffold> {
                         label: 'ホーム',
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.schedule, size: iconSize),
+                        icon: Icon(Icons.pending_actions, size: iconSize),
                         label: 'スケジュール',
                       ),
                       BottomNavigationBarItem(
