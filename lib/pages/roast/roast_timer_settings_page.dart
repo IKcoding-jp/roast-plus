@@ -36,10 +36,22 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _loadPreheat();
-    _loadCooling();
-    _loadSwitches();
-    _loadRecommendedOffset();
+    _initializeSettings();
+  }
+
+  Future<void> _initializeSettings() async {
+    setState(() {
+      _loading = true;
+    });
+    await Future.wait([
+      _loadPreheat(),
+      _loadCooling(),
+      _loadSwitches(),
+      _loadRecommendedOffset(),
+    ]);
+    setState(() {
+      _loading = false;
+    });
   }
 
   Future<void> _loadPreheat() async {
@@ -49,14 +61,12 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       setState(() {
         _preheatMinutes = value;
         _preheatController.text = _preheatMinutes.toString();
-        _loading = false;
       });
     } catch (e) {
       print('予熱時間読み込みエラー: $e');
       setState(() {
         _preheatMinutes = 30;
         _preheatController.text = '30';
-        _loading = false;
       });
     }
   }
@@ -137,6 +147,12 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
   }
 
   Future<void> _saveUsePreheat(bool value) async {
+    if (!value && !_useCooling && !_useRoast) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('予熱、焙煎、豆冷ましのタイマーは最低1つはオンにしてください')));
+      return; // 何もしないで終了
+    }
     try {
       await UserSettingsFirestoreService.saveSetting('usePreheat', value);
       _usePreheat = value; // 先に値を更新
@@ -148,6 +164,12 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
   }
 
   Future<void> _saveUseCooling(bool value) async {
+    if (!value && !_usePreheat && !_useRoast) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('予熱、焙煎、豆冷ましのタイマーは最低1つはオンにしてください')));
+      return; // 何もしないで終了
+    }
     try {
       await UserSettingsFirestoreService.saveSetting('useCooling', value);
       _useCooling = value; // 先に値を更新
@@ -159,6 +181,12 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
   }
 
   Future<void> _saveUseRoast(bool value) async {
+    if (!value && !_usePreheat && !_useCooling) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('予熱、焙煎、豆冷ましのタイマーは最低1つはオンにしてください')));
+      return; // 何もしないで終了
+    }
     try {
       await UserSettingsFirestoreService.saveSetting('useRoast', value);
       _useRoast = value; // 先に値を更新
