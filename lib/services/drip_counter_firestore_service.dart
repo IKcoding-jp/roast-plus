@@ -146,20 +146,22 @@ class DripCounterFirestoreService {
         'DripCounterFirestoreService: グループドリップパック統計の再計算を開始 - groupId: $groupId',
       );
 
-      // グループの全ドリップパック記録を取得
-      final groupSnapshot = await _firestore
+      // グループの共有データからドリップパック記録を取得
+      final sharedDataDoc = await _firestore
           .collection('groups')
           .doc(groupId)
-          .collection('dripPackRecords')
+          .collection('sharedData')
+          .doc('drip_counter_records')
           .get();
 
       final allRecords = <Map<String, dynamic>>[];
 
-      for (final doc in groupSnapshot.docs) {
-        final data = doc.data();
-        if (data['records'] != null) {
-          final records = List<Map<String, dynamic>>.from(data['records']);
-          allRecords.addAll(records);
+      if (sharedDataDoc.exists) {
+        final data = sharedDataDoc.data();
+        final records = data?['data']?['records'] as List<dynamic>?;
+
+        if (records != null) {
+          allRecords.addAll(records.cast<Map<String, dynamic>>());
         }
       }
 

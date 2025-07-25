@@ -371,4 +371,39 @@ class GroupInvitationService {
       return null;
     }
   }
+
+  /// グループの招待コードを削除
+  static Future<void> deleteGroupInvitations(String groupId) async {
+    try {
+      print('GroupInvitationService: グループ招待コード削除開始 - groupId: $groupId');
+
+      // グループに関連する招待コードを取得
+      final querySnapshot = await _firestore
+          .collection('group_invitations')
+          .where('groupId', isEqualTo: groupId)
+          .get();
+
+      // 招待コードを削除
+      final batch = _firestore.batch();
+      for (final doc in querySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      if (querySnapshot.docs.isNotEmpty) {
+        await batch.commit();
+        print(
+          'GroupInvitationService: グループ招待コード削除完了 - groupId: $groupId, 削除件数: ${querySnapshot.docs.length}',
+        );
+      } else {
+        print(
+          'GroupInvitationService: グループ招待コードは存在しませんでした - groupId: $groupId',
+        );
+      }
+    } catch (e) {
+      print(
+        'GroupInvitationService: グループ招待コード削除エラー - groupId: $groupId, error: $e',
+      );
+      rethrow;
+    }
+  }
 }

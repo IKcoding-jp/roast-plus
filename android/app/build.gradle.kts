@@ -22,6 +22,17 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    // 警告を抑制
+    lint {
+        disable += "InvalidPackage"
+        checkReleaseBuilds = false
+    }
+
+    // Java 8の警告を抑制
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.add("-Xlint:-options")
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.roastplus"

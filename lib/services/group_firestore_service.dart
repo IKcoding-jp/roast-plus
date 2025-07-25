@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_models.dart';
-import '../models/group_gamification_models.dart';
+import 'group_invitation_service.dart';
 
 import 'dart:math';
 import 'dart:async';
@@ -133,11 +133,6 @@ class GroupFirestoreService {
             .timeout(_timeout);
         print('GroupFirestoreService: ユーザーグループ情報保存完了');
 
-        // グループ作成時にLv.1達成バッジを自動獲得
-        print('GroupFirestoreService: Lv.1達成バッジの自動獲得処理開始');
-        await _awardLevel1BadgeOnGroupCreation(groupId);
-        print('GroupFirestoreService: Lv.1達成バッジの自動獲得処理完了');
-
         print('GroupFirestoreService: グループ作成完了');
         return group;
       } catch (e) {
@@ -147,89 +142,7 @@ class GroupFirestoreService {
     });
   }
 
-  /// グループ作成時にLv.1達成バッジを自動獲得
-  static Future<void> _awardLevel1BadgeOnGroupCreation(String groupId) async {
-    try {
-      if (_uid == null) {
-        print('GroupFirestoreService: 未ログインのためLv.1バッジ獲得をスキップ');
-        return;
-      }
 
-      print('GroupFirestoreService: Lv.1達成バッジ獲得処理開始: groupId=$groupId');
-
-      // Lv.1達成バッジの条件を取得
-      final level1Condition = GroupBadgeConditions.conditions
-          .where((condition) => condition.badgeId == 'group_level_1')
-          .firstOrNull;
-
-      if (level1Condition == null) {
-        print('GroupFirestoreService: Lv.1達成バッジの条件が見つかりません');
-        return;
-      }
-
-      // Lv.1達成バッジを作成
-      final level1Badge = level1Condition.createBadge(
-        _uid!,
-        _displayName ?? 'Unknown User',
-      );
-
-      print('GroupFirestoreService: Lv.1達成バッジを作成: ${level1Badge.name}');
-
-      // ゲーミフィケーションプロファイルにバッジを追加
-      final profileRef = _firestore
-          .collection('groups')
-          .doc(groupId)
-          .collection('gamification')
-          .doc('profile');
-
-      // プロフィールが存在するかチェック
-      final profileDoc = await profileRef.get();
-
-      if (profileDoc.exists) {
-        // 既存のプロフィールにバッジを追加
-        final currentData = profileDoc.data()!;
-        final currentBadges = currentData['badges'] as List<dynamic>? ?? [];
-        final currentBadgeIds = currentBadges
-            .map((b) => b['id'] as String)
-            .toSet();
-
-        // すでにバッジが存在する場合はスキップ
-        if (currentBadgeIds.contains(level1Badge.id)) {
-          print('GroupFirestoreService: Lv.1達成バッジは既に獲得済みです');
-          return;
-        }
-
-        // バッジを追加
-        await profileRef.update({
-          'badges': FieldValue.arrayUnion([level1Badge.toJson()]),
-          'lastUpdated': FieldValue.serverTimestamp(),
-        });
-
-        print('GroupFirestoreService: 既存プロフィールにLv.1達成バッジを追加完了');
-      } else {
-        // 新しいプロフィールを作成してバッジを含める
-        final initialProfile = GroupGamificationProfile.initial(groupId);
-        final profileWithBadge = initialProfile.copyWith(
-          badges: [level1Badge],
-          lastUpdated: DateTime.now(),
-        );
-
-        await profileRef.set({
-          ...profileWithBadge.toJson(),
-          'lastUpdatedBy': _uid,
-          'lastUpdatedByName': _displayName ?? 'Unknown User',
-          'version': 1,
-        });
-
-        print('GroupFirestoreService: 新しいプロフィールにLv.1達成バッジを含めて作成完了');
-      }
-
-      print('GroupFirestoreService: Lv.1達成バッジ獲得処理完了: ${level1Badge.name}');
-    } catch (e) {
-      print('GroupFirestoreService: Lv.1達成バッジ獲得処理エラー: $e');
-      // エラーが発生してもグループ作成は続行
-    }
-  }
 
   /// ユーザーが参加しているグループを取得
   static Future<List<Group>> getUserGroups() async {
@@ -312,17 +225,197 @@ class GroupFirestoreService {
       throw Exception('リーダーのみグループを削除できます');
     }
 
-    // グループを削除
-    await _firestore.collection('groups').doc(groupId).delete();
+    print('GroupFirestoreService: グループ削除開始 - groupId: $groupId');
 
-    // 全メンバーの参加情報を削除
-    for (final member in group.members) {
-      await _firestore
-          .collection('users')
-          .doc(member.uid)
-          .collection('userGroups')
+    try {
+      // グループに保存されたデータを削除
+      await _deleteGroupData(groupId);
+
+      // グループの招待コードを削除
+      await GroupInvitationService.deleteGroupInvitations(groupId);
+
+      // グループの招待データを削除
+      await _deleteGroupInvitations(groupId);
+
+      // グループを削除
+      await _firestore.collection('groups').doc(groupId).delete();
+
+      // 全メンバーの参加情報を削除
+      for (final member in group.members) {
+        await _firestore
+            .collection('users')
+            .doc(member.uid)
+            .collection('userGroups')
+            .doc(groupId)
+            .delete();
+      }
+
+      print('GroupFirestoreService: グループ削除完了 - groupId: $groupId');
+    } catch (e) {
+      print('GroupFirestoreService: グループ削除エラー: $e');
+      rethrow;
+    }
+  }
+
+  /// グループに保存されたデータを削除
+  static Future<void> _deleteGroupData(String groupId) async {
+    print('GroupFirestoreService: グループデータ削除開始 - groupId: $groupId');
+
+    try {
+      // グループの共有データを削除
+      await _deleteGroupSharedData(groupId);
+
+      // グループのサブコレクションを削除
+      await _deleteGroupSubcollections(groupId);
+
+      print('GroupFirestoreService: グループデータ削除完了 - groupId: $groupId');
+    } catch (e) {
+      print('GroupFirestoreService: グループデータ削除エラー: $e');
+      rethrow;
+    }
+  }
+
+  /// グループの共有データを削除
+  static Future<void> _deleteGroupSharedData(String groupId) async {
+    print('GroupFirestoreService: グループ共有データ削除開始 - groupId: $groupId');
+
+    try {
+      // 共有データの種類を定義
+      final dataTypes = [
+        'today_schedule', // 本日のスケジュール
+        'time_labels', // 時間ラベル
+        'drip_counter', // ドリップカウンター
+        'assignment_board', // 担当ボード
+        'schedule', // スケジュール
+        'today_assignment', // 今日の担当
+      ];
+
+      // 各データタイプを削除
+      for (final dataType in dataTypes) {
+        try {
+          await _firestore
+              .collection('groups')
+              .doc(groupId)
+              .collection('shared_data')
+              .doc(dataType)
+              .delete();
+          print('GroupFirestoreService: 共有データ削除完了 - dataType: $dataType');
+        } catch (e) {
+          print(
+            'GroupFirestoreService: 共有データ削除エラー - dataType: $dataType, error: $e',
+          );
+          // 個別のエラーは無視して続行
+        }
+      }
+    } catch (e) {
+      print('GroupFirestoreService: グループ共有データ削除エラー: $e');
+      rethrow;
+    }
+  }
+
+  /// グループのサブコレクションを削除
+  static Future<void> _deleteGroupSubcollections(String groupId) async {
+    print('GroupFirestoreService: グループサブコレクション削除開始 - groupId: $groupId');
+
+    try {
+      // 削除対象のサブコレクション
+      final subcollections = [
+        'roast_records', // 焙煎記録
+        'tasting_records', // 試飲記録
+        'drip_pack_records', // ドリップパック記録
+        'work_progress_records', // 作業進捗記録
+        'attendance_records', // 出勤記録
+        'memo_records', // メモ記録
+        'group_gamification', // ゲーミフィケーション
+        'group_settings', // グループ設定
+        'group_invitations', // グループ招待
+      ];
+
+      // 各サブコレクションを削除
+      for (final subcollection in subcollections) {
+        try {
+          await _deleteSubcollection(groupId, subcollection);
+          print(
+            'GroupFirestoreService: サブコレクション削除完了 - subcollection: $subcollection',
+          );
+        } catch (e) {
+          print(
+            'GroupFirestoreService: サブコレクション削除エラー - subcollection: $subcollection, error: $e',
+          );
+          // 個別のエラーは無視して続行
+        }
+      }
+    } catch (e) {
+      print('GroupFirestoreService: グループサブコレクション削除エラー: $e');
+      rethrow;
+    }
+  }
+
+  /// サブコレクションを削除
+  static Future<void> _deleteSubcollection(
+    String groupId,
+    String subcollectionName,
+  ) async {
+    try {
+      final subcollectionRef = _firestore
+          .collection('groups')
           .doc(groupId)
-          .delete();
+          .collection(subcollectionName);
+
+      // サブコレクション内の全ドキュメントを取得
+      final querySnapshot = await subcollectionRef.get();
+
+      // バッチ処理で全ドキュメントを削除
+      final batch = _firestore.batch();
+      for (final doc in querySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // バッチを実行
+      if (querySnapshot.docs.isNotEmpty) {
+        await batch.commit();
+        print(
+          'GroupFirestoreService: サブコレクション削除完了 - $subcollectionName: ${querySnapshot.docs.length}件',
+        );
+      } else {
+        print('GroupFirestoreService: サブコレクションは空でした - $subcollectionName');
+      }
+    } catch (e) {
+      print('GroupFirestoreService: サブコレクション削除エラー - $subcollectionName: $e');
+      rethrow;
+    }
+  }
+
+  /// グループの招待データを削除
+  static Future<void> _deleteGroupInvitations(String groupId) async {
+    try {
+      print('GroupFirestoreService: グループ招待データ削除開始 - groupId: $groupId');
+
+      // グループに関連する招待を取得
+      final querySnapshot = await _firestore
+          .collection('invitations')
+          .where('groupId', isEqualTo: groupId)
+          .get();
+
+      // 招待を削除
+      final batch = _firestore.batch();
+      for (final doc in querySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      if (querySnapshot.docs.isNotEmpty) {
+        await batch.commit();
+        print(
+          'GroupFirestoreService: グループ招待データ削除完了 - groupId: $groupId, 削除件数: ${querySnapshot.docs.length}',
+        );
+      } else {
+        print('GroupFirestoreService: グループ招待データは存在しませんでした - groupId: $groupId');
+      }
+    } catch (e) {
+      print(
+        'GroupFirestoreService: グループ招待データ削除エラー - groupId: $groupId, error: $e',
+      );
+      rethrow;
     }
   }
 

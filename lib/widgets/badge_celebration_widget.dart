@@ -153,7 +153,7 @@ class _BadgeCelebrationWidgetState extends State<BadgeCelebrationWidget> {
                   ),
                 ],
               ),
-              child: Icon(badge.icon, color: Colors.white, size: 24),
+              child: Icon(Icons.star, color: Colors.white, size: 24),
             ),
             SizedBox(width: 12),
 

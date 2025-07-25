@@ -46,6 +46,7 @@ class _TodayScheduleState extends State<TodaySchedule>
   bool _isSaving = false; // 保存中フラグを追加
   bool _isEditing = false; // 入力中フラグを追加
   bool _isInitializing = true; // 初期化中フラグを追加
+  String? _currentGroupId; // 現在のグループIDを追跡
   // time_labelsの権限は削除 - today_scheduleと一本化
 
   // リスナー関連
@@ -204,6 +205,48 @@ class _TodayScheduleState extends State<TodaySchedule>
     super.didChangeDependencies();
     // GroupProviderの参照を保存
     _groupProvider = context.read<GroupProvider>();
+    // グループ変更をチェック
+    _checkGroupChange();
+  }
+
+  /// グループ変更をチェックして、必要に応じてデータをクリア
+  void _checkGroupChange() {
+    final groupProvider = context.read<GroupProvider>();
+    final currentGroupId = groupProvider.hasGroup
+        ? groupProvider.currentGroup!.id
+        : null;
+
+    // グループが変更された場合、データを再読み込み
+    if (_currentGroupId != null && _currentGroupId != currentGroupId) {
+      debugPrint(
+        'TodaySchedule: グループ変更を検知 - 前のグループ: $_currentGroupId, 新しいグループ: $currentGroupId',
+      );
+
+      // ローカルデータをクリア
+      _clearLocalData();
+
+      // データを再読み込み
+      if (groupProvider.hasGroup) {
+        _loadGroupData();
+      } else {
+        _loadSchedules();
+      }
+    }
+
+    _currentGroupId = currentGroupId;
+  }
+
+  /// ローカルデータをクリア
+  Future<void> _clearLocalData() async {
+    try {
+      await UserSettingsFirestoreService.deleteSetting('todaySchedule_labels');
+      await UserSettingsFirestoreService.deleteSetting(
+        'todaySchedule_contents',
+      );
+      debugPrint('TodaySchedule: ローカルデータをクリアしました');
+    } catch (e) {
+      debugPrint('TodaySchedule: ローカルデータのクリアに失敗: $e');
+    }
   }
 
   @override
@@ -885,6 +928,9 @@ class _TodayScheduleState extends State<TodaySchedule>
         if (!mounted) return; // mountedチェックを追加
         debugPrint('TodaySchedule: GroupProviderの変更を検知');
         debugPrint('TodaySchedule: グループ数: ${groupProvider.groups.length}');
+
+        // グループ変更をチェック
+        _checkGroupChange();
 
         // グループが追加された場合、監視を開始
         _startGroupDataWatching(groupProvider);

@@ -605,7 +605,7 @@ class _GroupListPageState extends State<GroupListPage> {
                         color: badge.color,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(badge.icon, color: Colors.white, size: 10),
+                      child: Icon(Icons.star, color: Colors.white, size: 10),
                     ),
                   ),
 

@@ -162,6 +162,9 @@ class GroupProvider extends ChangeNotifier {
     try {
       debugPrint('GroupProvider: グループ作成開始');
 
+      // グループ削除フラグをリセット
+      _showGroupDeletedPage = false;
+
       final newGroup = await GroupFirestoreService.createGroup(
         name: name,
         description: description,
@@ -185,9 +188,6 @@ class GroupProvider extends ChangeNotifier {
       // グループ作成成功後の処理を非同期で実行（軽量化）
       _postGroupCreationSuccess(newGroup.id);
 
-      // Lv.1達成バッジの獲得演出を表示
-      await _showLevel1BadgeCelebration(newGroup.id);
-
       return true;
     } catch (e) {
       debugPrint('GroupProvider: グループ作成エラー: $e');
@@ -199,38 +199,6 @@ class GroupProvider extends ChangeNotifier {
       return false;
     } finally {
       _setLoading(false);
-    }
-  }
-
-  /// Lv.1達成バッジの獲得演出を表示
-  Future<void> _showLevel1BadgeCelebration(String groupId) async {
-    try {
-      debugPrint('GroupProvider: Lv.1達成バッジ獲得演出の表示開始');
-
-      // 少し待ってから演出を表示（グループ作成処理の完了を待つ）
-      await Future.delayed(Duration(milliseconds: 1000));
-
-      // Lv.1達成バッジの条件を取得
-      final level1Condition = GroupBadgeConditions.conditions
-          .where((condition) => condition.badgeId == 'group_level_1')
-          .firstOrNull;
-
-      if (level1Condition != null) {
-        // バッジを作成
-        final level1Badge = level1Condition.createBadge(
-          FirebaseAuth.instance.currentUser?.uid ?? '',
-          FirebaseAuth.instance.currentUser?.displayName ?? 'Unknown User',
-        );
-
-        debugPrint('GroupProvider: Lv.1達成バッジ獲得演出の表示完了');
-        debugPrint('GroupProvider: バッジ名: ${level1Badge.name}');
-        debugPrint('GroupProvider: バッジID: ${level1Badge.id}');
-      } else {
-        debugPrint('GroupProvider: Lv.1達成バッジの条件が見つかりません');
-      }
-    } catch (e) {
-      debugPrint('GroupProvider: Lv.1達成バッジ獲得演出の表示エラー: $e');
-      // エラーが発生してもグループ作成は成功とする
     }
   }
 
@@ -281,6 +249,10 @@ class GroupProvider extends ChangeNotifier {
       // 現在のグループが削除された場合、nullに設定
       if (_currentGroup?.id == groupId) {
         _currentGroup = null;
+
+        // グループ削除ページ表示フラグを設定
+        _showGroupDeletedPage = true;
+        debugPrint('GroupProvider: グループ削除フラグを設定しました');
       }
 
       // ローカルデータをクリア
@@ -305,6 +277,12 @@ class GroupProvider extends ChangeNotifier {
     try {
       // ドリップパック記録をクリア
       await UserSettingsFirestoreService.deleteSetting('dripPackRecords');
+
+      // 本日のスケジュールをクリア
+      await UserSettingsFirestoreService.deleteSetting('todaySchedule_labels');
+      await UserSettingsFirestoreService.deleteSetting(
+        'todaySchedule_contents',
+      );
 
       // その他のローカルデータも必要に応じてクリア
       // 例: 焙煎記録、試飲記録など
@@ -353,6 +331,9 @@ class GroupProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      // グループ削除フラグをリセット
+      _showGroupDeletedPage = false;
+
       await GroupFirestoreService.acceptInvitation(invitationId);
 
       // 招待リストから削除
@@ -543,6 +524,10 @@ class GroupProvider extends ChangeNotifier {
 
   /// 現在のグループを設定
   void setCurrentGroup(Group? group) {
+    // グループが変更された場合、ローカルデータをクリア
+    if (_currentGroup?.id != group?.id) {
+      _clearLocalData();
+    }
     _currentGroup = group;
     _safeNotifyListeners();
   }
@@ -718,6 +703,10 @@ class GroupProvider extends ChangeNotifier {
     // 現在のグループが削除された場合、nullに設定
     if (_currentGroup?.id == groupId) {
       _currentGroup = null;
+
+      // グループ削除ページに遷移するためのフラグを設定
+      _showGroupDeletedPage = true;
+      debugPrint('GroupProvider: グループ削除フラグを設定しました（_handleGroupDeleted）');
     }
 
     // 監視を停止
@@ -727,10 +716,6 @@ class GroupProvider extends ChangeNotifier {
     _clearLocalData();
 
     // 通知
-    notifyListeners();
-
-    // グループ削除ページに遷移するためのフラグを設定
-    _showGroupDeletedPage = true;
     notifyListeners();
   }
 
@@ -834,20 +819,16 @@ class GroupProvider extends ChangeNotifier {
   /// 安全にnotifyListenersを呼び出す
   void _safeNotifyListeners() {
     try {
-      notifyListeners();
+      // ビルド中でないことを確認してからnotifyListenersを呼び出す
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          notifyListeners();
+        } catch (e) {
+          debugPrint('GroupProvider: notifyListenersエラー: $e');
+        }
+      });
     } catch (e) {
-      // ウィジェットツリーがロックされている場合は無視
-      if (e.toString().contains('widget tree was locked') ||
-          e.toString().contains(
-            'markNeedsBuild() called when widget tree was locked',
-          )) {
-        debugPrint(
-          'GroupProvider: ウィジェットツリーがロックされているため、notifyListenersをスキップしました',
-        );
-        return;
-      }
-      // その他のエラーの場合は再スロー
-      rethrow;
+      debugPrint('GroupProvider: _safeNotifyListenersエラー: $e');
     }
   }
 

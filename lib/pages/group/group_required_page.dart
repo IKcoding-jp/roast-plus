@@ -193,10 +193,12 @@ class GroupRequiredPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _buildCompactFeatureItem('焙煎記録の共有', themeSettings),
-                    _buildCompactFeatureItem('スケジュールの同期', themeSettings),
-                    _buildCompactFeatureItem('メンバー間の協力', themeSettings),
-                    _buildCompactFeatureItem('ゲーミフィケーション', themeSettings),
+                    _buildCompactFeatureItem('焙煎記録の共有・比較', themeSettings),
+                    _buildCompactFeatureItem('試飲感想の交換', themeSettings),
+                    _buildCompactFeatureItem('ドリップカウンター', themeSettings),
+                    _buildCompactFeatureItem('スケジュール管理', themeSettings),
+                    _buildCompactFeatureItem('バッジシステム', themeSettings),
+                    _buildCompactFeatureItem('データ共有・同期', themeSettings),
                   ],
                 ),
               ),
@@ -220,7 +222,7 @@ class GroupRequiredPage extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'グループに参加すると、ローストプラスの全機能を利用できます',
+                        'グループ機能では、仲間とデータを共有して業務をより効率的にできます',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.blue.shade700,

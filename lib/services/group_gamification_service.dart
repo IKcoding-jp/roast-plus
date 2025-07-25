@@ -1,9 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import '../models/group_gamification_models.dart';
 import 'roast_record_firestore_service.dart';
-import 'drip_counter_firestore_service.dart';
-import 'auto_sync_service.dart';
 
 /// グループ中心のゲーミフィケーション管理サービス
 class GroupGamificationService {
@@ -236,8 +235,8 @@ class GroupGamificationService {
     }
 
     try {
-      // ドリップパック記録をグループに保存
-      await _saveDripPackRecord(groupId, count);
+      // ドリップパック記録の保存はGroupDataSyncServiceで行われるため、
+      // ここでは経験値とバッジの処理のみを行う
 
       final reward = GroupActivityReward.dripPack(count);
       return await _addExperienceAndUpdateProfile(groupId, reward);
@@ -251,36 +250,6 @@ class GroupGamificationService {
         experienceGained: 0,
         newLevel: 0,
       );
-    }
-  }
-
-  /// ドリップパック記録をグループに保存
-  static Future<void> _saveDripPackRecord(String groupId, int count) async {
-    try {
-      final now = DateTime.now();
-      final recordId = '${now.millisecondsSinceEpoch}_$_uid';
-
-      print(
-        'ドリップパック記録保存開始: groupId=$groupId, count=$count, recordId=$recordId',
-      );
-
-      await _firestore
-          .collection('groups')
-          .doc(groupId)
-          .collection('drip_pack_records')
-          .doc(recordId)
-          .set({
-            'count': count,
-            'timestamp': now.toIso8601String(),
-            'userId': _uid,
-            'userName': _userDisplayName,
-            'recordId': recordId,
-          });
-
-      print('ドリップパック記録をグループに保存完了: $count個');
-    } catch (e) {
-      print('ドリップパック記録保存エラー: $e');
-      rethrow;
     }
   }
 
@@ -431,7 +400,7 @@ class GroupGamificationService {
         success: true,
         message: reward.description,
         levelUp: levelUp,
-        newBadges: allNewBadges,
+        newBadges: uniqueNewBadges, // 重複除去後の新規バッジのみを返す
         experienceGained: reward.experiencePoints,
         newLevel: newLevel,
       );
@@ -475,7 +444,7 @@ class GroupGamificationService {
       // 全員出勤日をチェック
       final allMemberAttendanceDays = await _checkAllMemberAttendance(groupId);
 
-      // 統計情報を更新（既存の統計が0の場合は新しい値を、そうでなければ既存の値を保持）
+      // 統計情報を更新（ドリップパック数は常に最新の値を反映）
       final updatedStats = currentStats.copyWith(
         totalAttendanceDays: currentStats.totalAttendanceDays > 0
             ? currentStats.totalAttendanceDays
@@ -486,9 +455,7 @@ class GroupGamificationService {
         totalRoastDays: currentStats.totalRoastDays > 0
             ? currentStats.totalRoastDays
             : (roastingStats['totalDays'] ?? 0),
-        totalDripPackCount: currentStats.totalDripPackCount > 0
-            ? currentStats.totalDripPackCount
-            : (dripPackStats['totalCount'] ?? 0),
+        totalDripPackCount: dripPackStats['totalCount'] ?? 0, // 常に最新の値を反映
         totalTastingRecords: currentStats.totalTastingRecords > 0
             ? currentStats.totalTastingRecords
             : (tastingStats['totalRecords'] ?? 0),
@@ -584,36 +551,52 @@ class GroupGamificationService {
     try {
       print('ドリップパック統計計算開始: groupId=$groupId');
 
-      final dripPackSnapshot = await _firestore
+      // グループの共有データからドリップパック記録を取得
+      final sharedDataDoc = await _firestore
           .collection('groups')
           .doc(groupId)
-          .collection('drip_pack_records')
+          .collection('sharedData')
+          .doc('drip_counter_records')
           .get();
-
-      print('ドリップパック記録数: ${dripPackSnapshot.docs.length}');
 
       int totalCount = 0;
       final Set<String> uniqueDays = {};
 
-      for (final doc in dripPackSnapshot.docs) {
-        final data = doc.data();
-        final count = data['count'] ?? 0;
-        final timestamp = DateTime.parse(
-          data['timestamp'] ?? DateTime.now().toIso8601String(),
-        );
-        final dateKey =
-            '${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')}';
+      if (sharedDataDoc.exists) {
+        final data = sharedDataDoc.data();
+        final records = data?['data']?['records'] as List<dynamic>?;
 
-        final intCount = (count is int)
-            ? count
-            : (count is num)
-            ? count.toInt()
-            : 0;
+        if (records != null) {
+          print('ドリップパック記録数: ${records.length}');
 
-        totalCount += intCount;
-        uniqueDays.add(dateKey);
+          for (final record in records) {
+            final count = record['count'] ?? 0;
+            final timestampStr = record['timestamp'] ?? '';
 
-        print('ドリップパック記録: count=$count, intCount=$intCount, dateKey=$dateKey');
+            DateTime? timestamp;
+            try {
+              timestamp = DateTime.parse(timestampStr);
+            } catch (_) {
+              timestamp = DateTime.now();
+            }
+
+            final dateKey =
+                '${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')}';
+
+            final intCount = (count is int)
+                ? count
+                : (count is num)
+                ? count.toInt()
+                : 0;
+
+            totalCount += intCount;
+            uniqueDays.add(dateKey);
+
+            print(
+              'ドリップパック記録: count=$count, intCount=$intCount, dateKey=$dateKey',
+            );
+          }
+        }
       }
 
       print('ドリップパック統計計算完了: 総数=$totalCount, 記録日数=${uniqueDays.length}');
@@ -701,6 +684,12 @@ class GroupGamificationService {
     print('  プロフィールレベル: ${currentProfile.level}');
     print('  プロフィールバッジ数: ${currentProfile.badges.length}');
     print('  プロフィールバッジID: ${currentProfile.badges.map((b) => b.id).toList()}');
+    print('  統計情報詳細:');
+    print('    - ドリップパック総数: ${stats.totalDripPackCount}');
+    print('    - 出勤日数: ${stats.totalAttendanceDays}');
+    print('    - 焙煎時間: ${stats.totalRoastTimeMinutes}分');
+    print('    - 焙煎日数: ${stats.totalRoastDays}');
+    print('    - テイスティング記録数: ${stats.totalTastingRecords}');
 
     // プロフィールのバッジを使用
     final Set<String> profileBadgeIds = currentProfile.badges
@@ -732,9 +721,6 @@ class GroupGamificationService {
         print('🎉 新しいレベルバッジを獲得: ${newBadge.name} (${newBadge.id})');
         print('  カテゴリ: ${condition.category}');
         print('  現在レベル: $currentLevel');
-
-        // バッジ獲得を即座にプロフィールに反映
-        await _addBadgeToProfile(groupId, newBadge);
       } else if (isEarned) {
         print('⏭️ レベルバッジスキップ（既に獲得済み）: ${condition.badgeId}');
       }
@@ -764,9 +750,6 @@ class GroupGamificationService {
 
         print('🏆 新しいバッジを獲得: ${newBadge.name} (${newBadge.id})');
         print('  カテゴリ: ${condition.category}');
-
-        // バッジ獲得を即座にプロフィールに反映
-        await _addBadgeToProfile(groupId, newBadge);
       } else if (isEarned) {
         print('⏭️ バッジスキップ（既に獲得済み）: ${condition.badgeId}');
       }
@@ -812,54 +795,6 @@ class GroupGamificationService {
 
     print('レベルアップ時のレベルバッジチェック完了: 新規獲得数=${levelUpBadges.length}');
     return levelUpBadges;
-  }
-
-  /// バッジをプロフィールに即座に追加
-  static Future<void> _addBadgeToProfile(
-    String groupId,
-    GroupBadge badge,
-  ) async {
-    try {
-      final profileRef = _firestore
-          .collection('groups')
-          .doc(groupId)
-          .collection('gamification')
-          .doc('profile');
-
-      // 現在のプロフィールを取得して重複チェック
-      final currentDoc = await profileRef.get();
-      if (currentDoc.exists) {
-        final currentData = currentDoc.data()!;
-        final currentBadges = currentData['badges'] as List<dynamic>? ?? [];
-        final currentBadgeIds = currentBadges
-            .map((b) => b['id'] as String)
-            .toSet();
-
-        // すでにバッジが存在する場合はスキップ
-        if (currentBadgeIds.contains(badge.id)) {
-          print('⚠️ バッジ重複検知、スキップ: ${badge.id} (${badge.name})');
-          return;
-        }
-      }
-
-      // バッジを追加
-      await profileRef.update({
-        'badges': FieldValue.arrayUnion([badge.toJson()]),
-        'lastUpdated': FieldValue.serverTimestamp(),
-      });
-
-      print('✅ バッジをプロフィールに即座に追加: ${badge.name}');
-      print('   バッジID: ${badge.id}');
-      print('   カテゴリ: ${badge.category}');
-      print('   獲得者: ${badge.earnedByUserName}');
-
-      // 自動同期を実行
-      await AutoSyncService.triggerAutoSyncForDataType('gamification');
-    } catch (e) {
-      print('❌ バッジプロフィール追加エラー: $e');
-      print('   バッジID: ${badge.id}');
-      print('   バッジ名: ${badge.name}');
-    }
   }
 
   /// レベルを計算
@@ -1333,15 +1268,12 @@ class GroupGamificationService {
     try {
       print('ドリップパック記録の再計算開始: groupId=$groupId');
 
-      // 既存のドリップパック記録を取得
-      final dripPackStats =
-          await DripCounterFirestoreService.recalculateGroupDripPackStats(
-            groupId,
-          );
-      final totalCount = dripPackStats['totalDripPackCount'] ?? 0;
-      final totalRecords = dripPackStats['totalRecords'] ?? 0;
+      // グループの共有データからドリップパック記録を取得
+      final dripPackStats = await _calculateDripPackStats(groupId);
+      final totalCount = dripPackStats['totalCount'] ?? 0;
+      final totalDays = dripPackStats['totalDays'] ?? 0;
 
-      print('取得したドリップパック記録数: $totalRecords');
+      print('取得したドリップパック記録日数: $totalDays');
       print('再計算結果: 累積数=$totalCount個');
 
       // 現在のプロフィールを取得
@@ -1353,12 +1285,24 @@ class GroupGamificationService {
       );
 
       // 新しいバッジをチェック
-      final newBadges = await _checkNewBadges(groupId, updatedStats);
+      final allNewBadges = await _checkNewBadges(groupId, updatedStats);
+
+      // 既存のバッジIDを取得して重複を除去
+      final existingBadgeIds = currentProfile.badges.map((b) => b.id).toSet();
+      final uniqueNewBadges = allNewBadges
+          .where((badge) => !existingBadgeIds.contains(badge.id))
+          .toList();
+
+      if (uniqueNewBadges.length != allNewBadges.length) {
+        print(
+          '⚠️ 再計算時にバッジ重複を検知し、${allNewBadges.length - uniqueNewBadges.length}個のバッジを除外しました',
+        );
+      }
 
       // プロフィールを更新
       final updatedProfile = currentProfile.copyWith(
         stats: updatedStats,
-        badges: [...currentProfile.badges, ...newBadges],
+        badges: [...currentProfile.badges, ...uniqueNewBadges],
         lastUpdated: DateTime.now(),
       );
 
@@ -1366,9 +1310,9 @@ class GroupGamificationService {
       await _saveGroupProfile(groupId, updatedProfile);
 
       print('ドリップパック記録の再計算完了');
-      print('新しいバッジ獲得数: ${newBadges.length}');
-      if (newBadges.isNotEmpty) {
-        for (final badge in newBadges) {
+      print('新しいバッジ獲得数: ${uniqueNewBadges.length}');
+      if (uniqueNewBadges.isNotEmpty) {
+        for (final badge in uniqueNewBadges) {
           print('  - ${badge.name}: ${badge.description}');
         }
       }

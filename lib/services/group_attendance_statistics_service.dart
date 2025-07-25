@@ -109,13 +109,24 @@ class GroupAttendanceStatisticsService {
     String groupId,
   ) async {
     try {
-      final querySnapshot = await _firestore
+      // グループの共有データからドリップパック記録を取得
+      final sharedDataDoc = await _firestore
           .collection('groups')
           .doc(groupId)
-          .collection('drip_pack_records')
+          .collection('sharedData')
+          .doc('drip_counter_records')
           .get();
 
-      return querySnapshot.docs.map((doc) => doc.data()).toList();
+      if (sharedDataDoc.exists) {
+        final data = sharedDataDoc.data();
+        final records = data?['data']?['records'] as List<dynamic>?;
+
+        if (records != null) {
+          return records.cast<Map<String, dynamic>>();
+        }
+      }
+
+      return [];
     } catch (e) {
       print('グループドリップパック記録取得エラー: $e');
       return [];

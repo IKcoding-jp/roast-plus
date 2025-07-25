@@ -108,10 +108,15 @@ class GroupDataSyncService {
       throw Exception('ドリップカウンター記録の同期権限がありません');
     }
 
+    // sharedData への同期のみ（古いdrip_pack_recordsコレクションは使用しない）
     await GroupFirestoreService.syncGroupData(
       groupId: groupId,
       dataType: 'drip_counter_records',
       data: dripData,
+    );
+
+    print(
+      'GroupDataSyncService: ドリップカウンター記録を同期しました - groupId: $groupId, 記録数: ${dripData['records']?.length ?? 0}',
     );
   }
 
@@ -133,6 +138,44 @@ class GroupDataSyncService {
       groupId: groupId,
       dataType: 'drip_counter_records',
     );
+  }
+
+  /// グループのドリップパック記録の合計数を取得
+  static Future<int> getGroupDripPackTotalCount(String groupId) async {
+    try {
+      // グループの共有データからドリップパック記録を取得
+      final sharedDataDoc = await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('sharedData')
+          .doc('drip_counter_records')
+          .get();
+
+      int totalCount = 0;
+
+      if (sharedDataDoc.exists) {
+        final data = sharedDataDoc.data();
+        final records = data?['data']?['records'] as List<dynamic>?;
+
+        if (records != null) {
+          for (final record in records) {
+            final count = record['count'] ?? 0;
+            final intCount = (count is int)
+                ? count
+                : (count is num)
+                ? count.toInt()
+                : 0;
+            totalCount += intCount;
+          }
+        }
+      }
+
+      print('GroupDataSyncService: ドリップパック合計数取得完了: $totalCount個');
+      return totalCount;
+    } catch (e) {
+      print('GroupDataSyncService: ドリップパック合計数取得エラー: $e');
+      return 0;
+    }
   }
 
   /// グループの担当表を同期
@@ -713,17 +756,7 @@ class GroupDataSyncService {
       await syncTodoList(groupId, todoDoc.data()!);
     }
 
-    // ドリップカウンター記録を同期
-    final dripRecords = await _firestore
-        .collection('users')
-        .doc(_uid)
-        .collection('dripPackRecords')
-        .doc(todoDocId)
-        .get();
-
-    if (dripRecords.exists) {
-      await syncDripCounterRecords(groupId, dripRecords.data()!);
-    }
+    // ドリップカウンター記録の同期は削除（新しいグループではsharedData/drip_counter_recordsのみを使用）
 
     // 担当表を同期
     final assignmentDoc = await _firestore
@@ -1043,18 +1076,7 @@ class GroupDataSyncService {
             .set(groupData['todo_list'], SetOptions(merge: true));
       }
 
-      // ドリップカウンター記録を適用
-      if (groupData['drip_counter_records'] != null) {
-        final today = DateTime.now();
-        final dripDocId =
-            '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-        await _firestore
-            .collection('users')
-            .doc(_uid)
-            .collection('dripPackRecords')
-            .doc(dripDocId)
-            .set(groupData['drip_counter_records'], SetOptions(merge: true));
-      }
+      // ドリップカウンター記録の適用は削除（新しいグループではsharedData/drip_counter_recordsのみを使用）
 
       // 担当表を適用
       if (groupData['assignment_board'] != null) {

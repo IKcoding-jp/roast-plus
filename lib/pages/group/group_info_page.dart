@@ -9,6 +9,7 @@ import '../../models/group_gamification_models.dart';
 
 import '../../services/group_statistics_service.dart';
 import '../../services/group_firestore_service.dart';
+import '../../services/group_data_sync_service.dart';
 
 import 'group_qr_generate_page.dart';
 
@@ -31,6 +32,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
   bool _isSaving = false;
   String? _currentGroupId;
   GroupProvider? _groupProvider;
+  int _dripPackTotalCount = 0; // ドリップパック記録の合計数
 
   // 編集用フォームコントローラー
   final _formKey = GlobalKey<FormState>();
@@ -216,9 +218,14 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       final statisticsService = GroupStatisticsService();
       _groupStats = await statisticsService.getGroupStatistics(group.id);
 
+      // ドリップパック記録の合計数を取得
+      _dripPackTotalCount =
+          await GroupDataSyncService.getGroupDripPackTotalCount(group.id);
+
       // 統計データの取得を確認
       print('GroupInfoPage: グループ統計データ取得完了');
       print('GroupInfoPage: 統計データ: $_groupStats');
+      print('GroupInfoPage: ドリップパック合計数: $_dripPackTotalCount');
 
       // ウィジェットが破棄されている場合は処理を中断
       if (!mounted) return;
@@ -915,7 +922,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                     themeSettings,
                                     Icons.local_cafe,
                                     'パック',
-                                    '${stats?.totalDripPackCount ?? 0}個',
+                                    '$_dripPackTotalCount個',
                                   ),
                                   _buildStatItem(
                                     themeSettings,
@@ -1185,7 +1192,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                           name: condition.name,
                                           description: condition.description,
                                           iconCodePoint:
-                                              condition.icon.codePoint,
+                                              condition.iconCodePoint,
                                           color: condition.color,
                                           earnedAt: DateTime.now(),
                                           earnedByUserId: '',
@@ -1228,7 +1235,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                             ),
                                           ),
                                           child: Icon(
-                                            condition.icon,
+                                            Icons.star, // デフォルトアイコンを使用
                                             color: isEarned
                                                 ? condition.color
                                                 : themeSettings.fontColor1

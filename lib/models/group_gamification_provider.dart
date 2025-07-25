@@ -88,8 +88,8 @@ class GroupGamificationProvider extends ChangeNotifier {
       );
 
       if (result.success) {
-        // 即座にUIを更新
-        notifyListeners();
+        // 安全にUIを更新
+        _safeNotifyListeners();
 
         // プロフィールを更新
         await _refreshProfile();
@@ -135,8 +135,8 @@ class GroupGamificationProvider extends ChangeNotifier {
       );
 
       if (result.success) {
-        // 即座にUIを更新
-        notifyListeners();
+        // 安全にUIを更新
+        _safeNotifyListeners();
 
         await _refreshProfile();
         await _showActivityResult(result);
@@ -179,8 +179,8 @@ class GroupGamificationProvider extends ChangeNotifier {
       );
 
       if (result.success) {
-        // 即座にUIを更新
-        notifyListeners();
+        // 安全にUIを更新
+        _safeNotifyListeners();
 
         await _refreshProfile();
         await _showActivityResult(result);
@@ -222,8 +222,8 @@ class GroupGamificationProvider extends ChangeNotifier {
       );
 
       if (result.success) {
-        // 即座にUIを更新
-        notifyListeners();
+        // 安全にUIを更新
+        _safeNotifyListeners();
 
         await _refreshProfile();
         await _showActivityResult(result);
@@ -265,8 +265,8 @@ class GroupGamificationProvider extends ChangeNotifier {
       );
 
       if (result.success) {
-        // 即座にUIを更新
-        notifyListeners();
+        // 安全にUIを更新
+        _safeNotifyListeners();
 
         await _refreshProfile();
         await _showActivityResult(result);
@@ -296,13 +296,13 @@ class GroupGamificationProvider extends ChangeNotifier {
       _profile = await GroupGamificationService.getGroupProfile(
         _currentGroupId!,
       );
-      // 即座にUIを更新
-      notifyListeners();
+      // 安全にUIを更新
+      _safeNotifyListeners();
 
       // 少し遅延して再度更新（非同期処理の完了を確実にするため）
       Future.delayed(Duration(milliseconds: 100), () {
         if (hasGroup) {
-          notifyListeners();
+          _safeNotifyListeners();
         }
       });
     } catch (e) {
@@ -310,10 +310,26 @@ class GroupGamificationProvider extends ChangeNotifier {
     }
   }
 
+  /// 安全にnotifyListenersを呼び出す
+  void _safeNotifyListeners() {
+    try {
+      // ビルド中でないことを確認してからnotifyListenersを呼び出す
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          notifyListeners();
+        } catch (e) {
+          print('GroupGamificationProvider: notifyListenersエラー: $e');
+        }
+      });
+    } catch (e) {
+      print('GroupGamificationProvider: _safeNotifyListenersエラー: $e');
+    }
+  }
+
   /// アクティビティ結果のUI効果を表示
   Future<void> _showActivityResult(GroupActivityResult result) async {
-    // 即座にUIを更新
-    notifyListeners();
+    // 安全にUIを更新
+    _safeNotifyListeners();
 
     // レベルアップアニメーション
     if (result.levelUp) {
@@ -339,7 +355,7 @@ class GroupGamificationProvider extends ChangeNotifier {
     // 最終的なUI更新
     Future.delayed(Duration(milliseconds: 200), () {
       if (hasGroup) {
-        notifyListeners();
+        _safeNotifyListeners();
       }
     });
   }

@@ -95,6 +95,13 @@ class _BadgeListPageState extends State<BadgeListPage>
       if (_currentGroupId != groupId) {
         _currentGroupId = groupId;
 
+        // --- 修正ここから ---
+        // グループが切り替わったらキャッシュを必ずリセット
+        setState(() {
+          _cachedProfile = null;
+        });
+        // --- 修正ここまで ---
+
         // プロフィールの監視を開始
         groupProvider.watchGroupGamificationProfile(groupId);
 
@@ -833,7 +840,9 @@ class _BadgeCardState extends State<BadgeCard>
                       RotationTransition(
                         turns: _rotationAnimation,
                         child: Icon(
-                          widget.isEarned ? widget.condition.icon : Icons.lock,
+                          widget.isEarned
+                              ? Icons.star // デフォルトアイコンを使用
+                              : Icons.lock,
                           color: Colors.white,
                           size: 40,
                         ),
@@ -953,7 +962,9 @@ class _BadgeCardState extends State<BadgeCard>
                 ),
               ),
               child: Icon(
-                widget.isEarned ? widget.condition.icon : Icons.lock,
+                widget.isEarned
+                    ? Icons.star // デフォルトアイコンを使用
+                    : Icons.lock,
                 color: Colors.white,
                 size: 24,
               ),

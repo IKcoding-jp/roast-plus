@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_gamification_provider.dart';
-import '../../models/group_gamification_models.dart';
-import '../../widgets/group_celebration_helper.dart';
 import '../group/group_deleted_page.dart';
 import '../../widgets/lottie_animation_widget.dart';
 import 'home_body.dart';
@@ -64,7 +62,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context, groupProvider, gamificationProvider, child) {
         // グループ削除フラグをチェック
         if (groupProvider.showGroupDeletedPage) {
-          // フラグをリセット
+          // フラグをリセットしてからページ遷移
           WidgetsBinding.instance.addPostFrameCallback((_) {
             groupProvider.resetGroupDeletedPageFlag();
             Navigator.pushReplacement(
@@ -72,6 +70,16 @@ class _HomePageState extends State<HomePage> {
               MaterialPageRoute(builder: (context) => const GroupDeletedPage()),
             );
           });
+          // 一時的にローディング状態を表示
+          return Scaffold(
+            backgroundColor: themeSettings.backgroundColor,
+            appBar: AppBar(
+              title: Text('ホーム'),
+              backgroundColor: themeSettings.appBarColor,
+              foregroundColor: themeSettings.appBarTextColor,
+            ),
+            body: const LoadingAnimationWidget(),
+          );
         }
 
         // データ読み込み中の場合
@@ -155,49 +163,10 @@ class _HomePageState extends State<HomePage> {
         groupProvider.newlyCreatedGroupId != null) {
       print('HomePage: グループ作成後のバッジ獲得演出を開始');
 
-      // 少し待ってから演出を表示
-      Future.delayed(Duration(milliseconds: 1000), () async {
-        if (mounted) {
-          await _showGroupCreationBadgeCelebration(
-            groupProvider.newlyCreatedGroupId!,
-          );
-          // フラグをリセット
-          groupProvider.resetGroupCreationCelebration();
-        }
-      });
+      // フラグをリセット
+      groupProvider.resetGroupCreationCelebration();
     }
   }
 
   /// グループ作成後のバッジ獲得演出を表示
-  Future<void> _showGroupCreationBadgeCelebration(String groupId) async {
-    try {
-      print('HomePage: グループ作成後のバッジ獲得演出の表示開始');
-
-      // Lv.1達成バッジの条件を取得
-      final level1Condition = GroupBadgeConditions.conditions
-          .where((condition) => condition.badgeId == 'group_level_1')
-          .firstOrNull;
-
-      if (level1Condition != null && mounted) {
-        // バッジを作成
-        final level1Badge = level1Condition.createBadge(
-          'group_creator',
-          'グループ作成者',
-        );
-
-        // バッジ獲得演出を表示
-        await GroupCelebrationHelper.showUnifiedBadgeCelebration(context, [
-          level1Badge,
-        ]);
-
-        print('HomePage: グループ作成後のバッジ獲得演出の表示完了');
-        print('HomePage: バッジ名: ${level1Badge.name}');
-        print('HomePage: バッジID: ${level1Badge.id}');
-      } else {
-        print('HomePage: Lv.1達成バッジの条件が見つからないか、コンテキストが無効です');
-      }
-    } catch (e) {
-      print('HomePage: グループ作成後のバッジ獲得演出の表示エラー: $e');
-    }
-  }
 }

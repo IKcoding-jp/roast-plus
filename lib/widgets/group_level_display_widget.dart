@@ -274,7 +274,7 @@ class GroupLevelBadgeWidget extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(badge.icon, color: badge.color, size: 16),
+            Icon(Icons.star, color: badge.color, size: 16),
             const SizedBox(width: 6),
             Text(
               badge.name,

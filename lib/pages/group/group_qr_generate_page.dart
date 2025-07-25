@@ -431,7 +431,6 @@ class _GroupQRGeneratePageState extends State<GroupQRGeneratePage> {
                       SizedBox(height: 12),
                       Text(
                         '• QRコードを読み取ることでグループに参加できます\n'
-                        '• 招待コードと同じ機能です\n'
                         '• 24時間で自動的に無効になります\n'
                         '• 再生成ボタンで新しいQRコードを作成できます\n'
                         '• 他のメンバーにQRコードを見せて参加してもらいましょう',

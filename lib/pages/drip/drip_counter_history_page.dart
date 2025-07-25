@@ -14,29 +14,67 @@ class DripCounterHistoryPage extends StatefulWidget {
 class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
   List<Map<String, dynamic>> _records = [];
 
+  String? _currentGroupId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkGroupChange();
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
+      groupProvider.addListener(_checkGroupChange);
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkGroupChange();
+  }
+
+  /// グループ変更をチェックして、必要に応じてデータをクリア
+  void _checkGroupChange() {
+    final groupProvider = context.read<GroupProvider>();
+    final currentGroupId = groupProvider.hasGroup
+        ? groupProvider.currentGroup!.id
+        : null;
+
+    // グループが変更された場合、データを再読み込み
+    if (_currentGroupId != null && _currentGroupId != currentGroupId) {
+      debugPrint(
+        'DripCounterHistoryPage: グループ変更を検知 - 前のグループ: $_currentGroupId, 新しいグループ: $currentGroupId',
+      );
+
+      setState(() {
+        _records = [];
+      });
+
+      // グループ移行時にローカルデータもクリア
+      _clearLocalData();
+
+      if (groupProvider.hasGroup) {
         _loadGroupRecords();
       } else {
         _loadRecords();
       }
-      groupProvider.addListener(() {
-        if (groupProvider.groups.isNotEmpty) {
-          _loadGroupRecords();
-        } else {
-          _loadRecords();
-        }
-      });
-    });
+    } else if (_currentGroupId == null && currentGroupId != null) {
+      // 初回グループ参加時
+      debugPrint('DripCounterHistoryPage: 初回グループ参加');
+      _loadGroupRecords();
+    } else if (_currentGroupId != null && currentGroupId == null) {
+      // グループ脱退時
+      debugPrint('DripCounterHistoryPage: グループ脱退');
+      _loadRecords();
+    }
+
+    _currentGroupId = currentGroupId;
   }
 
   Future<void> _loadRecords() async {
     try {
-      final saved = await UserSettingsFirestoreService.getSetting('dripPackRecords');
+      final saved = await UserSettingsFirestoreService.getSetting(
+        'dripPackRecords',
+      );
       if (saved != null && mounted) {
         setState(() {
           _records = List<Map<String, dynamic>>.from(saved);
@@ -50,31 +88,53 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
   Future<void> _loadGroupRecords() async {
     try {
       final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.groups.isNotEmpty) {
-        final group = groupProvider.groups.first;
+      if (groupProvider.hasGroup) {
+        final groupId = groupProvider.currentGroup!.id;
+        debugPrint('DripCounterHistoryPage: グループデータ読み込み開始 - groupId: $groupId');
+
         final data = await GroupDataSyncService.getGroupDripCounterRecords(
-          group.id,
+          groupId,
         );
-        if (data != null && data['records'] != null) {
-          setState(() {
-            _records = List<Map<String, dynamic>>.from(data['records']);
-          });
-        } else {
-          setState(() {
-            _records = [];
-          });
+
+        if (mounted) {
+          if (data != null && data['records'] != null) {
+            setState(() {
+              _records = List<Map<String, dynamic>>.from(data['records']);
+            });
+            debugPrint(
+              'DripCounterHistoryPage: グループデータ読み込み完了 - 記録数: ${_records.length}',
+            );
+          } else {
+            setState(() {
+              _records = [];
+            });
+            debugPrint('DripCounterHistoryPage: グループデータが存在しません');
+          }
         }
       }
     } catch (e) {
-      print('グループドリップパック記録の読み込みエラー: $e');
+      debugPrint('グループドリップパック記録の読み込みエラー: $e');
     }
   }
 
   Future<void> _saveRecords() async {
     try {
-      await UserSettingsFirestoreService.saveSetting('dripPackRecords', _records);
+      await UserSettingsFirestoreService.saveSetting(
+        'dripPackRecords',
+        _records,
+      );
     } catch (e) {
       print('ドリップパック記録の保存エラー: $e');
+    }
+  }
+
+  /// ローカルデータをクリア
+  Future<void> _clearLocalData() async {
+    try {
+      await UserSettingsFirestoreService.deleteSetting('dripPackRecords');
+      debugPrint('DripCounterHistoryPage: ローカルデータをクリアしました');
+    } catch (e) {
+      debugPrint('DripCounterHistoryPage: ローカルデータのクリアに失敗: $e');
     }
   }
 
@@ -83,6 +143,13 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
       _records.removeAt(index);
     });
     _saveRecords();
+  }
+
+  @override
+  void dispose() {
+    final groupProvider = context.read<GroupProvider>();
+    groupProvider.removeListener(_checkGroupChange);
+    super.dispose();
   }
 
   @override

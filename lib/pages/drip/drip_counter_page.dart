@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:roastplus/pages/drip/DripPackRecordListPage.dart';
-import '../../services/drip_counter_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
@@ -9,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import '../../services/user_settings_firestore_service.dart';
+import '../../services/group_data_sync_service.dart';
 import '../../utils/permission_utils.dart';
 import '../../widgets/permission_denied_page.dart';
 
@@ -223,7 +223,7 @@ class DripCounterPageState extends State<DripCounterPage>
   // カウンター更新時
   void _addToCounter(int value) {
     setState(() {
-      _counter = (_counter + value).clamp(0, 9999);
+      _counter = (_counter + value).clamp(0, 500);
     });
     _animationController.forward().then((_) {
       _animationController.reverse();
@@ -394,66 +394,80 @@ class DripCounterPageState extends State<DripCounterPage>
                                 ),
                               ),
                             ),
-                            // カウンター数字
+                            // カウンター数字（タップ可能）
                             Center(
                               child: AnimatedBuilder(
                                 animation: _scaleAnimation,
                                 builder: (context, child) {
                                   return Transform.scale(
                                     scale: _scaleAnimation.value,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          '$_counter',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontSize: 120,
-                                            fontWeight: FontWeight.w900,
-                                            foreground: Paint()
-                                              ..shader =
-                                                  LinearGradient(
-                                                    colors: [
-                                                      themeSettings.fontColor1,
-                                                      themeSettings.fontColor1
-                                                          .withOpacity(0.8),
-                                                    ],
-                                                    begin: Alignment.topCenter,
-                                                    end: Alignment.bottomCenter,
-                                                  ).createShader(
-                                                    Rect.fromLTWH(
-                                                      0,
-                                                      0,
-                                                      200,
-                                                      120,
-                                                    ),
-                                                  ),
-                                            letterSpacing: 2,
-                                            fontFamily: 'Arial',
-                                            shadows: [
-                                              Shadow(
-                                                color: Colors.black.withOpacity(
-                                                  0.1,
-                                                ),
-                                                blurRadius: 8,
-                                                offset: Offset(2, 2),
-                                              ),
-                                              Shadow(
-                                                color: Colors.white.withOpacity(
-                                                  0.8,
-                                                ),
-                                                blurRadius: 2,
-                                                offset: Offset(0, 1),
-                                              ),
-                                            ],
+                                    child: GestureDetector(
+                                      onTap: () => _showCounterInputDialog(),
+                                      child: Container(
+                                        padding: EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            15,
                                           ),
+                                          color: Colors.transparent,
                                         ),
-                                      ],
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '$_counter',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 120,
+                                                fontWeight: FontWeight.w900,
+                                                foreground: Paint()
+                                                  ..shader =
+                                                      LinearGradient(
+                                                        colors: [
+                                                          themeSettings
+                                                              .fontColor1,
+                                                          themeSettings
+                                                              .fontColor1
+                                                              .withOpacity(0.8),
+                                                        ],
+                                                        begin:
+                                                            Alignment.topCenter,
+                                                        end: Alignment
+                                                            .bottomCenter,
+                                                      ).createShader(
+                                                        Rect.fromLTWH(
+                                                          0,
+                                                          0,
+                                                          200,
+                                                          120,
+                                                        ),
+                                                      ),
+                                                letterSpacing: 2,
+                                                fontFamily: 'Arial',
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.1),
+                                                    blurRadius: 8,
+                                                    offset: Offset(2, 2),
+                                                  ),
+                                                  Shadow(
+                                                    color: Colors.white
+                                                        .withOpacity(0.8),
+                                                    blurRadius: 2,
+                                                    offset: Offset(0, 1),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   );
                                 },
@@ -955,37 +969,60 @@ class DripCounterPageState extends State<DripCounterPage>
     if (bean.isEmpty || roast == null || roast.isEmpty || count <= 0) return;
 
     try {
-      final saved = await UserSettingsFirestoreService.getSetting(
-        'dripPackRecords',
-      );
-      List<Map<String, dynamic>> records = [];
-      if (saved != null) {
-        records = List<Map<String, dynamic>>.from(saved);
-      }
       final now = DateTime.now();
-      records.insert(0, {
+      final newRecord = {
         'bean': bean,
         'roast': roast,
         'count': count,
         'timestamp': now.toIso8601String(),
-      });
-      await UserSettingsFirestoreService.saveSetting(
-        'dripPackRecords',
-        records,
-      );
+      };
 
-      // Firestoreにも保存
-      try {
-        await DripCounterFirestoreService.addDripPackRecord(
-          bean: bean,
-          roast: roast,
-          count: count,
-          timestamp: now,
+      // グループプロバイダーを取得
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+
+      if (groupProvider.hasGroup) {
+        // グループモード：グループの共有データにのみ同期
+        final groupId = groupProvider.currentGroup!.id;
+
+        // 既存のグループデータを取得
+        final existingData =
+            await GroupDataSyncService.getGroupDripCounterRecords(groupId);
+        List<Map<String, dynamic>> records = [];
+
+        if (existingData != null && existingData['records'] != null) {
+          records = List<Map<String, dynamic>>.from(existingData['records']);
+        }
+
+        // 新しい記録を追加
+        records.insert(0, newRecord);
+
+        // グループの共有データに同期
+        await GroupDataSyncService.syncDripCounterRecords(groupId, {
+          'records': records,
+        });
+
+        print('ドリップパック記録をグループに同期しました: $count袋');
+      } else {
+        // ローカルモード：ローカルデータにのみ保存
+        final saved = await UserSettingsFirestoreService.getSetting(
+          'dripPackRecords',
         );
-      } catch (_) {}
+        List<Map<String, dynamic>> records = [];
+        if (saved != null) {
+          records = List<Map<String, dynamic>>.from(saved);
+        }
+        records.insert(0, newRecord);
+        await UserSettingsFirestoreService.saveSetting(
+          'dripPackRecords',
+          records,
+        );
+        print('ドリップパック記録をローカルに保存しました: $count袋');
+      }
 
-      // グループレベルシステムでドリップパック記録を処理
-      await _processDripPackForGroup(count, bean, now);
+      // グループレベルシステムでドリップパック記録を処理（グループモードの場合のみ）
+      if (groupProvider.hasGroup) {
+        await _processDripPackForGroup(count, bean, now);
+      }
 
       // 統計データを更新
       if (mounted) {
@@ -1036,6 +1073,131 @@ class DripCounterPageState extends State<DripCounterPage>
       }
     } catch (e) {
       print('グループレベルシステム処理エラー: $e');
+    }
+  }
+
+  /// カウンター入力ダイアログを表示
+  void _showCounterInputDialog() {
+    final TextEditingController inputController = TextEditingController(
+      text: _counter.toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final themeSettings = Provider.of<ThemeSettings>(context);
+
+        return AlertDialog(
+          backgroundColor: themeSettings.backgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'カウンターを設定',
+            style: TextStyle(
+              color: themeSettings.fontColor1,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '0〜500の数字を入力してください',
+                style: TextStyle(
+                  color: themeSettings.fontColor1.withOpacity(0.8),
+                  fontSize: 14,
+                ),
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: inputController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: themeSettings.fontColor1,
+                ),
+                decoration: InputDecoration(
+                  hintText: '0',
+                  hintStyle: TextStyle(
+                    color: themeSettings.fontColor1.withOpacity(0.5),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: themeSettings.iconColor.withOpacity(0.3),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: themeSettings.iconColor,
+                      width: 2,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: themeSettings.backgroundColor,
+                ),
+                onSubmitted: (value) {
+                  _updateCounterFromInput(value);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'キャンセル',
+                style: TextStyle(
+                  color: themeSettings.fontColor1.withOpacity(0.7),
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _updateCounterFromInput(inputController.text);
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: themeSettings.buttonColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text('設定'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 入力された値でカウンターを更新
+  void _updateCounterFromInput(String value) {
+    final int? newValue = int.tryParse(value);
+    if (newValue != null && newValue >= 0 && newValue <= 500) {
+      setState(() {
+        _counter = newValue;
+      });
+    } else if (newValue != null && newValue > 500) {
+      // 500を超える値の場合はエラーメッセージを表示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('500以下の数字を入力してください'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else {
+      // 無効な値の場合はエラーメッセージを表示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('有効な数字を入力してください'), backgroundColor: Colors.red),
+      );
     }
   }
 }

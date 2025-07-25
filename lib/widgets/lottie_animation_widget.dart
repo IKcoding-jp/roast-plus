@@ -105,7 +105,7 @@ class _ExperienceGainAnimationState extends State<ExperienceGainAnimation>
                       width: 200,
                       height: 200,
                       child: Lottie.asset(
-                        'assets/animations/Morning Coffee.json',
+                        'assets/animations/Drip Coffee.json',
                         fit: BoxFit.contain,
                         repeat: false,
                         errorBuilder: (context, error, stackTrace) {
@@ -291,17 +291,17 @@ class _LevelUpAnimationState extends State<LevelUpAnimation>
                   children: [
                     // Lottieアニメーション
                     SizedBox(
-                      width: 180,
-                      height: 180,
+                      width: 260,
+                      height: 260,
                       child: Lottie.asset(
-                        'assets/animations/Hot Smiling Coffee _ Good Morning.json',
+                        'assets/animations/Coffie Cap.json',
                         fit: BoxFit.contain,
                         repeat: false,
                         errorBuilder: (context, error, stackTrace) {
                           // フォールバック用のアイコン
                           return Container(
-                            width: 180,
-                            height: 180,
+                            width: 260,
+                            height: 260,
                             decoration: BoxDecoration(
                               gradient: RadialGradient(
                                 colors: [
@@ -313,7 +313,7 @@ class _LevelUpAnimationState extends State<LevelUpAnimation>
                             ),
                             child: Icon(
                               Icons.emoji_events,
-                              size: 80,
+                              size: 120,
                               color: Colors.amber.shade700,
                             ),
                           );
