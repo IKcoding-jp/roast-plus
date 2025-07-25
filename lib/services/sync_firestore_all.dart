@@ -9,7 +9,7 @@ import '../services/roast_timer_settings_firestore_service.dart';
 import '../services/tasting_firestore_service.dart';
 import '../services/work_progress_firestore_service.dart';
 import 'package:roastplus/pages/drip/drip_counter_page.dart';
-import '../pages/business/assignment_board_page.dart';
+import 'package:roastplus/pages/business/assignment_board_controller.dart';
 import 'package:roastplus/pages/roast/roast_timer_settings_page.dart';
 import '../models/tasting_models.dart';
 import '../models/work_progress_models.dart';
@@ -22,9 +22,6 @@ final GlobalKey<TodoPageState> todoListPageKey = GlobalKey<TodoPageState>();
 
 final GlobalKey<DripCounterPageState> dripCounterPageKey =
     GlobalKey<DripCounterPageState>();
-
-final GlobalKey<AssignmentBoardState> assignmentBoardKey =
-    GlobalKey<AssignmentBoardState>();
 
 final GlobalKey<RoastTimerSettingsPageState> roastTimerSettingsPageKey =
     GlobalKey<RoastTimerSettingsPageState>();
@@ -99,10 +96,11 @@ Future<void> syncAllFirestoreData(
   try {
     final assignmentMembers =
         await AssignmentFirestoreService.loadAssignmentMembers();
-    if (assignmentMembers != null && assignmentBoardKey.currentState != null) {
-      assignmentBoardKey.currentState!.setAssignmentMembersFromFirestore(
-        assignmentMembers,
-      );
+    if (assignmentMembers != null && context.mounted) {
+      Provider.of<AssignmentBoardController>(
+        context,
+        listen: false,
+      ).setAssignmentMembersFromFirestore(assignmentMembers);
       // ローカルにも保存（新しい形式と古い形式の両方）
       final settingsToSave = <String, dynamic>{};
 
@@ -140,10 +138,11 @@ Future<void> syncAllFirestoreData(
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     final assignmentHistory =
         await AssignmentFirestoreService.loadAssignmentHistory(dateKey);
-    if (assignmentHistory != null && assignmentBoardKey.currentState != null) {
-      assignmentBoardKey.currentState!.setAssignmentHistoryFromFirestore(
-        assignmentHistory,
-      );
+    if (assignmentHistory != null && context.mounted) {
+      Provider.of<AssignmentBoardController>(
+        context,
+        listen: false,
+      ).setAssignmentHistoryFromFirestore(assignmentHistory);
       // ローカルにも保存
       await UserSettingsFirestoreService.saveSetting(
         'assignment_$dateKey',

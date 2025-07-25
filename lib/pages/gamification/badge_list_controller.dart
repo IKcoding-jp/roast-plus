@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roastplus/models/group_gamification_models.dart';
 import 'package:roastplus/models/group_provider.dart';
-import 'package:roastplus/pages/gamification/widgets/badge_card.dart';
 
 class BadgeListController extends ChangeNotifier {
   late AnimationController _animationController;
@@ -28,7 +27,9 @@ class BadgeListController extends ChangeNotifier {
   Map<String, String> get categories => _categories;
   GroupGamificationProfile? get cachedProfile => _cachedProfile;
   Animation<double> get fadeAnimation => _fadeAnimation;
-  bool get hasGroup => _context != null && Provider.of<GroupProvider>(_context!, listen: false).hasGroup;
+  bool get hasGroup =>
+      _context != null &&
+      Provider.of<GroupProvider>(_context!, listen: false).hasGroup;
 
   void initialize(TickerProvider vsync, BuildContext context) {
     _context = context;
@@ -61,7 +62,10 @@ class BadgeListController extends ChangeNotifier {
   void _checkProfileUpdate() {
     try {
       if (_context == null) return;
-      final groupProvider = Provider.of<GroupProvider>(_context!, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(
+        _context!,
+        listen: false,
+      );
       if (groupProvider.hasGroup) {
         final groupId = groupProvider.currentGroup!.id;
         final profile = groupProvider.getGroupGamificationProfile(groupId);
@@ -107,7 +111,10 @@ class BadgeListController extends ChangeNotifier {
   Future<void> _preloadProfile() async {
     try {
       if (_context == null) return;
-      final groupProvider = Provider.of<GroupProvider>(_context!, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(
+        _context!,
+        listen: false,
+      );
       if (groupProvider.hasGroup) {
         final groupId = groupProvider.currentGroup!.id;
         groupProvider.watchGroupGamificationProfile(groupId);
@@ -134,9 +141,7 @@ class BadgeListController extends ChangeNotifier {
   }
 
   /// バッジ進捗を計算
-  double calculateBadgeProgress(
-    GroupBadgeCondition condition,
-  ) {
+  double calculateBadgeProgress(GroupBadgeCondition condition) {
     if (_cachedProfile == null) return 0.0;
     final profile = _cachedProfile!;
     final stats = profile.stats;
@@ -253,7 +258,10 @@ class BadgeListController extends ChangeNotifier {
       final requiredLevel = int.parse(levelMatch.group(1)!);
 
       if (_context == null) return 0.0;
-      final groupProvider = Provider.of<GroupProvider>(_context!, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(
+        _context!,
+        listen: false,
+      );
       if (groupProvider.hasGroup) {
         final groupId = groupProvider.currentGroup!.id;
         final profile = groupProvider.getGroupGamificationProfile(groupId);
@@ -307,7 +315,10 @@ class BadgeListController extends ChangeNotifier {
       final requiredLevel = int.parse(levelMatch.group(1)!);
 
       if (_context == null) return '';
-      final groupProvider = Provider.of<GroupProvider>(_context!, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(
+        _context!,
+        listen: false,
+      );
       if (groupProvider.hasGroup) {
         final groupId = groupProvider.currentGroup!.id;
         final profile = groupProvider.getGroupGamificationProfile(groupId);
@@ -349,7 +360,10 @@ class BadgeListController extends ChangeNotifier {
       final requiredLevel = int.parse(levelMatch.group(1)!);
 
       if (_context == null) return condition.description;
-      final groupProvider = Provider.of<GroupProvider>(_context!, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(
+        _context!,
+        listen: false,
+      );
       if (groupProvider.hasGroup) {
         final groupId = groupProvider.currentGroup!.id;
         final profile = groupProvider.getGroupGamificationProfile(groupId);
@@ -419,9 +433,7 @@ class BadgeListController extends ChangeNotifier {
   }
 
   /// レベルバッジの条件を満たしているかチェック
-  bool checkLevelBadgeCondition(
-    GroupBadgeCondition condition,
-  ) {
+  bool checkLevelBadgeCondition(GroupBadgeCondition condition) {
     if (_cachedProfile == null) return false;
     final currentLevel = _cachedProfile!.level;
     try {
@@ -457,7 +469,10 @@ class BadgeListController extends ChangeNotifier {
     // プロフィールの監視を停止
     try {
       if (_context != null) {
-        final groupProvider = Provider.of<GroupProvider>(_context!, listen: false);
+        final groupProvider = Provider.of<GroupProvider>(
+          _context!,
+          listen: false,
+        );
         if (groupProvider.hasGroup) {
           final groupId = groupProvider.currentGroup!.id;
           groupProvider.unwatchGroupGamificationProfile(groupId);
@@ -469,4 +484,4 @@ class BadgeListController extends ChangeNotifier {
     _context = null; // contextをクリア
     super.dispose();
   }
-} 
+}

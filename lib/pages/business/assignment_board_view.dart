@@ -5,7 +5,6 @@ import 'package:roastplus/models/theme_settings.dart';
 import 'package:roastplus/pages/business/assignment_board_controller.dart';
 import 'package:roastplus/pages/business/utils/assignment_utils.dart';
 import 'package:roastplus/pages/business/widgets/member_card.dart';
-import 'package:roastplus/widgets/lottie_animation_widget.dart';
 import 'package:roastplus/models/group_provider.dart';
 import 'package:roastplus/pages/labels/label_edit_page.dart';
 import 'package:roastplus/pages/members/member_edit_page.dart';
@@ -13,19 +12,36 @@ import 'package:roastplus/pages/history/assignment_history_page.dart';
 import 'package:roastplus/pages/settings/assignment_settings_page.dart';
 import 'package:roastplus/models/group_models.dart'; // Teamモデルのインポートを追加
 
-
 class AssignmentBoardView extends StatelessWidget {
   final AssignmentBoardController controller;
   final VoidCallback onReset;
 
-  const AssignmentBoardView({Key? key, required this.controller, required this.onReset}) : super(key: key);
+  const AssignmentBoardView({
+    Key? key,
+    required this.controller,
+    required this.onReset,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
 
+    // コントローラーが破棄されている場合は何も表示しない
+    if (controller.disposed) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('担当表'),
+          backgroundColor: themeSettings.appBarColor,
+          foregroundColor: themeSettings.appBarTextColor,
+        ),
+        body: Center(child: Text('ページが破棄されました')),
+      );
+    }
+
     final visibleAttendance = controller.todayAttendance.where((record) {
-      final allMembers = controller.currentTeams.expand((t) => t.members).toSet();
+      final allMembers = controller.currentTeams
+          .expand((t) => t.members)
+          .toSet();
       return allMembers.contains(record.memberName);
     }).toList();
 
@@ -39,7 +55,11 @@ class AssignmentBoardView extends StatelessWidget {
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(Icons.group_work, color: themeSettings.appBarTextColor, size: 24), // `group_work` アイコンに変更
+            Icon(
+              Icons.group, // `assignment` アイコンを `group` に変更
+              color: themeSettings.iconColor, // テーマのアイコン色を適用
+              size: 24,
+            ), // `assignment` アイコンに変更
             SizedBox(width: 8),
             Text(
               '担当表',
@@ -55,10 +75,7 @@ class AssignmentBoardView extends StatelessWidget {
                 if (groupProvider.groups.isNotEmpty) {
                   return Container(
                     margin: EdgeInsets.only(left: 12),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade100,
                       borderRadius: BorderRadius.circular(12),
@@ -90,8 +107,12 @@ class AssignmentBoardView extends StatelessWidget {
                 List<String>? currentLeftLabels;
                 List<String>? currentRightLabels;
                 if (groupProvider.hasGroup) {
-                  currentLeftLabels = List<String>.from(controller.currentLeftLabels);
-                  currentRightLabels = List<String>.from(controller.currentRightLabels);
+                  currentLeftLabels = List<String>.from(
+                    controller.currentLeftLabels,
+                  );
+                  currentRightLabels = List<String>.from(
+                    controller.currentRightLabels,
+                  );
                 }
 
                 await Navigator.push(
@@ -107,9 +128,9 @@ class AssignmentBoardView extends StatelessWidget {
                     currentLeftLabels != null &&
                     currentRightLabels != null) {
                   // Controllerで直接更新
-                  controller.leftLabels = currentLeftLabels;
-                  controller.rightLabels = currentRightLabels;
-                  controller.notifyListeners();
+                  // controller.leftLabels = currentLeftLabels;
+                  // controller.rightLabels = currentRightLabels;
+                  // controller.notifyListeners(); // 削除
                 }
               },
             ),
@@ -135,8 +156,8 @@ class AssignmentBoardView extends StatelessWidget {
 
                 if (groupProvider.hasGroup && currentTeams != null) {
                   // Controllerで直接更新
-                  controller.teams = currentTeams;
-                  controller.notifyListeners();
+                  // controller.teams = currentTeams;
+                  // controller.notifyListeners(); // 削除
                 }
               },
             ),
@@ -192,10 +213,13 @@ class AssignmentBoardView extends StatelessWidget {
                 )
               else if (controller.isLoading) // ローディング表示
                 Center(
-                  child: CircularProgressIndicator(color: themeSettings.iconColor), // CircularProgressIndicatorの色をiconColorに変更
+                  child: CircularProgressIndicator(
+                    color: themeSettings.iconColor,
+                  ), // CircularProgressIndicatorの色をiconColorに変更
                 )
               else ...[
-                if (!controller.isAttendanceLoading && visibleAttendance.isNotEmpty)
+                if (!controller.isAttendanceLoading &&
+                    visibleAttendance.isNotEmpty)
                   Card(
                     elevation: 4,
                     color: themeSettings.backgroundColor2,
@@ -231,13 +255,14 @@ class AssignmentBoardView extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color:
                                       record.status == AttendanceStatus.present
-                                          ? Colors.white
-                                          : Colors.red,
+                                      ? Colors.white
+                                      : Colors.red,
                                   border: Border.all(
                                     color:
-                                        record.status == AttendanceStatus.present
-                                            ? Colors.grey.shade400
-                                            : Colors.red.shade700,
+                                        record.status ==
+                                            AttendanceStatus.present
+                                        ? Colors.grey.shade400
+                                        : Colors.red.shade700,
                                     width: 2,
                                   ),
                                   borderRadius: BorderRadius.circular(20),
@@ -248,9 +273,10 @@ class AssignmentBoardView extends StatelessWidget {
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color:
-                                        record.status == AttendanceStatus.present
-                                            ? Colors.black
-                                            : Colors.white,
+                                        record.status ==
+                                            AttendanceStatus.present
+                                        ? Colors.black
+                                        : Colors.white,
                                   ),
                                 ),
                               );
@@ -295,7 +321,9 @@ class AssignmentBoardView extends StatelessWidget {
                         ),
                       ),
                       if (controller.currentLeftLabels.isEmpty &&
-                          controller.currentTeams.every((t) => t.members.isEmpty))
+                          controller.currentTeams.every(
+                            (t) => t.members.isEmpty,
+                          ))
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 24.0),
                           child: Center(
@@ -310,11 +338,11 @@ class AssignmentBoardView extends StatelessWidget {
                           ),
                         )
                       else
-                        ...List.generate(controller.currentLeftLabels.length, (i) {
+                        ...List.generate(controller.currentLeftLabels.length, (
+                          i,
+                        ) {
                           return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8.0,
-                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -337,16 +365,17 @@ class AssignmentBoardView extends StatelessWidget {
                                       child: MemberCard(
                                         name:
                                             i < team.members.length &&
-                                                    team.members[i].isNotEmpty
-                                                ? team.members[i]
-                                                : '未設定',
-                                        attendanceStatus: controller.getMemberAttendanceStatus(
-                                          // `controller.` を追加
-                                          i < team.members.length &&
-                                                  team.members[i].isNotEmpty
-                                              ? team.members[i]
-                                              : '未設定',
-                                        ),
+                                                team.members[i].isNotEmpty
+                                            ? team.members[i]
+                                            : '未設定',
+                                        attendanceStatus: controller
+                                            .getMemberAttendanceStatus(
+                                              // `controller.` を追加
+                                              i < team.members.length &&
+                                                      team.members[i].isNotEmpty
+                                                  ? team.members[i]
+                                                  : '未設定',
+                                            ),
                                         onTap: () {
                                           if (i < team.members.length &&
                                               team.members[i].isNotEmpty) {
@@ -392,10 +421,12 @@ class AssignmentBoardView extends StatelessWidget {
                       ),
                     ),
                   ElevatedButton(
-                    onPressed:
-                        isButtonDisabled ? null : controller.shuffleAssignments,
+                    onPressed: isButtonDisabled
+                        ? null
+                        : controller.shuffleAssignments,
                     child: Text(() {
-                      if (todayIsWeekend && !controller.developerMode) return '土日は休み';
+                      if (todayIsWeekend && !controller.developerMode)
+                        return '土日は休み';
                       if (controller.assignedToday) return '今日はすでに決定済み';
                       if (controller.shuffling) return 'シャッフル中...';
                       return '今日の担当を決める';
@@ -411,4 +442,4 @@ class AssignmentBoardView extends StatelessWidget {
       ),
     );
   }
-} 
+}

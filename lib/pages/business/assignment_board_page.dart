@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roastplus/pages/business/assignment_board_controller.dart';
 import 'package:roastplus/pages/business/assignment_board_view.dart';
-import 'package:roastplus/utils/app_performance_config.dart'; // isDonorUser() のため
 
 class AssignmentBoard extends StatefulWidget {
   const AssignmentBoard({super.key});
@@ -13,21 +12,36 @@ class AssignmentBoard extends StatefulWidget {
 
 class _AssignmentBoardState extends State<AssignmentBoard> {
   late final AssignmentBoardController _controller;
+  bool _disposed = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AssignmentBoardController();
-    _controller.initialize(context);
+    if (!_disposed) {
+      _controller.initialize(context);
+    }
   }
 
   Future<void> _resetTodayAssignment() async {
-    await _controller.resetTodayAssignment();
+    // リセット処理を安全に実行
+    try {
+      // コントローラーが破棄されていない場合のみ実行
+      if (!_disposed && !_controller.disposed) {
+        await _controller.resetTodayAssignment();
+      }
+    } catch (e) {
+      debugPrint('リセット処理エラー: $e');
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _disposed = true;
+    // 手動でdisposeを呼ぶが、disposedフラグで保護
+    if (!_controller.disposed) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
@@ -37,6 +51,9 @@ class _AssignmentBoardState extends State<AssignmentBoard> {
       create: (_) => _controller,
       child: Consumer<AssignmentBoardController>(
         builder: (context, controller, child) {
+          if (_disposed) {
+            return const Center(child: Text('ページが破棄されました'));
+          }
           if (controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }

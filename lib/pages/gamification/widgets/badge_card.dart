@@ -371,4 +371,4 @@ class _BadgeCardState extends State<BadgeCard>
       ),
     );
   }
-} 
+}

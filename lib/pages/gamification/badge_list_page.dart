@@ -10,7 +10,8 @@ class BadgeListPage extends StatefulWidget {
   State<BadgeListPage> createState() => _BadgeListPageState();
 }
 
-class _BadgeListPageState extends State<BadgeListPage> with TickerProviderStateMixin {
+class _BadgeListPageState extends State<BadgeListPage>
+    with TickerProviderStateMixin {
   late final BadgeListController _controller;
 
   @override
@@ -38,9 +39,7 @@ class _BadgeListPageState extends State<BadgeListPage> with TickerProviderStateM
       create: (_) => _controller,
       child: Consumer<BadgeListController>(
         builder: (context, controller, child) {
-          return BadgeListView(
-            controller: controller,
-          );
+          return BadgeListView(controller: controller);
         },
       ),
     );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'pages/business/assignment_board_page.dart' show AssignmentBoard;
 import 'package:roastplus/pages/roast/roast_timer_page.dart';
 import 'package:roastplus/pages/todo/todo_page.dart';
 import 'package:roastplus/pages/drip/drip_counter_page.dart';
@@ -34,6 +33,9 @@ import 'pages/group/group_qr_scanner_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'utils/app_performance_config.dart';
 import 'widgets/lottie_animation_widget.dart';
+import 'package:roastplus/pages/business/assignment_board_page.dart';
+import 'package:roastplus/pages/business/assignment_board_controller.dart';
+
 // navigatorKeyが定義されているファイルをimport
 
 class WorkAssignmentApp extends StatefulWidget {
@@ -365,12 +367,11 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
         try {
           final assignmentMembers =
               await AssignmentFirestoreService.loadAssignmentMembers();
-          if (assignmentMembers != null &&
-              assignmentBoardKey.currentState != null) {
-            // mergeGroupDataWithLocalメソッドを使用してデータを更新
-            assignmentBoardKey.currentState!.mergeGroupDataWithLocal(
-              assignmentMembers,
-            );
+          if (assignmentMembers != null && context.mounted) {
+            Provider.of<AssignmentBoardController>(
+              context,
+              listen: false,
+            ).mergeGroupDataWithLocal(assignmentMembers);
           }
         } catch (e) {
           debugPrint('担当表データの更新に失敗しました: $e');
@@ -720,7 +721,7 @@ class MainScaffoldState extends State<MainScaffold> {
     DripCounterPage(key: dripCounterPageKey), // カウンター
     HomePage(), // ホーム（中央）
     SchedulePage(), // スケジュール
-    AssignmentBoard(key: assignmentBoardKey), // 担当表
+    AssignmentBoard(), // 担当表
   ];
 
   @override
@@ -992,7 +993,10 @@ class MainScaffoldState extends State<MainScaffold> {
                         label: 'ホーム',
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.schedule, size: iconSize),
+                        icon: Icon(
+                          Icons.pending_actions,
+                          size: iconSize,
+                        ), // 時間スケジュールに合わせたアイコンに変更
                         label: 'スケジュール',
                       ),
                       BottomNavigationBarItem(

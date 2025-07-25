@@ -17,10 +17,10 @@ import 'package:roastplus/services/group_data_sync_service.dart';
 import 'package:roastplus/services/group_firestore_service.dart';
 import 'package:roastplus/services/user_settings_firestore_service.dart';
 
-
 class AssignmentBoardController extends ChangeNotifier {
   bool _isLoading = true;
   bool? _canEditAssignment; // null: 未判定, true/false: 判定済み
+  bool _disposed = false; // disposedフラグを追加
 
   List<Team> teams = [];
   List<String> leftLabels = [];
@@ -55,6 +55,7 @@ class AssignmentBoardController extends ChangeNotifier {
   bool get developerMode => isDeveloperMode;
   List<AttendanceRecord> get todayAttendance => _todayAttendance;
   bool get isAttendanceLoading => _isAttendanceLoading;
+  bool get disposed => _disposed; // disposedゲッターを追加
 
   bool get hasGroup {
     if (_context == null) return false;
@@ -63,6 +64,7 @@ class AssignmentBoardController extends ChangeNotifier {
 
   void initialize(BuildContext context) {
     if (_context != null) return; // 既に初期化済み
+    if (_disposed) return; // disposedの場合は初期化をスキップ
     _context = context;
     _canEditAssignment = true;
     _loadLocalDataFirst();
@@ -73,6 +75,13 @@ class AssignmentBoardController extends ChangeNotifier {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkEditPermission();
     });
+  }
+
+  /// 安全なnotifyListeners呼び出し
+  void _safeNotifyListeners() {
+    if (!_disposed && _context != null) {
+      notifyListeners();
+    }
   }
 
   /// 安全な文字列リスト変換
@@ -86,7 +95,9 @@ class AssignmentBoardController extends ChangeNotifier {
         return [];
       }
     }
-    debugPrint('AssignmentBoardController: 予期しないデータ型: ${data.runtimeType}, data: $data');
+    debugPrint(
+      'AssignmentBoardController: 予期しないデータ型: ${data.runtimeType}, data: $data',
+    );
     return [];
   }
 
@@ -133,7 +144,7 @@ class AssignmentBoardController extends ChangeNotifier {
 
       // データ設定完了後、ローディング状態を解除
       _isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
 
     // ローカルデータも更新
@@ -146,6 +157,7 @@ class AssignmentBoardController extends ChangeNotifier {
 
   /// ローカルデータを更新
   Future<void> _updateLocalData() async {
+    if (_disposed) return;
     try {
       // 新しい形式で保存
       final teamsJson = jsonEncode(teams.map((team) => team.toMap()).toList());
@@ -170,55 +182,50 @@ class AssignmentBoardController extends ChangeNotifier {
   }
 
   void setAssignmentHistoryFromFirestore(List<String> history) {
-    if (_context != null) {
-      if (history.isNotEmpty &&
-          history.length == leftLabels.length &&
-          teams.length >= 2) {
-        // 履歴を各チームに分配
-        for (int i = 0; i < teams.length; i++) {
-          final teamMembers = history.map((e) => e.split('-')[i]).toList();
-          teams[i] = teams[i].copyWith(members: teamMembers);
-        }
-        isAssignedToday = true;
-      } else {
-        // 履歴が空または無効な場合は決定済みフラグをリセット
-        isAssignedToday = false;
+    if (_disposed || _context == null) return;
+    if (history.isNotEmpty &&
+        history.length == leftLabels.length &&
+        teams.length >= 2) {
+      // 履歴を各チームに分配
+      for (int i = 0; i < teams.length; i++) {
+        final teamMembers = history.map((e) => e.split('-')[i]).toList();
+        teams[i] = teams[i].copyWith(members: teamMembers);
       }
-      notifyListeners();
+      isAssignedToday = true;
+    } else {
+      // 履歴が空または無効な場合は決定済みフラグをリセット
+      isAssignedToday = false;
     }
+    _safeNotifyListeners();
   }
 
   void setAssignmentMembersFromFirestore(
     Map<String, dynamic> assignmentMembers,
   ) {
-    if (_context != null) {
-      // 新しい形式（teams）または古い形式（aMembers, bMembers）に対応
-      if (assignmentMembers['teams'] != null) {
-        final teamsList = assignmentMembers['teams'] as List;
-        teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
-      } else {
-        // 古い形式の場合は新しい形式に変換
-        final aMembers = _safeStringListFromDynamic(
-          assignmentMembers['aMembers'],
-        );
-        final bMembers = _safeStringListFromDynamic(
-          assignmentMembers['bMembers'],
-        );
-        teams = [
-          Team(id: 'team_a', name: 'A班', members: aMembers),
-          Team(id: 'team_b', name: 'B班', members: bMembers),
-        ];
-      }
+    if (_disposed || _context == null) return;
 
-      // ラベルデータも更新
-      leftLabels = _safeStringListFromDynamic(
-        assignmentMembers['leftLabels'],
+    // 新しい形式（teams）または古い形式（aMembers, bMembers）に対応
+    if (assignmentMembers['teams'] != null) {
+      final teamsList = assignmentMembers['teams'] as List;
+      teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
+    } else {
+      // 古い形式の場合は新しい形式に変換
+      final aMembers = _safeStringListFromDynamic(
+        assignmentMembers['aMembers'],
       );
-      rightLabels = _safeStringListFromDynamic(
-        assignmentMembers['rightLabels'],
+      final bMembers = _safeStringListFromDynamic(
+        assignmentMembers['bMembers'],
       );
-      notifyListeners();
+      teams = [
+        Team(id: 'team_a', name: 'A班', members: aMembers),
+        Team(id: 'team_b', name: 'B班', members: bMembers),
+      ];
     }
+
+    // ラベルデータも更新
+    leftLabels = _safeStringListFromDynamic(assignmentMembers['leftLabels']);
+    rightLabels = _safeStringListFromDynamic(assignmentMembers['rightLabels']);
+    _safeNotifyListeners();
   }
 
   /// ローカルデータを最初に読み込み（ラベルを確実に保持）
@@ -259,7 +266,7 @@ class AssignmentBoardController extends ChangeNotifier {
 
       if (_context != null) {
         _isLoading = false;
-        notifyListeners();
+        _safeNotifyListeners();
       }
 
       // 今日の担当履歴も読み込み
@@ -285,30 +292,33 @@ class AssignmentBoardController extends ChangeNotifier {
       debugPrint('AssignmentBoardController: ローカルデータ読み込みエラー: $e');
       if (_context != null) {
         _isLoading = false;
-        notifyListeners();
+        _safeNotifyListeners();
       }
     }
   }
 
   /// 今日の出勤退勤記録を読み込み
   Future<void> _loadTodayAttendance() async {
+    if (_disposed) return;
     try {
       if (_context != null) {
         _isAttendanceLoading = true;
-        notifyListeners();
+        _safeNotifyListeners();
       }
 
       final attendance = await AttendanceFirestoreService.getTodayAttendance();
+      if (_disposed) return; // 非同期処理後に再度チェック
       if (_context != null) {
         _todayAttendance = attendance;
         _isAttendanceLoading = false;
-        notifyListeners();
+        _safeNotifyListeners();
       }
     } catch (e) {
       debugPrint('AssignmentBoardController: 出勤退勤記録読み込みエラー: $e');
+      if (_disposed) return;
       if (_context != null) {
         _isAttendanceLoading = false;
-        notifyListeners();
+        _safeNotifyListeners();
       }
     }
   }
@@ -418,7 +428,10 @@ class AssignmentBoardController extends ChangeNotifier {
       // グループプロバイダーを取得
       if (_context == null) return; // contextがnullの場合は処理をスキップ
 
-      final groupProvider = Provider.of<GroupProvider>(_context!, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(
+        _context!,
+        listen: false,
+      );
 
       if (groupProvider.hasGroup) {
         final groupId = groupProvider.currentGroup!.id;
@@ -476,22 +489,28 @@ class AssignmentBoardController extends ChangeNotifier {
             groupAssignmentData,
           ) {
             if (_context == null) return; // ウィジェットが破棄されている場合は処理しない
-            debugPrint('AssignmentBoardController: グループ担当表データ変更検知: $groupAssignmentData');
+            debugPrint(
+              'AssignmentBoardController: グループ担当表データ変更検知: $groupAssignmentData',
+            );
             if (groupAssignmentData != null) {
               // グループデータが利用可能になった場合、ローカルデータとマージ
               _mergeGroupDataWithLocal(groupAssignmentData);
             } else {
-              debugPrint('AssignmentBoardController: グループ担当表データが空です - ローカルデータを維持');
+              debugPrint(
+                'AssignmentBoardController: グループ担当表データが空です - ローカルデータを維持',
+              );
               // グループデータが空の場合は、ローカルデータを維持
               if (_context != null) {
                 _isLoading = false;
-                notifyListeners();
+                _safeNotifyListeners();
               }
             }
           });
 
       // グループ設定を監視
-      debugPrint('AssignmentBoardController: グループ設定監視を開始 - groupId: ${group.id}');
+      debugPrint(
+        'AssignmentBoardController: グループ設定監視を開始 - groupId: ${group.id}',
+      );
       _groupSettingsSubscription =
           GroupFirestoreService.watchGroupSettings(group.id).listen((
             groupSettings,
@@ -545,7 +564,7 @@ class AssignmentBoardController extends ChangeNotifier {
       debugPrint('未ログインのため権限チェックをスキップ');
       if (_context != null) {
         _canEditAssignment = false;
-        notifyListeners();
+        _safeNotifyListeners();
       }
       return;
     }
@@ -558,15 +577,14 @@ class AssignmentBoardController extends ChangeNotifier {
     );
 
     try {
-      final userRole = groupProvider.currentGroup!.
-          getMemberRole(
+      final userRole = groupProvider.currentGroup!.getMemberRole(
         currentUser.uid,
       );
       if (userRole == null) {
         debugPrint('AssignmentBoardController: ユーザーロールが取得できません');
         if (_context != null) {
           _canEditAssignment = false;
-          notifyListeners();
+          _safeNotifyListeners();
         }
         return;
       }
@@ -590,7 +608,7 @@ class AssignmentBoardController extends ChangeNotifier {
           'AssignmentBoardController: 権限状態を更新します - 編集権限: $_canEditAssignment -> $canEdit',
         );
         _canEditAssignment = canEdit;
-        notifyListeners();
+        _safeNotifyListeners();
         debugPrint('AssignmentBoardController: 権限状態を更新完了 - canEdit: $canEdit');
       } else {
         debugPrint(
@@ -601,7 +619,7 @@ class AssignmentBoardController extends ChangeNotifier {
       debugPrint('AssignmentBoardController: 設定変更による権限チェックエラー - $e');
       if (_context != null) {
         _canEditAssignment = true;
-        notifyListeners();
+        _safeNotifyListeners();
       }
     }
   }
@@ -613,13 +631,17 @@ class AssignmentBoardController extends ChangeNotifier {
       final groupProvider = _context!.read<GroupProvider>();
       final groups = groupProvider.groups;
 
-      debugPrint('AssignmentBoardController: 権限チェック開始 - groups: ${groups.length}');
+      debugPrint(
+        'AssignmentBoardController: 権限チェック開始 - groups: ${groups.length}',
+      );
 
       // 参加しているグループがあるかチェック
       if (groups.isNotEmpty) {
         // 最初のグループの権限をチェック（複数グループの場合は要改善）
         final group = groups.first;
-        debugPrint('AssignmentBoardController: グループ権限チェック - groupId: ${group.id}');
+        debugPrint(
+          'AssignmentBoardController: グループ権限チェック - groupId: ${group.id}',
+        );
 
         // 現在のグループ設定から直接権限を取得
         final groupSettings = await GroupFirestoreService.getGroupSettings(
@@ -645,7 +667,7 @@ class AssignmentBoardController extends ChangeNotifier {
               'AssignmentBoardController: 初期権限チェック結果 - ユーザーロール: $userRole, 編集権限: $canEdit',
             );
             _canEditAssignment = canEdit;
-            notifyListeners();
+            _safeNotifyListeners();
             return;
           }
         }
@@ -664,19 +686,19 @@ class AssignmentBoardController extends ChangeNotifier {
         );
 
         _canEditAssignment = canEdit;
-        notifyListeners();
+        _safeNotifyListeners();
       } else {
         // グループ未参加時も編集可・担当決定可
         debugPrint('AssignmentBoardController: グループ未参加 - 編集可能・担当決定可能に設定');
         _canEditAssignment = true;
-        notifyListeners();
+        _safeNotifyListeners();
       }
     } catch (e) {
       // エラーの場合は編集可能・担当決定可能として扱う（グループに参加していない場合など）
       debugPrint('AssignmentBoardController: 権限チェックエラー - $e, 編集可能・担当決定可能に設定');
       if (_context != null) {
         _canEditAssignment = true;
-        notifyListeners();
+        _safeNotifyListeners();
       }
     }
   }
@@ -689,7 +711,7 @@ class AssignmentBoardController extends ChangeNotifier {
     if (currentUser == null) {
       debugPrint('未ログインのため権限チェックをスキップ');
       _canEditAssignment = false;
-      notifyListeners();
+      _safeNotifyListeners();
       return;
     }
 
@@ -697,7 +719,9 @@ class AssignmentBoardController extends ChangeNotifier {
 
     if (groupProvider.hasGroup) {
       final group = groupProvider.currentGroup!;
-      debugPrint('AssignmentBoardController: リアルタイム権限チェック開始 - groupId: ${group.id}');
+      debugPrint(
+        'AssignmentBoardController: リアルタイム権限チェック開始 - groupId: ${group.id}',
+      );
 
       GroupFirestoreService.canEditDataType(
             groupId: group.id,
@@ -715,7 +739,7 @@ class AssignmentBoardController extends ChangeNotifier {
             );
             if (_context != null && _canEditAssignment != canEdit) {
               _canEditAssignment = canEdit;
-              notifyListeners();
+              _safeNotifyListeners();
             }
           })
           .catchError((e) {
@@ -723,7 +747,7 @@ class AssignmentBoardController extends ChangeNotifier {
             debugPrint('AssignmentBoardController: リアルタイム権限チェックエラー - $e');
             if (_context != null && (_canEditAssignment != true)) {
               _canEditAssignment = true;
-              notifyListeners();
+              _safeNotifyListeners();
             }
           });
     }
@@ -736,7 +760,9 @@ class AssignmentBoardController extends ChangeNotifier {
       final groupProvider = _context!.read<GroupProvider>();
       if (groupProvider.hasGroup) {
         final group = groupProvider.currentGroup!;
-        debugPrint('AssignmentBoardController: 今日の担当履歴をグループに同期開始 - groupId: ${group.id}');
+        debugPrint(
+          'AssignmentBoardController: 今日の担当履歴をグループに同期開始 - groupId: ${group.id}',
+        );
 
         final todayAssignmentData = {
           'assignments': assignments,
@@ -795,7 +821,7 @@ class AssignmentBoardController extends ChangeNotifier {
       if (_context != null) {
         leftLabels = settings['leftLabels'] ?? [];
         rightLabels = settings['rightLabels'] ?? [];
-        notifyListeners();
+        _safeNotifyListeners();
       }
     } catch (e) {
       debugPrint('AssignmentBoardController: ラベル再読み込みエラー: $e');
@@ -826,7 +852,7 @@ class AssignmentBoardController extends ChangeNotifier {
             Team(id: 'team_b', name: 'B班', members: loadedB),
           ];
         }
-        notifyListeners();
+        _safeNotifyListeners();
       }
     } catch (e) {
       debugPrint('AssignmentBoardController: メンバー再読み込みエラー: $e');
@@ -879,7 +905,7 @@ class AssignmentBoardController extends ChangeNotifier {
     }
 
     if (teams.length < 2 || !hasEnoughMembers) {
-      if (_context == null) return; 
+      if (_context == null) return;
       showDialog(
         context: _context!,
         builder: (_) => AlertDialog(
@@ -902,6 +928,7 @@ class AssignmentBoardController extends ChangeNotifier {
     int cnt = 0;
     const dur = Duration(milliseconds: 100);
     shuffleTimer = Timer.periodic(dur, (_) async {
+      if (_disposed) return;
       try {
         // 各チームのメンバーをシャッフル
         List<List<String>> shuffledMembers = [];
@@ -911,8 +938,12 @@ class AssignmentBoardController extends ChangeNotifier {
           shuffledMembers.add(teamMembers);
         }
 
-        teams = List.from(teams.map((e) => e.copyWith(members: shuffledMembers[teams.indexOf(e)]))); // Update teams directly
-        notifyListeners();
+        teams = List.from(
+          teams.map(
+            (e) => e.copyWith(members: shuffledMembers[teams.indexOf(e)]),
+          ),
+        ); // Update teams directly
+        _safeNotifyListeners();
 
         if (++cnt >= 50) {
           shuffleTimer?.cancel();
@@ -937,7 +968,11 @@ class AssignmentBoardController extends ChangeNotifier {
             for (int i = 0; i < teams.length; i++) {
               shuffledMembers[i].shuffle(Random());
             }
-            teams = List.from(teams.map((e) => e.copyWith(members: shuffledMembers[teams.indexOf(e)]))); // Update teams directly
+            teams = List.from(
+              teams.map(
+                (e) => e.copyWith(members: shuffledMembers[teams.indexOf(e)]),
+              ),
+            ); // Update teams directly
             final newPairs = makePairs();
             if (!isDuplicate(newPairs, p1) && !isDuplicate(newPairs, p2)) {
               break;
@@ -952,7 +987,7 @@ class AssignmentBoardController extends ChangeNotifier {
 
           isShuffling = false;
           isAssignedToday = true;
-          notifyListeners();
+          _safeNotifyListeners();
 
           // Firestoreに必ず保存（グループ未参加時も）
           try {
@@ -976,7 +1011,7 @@ class AssignmentBoardController extends ChangeNotifier {
         debugPrint('AssignmentBoardController: シャッフル処理エラー: $e');
         shuffleTimer?.cancel();
         isShuffling = false;
-        notifyListeners();
+        _safeNotifyListeners();
         if (_context == null) return;
         ScaffoldMessenger.of(
           _context!,
@@ -994,7 +1029,7 @@ class AssignmentBoardController extends ChangeNotifier {
       );
       if (_context != null) {
         isDeveloperMode = devMode;
-        notifyListeners();
+        _safeNotifyListeners();
       }
     } catch (e) {
       debugPrint('AssignmentBoardController: 開発者モード読み込みエラー: $e');
@@ -1010,7 +1045,7 @@ class AssignmentBoardController extends ChangeNotifier {
         ) {
           if (_context != null && settings.containsKey('developerMode')) {
             isDeveloperMode = settings['developerMode'] ?? false;
-            notifyListeners();
+            _safeNotifyListeners();
           }
         });
   }
@@ -1081,7 +1116,7 @@ class AssignmentBoardController extends ChangeNotifier {
           leftLabels = settings['leftLabels'] ?? [];
           rightLabels = settings['rightLabels'] ?? [];
           isAssignedToday = false;
-          notifyListeners();
+          _safeNotifyListeners();
         } else {
           // 既存のA班、B班データを新しい形式に変換
           final loadedA = settings['assignment_team_a'] ?? [];
@@ -1096,7 +1131,7 @@ class AssignmentBoardController extends ChangeNotifier {
           leftLabels = settings['leftLabels'] ?? [];
           rightLabels = settings['rightLabels'] ?? [];
           isAssignedToday = false;
-          notifyListeners();
+          _safeNotifyListeners();
         }
         debugPrint('AssignmentBoardController: グループ状態でのメンバー構成復元完了');
       } catch (e) {
@@ -1104,7 +1139,7 @@ class AssignmentBoardController extends ChangeNotifier {
         // エラーの場合は既存のメンバー構成をそのまま使用
         _canEditAssignment = true;
         isAssignedToday = false;
-        notifyListeners();
+        _safeNotifyListeners();
       }
     } else {
       // 個人状態の場合は、_loadState()を呼び出してデータを再読み込み
@@ -1115,7 +1150,7 @@ class AssignmentBoardController extends ChangeNotifier {
   }
 
   void _showInterstitialAdAfterAssignment() async {
-    if (_context == null) return;
+    if (_disposed || _context == null) return;
     // isDonorUser() の定義が必要
     // if (await isDonorUser()) return; // 寄付者は広告を表示しない
     // InterstitialAd.load(
@@ -1140,13 +1175,31 @@ class AssignmentBoardController extends ChangeNotifier {
 
   @override
   void dispose() {
+    debugPrint('AssignmentBoardController: dispose() 開始');
+
+    // disposedフラグを先に設定して、以降の処理を防ぐ
+    _disposed = true;
+
+    // すべてのタイマーをキャンセル
     shuffleTimer?.cancel();
-    _groupAssignmentSubscription?.cancel();
-    _groupSettingsSubscription?.cancel();
-    _groupTodayAssignmentSubscription?.cancel();
-    _developerModeSubscription?.cancel();
+    shuffleTimer = null;
     _autoSyncTimer?.cancel();
-    _context = null; // contextをクリア
+    _autoSyncTimer = null;
+
+    // すべてのストリームサブスクリプションをキャンセル
+    _groupAssignmentSubscription?.cancel();
+    _groupAssignmentSubscription = null;
+    _groupSettingsSubscription?.cancel();
+    _groupSettingsSubscription = null;
+    _groupTodayAssignmentSubscription?.cancel();
+    _groupTodayAssignmentSubscription = null;
+    _developerModeSubscription?.cancel();
+    _developerModeSubscription = null;
+
+    // contextをクリア
+    _context = null;
+
+    debugPrint('AssignmentBoardController: dispose() 完了');
     super.dispose();
   }
 }

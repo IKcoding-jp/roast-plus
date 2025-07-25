@@ -80,7 +80,8 @@ class BadgeListView extends StatelessWidget {
                           final categoryName = entry.value;
                           return FilterChip(
                             label: Text(categoryName),
-                            selected: controller.selectedCategory == categoryKey,
+                            selected:
+                                controller.selectedCategory == categoryKey,
                             onSelected: (bool selected) {
                               if (selected) {
                                 controller.setSelectedCategory(categoryKey);
@@ -103,15 +104,18 @@ class BadgeListView extends StatelessWidget {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: 0.8,
-                        ),
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: 0.8,
+                            ),
                         itemCount: controller.getFilteredBadges().length,
                         itemBuilder: (context, index) {
                           final badge = controller.getFilteredBadges()[index];
-                          final isEarned = controller.getEarnedBadgeIds().contains(badge.badgeId) ||
+                          final isEarned =
+                              controller.getEarnedBadgeIds().contains(
+                                badge.badgeId,
+                              ) ||
                               (badge.category == BadgeCategory.level &&
                                   controller.checkLevelBadgeCondition(badge));
                           final earnedBadge = isEarned
@@ -123,7 +127,9 @@ class BadgeListView extends StatelessWidget {
                             isEarned: isEarned,
                             earnedBadge: earnedBadge,
                             progress: controller.calculateBadgeProgress(badge),
-                            progressText: controller.getBadgeProgressText(badge),
+                            progressText: controller.getBadgeProgressText(
+                              badge,
+                            ),
                             description: controller.getBadgeDescription(badge),
                             themeSettings: theme,
                             animationDelay: index * 50, // 各カードに50msの遅延を設定
@@ -139,4 +145,4 @@ class BadgeListView extends StatelessWidget {
       ),
     );
   }
-} 
+}

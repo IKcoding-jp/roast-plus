@@ -84,7 +84,7 @@ class _SchedulePageState extends State<SchedulePage>
             title: Row(
               children: [
                 Icon(
-                  Icons.local_fire_department,
+                  Icons.pending_actions, // 時間スケジュールに合わせたアイコンに変更
                   color: themeSettings.iconColor,
                 ),
                 SizedBox(width: 8),
@@ -127,14 +127,12 @@ class _SchedulePageState extends State<SchedulePage>
             backgroundColor: themeSettings.appBarColor,
             iconTheme: IconThemeData(color: themeSettings.iconColor),
             actions: [
-              // 時間ラベル編集ボタンをAppBarに追加
-              IconButton(
-                icon: Icon(Icons.schedule, color: themeSettings.iconColor),
-                onPressed: _openTimeLabelEditCallback != null
-                    ? _openTimeLabelEdit
-                    : null,
-                tooltip: '時間ラベルを編集',
-              ),
+              if (_tabController.index == 0) // 本日のスケジュールタブの時のみ表示
+                IconButton(
+                  icon: Icon(Icons.label, color: themeSettings.iconColor),
+                  onPressed: _openTimeLabelEdit, // コールバックのnullチェックを削除し、常に有効にする
+                  tooltip: '時間ラベルを編集',
+                ),
             ],
             bottom: PreferredSize(
               preferredSize: Size.fromHeight(kToolbarHeight),
