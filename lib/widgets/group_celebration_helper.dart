@@ -48,15 +48,6 @@ class GroupCelebrationHelper {
     }
   }
 
-  /// バッジ獲得演出（複数バッジ対応）- 非推奨：showUnifiedBadgeCelebrationを使用
-  @Deprecated('showUnifiedBadgeCelebrationを使用してください')
-  static Future<void> showBadgeCelebration(
-    BuildContext context,
-    List<GroupBadge> badges,
-  ) async {
-    return showUnifiedBadgeCelebration(context, badges);
-  }
-
   /// 複合演出（XP獲得 + レベルアップ + バッジ獲得）
   static Future<void> showCompleteCelebration(
     BuildContext context, {

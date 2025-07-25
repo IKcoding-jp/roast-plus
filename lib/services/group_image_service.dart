@@ -262,40 +262,4 @@ class GroupImageService {
       print('古い画像削除エラー: $e');
     }
   }
-
-  /// 画像データをFirebase Storageにアップロード
-  static Future<String?> uploadImageData(
-    String groupId,
-    Uint8List imageData,
-  ) async {
-    try {
-      print('GroupImageService: 画像データアップロード開始');
-      print('GroupImageService: データサイズ: ${imageData.length} bytes');
-
-      // ファイル名を生成
-      final String fileName =
-          'group_${groupId}_${DateTime.now().millisecondsSinceEpoch}.png';
-      print('GroupImageService: ファイル名: $fileName');
-
-      final Reference storageRef = _storage.ref().child(
-        'group_images/$fileName',
-      );
-      print('GroupImageService: Storage参照作成完了');
-
-      // アップロード
-      print('GroupImageService: アップロードタスク開始');
-      final UploadTask uploadTask = storageRef.putData(imageData);
-      final TaskSnapshot snapshot = await uploadTask;
-      print('GroupImageService: アップロード完了');
-
-      // ダウンロードURLを取得
-      print('GroupImageService: ダウンロードURL取得開始');
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-      print('GroupImageService: ダウンロードURL: $downloadUrl');
-      return downloadUrl;
-    } catch (e) {
-      print('画像データアップロードエラー: $e');
-      return null;
-    }
-  }
 }
