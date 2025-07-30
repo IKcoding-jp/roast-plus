@@ -376,7 +376,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.all(16),
-                  color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                  color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -451,7 +451,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                               ),
                               color: Provider.of<ThemeSettings>(
                                 context,
-                              ).backgroundColor2,
+                              ).cardBackgroundColor,
                               margin: EdgeInsets.only(bottom: 12),
                               child: ListTile(
                                 leading: Container(

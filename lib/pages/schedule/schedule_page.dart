@@ -135,7 +135,7 @@ class _SchedulePageState extends State<SchedulePage>
               preferredSize: Size.fromHeight(kToolbarHeight),
               child: Container(
                 decoration: BoxDecoration(
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   border: Border(
                     bottom: BorderSide(color: Colors.grey.shade300, width: 1),
                   ),

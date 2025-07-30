@@ -346,7 +346,7 @@ class _UsageGuidePageState extends State<UsageGuidePage>
   ) {
     return Card(
       elevation: 2,
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: ListTile(
         leading: Icon(icon, color: Colors.blue, size: 28),
         title: Text(

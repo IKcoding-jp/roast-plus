@@ -141,7 +141,7 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
-                backgroundColor: themeSettings.buttonColor,
+                backgroundColor: themeSettings.appButtonColor,
                 foregroundColor: themeSettings.fontColor2,
                 textStyle: TextStyle(
                   fontSize: (18 * themeSettings.fontSizeScale).clamp(
@@ -344,6 +344,7 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
       try {
         await DataSyncService.downloadAllData();
         // ダウンロードした設定でThemeSettingsを更新
+        if (!mounted) return;
         final themeSettings = Provider.of<ThemeSettings>(
           context,
           listen: false,
@@ -595,7 +596,7 @@ class _PasscodeInputScreenState extends State<PasscodeInputScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            color: Provider.of<ThemeSettings>(context).backgroundColor2,
+            color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
@@ -654,7 +655,14 @@ class _PasscodeInputScreenState extends State<PasscodeInputScreen> {
                     child: ElevatedButton(
                       onPressed: _checking ? null : _check,
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Provider.of<ThemeSettings>(
+                          context,
+                        ).appButtonColor,
+                        foregroundColor: Provider.of<ThemeSettings>(
+                          context,
+                        ).fontColor2,
+                        textStyle: const TextStyle(fontSize: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

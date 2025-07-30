@@ -295,7 +295,7 @@ class _BadgeListPageState extends State<BadgeListPage>
                   _selectedCategory = category;
                 });
               },
-              backgroundColor: themeSettings.backgroundColor2,
+              backgroundColor: themeSettings.cardBackgroundColor,
               selectedColor: Colors.brown.shade600,
               checkmarkColor: Colors.white,
               elevation: isSelected ? 4 : 1,
@@ -841,7 +841,8 @@ class _BadgeCardState extends State<BadgeCard>
                         turns: _rotationAnimation,
                         child: Icon(
                           widget.isEarned
-                              ? Icons.star // デフォルトアイコンを使用
+                              ? Icons
+                                    .star // デフォルトアイコンを使用
                               : Icons.lock,
                           color: Colors.white,
                           size: 40,
@@ -963,7 +964,8 @@ class _BadgeCardState extends State<BadgeCard>
               ),
               child: Icon(
                 widget.isEarned
-                    ? Icons.star // デフォルトアイコンを使用
+                    ? Icons
+                          .star // デフォルトアイコンを使用
                     : Icons.lock,
                 color: Colors.white,
                 size: 24,

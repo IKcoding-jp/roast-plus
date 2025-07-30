@@ -758,7 +758,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
@@ -918,7 +918,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 ? Colors.white
                                 : Provider.of<ThemeSettings>(
                                     context,
-                                  ).buttonColor,
+                                  ).appButtonColor,
                             side: BorderSide(
                               color:
                                   Theme.of(context).brightness ==
@@ -930,7 +930,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                   ? Colors.white
                                   : Provider.of<ThemeSettings>(
                                       context,
-                                    ).buttonColor,
+                                    ).appButtonColor,
                             ),
                             padding: EdgeInsets.symmetric(vertical: 13),
                             textStyle: TextStyle(
@@ -975,7 +975,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-                color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -998,7 +998,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           border: Border.all(
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).buttonColor.withOpacity(0.3),
+                            ).appButtonColor.withOpacity(0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -1007,7 +1007,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                               Icons.coffee,
                               color: Provider.of<ThemeSettings>(
                                 context,
-                              ).buttonColor,
+                              ).appButtonColor,
                             ),
                             labelText: '豆の種類',
                             border: InputBorder.none,
@@ -1042,7 +1042,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           border: Border.all(
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).buttonColor.withOpacity(0.3),
+                            ).appButtonColor.withOpacity(0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -1051,7 +1051,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                               Icons.scale,
                               color: Provider.of<ThemeSettings>(
                                 context,
-                              ).buttonColor,
+                              ).appButtonColor,
                             ),
                             labelText: '重さ（g）',
                             border: InputBorder.none,
@@ -1087,7 +1087,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           border: Border.all(
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).buttonColor.withOpacity(0.3),
+                            ).appButtonColor.withOpacity(0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -1096,7 +1096,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                               Icons.local_fire_department,
                               color: Provider.of<ThemeSettings>(
                                 context,
-                              ).buttonColor,
+                              ).appButtonColor,
                             ),
                             labelText: '煎り度',
                             border: InputBorder.none,
@@ -1283,7 +1283,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 ? Colors.white
                                 : Provider.of<ThemeSettings>(
                                     context,
-                                  ).buttonColor,
+                                  ).appButtonColor,
                             side: BorderSide(
                               color:
                                   Theme.of(context).brightness ==
@@ -1295,7 +1295,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                   ? Colors.white
                                   : Provider.of<ThemeSettings>(
                                       context,
-                                    ).buttonColor,
+                                    ).appButtonColor,
                             ),
                             padding: EdgeInsets.symmetric(vertical: 15),
                             textStyle: TextStyle(
@@ -1383,7 +1383,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                  color: Provider.of<ThemeSettings>(
+                    context,
+                  ).cardBackgroundColor,
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Column(

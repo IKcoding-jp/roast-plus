@@ -241,7 +241,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                         ),
                         color: Provider.of<ThemeSettings>(
                           context,
-                        ).backgroundColor2,
+                        ).cardBackgroundColor,
                         child: Padding(
                           padding: const EdgeInsets.all(24),
                           child: Column(

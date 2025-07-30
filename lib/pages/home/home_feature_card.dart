@@ -34,7 +34,7 @@ class HomeFeatureCard extends StatelessWidget {
       child: Card(
         elevation: isImportant ? 4 : 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: themeSettings.backgroundColor2,
+        color: themeSettings.cardBackgroundColor,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),

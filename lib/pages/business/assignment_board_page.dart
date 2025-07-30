@@ -1336,7 +1336,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                       elevation: 4,
                       color: Provider.of<ThemeSettings>(
                         context,
-                      ).backgroundColor2,
+                      ).cardBackgroundColor,
                       child: Padding(
                         padding: EdgeInsets.all(16),
                         child: Column(
@@ -1410,7 +1410,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                     decoration: BoxDecoration(
                       color: Provider.of<ThemeSettings>(
                         context,
-                      ).backgroundColor2,
+                      ).cardBackgroundColor,
                       border: Border.all(color: Colors.black26),
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1626,7 +1626,7 @@ class MemberCard extends StatelessWidget {
     Color? borderColor;
 
     if (isUnset) {
-      cardColor = Provider.of<ThemeSettings>(context).backgroundColor2;
+      cardColor = Provider.of<ThemeSettings>(context).cardBackgroundColor;
       textColor = Colors.grey[600];
       borderColor = Colors.grey.shade400;
     } else {

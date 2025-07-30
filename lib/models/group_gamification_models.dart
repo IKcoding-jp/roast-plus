@@ -346,6 +346,10 @@ class GroupGamificationProfile {
   /// グループタイトルを取得
   String get displayTitle {
     if (level >= 9999) return '伝説のロースターズ';
+    if (level >= 7500) return 'グランドマスターロースターズ';
+    if (level >= 5000) return 'エリートマスターロースターズ';
+    if (level >= 3000) return 'シニアマスターロースターズ';
+    if (level >= 2000) return 'ジュニアマスターロースターズ';
     if (level >= 1000) return 'マスターロースターズ';
     if (level >= 500) return 'エキスパートロースターズ';
     if (level >= 200) return 'プロロースターズ';
@@ -359,16 +363,50 @@ class GroupGamificationProfile {
 
   /// レベル色を取得
   Color get levelColor {
-    if (level >= 9999) return Colors.amber.shade700; // 金色
-    if (level >= 1000) return Colors.purple.shade600; // 紫
-    if (level >= 500) return Colors.red.shade600; // 赤
-    if (level >= 200) return Colors.orange.shade600; // オレンジ
-    if (level >= 100) return Colors.blue.shade600; // 青
-    if (level >= 50) return Colors.green.shade600; // 緑
-    if (level >= 20) return Colors.teal.shade600; // ティール
-    if (level >= 10) return Colors.indigo.shade400; // インディゴ
-    if (level >= 5) return Colors.brown.shade400; // ブラウン
-    return Colors.grey.shade600; // グレー
+    if (level >= 9999) return const Color(0xFFD4AF37); // 伝説のロースターズ (ゴールド)
+    if (level >= 7500) {
+      return const Color(0xFFB8860B); // グランドマスターロースターズ (ダークゴールデンロッド)
+    }
+    if (level >= 5000) return const Color(0xFFCD853F); // エリートマスターロースターズ (ペルー)
+    if (level >= 3000) {
+      return const Color(0xFF8B4513); // シニアマスターロースターズ (サドルブラウン)
+    }
+    if (level >= 2000) return const Color(0xFFA0522D); // ジュニアマスターロースターズ (シエナ)
+    if (level >= 1000) {
+      return const Color(0xFF4A2320); // マスターロースターズ (非常に濃いコーヒーブラウン)
+    }
+    if (level >= 500) {
+      return const Color(0xFF6F4E37); // エキスパートロースターズ (ダークコーヒーブラウン)
+    }
+    if (level >= 200) return const Color(0xFF8B4513); // プロロースターズ (サドルブラウン)
+    if (level >= 100) return const Color(0xFFA0522D); // スキルドロースターズ (シエナ)
+    if (level >= 50) return const Color(0xFFD2691E); // アドバンスドロースターズ (チョコレート)
+    if (level >= 20) return const Color(0xFFCD853F); // ベテランロースターズ (ペルー)
+    if (level >= 10) return const Color(0xFFD2B48C); // ジュニアロースターズ (タン)
+    if (level >= 5) return const Color(0xFFE6BE8A); // 見習いロースターズ (明るいタン)
+    return const Color(0xFFF5DEB3); // ルーキーロースターズ (小麦色 - 生豆に近い色)
+  }
+
+  /// レベルアイコンを取得
+  IconData get levelIcon {
+    if (level >= 9999) return Icons.local_cafe; // コーヒー豆のアイコン (最高レベル)
+    if (level >= 7500) {
+      return Icons.workspace_premium; // プレミアムワークスペースアイコン (グランドマスター)
+    }
+    if (level >= 5000) return Icons.star; // 星のアイコン (エリート)
+    if (level >= 3000) return Icons.auto_awesome; // 輝くアイコン (シニア)
+    if (level >= 2000) {
+      return Icons.workspace_premium; // プレミアムワークスペースアイコン (ジュニアマスター)
+    }
+    if (level >= 1000) return Icons.coffee; // コーヒーカップのアイコン
+    if (level >= 500) return Icons.emoji_food_beverage; // 湯気の立つコーヒーのアイコン
+    if (level >= 200) return Icons.whatshot; // 火のアイコン (焙煎)
+    if (level >= 100) return Icons.filter_alt; // フィルターのアイコン (抽出)
+    if (level >= 50) return Icons.grain; // 粒のアイコン (豆)
+    if (level >= 20) return Icons.spa; // 葉のアイコン (植物としてのコーヒー)
+    if (level >= 10) return Icons.scatter_plot; // 散らばった点のアイコン (生豆)
+    if (level >= 5) return Icons.circle; // 小さな丸のアイコン (豆の成長)
+    return Icons.eco; // 環境アイコン (初期段階)
   }
 
   GroupGamificationProfile copyWith({

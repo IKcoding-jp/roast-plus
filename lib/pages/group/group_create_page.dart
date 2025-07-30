@@ -183,7 +183,7 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Column(
@@ -213,7 +213,7 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: themeSettings.buttonColor,
+                                color: themeSettings.appButtonColor,
                                 width: 2,
                               ),
                             ),
@@ -250,7 +250,7 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: themeSettings.buttonColor,
+                                color: themeSettings.appButtonColor,
                                 width: 2,
                               ),
                             ),
@@ -272,7 +272,7 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Column(
@@ -318,9 +318,10 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
                 ElevatedButton(
                   onPressed: _isCreating ? null : _createGroup,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: themeSettings.buttonColor,
+                    backgroundColor: themeSettings.appButtonColor,
                     foregroundColor: themeSettings.fontColor2,
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(fontSize: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

@@ -112,7 +112,7 @@ class _MemoListDialogState extends State<MemoListDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('メモを削除しました'),
-              backgroundColor: themeSettings.buttonColor,
+              backgroundColor: themeSettings.appButtonColor,
             ),
           );
         }
@@ -235,7 +235,7 @@ class _MemoListDialogState extends State<MemoListDialog> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          color: themeSettings.backgroundColor2,
+                          color: themeSettings.cardBackgroundColor,
                           margin: EdgeInsets.only(bottom: 12),
                           child: ListTile(
                             contentPadding: EdgeInsets.all(16),

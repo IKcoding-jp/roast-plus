@@ -212,7 +212,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
@@ -276,7 +276,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
@@ -334,7 +334,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    color: themeSettings.backgroundColor2,
+                    color: themeSettings.cardBackgroundColor,
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(

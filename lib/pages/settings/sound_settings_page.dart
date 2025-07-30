@@ -347,7 +347,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -414,7 +414,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
                       ),
                       color: _selectedTimerSound == sound
                           ? themeSettings.buttonColor.withOpacity(0.1)
-                          : themeSettings.backgroundColor2,
+                          : themeSettings.cardBackgroundColor,
                       child: ListTile(
                         leading: Icon(
                           _selectedTimerSound == sound
@@ -454,7 +454,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -521,7 +521,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
                       ),
                       color: _selectedNotificationSound == sound
                           ? themeSettings.buttonColor.withOpacity(0.1)
-                          : themeSettings.backgroundColor2,
+                          : themeSettings.cardBackgroundColor,
                       child: ListTile(
                         leading: Icon(
                           _selectedNotificationSound == sound
@@ -561,7 +561,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

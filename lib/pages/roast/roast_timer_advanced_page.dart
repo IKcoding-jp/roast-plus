@@ -424,7 +424,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),
-            color: Provider.of<ThemeSettings>(context).backgroundColor2,
+            color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
             child: Padding(
               padding: const EdgeInsets.all(32.0),
               child: Column(

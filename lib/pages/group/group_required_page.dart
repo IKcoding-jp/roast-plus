@@ -64,7 +64,7 @@ class GroupRequiredPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: themeSettings.iconColor.withOpacity(0.2),

@@ -263,7 +263,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
                             icon: Icon(Icons.add),
                             label: Text('グループを作成'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: themeSettings.buttonColor,
+                              backgroundColor: themeSettings.appButtonColor,
                               foregroundColor: themeSettings.fontColor2,
                               padding: EdgeInsets.symmetric(
                                 horizontal: 24,
@@ -291,7 +291,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
                   MaterialPageRoute(builder: (context) => GroupCreatePage()),
                 );
               },
-              backgroundColor: themeSettings.buttonColor,
+              backgroundColor: themeSettings.appButtonColor,
               foregroundColor: themeSettings.fontColor2,
               child: Icon(Icons.add),
             );
@@ -314,7 +314,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
       margin: EdgeInsets.all(16),
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: InkWell(
         onTap: () {
           // GroupProviderの現在のグループを設定
@@ -509,9 +509,10 @@ class _GroupCardPageState extends State<GroupCardPage> {
                       icon: Icon(Icons.info_outline),
                       label: Text('詳細を見る'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: themeSettings.buttonColor,
+                        backgroundColor: themeSettings.appButtonColor,
                         foregroundColor: themeSettings.fontColor2,
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                        textStyle: const TextStyle(fontSize: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

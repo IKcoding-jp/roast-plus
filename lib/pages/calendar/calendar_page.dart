@@ -232,7 +232,7 @@ class _CalendarPageState extends State<CalendarPage> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: themeSettings.backgroundColor2,
+          backgroundColor: themeSettings.cardBackgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -1066,7 +1066,7 @@ class _CalendarPageState extends State<CalendarPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(

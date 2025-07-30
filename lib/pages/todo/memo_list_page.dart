@@ -111,8 +111,8 @@ class _MemoListPageState extends State<MemoListPage> {
           );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('メモを削除しました'),
-              backgroundColor: themeSettings.buttonColor,
+                          content: Text('メモを削除しました'),
+            backgroundColor: themeSettings.appButtonColor,
             ),
           );
         }
@@ -161,7 +161,7 @@ class _MemoListPageState extends State<MemoListPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('メモを更新しました'),
-            backgroundColor: themeSettings.buttonColor,
+            backgroundColor: themeSettings.appButtonColor,
           ),
         );
       }
@@ -231,7 +231,7 @@ class _MemoListPageState extends State<MemoListPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   margin: EdgeInsets.only(bottom: 12),
                   child: ListTile(
                     contentPadding: EdgeInsets.all(16),

@@ -630,7 +630,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                             ),
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).backgroundColor2,
+                            ).cardBackgroundColor,
                             child: Padding(
                               padding: const EdgeInsets.all(20),
                               child: Column(
@@ -849,7 +849,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                       ),
                                       color: Provider.of<ThemeSettings>(
                                         context,
-                                      ).backgroundColor2,
+                                      ).cardBackgroundColor,
                                       child: Padding(
                                         padding: const EdgeInsets.all(40),
                                         child: Column(
@@ -896,7 +896,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                       ),
                                       color: Provider.of<ThemeSettings>(
                                         context,
-                                      ).backgroundColor2,
+                                      ).cardBackgroundColor,
                                       child: Padding(
                                         padding: const EdgeInsets.all(40),
                                         child: Column(
@@ -960,7 +960,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                                 ).buttonColor.withOpacity(0.08)
                                               : Provider.of<ThemeSettings>(
                                                   context,
-                                                ).backgroundColor2,
+                                                ).cardBackgroundColor,
                                           child: GestureDetector(
                                             onTap: null, // タップ機能を無効化
                                             child: Container(

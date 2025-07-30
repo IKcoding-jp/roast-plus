@@ -204,9 +204,13 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       _preheatMinutes = value; // 先に値を更新
       setState(() {});
       await _saveAllToFirestore();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('予熱時間を$value分に保存しました')));
+      final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('予熱時間を$value分に保存しました'),
+          backgroundColor: themeSettings.appButtonColor,
+        ),
+      );
     } catch (e) {
       print('予熱時間保存エラー: $e');
     }
@@ -219,9 +223,13 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       _coolingMinutes = value; // 先に値を更新
       setState(() {});
       await _saveAllToFirestore();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('豆冷ましタイマーを$value分に保存しました')));
+      final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('豆冷ましタイマーを$value分に保存しました'),
+          backgroundColor: themeSettings.appButtonColor,
+        ),
+      );
     } catch (e) {
       print('豆冷まし時間保存エラー: $e');
     }
@@ -236,9 +244,13 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       );
       _recommendedOffsetSeconds = value;
       setState(() {});
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('おすすめ焙煎の引き秒数を$value秒に保存しました')));
+      final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('おすすめ焙煎の引き秒数を$value秒に保存しました'),
+          backgroundColor: themeSettings.appButtonColor,
+        ),
+      );
     } catch (e) {
       print('おすすめ焙煎設定保存エラー: $e');
     }
@@ -246,10 +258,18 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeSettings = Provider.of<ThemeSettings>(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('焙煎タイマー設定')),
+      appBar: AppBar(
+        title: const Text('焙煎タイマー設定'),
+        backgroundColor: themeSettings.appBarColor,
+        foregroundColor: themeSettings.appBarTextColor,
+      ),
+      backgroundColor: themeSettings.backgroundColor,
       body: _loading
-          ? Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(color: themeSettings.iconColor),
+            )
           : Padding(
               padding: const EdgeInsets.all(20),
               child: Center(
@@ -259,7 +279,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                    color: themeSettings.cardBackgroundColor,
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(
@@ -272,6 +292,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               Switch(
                                 value: _usePreheat,
                                 onChanged: (v) => _saveUsePreheat(v),
+                                activeColor: themeSettings.appButtonColor,
                               ),
                               SizedBox(width: 10),
                               Text(
@@ -279,7 +300,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF795548),
+                                  color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
@@ -290,6 +311,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               Switch(
                                 value: _useRoast,
                                 onChanged: (v) => _saveUseRoast(v),
+                                activeColor: themeSettings.appButtonColor,
                               ),
                               SizedBox(width: 10),
                               Text(
@@ -297,7 +319,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF795548),
+                                  color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
@@ -308,6 +330,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               Switch(
                                 value: _useCooling,
                                 onChanged: (v) => _saveUseCooling(v),
+                                activeColor: themeSettings.appButtonColor,
                               ),
                               SizedBox(width: 10),
                               Text(
@@ -315,7 +338,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF795548),
+                                  color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
@@ -326,9 +349,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                             children: [
                               Icon(
                                 Icons.timer,
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).iconColor, // テーマのアイコン色を適用
+                                color: themeSettings.iconColor,
                                 size: 24,
                               ),
                               SizedBox(width: 10),
@@ -337,7 +358,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
-                                  color: Color(0xFF795548),
+                                  color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
@@ -353,26 +374,30 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     decimal: false,
                                     signed: false,
                                   ),
-                                  style: TextStyle(fontSize: 16),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: themeSettings.inputTextColor,
+                                  ),
                                   decoration: InputDecoration(
                                     filled: true,
-                                    fillColor: Colors.grey.shade50,
+                                    fillColor:
+                                        themeSettings.inputBackgroundColor,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: Colors.grey.shade300,
+                                        color: themeSettings.borderColor,
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: Colors.grey.shade300,
+                                        color: themeSettings.borderColor,
                                       ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: Color(0xFF795548),
+                                        color: themeSettings.appButtonColor,
                                         width: 2,
                                       ),
                                     ),
@@ -396,20 +421,8 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.backgroundColor
-                                          ?.resolve({}) ??
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.foregroundColor
-                                          ?.resolve({}) ??
-                                      Colors.white,
+                                  backgroundColor: themeSettings.appButtonColor,
+                                  foregroundColor: themeSettings.fontColor2,
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 24,
                                     vertical: 14,
@@ -427,9 +440,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                             children: [
                               Icon(
                                 Icons.ac_unit,
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).iconColor,
+                                color: themeSettings.iconColor,
                                 size: 24,
                               ),
                               SizedBox(width: 10),
@@ -438,7 +449,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
-                                  color: Color(0xFF795548),
+                                  color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
@@ -454,26 +465,30 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     decimal: false,
                                     signed: false,
                                   ),
-                                  style: TextStyle(fontSize: 16),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: themeSettings.inputTextColor,
+                                  ),
                                   decoration: InputDecoration(
                                     filled: true,
-                                    fillColor: Colors.grey.shade50,
+                                    fillColor:
+                                        themeSettings.inputBackgroundColor,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: Colors.grey.shade300,
+                                        color: themeSettings.borderColor,
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: Colors.grey.shade300,
+                                        color: themeSettings.borderColor,
                                       ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: Color(0xFF795548),
+                                        color: themeSettings.appButtonColor,
                                         width: 2,
                                       ),
                                     ),
@@ -497,20 +512,8 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.backgroundColor
-                                          ?.resolve({}) ??
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.foregroundColor
-                                          ?.resolve({}) ??
-                                      Colors.white,
+                                  backgroundColor: themeSettings.appButtonColor,
+                                  foregroundColor: themeSettings.fontColor2,
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 24,
                                     vertical: 14,
@@ -529,9 +532,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                             children: [
                               Icon(
                                 Icons.recommend,
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).iconColor,
+                                color: themeSettings.iconColor,
                                 size: 24,
                               ),
                               SizedBox(width: 10),
@@ -540,7 +541,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
-                                  color: Color(0xFF795548),
+                                  color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
@@ -550,7 +551,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                             '焙煎室に移動するために必要な秒数を設定してください。おすすめタイマーは、この秒数分だけ短く提案されます。',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.black54,
+                              color: themeSettings.fontColor1,
                             ),
                           ),
                           SizedBox(height: 18),
@@ -564,26 +565,30 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     decimal: false,
                                     signed: false,
                                   ),
-                                  style: TextStyle(fontSize: 16),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: themeSettings.inputTextColor,
+                                  ),
                                   decoration: InputDecoration(
                                     filled: true,
-                                    fillColor: Colors.grey.shade50,
+                                    fillColor:
+                                        themeSettings.inputBackgroundColor,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: Colors.grey.shade300,
+                                        color: themeSettings.borderColor,
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: Colors.grey.shade300,
+                                        color: themeSettings.borderColor,
                                       ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: Color(0xFF795548),
+                                        color: themeSettings.appButtonColor,
                                         width: 2,
                                       ),
                                     ),
@@ -607,20 +612,8 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.backgroundColor
-                                          ?.resolve({}) ??
-                                      Theme.of(context).colorScheme.primary,
-                                  foregroundColor:
-                                      Theme.of(context)
-                                          .elevatedButtonTheme
-                                          .style
-                                          ?.foregroundColor
-                                          ?.resolve({}) ??
-                                      Colors.white,
+                                  backgroundColor: themeSettings.appButtonColor,
+                                  foregroundColor: themeSettings.fontColor2,
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 24,
                                     vertical: 14,
@@ -654,7 +647,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     '【おすすめ焙煎タイマーとは】\n過去の記録から平均焙煎時間を計算し、「焙煎室に行くまでの時間」を引いた値を自動でタイマーに設定します。',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.black87,
+                                      color: themeSettings.fontColor1,
                                     ),
                                   ),
                                 ),

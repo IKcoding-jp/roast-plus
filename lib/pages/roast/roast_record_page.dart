@@ -74,7 +74,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     required String? roastLevel,
     required Function(String?) onRoastLevelChanged,
   }) {
-    final cardColor = Provider.of<ThemeSettings>(context).backgroundColor2;
+    final cardColor = Provider.of<ThemeSettings>(context).cardBackgroundColor;
     final accentColor = Provider.of<ThemeSettings>(context).fontColor1;
     final iconColor = Provider.of<ThemeSettings>(context).iconColor;
 

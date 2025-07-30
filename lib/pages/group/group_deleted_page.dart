@@ -59,7 +59,7 @@ class GroupDeletedPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: themeSettings.iconColor.withOpacity(0.2),
@@ -124,13 +124,13 @@ class GroupDeletedPage extends StatelessWidget {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: themeSettings.buttonColor,
+                        backgroundColor: themeSettings.appButtonColor,
                         foregroundColor: themeSettings.fontColor2,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(fontSize: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        elevation: 2,
                       ),
                     ),
                   ),

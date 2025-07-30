@@ -299,8 +299,8 @@ class DripCounterPageState extends State<DripCounterPage>
 
     final cardGradient = LinearGradient(
       colors: [
-        themeSettings.backgroundColor2,
-        themeSettings.backgroundColor2.withOpacity(0.95),
+        themeSettings.cardBackgroundColor,
+        themeSettings.cardBackgroundColor.withOpacity(0.95),
       ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -670,13 +670,16 @@ class DripCounterPageState extends State<DripCounterPage>
                                       ),
                                     ),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      foregroundColor: Colors.white,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
+                                      backgroundColor:
+                                          themeSettings.appButtonColor,
+                                      foregroundColor: themeSettings.fontColor2,
+                                      textStyle: const TextStyle(fontSize: 16),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
                                       ),
-                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                     onPressed: _addRecord,
                                   ),
@@ -942,7 +945,7 @@ class DripCounterPageState extends State<DripCounterPage>
               color: themeSettings.fontColor1,
               fontWeight: FontWeight.w500,
             ),
-            dropdownColor: themeSettings.backgroundColor2,
+            dropdownColor: themeSettings.cardBackgroundColor,
             icon: Icon(Icons.arrow_drop_down, color: themeSettings.iconColor),
             selectedItemBuilder: (BuildContext context) {
               return _roastLevels.map<Widget>((String item) {

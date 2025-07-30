@@ -1277,7 +1277,7 @@ class _TodayScheduleState extends State<TodaySchedule>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            color: Provider.of<ThemeSettings>(context).backgroundColor2,
+            color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
             child: SizedBox(
               height:
                   MediaQuery.of(context).size.height * 0.72, // 画面の72%の高さに微調整

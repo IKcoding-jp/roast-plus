@@ -613,7 +613,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
             MaterialPageRoute(builder: (context) => TastingRecordEditPage()),
           );
         },
-        backgroundColor: themeSettings.buttonColor,
+        backgroundColor: themeSettings.appButtonColor,
         foregroundColor: themeSettings.fontColor2,
         child: Icon(Icons.add),
       ),

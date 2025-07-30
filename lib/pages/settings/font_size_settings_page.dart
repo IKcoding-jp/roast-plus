@@ -121,7 +121,7 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -156,7 +156,7 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
                             child: DropdownButton<String>(
                               value: _selectedFontFamily,
                               isExpanded: true,
-                              dropdownColor: themeSettings.backgroundColor2,
+                              dropdownColor: themeSettings.cardBackgroundColor,
                               style: TextStyle(
                                 color: themeSettings.fontColor1,
                                 fontSize: 16,
@@ -209,7 +209,7 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(

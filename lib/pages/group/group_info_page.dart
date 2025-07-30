@@ -10,6 +10,7 @@ import '../../models/group_gamification_models.dart';
 import '../../services/group_statistics_service.dart';
 import '../../services/group_firestore_service.dart';
 import '../../services/group_data_sync_service.dart';
+import '../../widgets/group_level_display_widget.dart';
 
 import 'group_qr_generate_page.dart';
 
@@ -515,7 +516,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
       decoration: BoxDecoration(
-        color: themeSettings.backgroundColor2,
+        color: themeSettings.cardBackgroundColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -697,7 +698,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       body: _loading
           ? Center(
               child: CircularProgressIndicator(
-                color: themeSettings.buttonColor,
+                color: themeSettings.appButtonColor,
               ),
             )
           : !groupProvider.hasGroup
@@ -810,7 +811,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              color: themeSettings.backgroundColor2,
+              color: themeSettings.cardBackgroundColor,
               shadowColor: themeSettings.buttonColor.withOpacity(0.15),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
@@ -870,7 +871,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                           decoration: BoxDecoration(
                             color: _isDarkTheme(themeSettings)
                                 ? Colors.white.withOpacity(0.05)
-                                : themeSettings.backgroundColor2.withOpacity(
+                                : themeSettings.cardBackgroundColor.withOpacity(
                                     0.1,
                                   ),
                             borderRadius: BorderRadius.circular(12),
@@ -948,143 +949,19 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                           ),
                         ),
                         SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.trending_up,
-                              color: themeSettings.iconColor,
-                              size: 32,
-                            ),
-                            SizedBox(width: 12),
-                            Text(
-                              'Lv.$currentLevel',
-                              style: TextStyle(
-                                fontSize: 22 * themeSettings.fontSizeScale,
-                                fontWeight: FontWeight.bold,
-                                color: themeSettings.fontColor1,
-                                fontFamily: themeSettings.fontFamily,
-                              ),
-                            ),
-                            Spacer(),
-                            Text(
-                              '${experiencePoints}XP',
-                              style: TextStyle(
-                                fontSize: 20 * themeSettings.fontSizeScale,
-                                color: themeSettings.fontColor1,
-                                fontFamily: themeSettings.fontFamily,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 12),
-                        LinearProgressIndicator(
-                          value: levelProgress.clamp(0.0, 1.0),
-                          minHeight: 12,
-                          backgroundColor: themeSettings.fontColor1.withOpacity(
-                            0.1,
-                          ),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            themeSettings.buttonColor,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          '次まで${experienceToNextLevel}XP',
-                          style: TextStyle(
-                            fontSize: 18 * themeSettings.fontSizeScale,
-                            color: themeSettings.fontColor1.withOpacity(0.6),
-                            fontFamily: themeSettings.fontFamily,
-                          ),
-                        ),
-                        SizedBox(height: 24),
 
                         // レベルタイトル
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(
-                            vertical: 16, // 縦のパディングを少し縮小
-                            horizontal: 16, // 横のパディングを縮小
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: _isDarkTheme(themeSettings)
-                                  ? [
-                                      Colors.white.withOpacity(0.1),
-                                      Colors.white.withOpacity(0.05),
-                                    ]
-                                  : [
-                                      themeSettings.buttonColor.withOpacity(
-                                        0.1,
-                                      ),
-                                      themeSettings.buttonColor.withOpacity(
-                                        0.05,
-                                      ),
-                                    ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: _isDarkTheme(themeSettings)
-                                  ? Colors.white.withOpacity(0.2)
-                                  : themeSettings.buttonColor.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Builder(
-                            builder: (context) {
-                              final levelStyle = _getLevelStyle(currentLevel);
-                              final specialEffect =
-                                  levelStyle['specialEffect'] as String;
-
-                              return Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      _buildLevelIcon(
-                                        themeSettings,
-                                        levelStyle,
-                                        specialEffect,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _getLevelTitle(currentLevel),
-                                          style: TextStyle(
-                                            fontSize:
-                                                levelStyle['titleFontSize'] *
-                                                themeSettings.fontSizeScale,
-                                            fontWeight: FontWeight.bold,
-                                            color: _getLevelTextColor(
-                                              themeSettings,
-                                              specialEffect,
-                                            ),
-                                            fontFamily:
-                                                themeSettings.fontFamily,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'レベル $currentLevel',
-                                    style: TextStyle(
-                                      fontSize:
-                                          16 * themeSettings.fontSizeScale,
-                                      color: themeSettings.fontColor1
-                                          .withOpacity(0.7),
-                                      fontFamily: themeSettings.fontFamily,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
+                        GroupLevelDisplayWidget(
+                          profile:
+                              GroupGamificationProfile.initial(
+                                _currentGroupId ?? 'group',
+                              ).copyWith(
+                                level: currentLevel,
+                                experiencePoints: experiencePoints,
+                                groupTitle: _getLevelTitle(currentLevel),
+                              ),
+                          showProgressBar: true,
+                          showNextLevelInfo: true,
                         ),
                         SizedBox(height: 24),
 
@@ -1104,7 +981,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                           decoration: BoxDecoration(
                             color: _isDarkTheme(themeSettings)
                                 ? Colors.white.withOpacity(0.05)
-                                : themeSettings.backgroundColor2.withOpacity(
+                                : themeSettings.cardBackgroundColor.withOpacity(
                                     0.1,
                                   ),
                             borderRadius: BorderRadius.circular(12),
@@ -1466,105 +1343,6 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     if (level < 9000) return 'ローストエンペラー';
     if (level < 9999) return 'ローストマイスター';
     return 'レベル9999 ローストエターナル';
-  }
-
-  // レベルに応じたUIスタイルを取得
-  Map<String, dynamic> _getLevelStyle(int level) {
-    // 基本スタイル
-    Map<String, dynamic> style = {
-      'cardElevation': 4.0,
-      'borderRadius': 12.0,
-      'iconSize': 28.0,
-      'titleFontSize': 18.0,
-      'hasGradient': false,
-      'hasGlow': false,
-      'hasAnimation': false,
-      'specialEffect': 'none',
-    };
-
-    // レベルに応じてスタイルをアップグレード
-    if (level >= 100) {
-      // ローストエキスパート以上
-      style['cardElevation'] = 6.0;
-      style['borderRadius'] = 16.0;
-      style['iconSize'] = 32.0;
-      style['titleFontSize'] = 20.0;
-      style['hasGradient'] = true;
-    }
-
-    if (level >= 500) {
-      // ローストマスター以上
-      style['cardElevation'] = 8.0;
-      style['borderRadius'] = 20.0;
-      style['iconSize'] = 36.0;
-      style['titleFontSize'] = 22.0;
-      style['hasGlow'] = true;
-    }
-
-    if (level >= 1000) {
-      // ローストスペシャリスト以上
-      style['cardElevation'] = 10.0;
-      style['borderRadius'] = 24.0;
-      style['iconSize'] = 40.0;
-      style['titleFontSize'] = 24.0;
-      style['hasAnimation'] = true;
-    }
-
-    if (level >= 2000) {
-      // ローストアーティスト以上
-      style['cardElevation'] = 12.0;
-      style['borderRadius'] = 28.0;
-      style['iconSize'] = 44.0;
-      style['titleFontSize'] = 26.0;
-      style['specialEffect'] = 'rainbow';
-    }
-
-    if (level >= 3500) {
-      // ローストエグゼクティブ以上
-      style['cardElevation'] = 14.0;
-      style['borderRadius'] = 32.0;
-      style['iconSize'] = 48.0;
-      style['titleFontSize'] = 28.0;
-      style['specialEffect'] = 'golden';
-    }
-
-    if (level >= 5000) {
-      // ローストレジェンド以上
-      style['cardElevation'] = 16.0;
-      style['borderRadius'] = 36.0;
-      style['iconSize'] = 52.0;
-      style['titleFontSize'] = 30.0;
-      style['specialEffect'] = 'legendary';
-    }
-
-    if (level >= 7000) {
-      // ローストパイオニア以上
-      style['cardElevation'] = 18.0;
-      style['borderRadius'] = 40.0;
-      style['iconSize'] = 56.0;
-      style['titleFontSize'] = 32.0;
-      style['specialEffect'] = 'pioneer';
-    }
-
-    if (level >= 9000) {
-      // ローストエンペラー以上
-      style['cardElevation'] = 20.0;
-      style['borderRadius'] = 44.0;
-      style['iconSize'] = 60.0;
-      style['titleFontSize'] = 34.0;
-      style['specialEffect'] = 'emperor';
-    }
-
-    if (level >= 9999) {
-      // ローストエターナル
-      style['cardElevation'] = 25.0;
-      style['borderRadius'] = 50.0;
-      style['iconSize'] = 64.0;
-      style['titleFontSize'] = 36.0;
-      style['specialEffect'] = 'eternal';
-    }
-
-    return style;
   }
 
   // レベルに応じたアイコンを構築
@@ -1964,7 +1742,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: themeSettings.backgroundColor2,
+        color: themeSettings.cardBackgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: themeSettings.fontColor1.withOpacity(0.1)),
       ),

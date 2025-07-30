@@ -194,7 +194,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    color: themeSettings.backgroundColor2,
+                    color: themeSettings.cardBackgroundColor,
                     child: Padding(
                       padding: EdgeInsets.all(16),
                       child: Column(
@@ -242,7 +242,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    color: themeSettings.backgroundColor2,
+                    color: themeSettings.cardBackgroundColor,
                     child: Padding(
                       padding: EdgeInsets.all(16),
                       child: Column(

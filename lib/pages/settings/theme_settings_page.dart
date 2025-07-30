@@ -122,7 +122,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -314,7 +314,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -375,7 +375,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -421,8 +421,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   MaterialPageRoute(builder: (_) => const DonationPage()),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: themeSettings.buttonColor,
+                  backgroundColor: themeSettings.appButtonColor,
                   foregroundColor: themeSettings.fontColor2,
+                  textStyle: const TextStyle(fontSize: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: const Text('寄付して応援する'),
               ),
@@ -473,7 +478,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               MaterialPageRoute(builder: (_) => const DonationPage()),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: themeSettings.buttonColor,
+              backgroundColor: themeSettings.appButtonColor,
               foregroundColor: themeSettings.fontColor2,
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
@@ -508,7 +513,8 @@ class _PresetButton extends StatelessWidget {
     final isLight = presetName == 'ライト';
 
     // アイコン色の決定（ボタン色と背景色のコントラストを考慮）
-    final backgroundColor = preset?['buttonColor'] ?? Colors.grey;
+    final backgroundColor =
+        preset?['buttonColor'] ?? preset?['appButtonColor'] ?? Colors.grey;
     final luminance = backgroundColor.computeLuminance();
     final iconColor = luminance > 0.5 ? Colors.black87 : Colors.white;
 
@@ -518,9 +524,11 @@ class _PresetButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: (preset?['buttonColor'] ?? Colors.grey).withOpacity(
-              isDisabled ? 0.2 : 0.3,
-            ),
+            color:
+                (preset?['buttonColor'] ??
+                        preset?['appButtonColor'] ??
+                        Colors.grey)
+                    .withOpacity(isDisabled ? 0.2 : 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -533,7 +541,9 @@ class _PresetButton extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: isLight
                   ? Colors.white
-                  : (preset?['buttonColor'] ?? Colors.grey),
+                  : (preset?['buttonColor'] ??
+                        preset?['appButtonColor'] ??
+                        Colors.grey),
               foregroundColor: isLight
                   ? Colors.black87
                   : (preset?['fontColor2'] ?? Colors.white),
@@ -742,7 +752,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: themeSettings.backgroundColor2,
+      backgroundColor: themeSettings.cardBackgroundColor,
       title: Text(
         '${widget.label}の色を選択',
         style: TextStyle(color: themeSettings.fontColor1),
@@ -830,7 +840,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
         ElevatedButton(
           onPressed: () => Navigator.pop(context, _color),
           style: ElevatedButton.styleFrom(
-            backgroundColor: themeSettings.buttonColor,
+            backgroundColor: themeSettings.appButtonColor,
             foregroundColor: themeSettings.fontColor2,
           ),
           child: const Text('決定'),

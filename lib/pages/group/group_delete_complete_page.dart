@@ -59,7 +59,7 @@ class GroupDeleteCompletePage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: themeSettings.backgroundColor2,
+                  color: themeSettings.cardBackgroundColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: themeSettings.iconColor.withOpacity(0.2),
@@ -225,4 +225,3 @@ class GroupDeleteCompletePage extends StatelessWidget {
     );
   }
 }
- 

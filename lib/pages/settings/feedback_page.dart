@@ -123,7 +123,7 @@ ${_messageController.text.trim()}
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                color: themeSettings.backgroundColor2,
+                color: themeSettings.cardBackgroundColor,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -155,7 +155,7 @@ ${_messageController.text.trim()}
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                color: themeSettings.backgroundColor2,
+                color: themeSettings.cardBackgroundColor,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -251,12 +251,13 @@ ${_messageController.text.trim()}
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _sendFeedback,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: themeSettings.buttonColor,
+                            backgroundColor: themeSettings.appButtonColor,
                             foregroundColor: themeSettings.fontColor2,
+                            textStyle: const TextStyle(fontSize: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            padding: EdgeInsets.symmetric(vertical: 16),
                           ),
                           child: _isLoading
                               ? SizedBox(

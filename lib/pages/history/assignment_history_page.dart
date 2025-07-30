@@ -60,7 +60,6 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
 
   /// グループ監視の初期化
   void _initializeGroupMonitoring() {
-    print('AssignmentHistoryPage: グループ監視初期化開始');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final groupProvider = context.read<GroupProvider>();
       _startGroupMonitoring(groupProvider);
@@ -613,7 +612,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    color: themeSettings.backgroundColor2,
+                    color: themeSettings.cardBackgroundColor,
                     margin: EdgeInsets.symmetric(vertical: 8),
                     child: Padding(
                       padding: EdgeInsets.all(20),

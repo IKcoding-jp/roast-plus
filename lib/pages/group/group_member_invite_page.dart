@@ -91,7 +91,7 @@ class _GroupMemberInvitePageState extends State<GroupMemberInvitePage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                color: themeSettings.backgroundColor2,
+                color: themeSettings.cardBackgroundColor,
                 child: Padding(
                   padding: EdgeInsets.all(16),
                   child: Column(
@@ -155,7 +155,7 @@ class _GroupMemberInvitePageState extends State<GroupMemberInvitePage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                color: themeSettings.backgroundColor2,
+                color: themeSettings.cardBackgroundColor,
                 child: Padding(
                   padding: EdgeInsets.all(16),
                   child: Column(

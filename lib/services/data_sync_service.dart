@@ -31,7 +31,7 @@ class DataSyncService {
         'appBarColor': themeSettings.appBarColor,
         'backgroundColor': themeSettings.backgroundColor,
         'buttonColor': themeSettings.buttonColor,
-        'backgroundColor2': themeSettings.backgroundColor2,
+        'backgroundColor2': themeSettings.cardBackgroundColor,
         'fontColor1': themeSettings.fontColor1,
         'fontColor2': themeSettings.fontColor2,
         'iconColor': themeSettings.iconColor,

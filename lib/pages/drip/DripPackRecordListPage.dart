@@ -366,7 +366,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        color: themeSettings.backgroundColor2,
+                        color: themeSettings.cardBackgroundColor,
                         margin: EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           contentPadding: EdgeInsets.all(16),

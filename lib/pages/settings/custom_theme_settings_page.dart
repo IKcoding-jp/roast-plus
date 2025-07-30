@@ -85,7 +85,7 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -114,8 +114,8 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
             const SizedBox(height: 16),
             _ColorPickerTile(
               label: 'カード・パネルの背景色',
-              color: themeSettings.backgroundColor2,
-              onColorChanged: themeSettings.updateBackgroundColor2,
+              color: themeSettings.cardBackgroundColor,
+              onColorChanged: themeSettings.updateCardBackgroundColor,
             ),
             const SizedBox(height: 16),
             _ColorPickerTile(
@@ -142,7 +142,7 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -237,7 +237,7 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -260,8 +260,8 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
             const SizedBox(height: 16),
             _ColorPickerTile(
               label: 'ボタンの色',
-              color: themeSettings.buttonColor,
-              onColorChanged: themeSettings.updateButtonColor,
+              color: themeSettings.appButtonColor,
+              onColorChanged: themeSettings.updateAppButtonColor,
             ),
             const SizedBox(height: 16),
             _ColorPickerTile(
@@ -313,7 +313,7 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -340,7 +340,7 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
                 icon: const Icon(Icons.save),
                 label: const Text('現在の設定をカスタムテーマとして保存'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: themeSettings.buttonColor,
+                  backgroundColor: themeSettings.appButtonColor,
                   foregroundColor: themeSettings.fontColor2,
                   textStyle: const TextStyle(fontSize: 16),
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -423,8 +423,8 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
                 final currentThemeData = {
                   'appBarColor': themeSettings.appBarColor,
                   'backgroundColor': themeSettings.backgroundColor,
-                  'buttonColor': themeSettings.buttonColor,
-                  'backgroundColor2': themeSettings.backgroundColor2,
+                  'buttonColor': themeSettings.appButtonColor,
+                  'backgroundColor2': themeSettings.cardBackgroundColor,
                   'fontColor1': themeSettings.fontColor1,
                   'fontColor2': themeSettings.fontColor2,
                   'iconColor': themeSettings.iconColor,
@@ -468,8 +468,8 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
                 final themeData = {
                   'appBarColor': themeSettings.appBarColor,
                   'backgroundColor': themeSettings.backgroundColor,
-                  'buttonColor': themeSettings.buttonColor,
-                  'backgroundColor2': themeSettings.backgroundColor2,
+                  'buttonColor': themeSettings.appButtonColor,
+                  'backgroundColor2': themeSettings.cardBackgroundColor,
                   'fontColor1': themeSettings.fontColor1,
                   'fontColor2': themeSettings.fontColor2,
                   'iconColor': themeSettings.iconColor,
@@ -507,7 +507,7 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: themeSettings.buttonColor,
+              backgroundColor: themeSettings.appButtonColor,
               foregroundColor: themeSettings.fontColor2,
             ),
             child: const Text('保存'),
@@ -535,7 +535,7 @@ class _ColorPickerTile extends StatelessWidget {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: themeSettings.backgroundColor2,
+      color: themeSettings.cardBackgroundColor,
       child: ListTile(
         leading: CircleAvatar(backgroundColor: color),
         title: Text(
@@ -587,7 +587,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: themeSettings.backgroundColor2,
+      backgroundColor: themeSettings.cardBackgroundColor,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
         height: MediaQuery.of(context).size.height * 0.8,
@@ -630,6 +630,15 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '#${widget.initialColor.value.toRadixString(16).toUpperCase().substring(2)}',
+                        style: TextStyle(
+                          color: themeSettings.fontColor1,
+                          fontSize: 10,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -655,6 +664,15 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                             color: themeSettings.fontColor1.withOpacity(0.3),
                             width: 1,
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '#${_color.value.toRadixString(16).toUpperCase().substring(2)}',
+                        style: TextStyle(
+                          color: themeSettings.fontColor1,
+                          fontSize: 10,
+                          fontFamily: 'monospace',
                         ),
                       ),
                     ],
@@ -687,7 +705,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, _color),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: themeSettings.buttonColor,
+                    backgroundColor: themeSettings.appButtonColor,
                     foregroundColor: themeSettings.fontColor2,
                   ),
                   child: const Text('決定'),

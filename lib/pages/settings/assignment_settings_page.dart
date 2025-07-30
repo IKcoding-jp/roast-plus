@@ -90,7 +90,7 @@ class _SettingsPageState extends State<SettingsPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -161,7 +161,7 @@ class _SettingsPageState extends State<SettingsPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(

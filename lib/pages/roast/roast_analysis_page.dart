@@ -288,7 +288,7 @@ class RoastAnalysisPage extends StatelessWidget {
                           ),
                           color: Provider.of<ThemeSettings>(
                             context,
-                          ).backgroundColor2,
+                          ).cardBackgroundColor,
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
@@ -396,7 +396,7 @@ class RoastAnalysisPage extends StatelessWidget {
                         ),
                         color: Provider.of<ThemeSettings>(
                           context,
-                        ).backgroundColor2,
+                        ).cardBackgroundColor,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Row(

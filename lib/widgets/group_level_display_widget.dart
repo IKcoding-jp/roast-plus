@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/group_gamification_models.dart';
+import '../models/theme_settings.dart';
+import 'package:provider/provider.dart';
 
 /// グループレベルと経験値を表示するウィジェット
 class GroupLevelDisplayWidget extends StatelessWidget {
@@ -22,13 +24,14 @@ class GroupLevelDisplayWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final themeSettings = Provider.of<ThemeSettings>(context);
 
     return Container(
       width: width,
       height: height,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: themeSettings.cardBackgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: colorScheme.outline.withOpacity(0.2),
@@ -50,7 +53,7 @@ class GroupLevelDisplayWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.workspace_premium,
+                profile.levelIcon, // 修正箇所: profile.levelIconを使用
                 color: profile.levelColor,
                 size: 24,
               ),
@@ -70,7 +73,7 @@ class GroupLevelDisplayWidget extends StatelessWidget {
           Text(
             profile.displayTitle,
             style: theme.textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurface.withOpacity(0.8),
+              color: themeSettings.fontColor1.withOpacity(0.8),
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -90,14 +93,14 @@ class GroupLevelDisplayWidget extends StatelessWidget {
               Text(
                 '現在XP: ${profile.experiencePoints}',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface.withOpacity(0.7),
+                  color: themeSettings.fontColor1.withOpacity(0.7),
                 ),
               ),
               if (showNextLevelInfo && profile.level < 9999)
                 Text(
                   '次レベルまで: ${profile.experienceToNextLevel}',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.7),
+                    color: themeSettings.fontColor1.withOpacity(0.7),
                   ),
                 ),
             ],
@@ -109,7 +112,7 @@ class GroupLevelDisplayWidget extends StatelessWidget {
             Text(
               '累積必要XP: ${_calculateTotalRequiredXP(profile.level)}',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.6),
+                color: themeSettings.fontColor1.withOpacity(0.6),
               ),
             ),
           ],
@@ -122,6 +125,7 @@ class GroupLevelDisplayWidget extends StatelessWidget {
   Widget _buildExperienceBar(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final themeSettings = Provider.of<ThemeSettings>(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,13 +136,13 @@ class GroupLevelDisplayWidget extends StatelessWidget {
             Text(
               '経験値',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.7),
+                color: themeSettings.fontColor1.withOpacity(0.7),
               ),
             ),
             Text(
               '${(profile.levelProgress * 100).toStringAsFixed(1)}%',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.7),
+                color: themeSettings.fontColor1.withOpacity(0.7),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -188,12 +192,13 @@ class GroupLevelBadgeWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final themeSettings = Provider.of<ThemeSettings>(context);
 
     if (levelBadges.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          color: themeSettings.cardBackgroundColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: colorScheme.outline.withOpacity(0.2),
@@ -205,13 +210,13 @@ class GroupLevelBadgeWidget extends StatelessWidget {
             Icon(
               Icons.emoji_events_outlined,
               size: 48,
-              color: colorScheme.onSurface.withOpacity(0.3),
+              color: themeSettings.fontColor1.withOpacity(0.3),
             ),
             const SizedBox(height: 8),
             Text(
               'まだレベルバッジを獲得していません',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.6),
+                color: themeSettings.fontColor1.withOpacity(0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -223,7 +228,7 @@ class GroupLevelBadgeWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: themeSettings.cardBackgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: colorScheme.outline.withOpacity(0.2),
@@ -235,12 +240,17 @@ class GroupLevelBadgeWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.emoji_events, color: colorScheme.primary, size: 20),
+              Icon(
+                Icons.emoji_events,
+                color: themeSettings.iconColor,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'レベルバッジ (${levelBadges.length})',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: themeSettings.fontColor1,
                 ),
               ),
             ],

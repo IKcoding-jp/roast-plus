@@ -202,7 +202,7 @@ class _CelebrationDialogState extends State<_CelebrationDialog>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           // Lottieアニメーション
-                          Container(
+                          SizedBox(
                             width: 150,
                             height: 150,
                             child: Lottie.asset(

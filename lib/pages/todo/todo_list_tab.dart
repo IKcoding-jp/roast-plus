@@ -545,7 +545,7 @@ class TodoListTabState extends State<TodoListTab> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
                 child: Padding(
                   padding: EdgeInsets.all(20),
                   child: Column(
@@ -697,7 +697,7 @@ class TodoListTabState extends State<TodoListTab> {
                             ),
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).backgroundColor2,
+                            ).cardBackgroundColor,
                             child: Padding(
                               padding: const EdgeInsets.all(40),
                               child: Column(
@@ -752,7 +752,7 @@ class TodoListTabState extends State<TodoListTab> {
                             ),
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).backgroundColor2,
+                            ).cardBackgroundColor,
                             margin: EdgeInsets.only(bottom: 12),
                             child: ListTile(
                               contentPadding: EdgeInsets.all(16),

@@ -41,7 +41,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.person_outline,
@@ -72,7 +72,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.lock_outline,
@@ -106,7 +106,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.volunteer_activism,
@@ -143,7 +143,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.color_lens_outlined,
@@ -175,7 +175,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.text_fields,
@@ -208,7 +208,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.label,
@@ -247,7 +247,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.volume_up,
@@ -285,7 +285,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.feedback,
@@ -315,7 +315,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.message,
@@ -347,7 +347,7 @@ class AppSettingsPage extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: ListTile(
                 leading: Icon(
                   Icons.update,

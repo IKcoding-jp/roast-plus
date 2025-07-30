@@ -240,7 +240,7 @@ class _GroupListPageState extends State<GroupListPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      color: themeSettings.backgroundColor2,
+                      color: themeSettings.cardBackgroundColor,
                       child: ListTile(
                         contentPadding: EdgeInsets.all(16),
                         // leading: グループアイコン部分を削除

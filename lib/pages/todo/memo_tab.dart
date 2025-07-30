@@ -98,7 +98,7 @@ class _MemoTabState extends State<MemoTab> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('メモを保存しました'),
-            backgroundColor: themeSettings.buttonColor,
+            backgroundColor: themeSettings.appButtonColor,
           ),
         );
       }
@@ -128,7 +128,7 @@ class _MemoTabState extends State<MemoTab> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: themeSettings.backgroundColor2,
+              color: themeSettings.cardBackgroundColor,
               child: Padding(
                 padding: EdgeInsets.all(20),
                 child: Column(
@@ -228,14 +228,12 @@ class _MemoTabState extends State<MemoTab> {
                           icon: Icon(Icons.save, size: 18),
                           label: Text('保存'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: themeSettings.buttonColor,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
+                            backgroundColor: themeSettings.appButtonColor,
+                            foregroundColor: themeSettings.fontColor2,
+                            textStyle: const TextStyle(fontSize: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                         ),

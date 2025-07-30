@@ -362,7 +362,7 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Row(
@@ -542,7 +542,7 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                  color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
                   margin: EdgeInsets.only(bottom: 14),
                   child: ListTile(
                     leading: Container(

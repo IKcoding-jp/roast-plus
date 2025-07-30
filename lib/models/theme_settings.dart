@@ -6,34 +6,34 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
 class ThemeSettings extends ChangeNotifier {
-  Color appBarColor;
-  Color backgroundColor;
-  Color buttonColor;
-  Color backgroundColor2;
-  Color fontColor1; // 通常の文章の色
-  Color fontColor2; // ボタンのフォントの色
+  Color appBarColor; // アプリバーの背景色
+  Color backgroundColor; // 画面全体の背景色
+  Color buttonColor; // プリセット選択ボタンの色
+  Color appButtonColor; // アプリ全体のボタンの色
+  Color cardBackgroundColor; // カード・パネルの背景色
+  Color fontColor1; // メインの文字色（タイトル、本文など）
+  Color fontColor2; // ボタンやアクセント要素の文字色
   Color iconColor; // アイコンの色
-  Color timerCircleColor; // 焙煎タイマーのサークルの色
-  Color bottomNavigationColor; // ボトムナビゲーションバーの色
-  Color inputBackgroundColor; // 入力欄の背景色
-  Color memberBackgroundColor; // メンバーの背景色
-  Color appBarTextColor; // 画面上部の文字色
-  Color bottomNavigationTextColor; // 画面下部の文字色
+  Color timerCircleColor; // 焙煎タイマーの円の色
+  Color bottomNavigationColor; // ボトムナビゲーションバーの背景色
+  Color inputBackgroundColor; // テキスト入力欄の背景色
+  Color memberBackgroundColor; // メンバー表示の背景色
+  Color appBarTextColor; // アプリバーの文字色
+  Color bottomNavigationTextColor; // ボトムナビゲーションの文字色
   Color dialogBackgroundColor; // ダイアログの背景色
   Color dialogTextColor; // ダイアログの文字色
-  Color inputTextColor; // 入力欄の文字色
-  Color cardBackgroundColor; // カードの背景色
-  Color borderColor; // ボーダーの色
-  double fontSizeScale; // フォントサイズのスケール（1.0が標準）
+  Color inputTextColor; // テキスト入力欄の文字色
+  Color borderColor; // 境界線の色
+  double fontSizeScale; // フォントサイズの倍率（1.0が標準）
   String fontFamily; // フォントファミリー
-  Color? customBottomNavigationSelectedColor;
-  Color? customBottomNavigationUnselectedColor;
+  Color? customBottomNavigationSelectedColor; // カスタムボトムナビゲーション選択時の色
+  Color? customBottomNavigationUnselectedColor; // カスタムボトムナビゲーション非選択時の色
 
   // 機能別の色設定
-  Color calculatorColor; // 電卓機能の色
-  Color settingsColor; // 設定機能の色
-  Color todoColor;
-  Color tastingColor; // テイスティング機能の色
+  Color calculatorColor; // 計算機機能のアクセント色
+  Color settingsColor; // 設定機能のアクセント色
+  Color todoColor; // TODO機能のアクセント色
+  Color tastingColor; // テイスティング機能のアクセント色
 
   // Firestoreリスナー用
   Stream<DocumentSnapshot>? _fontSettingsStream;
@@ -49,7 +49,7 @@ class ThemeSettings extends ChangeNotifier {
       appBarColor = defaultTheme['appBarColor']!;
       backgroundColor = defaultTheme['backgroundColor']!;
       buttonColor = defaultTheme['buttonColor']!;
-      backgroundColor2 = defaultTheme['backgroundColor2']!;
+      cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
       fontColor1 = defaultTheme['fontColor1']!;
       fontColor2 = defaultTheme['fontColor2']!;
       iconColor = defaultTheme['iconColor']!;
@@ -62,7 +62,6 @@ class ThemeSettings extends ChangeNotifier {
       dialogBackgroundColor = defaultTheme['dialogBackgroundColor']!;
       dialogTextColor = defaultTheme['dialogTextColor']!;
       inputTextColor = defaultTheme['inputTextColor']!;
-      cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
       borderColor = defaultTheme['borderColor']!;
       _bottomNavigationSelectedColor =
           defaultTheme['bottomNavigationSelectedColor'];
@@ -90,7 +89,7 @@ class ThemeSettings extends ChangeNotifier {
       appBarColor = defaultTheme['appBarColor']!;
       backgroundColor = defaultTheme['backgroundColor']!;
       buttonColor = defaultTheme['buttonColor']!;
-      backgroundColor2 = defaultTheme['backgroundColor2']!;
+      cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
       fontColor1 = defaultTheme['fontColor1']!;
       fontColor2 = defaultTheme['fontColor2']!;
       iconColor = defaultTheme['iconColor']!; // オレンジ色
@@ -103,7 +102,6 @@ class ThemeSettings extends ChangeNotifier {
       dialogBackgroundColor = defaultTheme['dialogBackgroundColor']!;
       dialogTextColor = defaultTheme['dialogTextColor']!;
       inputTextColor = defaultTheme['inputTextColor']!;
-      cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
       borderColor = defaultTheme['borderColor']!;
       _bottomNavigationSelectedColor =
           defaultTheme['bottomNavigationSelectedColor'];
@@ -136,7 +134,9 @@ class ThemeSettings extends ChangeNotifier {
       appBarColor = themeData['appBarColor'] ?? appBarColor;
       backgroundColor = themeData['backgroundColor'] ?? backgroundColor;
       buttonColor = themeData['buttonColor'] ?? buttonColor;
-      backgroundColor2 = themeData['backgroundColor2'] ?? backgroundColor2;
+      appButtonColor = themeData['appButtonColor'] ?? appButtonColor;
+      cardBackgroundColor =
+          themeData['cardBackgroundColor'] ?? cardBackgroundColor;
       fontColor1 = themeData['fontColor1'] ?? fontColor1;
       fontColor2 = themeData['fontColor2'] ?? fontColor2;
       iconColor = themeData['iconColor'] ?? iconColor;
@@ -196,8 +196,9 @@ class ThemeSettings extends ChangeNotifier {
               appBarColor = themeData['appBarColor'] ?? appBarColor;
               backgroundColor = themeData['backgroundColor'] ?? backgroundColor;
               buttonColor = themeData['buttonColor'] ?? buttonColor;
-              backgroundColor2 =
-                  themeData['backgroundColor2'] ?? backgroundColor2;
+              appButtonColor = themeData['appButtonColor'] ?? appButtonColor;
+              cardBackgroundColor =
+                  themeData['cardBackgroundColor'] ?? cardBackgroundColor;
               fontColor1 = themeData['fontColor1'] ?? fontColor1;
               fontColor2 = themeData['fontColor2'] ?? fontColor2;
               iconColor = themeData['iconColor'] ?? iconColor;
@@ -270,7 +271,8 @@ class ThemeSettings extends ChangeNotifier {
     required this.appBarColor,
     required this.backgroundColor,
     required this.buttonColor,
-    required this.backgroundColor2,
+    required this.appButtonColor,
+    required this.cardBackgroundColor,
     required this.fontColor1,
     required this.fontColor2,
     required this.iconColor,
@@ -282,8 +284,7 @@ class ThemeSettings extends ChangeNotifier {
     required this.bottomNavigationTextColor,
     required this.dialogBackgroundColor,
     required this.dialogTextColor,
-    Color? inputTextColor,
-    required this.cardBackgroundColor,
+    required this.inputTextColor,
     required this.borderColor,
     required this.fontSizeScale,
     required this.fontFamily,
@@ -295,234 +296,229 @@ class ThemeSettings extends ChangeNotifier {
     required this.settingsColor,
     required this.todoColor,
     required this.tastingColor,
-  }) : inputTextColor = inputTextColor ?? fontColor1,
-       _bottomNavigationSelectedColor = bottomNavigationSelectedColor,
+  }) : _bottomNavigationSelectedColor = bottomNavigationSelectedColor,
        _bottomNavigationUnselectedColor = bottomNavigationUnselectedColor;
 
   // プリセットテーマの定義（アイコン色は薄い色で設定）
   static const Map<String, Map<String, Color>> presets = {
     // 基本
     'デフォルト': {
-      'appBarColor': Color(0xFF2C1810), // 深いローストコーヒー色
-      'backgroundColor': Color(0xFFFFFBF0), // フレッシュミルクのような純白
-      'buttonColor': Color(0xFF8B4513), // リッチなコーヒーブラウン
-      'backgroundColor2': Color(0xFFFFFFFF), // 純粋なミルク色
-      'fontColor1': Color(0xFF2C1810), // 深いローストコーヒー色の文字
-      'fontColor2': Color(0xFFFFFFFF), // ミルク色の文字
-      'timerCircleColor': Color(0xFF8B4513), // リッチなコーヒーブラウン
-      'bottomNavigationColor': Color(0xFF2C1810), // 深いローストコーヒー色
-      'inputBackgroundColor': Color(0xFFFFF8F0), // スチームミルクのような温かみのある白
-      'iconColor': Color(0xFFD2691E), // ゴールデンクリーム色（砂糖の色）
-      'memberBackgroundColor': Color(0xFFFFF5E6), // ラテアートのようなクリーム色
-      'appBarTextColor': Color(0xFFFFFFFF), // ミルク色の文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ミルク色の文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF), // ミルク色の背景
-      'dialogTextColor': Color(0xFF2C1810), // 深いローストコーヒー色の文字
-      'inputTextColor': Color(0xFF2C1810), // 深いローストコーヒー色の文字
-      'cardBackgroundColor': Color(0xFFFFFFFF), // ミルク色の背景
-      'borderColor': Color(0xFFE6D7C3), // キャラメル色の境界線
-      'bottomNavigationSelectedColor': Color(0xFFD2691E), // ゴールデンクリーム色
-      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // 薄いブラウン（深い背景に対して）
-      'settingsColor': Color(0xFF8B4513), // リッチなコーヒーブラウン
+      'appBarColor': Color(0xFF2C1810), // アプリバーの背景色
+      'backgroundColor': Color(0xFFFFFBF0), // 画面全体の背景色
+      'buttonColor': Color(0xFF8B4513), // プリセット選択ボタンの色
+      'appButtonColor': Color(0xFF8B4513), // アプリ全体のボタンの色
+      'cardBackgroundColor': Color(0xFFFFFFFF), // カード・パネルの背景色
+      'fontColor1': Color(0xFF2C1810), // メインの文字色
+      'fontColor2': Color(0xFFFFFFFF), // ボタンやアクセント要素の文字色
+      'timerCircleColor': Color(0xFF8B4513), // 焙煎タイマーの円の色
+      'bottomNavigationColor': Color(0xFF2C1810), // ボトムナビゲーションバーの背景色
+      'inputBackgroundColor': Color(0xFFFFF8F0), // テキスト入力欄の背景色
+      'iconColor': Color(0xFFD2691E), // アイコンの色
+      'memberBackgroundColor': Color(0xFFFFF5E6), // メンバー表示の背景色
+      'appBarTextColor': Color(0xFFFFFFFF), // アプリバーの文字色
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ボトムナビゲーションの文字色
+      'dialogBackgroundColor': Color(0xFFFFFFFF), // ダイアログの背景色
+      'dialogTextColor': Color(0xFF2C1810), // ダイアログの文字色
+      'inputTextColor': Color(0xFF2C1810), // テキスト入力欄の文字色
+      'borderColor': Color(0xFFE6D7C3), // 境界線の色
+      'bottomNavigationSelectedColor': Color(0xFFD2691E), // ボトムナビゲーション選択時の色
+      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
+      'settingsColor': Color(0xFF8B4513), // 設定機能のアクセント色
     },
     'ダーク': {
-      'appBarColor': Color(0xFF121212), // より深い黒
-      'backgroundColor': Color(0xFF1E1E1E), // 目に優しいダークグレー
-      'buttonColor': Color(0xFF2C2C2C), // コントラストを保った按钮色
-      'backgroundColor2': Color(0xFF2A2A2A),
-      'fontColor1': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'fontColor2': Color(0xFFE0E0E0),
-      'timerCircleColor': Color(0xFF6C6C6C),
-      'bottomNavigationColor': Color(0xFF121212),
-      'inputBackgroundColor': Color(0xFF333333),
-      'iconColor': Color(0xFF81C784), // アクセントのミントグリーン
-      'memberBackgroundColor': Color(0xFF424242),
-      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'dialogBackgroundColor': Color(0xFF2A2A2A),
-      'dialogTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'inputTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'cardBackgroundColor': Color(0xFF2A2A2A),
-      'borderColor': Color(0xFF424242),
-      'bottomNavigationSelectedColor': Color(0xFF81C784),
-      'bottomNavigationUnselectedColor': Color(0xFF424242), // ダークグレー（黒背景に対して）
-      'settingsColor': Color(0xFF2E7D32), // ダークグリーン
+      'appBarColor': Color(0xFF121212), // アプリバーの背景色
+      'backgroundColor': Color(0xFF1E1E1E), // 画面全体の背景色
+      'buttonColor': Color(0xFF303030), // プリセット選択ボタンの色
+      'appButtonColor': Color.fromRGBO(97, 97, 97, 1), // アプリ全体のボタンの色
+      'cardBackgroundColor': Color(0xFF2A2A2A), // カード・パネルの背景色
+      'fontColor1': Color(0xFFFFFFFF), // メインの文字色
+      'fontColor2': Color(0xFFE0E0E0), // ボタンやアクセント要素の文字色
+      'timerCircleColor': Color(0xFF6C6C6C), // 焙煎タイマーの円の色
+      'bottomNavigationColor': Color(0xFF121212), // ボトムナビゲーションバーの背景色
+      'inputBackgroundColor': Color(0xFF333333), // テキスト入力欄の背景色
+      'iconColor': Color(0xFF81C784), // アイコンの色
+      'memberBackgroundColor': Color(0xFF424242), // メンバー表示の背景色
+      'appBarTextColor': Color(0xFFFFFFFF), // アプリバーの文字色
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ボトムナビゲーションの文字色
+      'dialogBackgroundColor': Color(0xFF2A2A2A), // ダイアログの背景色
+      'dialogTextColor': Color(0xFFFFFFFF), // ダイアログの文字色
+      'inputTextColor': Color(0xFFFFFFFF), // テキスト入力欄の文字色
+      'borderColor': Color(0xFF424242), // 境界線の色
+      'bottomNavigationSelectedColor': Color(0xFF81C784), // ボトムナビゲーション選択時の色
+      'bottomNavigationUnselectedColor': Color(0xFF424242), // ボトムナビゲーション非選択時の色
+      'settingsColor': Color(0xFF2E7D32), // 設定機能のアクセント色
     },
     'ライト': {
-      'appBarColor': Color(0xFFFAFAFA), // より純粋な白
-      'backgroundColor': Color(0xFFFFFFFF),
-      'buttonColor': Color(0xFF2196F3), // クリーンなブルー
-      'backgroundColor2': Color(0xFFFFFFFF),
-      'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFFFFFFFF), // ボタンテキストを白色に変更してコントラスト確保
-      'timerCircleColor': Color(0xFF2196F3), // クリーンなブルー
-      'bottomNavigationColor': Color(0xFFF5F5F5), // より濃いグレーでコントラスト改善
-      'inputBackgroundColor': Color(0xFFF8F8F8),
-      'iconColor': Color(0xFF2196F3), // クリーンなブルー
-      'memberBackgroundColor': Color(0xFFF0F4FF),
-      'appBarTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'bottomNavigationTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF),
-      'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
-      'borderColor': Color(0xFFE0E0E0),
-      'bottomNavigationSelectedColor': Color(0xFF2196F3),
-      'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
-      'settingsColor': Color(0xFF1976D2), // ダークブルー
+      'appBarColor': Color(0xFFFAFAFA), // アプリバーの背景色
+      'backgroundColor': Color(0xFFFFFFFF), // 画面全体の背景色
+      'buttonColor': Color(0xFF2196F3), // プリセット選択ボタンの色
+      'appButtonColor': Color(0xFF2196F3), // アプリ全体のボタンの色
+      'cardBackgroundColor': Color(0xFFFFFFFF), // カード・パネルの背景色
+      'fontColor1': Color(0xFF000000), // メインの文字色
+      'fontColor2': Color(0xFFFFFFFF), // ボタンやアクセント要素の文字色
+      'timerCircleColor': Color(0xFF2196F3), // 焙煎タイマーの円の色
+      'bottomNavigationColor': Color(0xFFF5F5F5), // ボトムナビゲーションバーの背景色
+      'inputBackgroundColor': Color(0xFFF8F8F8), // テキスト入力欄の背景色
+      'iconColor': Color(0xFF2196F3), // アイコンの色
+      'memberBackgroundColor': Color(0xFFF0F4FF), // メンバー表示の背景色
+      'appBarTextColor': Color(0xFF000000), // アプリバーの文字色
+      'bottomNavigationTextColor': Color(0xFF000000), // ボトムナビゲーションの文字色
+      'dialogBackgroundColor': Color(0xFFFFFFFF), // ダイアログの背景色
+      'dialogTextColor': Color(0xFF000000), // ダイアログの文字色
+      'inputTextColor': Color(0xFF000000), // テキスト入力欄の文字色
+      'borderColor': Color(0xFFE0E0E0), // 境界線の色
+      'bottomNavigationSelectedColor': Color(0xFF2196F3), // ボトムナビゲーション選択時の色
+      'bottomNavigationUnselectedColor': Color(0xFF757575), // ボトムナビゲーション非選択時の色
+      'settingsColor': Color(0xFF1976D2), // 設定機能のアクセント色
     },
 
     // ブラウン系（コーヒーテーマ強化）
     'ブラウン': {
-      'appBarColor': Color(0xFF3E2723),
-      'backgroundColor': Color(0xFFFDF8F5), // より温かみのある背景
-      'buttonColor': Color(0xFF6D4C41), // より濃いブラウンでコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
-      'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFFFFFFFF), // 白色に変更してコントラスト確保
-      'timerCircleColor': Color(0xFF6D4C41),
-      'bottomNavigationColor': Color(0xFF3E2723),
-      'inputBackgroundColor': Color(0xFFF9F5F1),
-      'iconColor': Color(0xFFBCAAA4), // 洗練されたベージュ
-      'memberBackgroundColor': Color(0xFFEFEBE9),
-      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF),
-      'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
-      'borderColor': Color(0xFFE0E0E0),
-      'bottomNavigationSelectedColor': Color(0xFFD7CCC8),
-      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // 薄いブラウン（深い背景に対して）
-      'settingsColor': Color(0xFF5D4037), // ダークブラウン
+      'appBarColor': Color(0xFF3E2723), // アプリバーの背景色
+      'backgroundColor': Color(0xFFFDF8F5), // 画面全体の背景色
+      'buttonColor': Color(0xFF6D4C41), // プリセット選択ボタンの色
+      'appButtonColor': Color(0xFF6D4C41), // アプリ全体のボタンの色
+      'cardBackgroundColor': Color(0xFFFFFFFF), // カード・パネルの背景色
+      'fontColor1': Color(0xFF000000), // メインの文字色
+      'fontColor2': Color(0xFFFFFFFF), // ボタンやアクセント要素の文字色
+      'timerCircleColor': Color(0xFF6D4C41), // 焙煎タイマーの円の色
+      'bottomNavigationColor': Color(0xFF3E2723), // ボトムナビゲーションバーの背景色
+      'inputBackgroundColor': Color(0xFFF9F5F1), // テキスト入力欄の背景色
+      'iconColor': Color(0xFFBCAAA4), // アイコンの色
+      'memberBackgroundColor': Color(0xFFEFEBE9), // メンバー表示の背景色
+      'appBarTextColor': Color(0xFFFFFFFF), // アプリバーの文字色
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ボトムナビゲーションの文字色
+      'dialogBackgroundColor': Color(0xFFFFFFFF), // ダイアログの背景色
+      'dialogTextColor': Color(0xFF000000), // ダイアログの文字色
+      'inputTextColor': Color(0xFF000000), // テキスト入力欄の文字色
+      'borderColor': Color(0xFFE0E0E0), // 境界線の色
+      'bottomNavigationSelectedColor': Color(0xFFD7CCC8), // ボトムナビゲーション選択時の色
+      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
+      'settingsColor': Color(0xFF5D4037), // 設定機能のアクセント色
     },
     'ベージュ': {
-      'appBarColor': Color(0xFF8D6E63), // より濃い色でコントラスト改善
-      'backgroundColor': Color(0xFFFFFAF0),
-      'buttonColor': Color(0xFFA1887F), // より濃いベージュでコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
-      'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFFFFFFFF), // 白色に変更してコントラスト確保
-      'timerCircleColor': Color(0xFFA1887F),
-      'bottomNavigationColor': Color(0xFF8D6E63),
-      'inputBackgroundColor': Color(0xFFFFF8F0),
-      'iconColor': Color(0xFFE4C441), // 温かみのあるゴールド
-      'memberBackgroundColor': Color(0xFFF3E5AB),
-      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF),
-      'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
-      'borderColor': Color(0xFFE0E0E0),
-      'bottomNavigationSelectedColor': Color(0xFFE4C441),
-      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // 薄いブラウン（深い背景に対して）
-      'settingsColor': Color(0xFF8D6E63), // ダークベージュ
+      'appBarColor': Color(0xFF8D6E63), // アプリバーの背景色
+      'backgroundColor': Color(0xFFFFFAF0), // 画面全体の背景色
+      'buttonColor': Color(0xFFA1887F), // プリセット選択ボタンの色
+      'appButtonColor': Color(0xFFA1887F), // アプリ全体のボタンの色
+      'cardBackgroundColor': Color(0xFFFFFFFF), // カード・パネルの背景色
+      'fontColor1': Color(0xFF000000), // メインの文字色
+      'fontColor2': Color(0xFFFFFFFF), // ボタンやアクセント要素の文字色
+      'timerCircleColor': Color(0xFFA1887F), // 焙煎タイマーの円の色
+      'bottomNavigationColor': Color(0xFF8D6E63), // ボトムナビゲーションバーの背景色
+      'inputBackgroundColor': Color(0xFFFFF8F0), // テキスト入力欄の背景色
+      'iconColor': Color(0xFFE4C441), // アイコンの色
+      'memberBackgroundColor': Color(0xFFF3E5AB), // メンバー表示の背景色
+      'appBarTextColor': Color(0xFFFFFFFF), // アプリバーの文字色
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ボトムナビゲーションの文字色
+      'dialogBackgroundColor': Color(0xFFFFFFFF), // ダイアログの背景色
+      'dialogTextColor': Color(0xFF000000), // ダイアログの文字色
+      'inputTextColor': Color(0xFF000000), // テキスト入力欄の文字色
+      'borderColor': Color(0xFFE0E0E0), // 境界線の色
+      'bottomNavigationSelectedColor': Color(0xFFE4C441), // ボトムナビゲーション選択時の色
+      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
+      'settingsColor': Color(0xFF8D6E63), // 設定機能のアクセント色
     },
     'エスプレッソ': {
-      // 新追加
-      'appBarColor': Color(0xFF1A0E0A),
-      'backgroundColor': Color(0xFFFBF7F4),
-      'buttonColor': Color(0xFF4A2C2A), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
-      'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFFFFFFFF), // 白色に変更してコントラスト確保
-      'timerCircleColor': Color(0xFF4A2C2A),
-      'bottomNavigationColor': Color(0xFF1A0E0A),
-      'inputBackgroundColor': Color(0xFFF7F1ED),
-      'iconColor': Color(0xFFD4AF37), // ゴールデンクレマ色
-      'memberBackgroundColor': Color(0xFFEDDDD4),
-      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF),
-      'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
-      'borderColor': Color(0xFFE0E0E0),
-      'bottomNavigationSelectedColor': Color(0xFFD4AF37),
-      'bottomNavigationUnselectedColor': Color(0xFFFFFFFF), // 白
-      'settingsColor': Color(0xFF3E2723), // ダークブラウン
+      'appBarColor': Color(0xFF1A0E0A), // アプリバーの背景色
+      'backgroundColor': Color(0xFFFBF7F4), // 画面全体の背景色
+      'buttonColor': Color(0xFF4A2C2A), // プリセット選択ボタンの色
+      'appButtonColor': Color(0xFF4A2C2A), // アプリ全体のボタンの色
+      'cardBackgroundColor': Color(0xFFFFFFFF), // カード・パネルの背景色
+      'fontColor1': Color(0xFF000000), // メインの文字色
+      'fontColor2': Color(0xFFFFFFFF), // ボタンやアクセント要素の文字色
+      'timerCircleColor': Color(0xFF4A2C2A), // 焙煎タイマーの円の色
+      'bottomNavigationColor': Color(0xFF1A0E0A), // ボトムナビゲーションバーの背景色
+      'inputBackgroundColor': Color(0xFFF7F1ED), // テキスト入力欄の背景色
+      'iconColor': Color(0xFFD4AF37), // アイコンの色
+      'memberBackgroundColor': Color(0xFFEDDDD4), // メンバー表示の背景色
+      'appBarTextColor': Color(0xFFFFFFFF), // アプリバーの文字色
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ボトムナビゲーションの文字色
+      'dialogBackgroundColor': Color(0xFFFFFFFF), // ダイアログの背景色
+      'dialogTextColor': Color(0xFF000000), // ダイアログの文字色
+      'inputTextColor': Color(0xFF000000), // テキスト入力欄の文字色
+      'borderColor': Color(0xFFE0E0E0), // 境界線の色
+      'bottomNavigationSelectedColor': Color(0xFFD4AF37), // ボトムナビゲーション選択時の色
+      'bottomNavigationUnselectedColor': Color(0xFFFFFFFF), // ボトムナビゲーション非選択時の色
+      'settingsColor': Color(0xFF3E2723), // 設定機能のアクセント色
     },
     'カプチーノ': {
-      // 新追加
-      'appBarColor': Color(0xFFA0764A),
-      'backgroundColor': Color(0xFFFFF9F2),
-      'buttonColor': Color(0xFF8D6E63), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
-      'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFFFFFFFF), // 白色に変更してコントラスト確保
-      'timerCircleColor': Color(0xFF8D6E63),
-      'bottomNavigationColor': Color(0xFFA0764A),
-      'inputBackgroundColor': Color(0xFFFFF7EC),
-      'iconColor': Color(0xFFCD853F), // ミルクフォーム色
-      'memberBackgroundColor': Color(0xFFF4E7D1),
-      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF),
-      'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
-      'borderColor': Color(0xFFE0E0E0),
-      'bottomNavigationSelectedColor': Color(0xFFCD853F),
-      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // 薄いブラウン（深い背景に対して）
-      'settingsColor': Color(0xFF6D4C41), // ダークブラウン
+      'appBarColor': Color(0xFFA0764A), // アプリバーの背景色
+      'backgroundColor': Color(0xFFFFF9F2), // 画面全体の背景色
+      'buttonColor': Color(0xFF8D6E63), // プリセット選択ボタンの色
+      'appButtonColor': Color(0xFF8D6E63), // アプリ全体のボタンの色
+      'cardBackgroundColor': Color(0xFFFFFFFF), // カード・パネルの背景色
+      'fontColor1': Color(0xFF000000), // メインの文字色
+      'fontColor2': Color(0xFFFFFFFF), // ボタンやアクセント要素の文字色
+      'timerCircleColor': Color(0xFF8D6E63), // 焙煎タイマーの円の色
+      'bottomNavigationColor': Color(0xFFA0764A), // ボトムナビゲーションバーの背景色
+      'inputBackgroundColor': Color(0xFFFFF7EC), // テキスト入力欄の背景色
+      'iconColor': Color(0xFFCD853F), // アイコンの色
+      'memberBackgroundColor': Color(0xFFF4E7D1), // メンバー表示の背景色
+      'appBarTextColor': Color(0xFFFFFFFF), // アプリバーの文字色
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ボトムナビゲーションの文字色
+      'dialogBackgroundColor': Color(0xFFFFFFFF), // ダイアログの背景色
+      'dialogTextColor': Color(0xFF000000), // ダイアログの文字色
+      'inputTextColor': Color(0xFF000000), // テキスト入力欄の文字色
+      'borderColor': Color(0xFFE0E0E0), // 境界線の色
+      'bottomNavigationSelectedColor': Color(0xFFCD853F), // ボトムナビゲーション選択時の色
+      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
+      'settingsColor': Color(0xFF6D4C41), // 設定機能のアクセント色
     },
     // 赤・ピンク系（より洗練された色調）
     'サクラ': {
-      // 新追加
-      'appBarColor': Color(0xFFE91E63),
-      'backgroundColor': Color(0xFFFFF0F5),
-      'buttonColor': Color(0xFFD81B60), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
-      'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
-      'timerCircleColor': Color(0xFFD81B60),
-      'bottomNavigationColor': Color(0xFFE91E63),
-      'inputBackgroundColor': Color(0xFFFDF2F8),
-      'iconColor': Color(0xFFFF80AB), // 桜のピンク
-      'memberBackgroundColor': Color(0xFFFCE4EC),
-      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF),
-      'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
-      'borderColor': Color(0xFFE0E0E0),
-      'bottomNavigationSelectedColor': Color(0xFFFF80AB),
-      'bottomNavigationUnselectedColor': Color(0xFFE1BEE7), // 薄いピンク（深い背景に対して）
-      'settingsColor': Color(0xFFC2185B), // ダークピンク
+      'appBarColor': Color(0xFFE91E63), // アプリバーの背景色
+      'backgroundColor': Color(0xFFFFF0F5), // 画面全体の背景色
+      'buttonColor': Color(0xFFD81B60), // プリセット選択ボタンの色
+      'appButtonColor': Color(0xFFD81B60), // アプリ全体のボタンの色
+      'cardBackgroundColor': Color(0xFFFFFFFF), // カード・パネルの背景色
+      'fontColor1': Color(0xFF000000), // メインの文字色
+      'fontColor2': Color(0xFFFFFFFF), // ボタンやアクセント要素の文字色
+      'timerCircleColor': Color(0xFFD81B60), // 焙煎タイマーの円の色
+      'bottomNavigationColor': Color(0xFFE91E63), // ボトムナビゲーションバーの背景色
+      'inputBackgroundColor': Color(0xFFFDF2F8), // テキスト入力欄の背景色
+      'iconColor': Color(0xFFFF80AB), // アイコンの色
+      'memberBackgroundColor': Color(0xFFFCE4EC), // メンバー表示の背景色
+      'appBarTextColor': Color(0xFFFFFFFF), // アプリバーの文字色
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ボトムナビゲーションの文字色
+      'dialogBackgroundColor': Color(0xFFFFFFFF), // ダイアログの背景色
+      'dialogTextColor': Color(0xFF000000), // ダイアログの文字色
+      'inputTextColor': Color(0xFF000000), // テキスト入力欄の文字色
+      'borderColor': Color(0xFFE0E0E0), // 境界線の色
+      'bottomNavigationSelectedColor': Color(0xFFFF80AB), // ボトムナビゲーション選択時の色
+      'bottomNavigationUnselectedColor': Color(0xFFE1BEE7), // ボトムナビゲーション非選択時の色
+      'settingsColor': Color(0xFFC2185B), // 設定機能のアクセント色
     },
     // グリーン系（自然で現代的）
     'フォレスト': {
-      // 新追加
-      'appBarColor': Color(0xFF2E7D32),
-      'backgroundColor': Color(0xFFF1F8E9),
-      'buttonColor': Color(0xFF388E3C), // より濃い緑でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
-      'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
-      'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
-      'timerCircleColor': Color(0xFF388E3C),
-      'bottomNavigationColor': Color(0xFF2E7D32),
-      'inputBackgroundColor': Color(0xFFF7FCF0),
-      'iconColor': Color(0xFF81C784), // 森の緑
-      'memberBackgroundColor': Color(0xFFE8F5E8),
-      'appBarTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'bottomNavigationTextColor': Color(0xFFFFFFFF), // 暗い背景なので白文字
-      'dialogBackgroundColor': Color(0xFFFFFFFF),
-      'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
-      'borderColor': Color(0xFFE0E0E0),
-      'bottomNavigationSelectedColor': Color(0xFF81C784),
-      'bottomNavigationUnselectedColor': Color(0xFFA5D6A7), // 薄いグリーン（深い背景に対して）
-      'settingsColor': Color(0xFF2E7D32), // ダークグリーン
+      'appBarColor': Color(0xFF2E7D32), // アプリバーの背景色
+      'backgroundColor': Color(0xFFF1F8E9), // 画面全体の背景色
+      'buttonColor': Color(0xFF388E3C), // プリセット選択ボタンの色
+      'appButtonColor': Color(0xFF388E3C), // アプリ全体のボタンの色
+      'cardBackgroundColor': Color(0xFFFFFFFF), // カード・パネルの背景色
+      'fontColor1': Color(0xFF000000), // メインの文字色
+      'fontColor2': Color(0xFFFFFFFF), // ボタンやアクセント要素の文字色
+      'timerCircleColor': Color(0xFF388E3C), // 焙煎タイマーの円の色
+      'bottomNavigationColor': Color(0xFF2E7D32), // ボトムナビゲーションバーの背景色
+      'inputBackgroundColor': Color(0xFFF7FCF0), // テキスト入力欄の背景色
+      'iconColor': Color(0xFF81C784), // アイコンの色
+      'memberBackgroundColor': Color(0xFFE8F5E8), // メンバー表示の背景色
+      'appBarTextColor': Color(0xFFFFFFFF), // アプリバーの文字色
+      'bottomNavigationTextColor': Color(0xFFFFFFFF), // ボトムナビゲーションの文字色
+      'dialogBackgroundColor': Color(0xFFFFFFFF), // ダイアログの背景色
+      'dialogTextColor': Color(0xFF000000), // ダイアログの文字色
+      'inputTextColor': Color(0xFF000000), // テキスト入力欄の文字色
+      'borderColor': Color(0xFFE0E0E0), // 境界線の色
+      'bottomNavigationSelectedColor': Color(0xFF81C784), // ボトムナビゲーション選択時の色
+      'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
+      'settingsColor': Color(0xFF2E7D32), // 設定機能のアクセント色
     },
     'ティール': {
       // 新追加
       'appBarColor': Color(0xFF00695C),
       'backgroundColor': Color(0xFFE0F2F1),
       'buttonColor': Color(0xFF00796B), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF),
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFF00796B),
@@ -535,7 +531,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF80CBC4),
       'bottomNavigationUnselectedColor': Color(0xFFB2DFDB), // 薄いティール（深い背景に対して）
@@ -546,7 +541,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFF00796B),
       'backgroundColor': Color(0xFFE8F5F2),
       'buttonColor': Color(0xFF26A69A), // より鮮やかなミントグリーンでコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF),
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFF26A69A),
@@ -559,7 +554,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF4DB6AC),
       'bottomNavigationUnselectedColor': Color(
@@ -573,7 +567,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFF0277BD),
       'backgroundColor': Color(0xFFE1F5FE),
       'buttonColor': Color(0xFF0288D1), // より濃い青でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF),
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFF0288D1),
@@ -586,7 +580,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF4FC3F7),
       'bottomNavigationUnselectedColor': Color(0xFFFFFFFF), // 白
@@ -596,7 +589,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFF1A237E), // より深いネイビー
       'backgroundColor': Color(0xFFF3F7FF),
       'buttonColor': Color(0xFF303F9F), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF),
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFF303F9F),
@@ -609,7 +602,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFF7986CB),
       'bottomNavigationUnselectedColor': Color(0xFFC5CAE9), // 薄いネイビー（深い背景に対して）
@@ -621,7 +613,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFF7B1FA2),
       'backgroundColor': Color(0xFFFAF4FF),
       'buttonColor': Color(0xFF8E24AA), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF),
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFF8E24AA),
@@ -634,7 +626,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFCE93D8),
       'bottomNavigationUnselectedColor': Color(0xFFE1BEE7), // 薄いラベンダー（深い背景に対して）
@@ -645,7 +636,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFB8860B), // ダークゴールド
       'backgroundColor': Color(0xFFFFFDF0), // 非常に薄いゴールド
       'buttonColor': Color(0xFFDAA520), // ゴールデンロッド
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF),
       'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFDAA520),
@@ -658,7 +649,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
       'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFFFF8DC), // 薄いゴールドの境界線
       'bottomNavigationSelectedColor': Color(0xFFFFD700),
       'bottomNavigationUnselectedColor': Color(0xFFFFF8DC), // 薄いゴールド（深い背景に対して）
@@ -669,7 +659,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFF696969), // ディムグレー
       'backgroundColor': Color(0xFFFAFAFA), // 非常に薄いグレー
       'buttonColor': Color(0xFF808080), // グレー
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF),
       'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFF808080),
@@ -682,7 +672,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
       'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE8E8E8), // 薄いグレーの境界線
       'bottomNavigationSelectedColor': Color(0xFFC0C0C0),
       'bottomNavigationUnselectedColor': Color(0xFFD3D3D3), // 薄いシルバー（深い背景に対して）
@@ -693,7 +682,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFC62828), // 深いレッド
       'backgroundColor': Color(0xFFFFF5F5),
       'buttonColor': Color(0xFFD32F2F), // より濃いレッドでコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF),
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFD32F2F),
@@ -706,7 +695,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFEF5350),
       'bottomNavigationUnselectedColor': Color(0xFFFFCDD2), // 薄いレッド（深い背景に対して）
@@ -717,7 +705,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFE65100),
       'backgroundColor': Color(0xFFFFF8F0),
       'buttonColor': Color(0xFFF57C00), // より濃いオレンジでコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFF57C00),
@@ -730,7 +718,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFB74D),
       'bottomNavigationUnselectedColor': Color(0xFFFFE0B2), // 薄いオレンジ（深い背景に対して）
@@ -741,7 +728,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFFF6F00),
       'backgroundColor': Color(0xFFFFF7ED),
       'buttonColor': Color(0xFFFF8F00), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFFF8F00),
@@ -754,7 +741,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFCC02),
       'bottomNavigationUnselectedColor': Color(0xFFFFE0B2), // 薄いオレンジ（深い背景に対して）
@@ -765,7 +751,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFFF8F00),
       'backgroundColor': Color(0xFFFFF8E1),
       'buttonColor': Color(0xFFFFB300), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFF000000), // 明るいボタンなので黒文字
       'timerCircleColor': Color(0xFFFFB300),
@@ -778,7 +764,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFDD835),
       'bottomNavigationUnselectedColor': Color(0xFFFFECB3), // 薄いアンバー（深い背景に対して）
@@ -789,7 +774,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFC17817),
       'backgroundColor': Color(0xFFFFF9F2),
       'buttonColor': Color(0xFFB8860B), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFB8860B),
@@ -802,7 +787,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFDAA520),
       'bottomNavigationUnselectedColor': Color(0xFFF3E5AB), // 薄いキャラメル（深い背景に対して）
@@ -813,7 +797,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFD2691E),
       'backgroundColor': Color(0xFFFFF7F0),
       'buttonColor': Color(0xFFCD853F), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFCD853F),
@@ -826,7 +810,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFB347),
       'bottomNavigationUnselectedColor': Color(0xFFFFD8B1), // 薄いパンプキン（深い背景に対して）
@@ -838,7 +821,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFFF5722),
       'backgroundColor': Color(0xFFFFF3E0),
       'buttonColor': Color(0xFFE64A19), // より濃い色でコントラスト改善
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF000000), // 明るい背景なので黒文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFE64A19),
@@ -851,7 +834,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF000000), // 明るい背景なので黒文字
       'inputTextColor': Color(0xFF000000), // 明るい背景なので黒文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE0E0E0),
       'bottomNavigationSelectedColor': Color(0xFFFFAB91),
       'bottomNavigationUnselectedColor': Color(0xFFFFCCBC), // 薄いサンセット（深い背景に対して）
@@ -862,7 +844,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFFFB3D9), // 優しいピンク
       'backgroundColor': Color(0xFFFFF0F8), // 非常に薄いピンク
       'buttonColor': Color(0xFFFF80AB), // パステルピンク
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFFF80AB),
@@ -875,7 +857,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
       'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFFFE1F2), // 薄いピンクの境界線
       'bottomNavigationSelectedColor': Color(0xFFF48FB1),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
@@ -885,7 +866,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFB3E5FC), // 優しいブルー
       'backgroundColor': Color(0xFFF0FBFF), // 非常に薄いブルー
       'buttonColor': Color(0xFF81D4FA), // パステルブルー
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFF81D4FA),
@@ -898,7 +879,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
       'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE1F5FE), // 薄いブルーの境界線
       'bottomNavigationSelectedColor': Color(0xFF4FC3F7),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
@@ -908,7 +888,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFC8E6C9), // 優しいグリーン
       'backgroundColor': Color(0xFFF1F8E9), // 非常に薄いグリーン
       'buttonColor': Color(0xFFA5D6A7), // パステルグリーン
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFA5D6A7),
@@ -921,7 +901,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
       'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFE8F5E8), // 薄いグリーンの境界線
       'bottomNavigationSelectedColor': Color(0xFF81C784),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
@@ -931,7 +910,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFFFF9C4), // 優しいイエロー
       'backgroundColor': Color(0xFFFFFDE7), // 非常に薄いイエロー
       'buttonColor': Color(0xFFFFF59D), // パステルイエロー
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
       'fontColor2': Color(0xFF2C1810), // 明るいボタンなので黒文字
       'timerCircleColor': Color(0xFFFFF59D),
@@ -944,7 +923,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
       'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFFFF8E1), // 薄いイエローの境界線
       'bottomNavigationSelectedColor': Color(0xFFFFF176),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
@@ -954,7 +932,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFE1BEE7), // 優しいパープル
       'backgroundColor': Color(0xFFFAF4FF), // 非常に薄いパープル
       'buttonColor': Color(0xFFCE93D8), // パステルパープル
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFCE93D8),
@@ -967,7 +945,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
       'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFF3E5F5), // 薄いパープルの境界線
       'bottomNavigationSelectedColor': Color(0xFFBA68C8),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
@@ -977,7 +954,7 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': Color(0xFFFFCCBC), // 優しいピーチ
       'backgroundColor': Color(0xFFFFF8F5), // 非常に薄いピーチ
       'buttonColor': Color(0xFFFFAB91), // パステルピーチ
-      'backgroundColor2': Color(0xFFFFFFFF),
+      'cardBackgroundColor': Color(0xFFFFFFFF), // ←追加
       'fontColor1': Color(0xFF2C1810), // 深いコーヒー色の文字
       'fontColor2': Color(0xFFFFFFFF), // 白色でコントラスト確保
       'timerCircleColor': Color(0xFFFFAB91),
@@ -990,7 +967,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': Color(0xFFFFFFFF),
       'dialogTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
       'inputTextColor': Color(0xFF2C1810), // 深いコーヒー色の文字
-      'cardBackgroundColor': Color(0xFFFFFFFF),
       'borderColor': Color(0xFFFFE0B2), // 薄いピーチの境界線
       'bottomNavigationSelectedColor': Color(0xFFFF8A65),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
@@ -1018,7 +994,8 @@ class ThemeSettings extends ChangeNotifier {
         'theme_appBarColor',
         'theme_backgroundColor',
         'theme_buttonColor',
-        'theme_backgroundColor2',
+        'theme_appButtonColor',
+        'theme_cardBackgroundColor',
         'theme_fontColor1',
         'theme_fontColor2',
         'theme_iconColor',
@@ -1058,9 +1035,13 @@ class ThemeSettings extends ChangeNotifier {
           settings['theme_buttonColor'] ??
               defaultTheme['buttonColor']!.toARGB32(),
         ),
-        backgroundColor2: Color(
-          settings['theme_backgroundColor2'] ??
-              defaultTheme['backgroundColor2']!.toARGB32(),
+        appButtonColor: Color(
+          settings['theme_appButtonColor'] ??
+              defaultTheme['appButtonColor']!.toARGB32(),
+        ),
+        cardBackgroundColor: Color(
+          settings['theme_cardBackgroundColor'] ??
+              defaultTheme['cardBackgroundColor']!.toARGB32(),
         ),
         fontColor1: Color(
           settings['theme_fontColor1'] ??
@@ -1109,7 +1090,6 @@ class ThemeSettings extends ChangeNotifier {
           settings['theme_inputTextColor'] ??
               defaultTheme['inputTextColor']!.value,
         ),
-        cardBackgroundColor: defaultTheme['cardBackgroundColor']!,
         borderColor: defaultTheme['borderColor']!,
         fontSizeScale: settings['theme_fontSizeScale'] ?? 1.0,
         fontFamily: _getValidFontFamily(
@@ -1151,7 +1131,8 @@ class ThemeSettings extends ChangeNotifier {
         appBarColor: defaultTheme['appBarColor']!,
         backgroundColor: defaultTheme['backgroundColor']!,
         buttonColor: defaultTheme['buttonColor']!,
-        backgroundColor2: defaultTheme['backgroundColor2']!,
+        appButtonColor: defaultTheme['appButtonColor']!,
+        cardBackgroundColor: defaultTheme['cardBackgroundColor']!,
         fontColor1: defaultTheme['fontColor1']!,
         fontColor2: defaultTheme['fontColor2']!,
         iconColor: defaultTheme['iconColor']!,
@@ -1164,7 +1145,6 @@ class ThemeSettings extends ChangeNotifier {
         dialogBackgroundColor: defaultTheme['dialogBackgroundColor']!,
         dialogTextColor: defaultTheme['dialogTextColor']!,
         inputTextColor: defaultTheme['inputTextColor']!,
-        cardBackgroundColor: defaultTheme['cardBackgroundColor']!,
         borderColor: defaultTheme['borderColor']!,
         fontSizeScale: 1.0,
         fontFamily: 'Noto Sans JP',
@@ -1189,7 +1169,8 @@ class ThemeSettings extends ChangeNotifier {
         'appBarColor': appBarColor.toARGB32(),
         'backgroundColor': backgroundColor.toARGB32(),
         'buttonColor': buttonColor.toARGB32(),
-        'backgroundColor2': backgroundColor2.toARGB32(),
+        'appButtonColor': appButtonColor.toARGB32(),
+        'cardBackgroundColor': cardBackgroundColor.toARGB32(),
         'fontColor1': fontColor1.toARGB32(),
         'fontColor2': fontColor2.toARGB32(),
         'iconColor': iconColor.toARGB32(),
@@ -1202,7 +1183,6 @@ class ThemeSettings extends ChangeNotifier {
         'dialogBackgroundColor': dialogBackgroundColor.toARGB32(),
         'dialogTextColor': dialogTextColor.toARGB32(),
         'inputTextColor': inputTextColor.toARGB32(),
-        'cardBackgroundColor': cardBackgroundColor.toARGB32(),
         'borderColor': borderColor.toARGB32(),
         'bottomNavigationSelectedColor': bottomNavigationSelectedColor
             .toARGB32(),
@@ -1223,7 +1203,8 @@ class ThemeSettings extends ChangeNotifier {
         'theme_appBarColor': appBarColor.toARGB32(),
         'theme_backgroundColor': backgroundColor.toARGB32(),
         'theme_buttonColor': buttonColor.toARGB32(),
-        'theme_backgroundColor2': backgroundColor2.toARGB32(),
+        'theme_appButtonColor': appButtonColor.toARGB32(),
+        'theme_cardBackgroundColor': cardBackgroundColor.toARGB32(),
         'theme_fontColor1': fontColor1.toARGB32(),
         'theme_fontColor2': fontColor2.toARGB32(),
         'theme_iconColor': iconColor.toARGB32(),
@@ -1269,14 +1250,20 @@ class ThemeSettings extends ChangeNotifier {
     save();
   }
 
+  void updateCardBackgroundColor(Color color) {
+    cardBackgroundColor = color;
+    notifyListeners();
+    save();
+  }
+
   void updateButtonColor(Color color) {
     buttonColor = color;
     notifyListeners();
     save();
   }
 
-  void updateBackgroundColor2(Color color) {
-    backgroundColor2 = color;
+  void updateAppButtonColor(Color color) {
+    appButtonColor = color;
     notifyListeners();
     save();
   }
@@ -1391,7 +1378,8 @@ class ThemeSettings extends ChangeNotifier {
     appBarColor = defaultTheme['appBarColor']!;
     backgroundColor = defaultTheme['backgroundColor']!;
     buttonColor = defaultTheme['buttonColor']!;
-    backgroundColor2 = defaultTheme['backgroundColor2']!;
+    appButtonColor = defaultTheme['buttonColor']!;
+    cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
     fontColor1 = defaultTheme['fontColor1']!;
     fontColor2 = defaultTheme['fontColor2']!;
     iconColor = defaultTheme['iconColor']!; // オレンジ色
@@ -1404,7 +1392,6 @@ class ThemeSettings extends ChangeNotifier {
     dialogBackgroundColor = defaultTheme['dialogBackgroundColor']!;
     dialogTextColor = defaultTheme['dialogTextColor']!;
     inputTextColor = defaultTheme['inputTextColor']!;
-    cardBackgroundColor = defaultTheme['cardBackgroundColor']!;
     borderColor = defaultTheme['borderColor']!;
     customBottomNavigationSelectedColor =
         defaultTheme['bottomNavigationSelectedColor']!;
@@ -1424,7 +1411,8 @@ class ThemeSettings extends ChangeNotifier {
       appBarColor = preset['appBarColor']!;
       backgroundColor = preset['backgroundColor']!;
       buttonColor = preset['buttonColor']!;
-      backgroundColor2 = preset['backgroundColor2']!;
+      appButtonColor = preset['appButtonColor'] ?? preset['buttonColor']!;
+      cardBackgroundColor = preset['cardBackgroundColor']!;
       fontColor1 = preset['fontColor1']!;
       fontColor2 = preset['fontColor2']!;
       timerCircleColor = preset['timerCircleColor']!;
@@ -1437,7 +1425,6 @@ class ThemeSettings extends ChangeNotifier {
       dialogBackgroundColor = preset['dialogBackgroundColor']!;
       dialogTextColor = preset['dialogTextColor']!;
       inputTextColor = preset['inputTextColor']!;
-      cardBackgroundColor = preset['cardBackgroundColor']!;
       borderColor = preset['borderColor']!;
       // カスタム設定をクリアしてプリセットの値を使用
       customBottomNavigationSelectedColor = null;
@@ -1567,7 +1554,8 @@ class ThemeSettings extends ChangeNotifier {
       'appBarColor': appBarColor,
       'backgroundColor': backgroundColor,
       'buttonColor': buttonColor,
-      'backgroundColor2': backgroundColor2,
+      'appButtonColor': appButtonColor,
+      'cardBackgroundColor': cardBackgroundColor,
       'fontColor1': fontColor1,
       'fontColor2': fontColor2,
       'iconColor': iconColor,
@@ -1580,7 +1568,6 @@ class ThemeSettings extends ChangeNotifier {
       'dialogBackgroundColor': dialogBackgroundColor,
       'dialogTextColor': dialogTextColor,
       'inputTextColor': inputTextColor,
-      'cardBackgroundColor': cardBackgroundColor,
       'borderColor': borderColor,
       'bottomNavigationSelectedColor': bottomNavigationSelectedColor,
       'settingsColor': settingsColor,
@@ -1604,7 +1591,9 @@ class ThemeSettings extends ChangeNotifier {
       appBarColor = themeData['appBarColor'] ?? Color(0xFF2C1810);
       backgroundColor = themeData['backgroundColor'] ?? Color(0xFFFFFBF5);
       buttonColor = themeData['buttonColor'] ?? Color(0xFF8D6E63);
-      backgroundColor2 = themeData['backgroundColor2'] ?? Color(0xFFFFFFFF);
+      appButtonColor = themeData['buttonColor'] ?? Color(0xFF8D6E63);
+      cardBackgroundColor =
+          themeData['cardBackgroundColor'] ?? Color(0xFFFFFFFF);
       fontColor1 = themeData['fontColor1'] ?? Color(0xFF000000);
       fontColor2 = themeData['fontColor2'] ?? Color(0xFFFFFFFF);
       iconColor = themeData['iconColor'] ?? Color(0xFFE67E22);
@@ -1622,8 +1611,6 @@ class ThemeSettings extends ChangeNotifier {
           themeData['dialogBackgroundColor'] ?? Color(0xFFFFFFFF);
       dialogTextColor = themeData['dialogTextColor'] ?? Color(0xFF000000);
       inputTextColor = themeData['inputTextColor'] ?? Color(0xFF000000);
-      cardBackgroundColor =
-          themeData['cardBackgroundColor'] ?? Color(0xFFFFFFFF);
       borderColor = themeData['borderColor'] ?? Color(0xFFE0E0E0);
       customBottomNavigationSelectedColor =
           themeData['customBottomNavigationSelectedColor'] ??

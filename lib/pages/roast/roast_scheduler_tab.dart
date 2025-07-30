@@ -459,7 +459,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -691,7 +691,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              color: Provider.of<ThemeSettings>(context).backgroundColor2,
+              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
               child: Padding(
                 padding: EdgeInsets.all(20),
                 child: Column(

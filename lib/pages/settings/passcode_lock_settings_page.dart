@@ -234,7 +234,7 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                  color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Column(
@@ -292,7 +292,7 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Provider.of<ThemeSettings>(context).backgroundColor2,
+                  color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Column(
