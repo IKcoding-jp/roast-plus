@@ -77,53 +77,110 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   }
 
   /// グループデータとローカルデータをマージ
-  void _mergeGroupDataWithLocal(Map<String, dynamic> groupAssignmentData) {
+  void _mergeGroupDataWithLocal(
+    Map<String, dynamic> groupAssignmentData,
+  ) async {
     debugPrint('AssignmentBoard: グループデータとローカルデータをマージ開始');
     debugPrint('AssignmentBoard: 受信データ: $groupAssignmentData');
 
+    // 今日の担当が既に決定されているかチェック
+    final today = _todayKey();
+    final todayAssignedPairs = await UserSettingsFirestoreService.getSetting(
+      'assignment_$today',
+    );
+    final savedDate = await UserSettingsFirestoreService.getSetting(
+      'assignedDate',
+    );
+    final lastResetDate = await UserSettingsFirestoreService.getSetting(
+      'lastResetDate',
+    );
+
+    final hasTodayAssignment =
+        todayAssignedPairs != null &&
+        todayAssignedPairs is List &&
+        todayAssignedPairs.isNotEmpty &&
+        savedDate == today &&
+        lastResetDate != today;
+
+    debugPrint(
+      'AssignmentBoard: 今日の担当状態チェック - hasTodayAssignment: $hasTodayAssignment',
+    );
+
+    // データを一旦変数に格納してから一括更新
+    List<Team> newTeams = [];
+    List<String> newLeftLabels = leftLabels;
+    List<String> newRightLabels = rightLabels;
+
+    // 新しい形式（teams）または古い形式（aMembers, bMembers）に対応
+    if (groupAssignmentData['teams'] != null) {
+      final teamsList = groupAssignmentData['teams'] as List;
+      newTeams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
+    } else {
+      // 古い形式の場合は新しい形式に変換
+      final aMembers = _safeStringListFromDynamic(
+        groupAssignmentData['aMembers'],
+      );
+      final bMembers = _safeStringListFromDynamic(
+        groupAssignmentData['bMembers'],
+      );
+      newTeams = [
+        Team(id: 'team_a', name: 'A班', members: aMembers),
+        Team(id: 'team_b', name: 'B班', members: bMembers),
+      ];
+    }
+
+    // ラベルデータはグループデータを優先、ただし空の場合はローカルデータを保持
+    if ((groupAssignmentData['leftLabels'] as List?)?.isNotEmpty ?? false) {
+      newLeftLabels = _safeStringListFromDynamic(
+        groupAssignmentData['leftLabels'],
+      );
+    }
+    if ((groupAssignmentData['rightLabels'] as List?)?.isNotEmpty ?? false) {
+      newRightLabels = _safeStringListFromDynamic(
+        groupAssignmentData['rightLabels'],
+      );
+    }
+
+    // 今日の担当が決定済みの場合は、基本構成を今日の担当で上書き
+    if (hasTodayAssignment) {
+      debugPrint('AssignmentBoard: 今日の担当決定済み - 基本構成に担当データを適用');
+      try {
+        final assignedPairs = todayAssignedPairs;
+        if (assignedPairs.length == newLeftLabels.length &&
+            newTeams.length >= 2) {
+          // 基本構成を今日の担当で上書き
+          for (int i = 0; i < newTeams.length; i++) {
+            final newTeamMembers = assignedPairs
+                .map((e) => e.toString().split('-')[i])
+                .toList();
+            newTeams[i] = newTeams[i].copyWith(members: newTeamMembers);
+          }
+          debugPrint('AssignmentBoard: 基本構成に今日の担当を適用完了');
+        }
+      } catch (e) {
+        debugPrint('AssignmentBoard: 今日の担当適用エラー: $e');
+      }
+    }
+
+    // すべてのデータを一度に更新（ちらつき防止）
     if (mounted) {
       setState(() {
-        // 新しい形式（teams）または古い形式（aMembers, bMembers）に対応
-        if (groupAssignmentData['teams'] != null) {
-          final teamsList = groupAssignmentData['teams'] as List;
-          teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
-        } else {
-          // 古い形式の場合は新しい形式に変換
-          final aMembers = _safeStringListFromDynamic(
-            groupAssignmentData['aMembers'],
-          );
-          final bMembers = _safeStringListFromDynamic(
-            groupAssignmentData['bMembers'],
-          );
-          teams = [
-            Team(id: 'team_a', name: 'A班', members: aMembers),
-            Team(id: 'team_b', name: 'B班', members: bMembers),
-          ];
-        }
-
-        // ラベルデータはグループデータを優先、ただし空の場合はローカルデータを保持
-        if ((groupAssignmentData['leftLabels'] as List?)?.isNotEmpty ?? false) {
-          leftLabels = _safeStringListFromDynamic(
-            groupAssignmentData['leftLabels'],
-          );
-        }
-        if ((groupAssignmentData['rightLabels'] as List?)?.isNotEmpty ??
-            false) {
-          rightLabels = _safeStringListFromDynamic(
-            groupAssignmentData['rightLabels'],
-          );
-        }
-
-        // データ設定完了後、ローディング状態を解除
+        teams = newTeams;
+        leftLabels = newLeftLabels;
+        rightLabels = newRightLabels;
         _isLoading = false;
+        // 担当決定状態も同時に更新
+        if (hasTodayAssignment) {
+          isAssignedToday = true;
+        }
       });
     }
 
-    // ローカルデータも更新
+    // ローカルデータも更新（非同期だがUIブロックしない）
     _updateLocalData();
 
     debugPrint(
-      'AssignmentBoard: マージ完了 - teams: ${teams.length}, leftLabels: $leftLabels, rightLabels: $rightLabels',
+      'AssignmentBoard: マージ完了 - teams: ${teams.length}, leftLabels: $leftLabels, rightLabels: $rightLabels, hasTodayAssignment: $hasTodayAssignment',
     );
   }
 
@@ -152,23 +209,59 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     }
   }
 
-  void setAssignmentHistoryFromFirestore(List<String> history) {
-    if (mounted) {
-      setState(() {
-        if (history.isNotEmpty &&
-            history.length == leftLabels.length &&
-            teams.length >= 2) {
-          // 履歴を各チームに分配
-          for (int i = 0; i < teams.length; i++) {
-            final teamMembers = history.map((e) => e.split('-')[i]).toList();
-            teams[i] = teams[i].copyWith(members: teamMembers);
-          }
-          isAssignedToday = true;
-        } else {
-          // 履歴が空または無効な場合は決定済みフラグをリセット
-          isAssignedToday = false;
+  void setAssignmentHistoryFromFirestore(List<String> history) async {
+    if (!mounted) return;
+
+    final today = _todayKey();
+    bool shouldUpdateState = false;
+    bool newAssignedStatus = false;
+
+    debugPrint('AssignmentBoard: 今日の担当履歴設定開始 - history: $history');
+
+    if (history.isNotEmpty &&
+        history.length == leftLabels.length &&
+        teams.length >= 2) {
+      try {
+        // 履歴を各チームに分配
+        List<Team> updatedTeams = [];
+        for (int i = 0; i < teams.length; i++) {
+          final teamMembers = history.map((e) => e.split('-')[i]).toList();
+          updatedTeams.add(teams[i].copyWith(members: teamMembers));
         }
-      });
+
+        // 今日の日付と合わせてローカルにも保存（非同期だがUIブロックしない）
+        UserSettingsFirestoreService.saveMultipleSettings({
+          'assignment_$today': history,
+          'assignedDate': today,
+          'lastResetDate': null, // リセット状態をクリア
+          'resetVerified': false,
+        });
+
+        if (mounted) {
+          setState(() {
+            teams = updatedTeams;
+            isAssignedToday = true;
+          });
+        }
+
+        debugPrint('AssignmentBoard: グループから今日の担当履歴を受信・適用完了');
+      } catch (e) {
+        debugPrint('AssignmentBoard: 履歴データ適用エラー: $e');
+        shouldUpdateState = true;
+        newAssignedStatus = false;
+      }
+    } else {
+      // 履歴が空または無効な場合は決定済みフラグをリセット
+      shouldUpdateState = true;
+      newAssignedStatus = false;
+      debugPrint('AssignmentBoard: 履歴データが無効または空 - 決定済みフラグをリセット');
+
+      // 状態変更が必要かつ値が変わる場合のみsetStateを呼ぶ
+      if (shouldUpdateState && isAssignedToday != newAssignedStatus) {
+        setState(() {
+          isAssignedToday = newAssignedStatus;
+        });
+      }
     }
   }
 
@@ -241,52 +334,83 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       ]);
 
       // 新しい形式で班データを読み込み
+      List<Team> loadedTeams = [];
       final teamsJson = settings['teams'];
       if (teamsJson != null) {
         final teamsList = jsonDecode(teamsJson) as List;
-        teams = teamsList.map((teamMap) => Team.fromMap(teamMap)).toList();
+        loadedTeams = teamsList
+            .map((teamMap) => Team.fromMap(teamMap))
+            .toList();
       } else {
         // 既存のA班、B班データを新しい形式に変換
         final loadedA = settings['assignment_team_a'] ?? [];
         final loadedB = settings['assignment_team_b'] ?? [];
-        teams = [
+        loadedTeams = [
           Team(id: 'team_a', name: 'A班', members: loadedA),
           Team(id: 'team_b', name: 'B班', members: loadedB),
         ];
       }
 
       // ラベルデータを確実に読み込み
-      leftLabels = settings['leftLabels'] ?? [];
-      rightLabels = settings['rightLabels'] ?? [];
+      final loadedLeftLabels = settings['leftLabels'] ?? [];
+      final loadedRightLabels = settings['rightLabels'] ?? [];
 
       debugPrint(
-        'AssignmentBoard: ローカルデータ読み込み完了 - leftLabels: $leftLabels, rightLabels: $rightLabels',
+        'AssignmentBoard: ローカルデータ読み込み完了 - leftLabels: $loadedLeftLabels, rightLabels: $loadedRightLabels',
       );
 
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+      // 今日の担当があるかチェック
+      final today = _todayKey();
+      final todayAssignedPairs = await UserSettingsFirestoreService.getSetting(
+        'assignment_$today',
+      );
+      final savedDate = await UserSettingsFirestoreService.getSetting(
+        'assignedDate',
+      );
+      final lastResetDate = await UserSettingsFirestoreService.getSetting(
+        'lastResetDate',
+      );
+
+      final hasTodayAssignment =
+          todayAssignedPairs != null &&
+          todayAssignedPairs is List &&
+          todayAssignedPairs.isNotEmpty &&
+          savedDate == today &&
+          lastResetDate != today;
+
+      // 今日の担当が決定済みの場合は、基本構成を今日の担当で上書き
+      if (hasTodayAssignment) {
+        debugPrint('AssignmentBoard: 今日の担当決定済み - 基本構成に担当データを適用');
+        try {
+          final assignedPairs = todayAssignedPairs;
+          if (assignedPairs.length == loadedLeftLabels.length &&
+              loadedTeams.length >= 2) {
+            // 基本構成を今日の担当で上書き
+            for (int i = 0; i < loadedTeams.length; i++) {
+              final newTeamMembers = assignedPairs
+                  .map((e) => e.toString().split('-')[i])
+                  .toList();
+              loadedTeams[i] = loadedTeams[i].copyWith(members: newTeamMembers);
+            }
+            debugPrint('AssignmentBoard: ローカルデータに今日の担当を適用完了');
+          }
+        } catch (e) {
+          debugPrint('AssignmentBoard: ローカルデータでの今日の担当適用エラー: $e');
+        }
       }
 
-      // 今日の担当履歴も読み込み
-      final today = _todayKey();
-      final assignedPairs =
-          await UserSettingsFirestoreService.getSetting('assignment_$today') ??
-          [];
-      final savedDate = settings['assignedDate'];
-      final wasAssigned = savedDate == today && assignedPairs.isNotEmpty;
-
-      if (wasAssigned &&
-          assignedPairs.length == leftLabels.length &&
-          teams.length >= 2) {
-        for (int i = 0; i < teams.length; i++) {
-          final newTeamMembers = assignedPairs
-              .map((e) => e.split('-')[i])
-              .toList();
-          teams[i] = teams[i].copyWith(members: newTeamMembers);
-        }
-        isAssignedToday = true;
+      // すべてのデータを一度に更新（ちらつき防止）
+      if (mounted) {
+        setState(() {
+          teams = loadedTeams;
+          leftLabels = loadedLeftLabels;
+          rightLabels = loadedRightLabels;
+          _isLoading = false;
+          // 担当決定状態も同時に更新
+          if (hasTodayAssignment) {
+            isAssignedToday = true;
+          }
+        });
       }
     } catch (e) {
       debugPrint('AssignmentBoard: ローカルデータ読み込みエラー: $e');
@@ -301,6 +425,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     // グループ状態でない場合のみローカルデータを再読み込み
     final groupProvider = context.read<GroupProvider>();
     if (!groupProvider.hasGroup && !_isLoading) {
@@ -458,7 +583,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       final group = groupProvider.currentGroup!;
       debugPrint('AssignmentBoard: グループ監視開始 - groupId: ${group.id}');
 
-      // グループの担当表データを監視
+      // グループの担当表データを監視（基本構成）
       _groupAssignmentSubscription =
           GroupDataSyncService.watchGroupAssignmentBoard(group.id).listen((
             groupAssignmentData,
@@ -467,6 +592,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             debugPrint('AssignmentBoard: グループ担当表データ変更検知: $groupAssignmentData');
             if (groupAssignmentData != null) {
               // グループデータが利用可能になった場合、ローカルデータとマージ
+              // ただし、今日の担当が決定済みの場合は基本構成での上書きを防ぐ
               _mergeGroupDataWithLocal(groupAssignmentData);
             } else {
               debugPrint('AssignmentBoard: グループ担当表データが空です - ローカルデータを維持');
@@ -509,15 +635,28 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             debugPrint(
               'AssignmentBoard: グループ今日の担当履歴変更検知: $groupTodayAssignmentData',
             );
-            if (groupTodayAssignmentData != null &&
-                groupTodayAssignmentData['assignments'] != null) {
-              setAssignmentHistoryFromFirestore(
-                _safeStringListFromDynamic(
-                  groupTodayAssignmentData['assignments'],
-                ),
+
+            // データがnullまたは削除された場合の処理を強化
+            if (groupTodayAssignmentData == null) {
+              debugPrint('AssignmentBoard: グループの今日の担当データが削除されました');
+              setAssignmentHistoryFromFirestore([]);
+              return;
+            }
+
+            if (groupTodayAssignmentData['assignments'] != null) {
+              final assignments = _safeStringListFromDynamic(
+                groupTodayAssignmentData['assignments'],
               );
+              if (assignments.isNotEmpty) {
+                debugPrint('AssignmentBoard: グループから今日の担当データを受信 - 最優先で適用');
+                setAssignmentHistoryFromFirestore(assignments);
+              } else {
+                debugPrint('AssignmentBoard: グループの今日の担当データが空です');
+                setAssignmentHistoryFromFirestore([]);
+              }
             } else {
               // グループの今日の担当履歴が削除された場合
+              debugPrint('AssignmentBoard: グループの今日の担当履歴が削除されました');
               setAssignmentHistoryFromFirestore([]);
             }
           });
@@ -827,6 +966,69 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     'yyyy-MM-dd',
   ).format(DateTime.now().subtract(Duration(days: d)));
 
+  /// リセット後の状態を検証して永続化
+  Future<void> _verifyResetState() async {
+    try {
+      final today = _todayKey();
+      debugPrint('AssignmentBoard: リセット状態の検証開始 - today: $today');
+
+      // リセット状態を明示的に保存
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'assignment_$today': null,
+        'assignedDate': null,
+        'lastResetDate': today, // リセット実行日を記録
+        'resetVerified': true, // リセット検証フラグ
+      });
+
+      // 現在の状態を確認
+      final assignedPairs = await UserSettingsFirestoreService.getSetting(
+        'assignment_$today',
+      );
+      final savedDate = await UserSettingsFirestoreService.getSetting(
+        'assignedDate',
+      );
+
+      debugPrint(
+        'AssignmentBoard: リセット後の確認 - assignedPairs: $assignedPairs, savedDate: $savedDate',
+      );
+
+      // 状態が正しくリセットされていることを確認
+      if (assignedPairs == null && savedDate == null) {
+        debugPrint('AssignmentBoard: リセット状態の検証成功');
+
+        // UIの状態も確実に更新
+        if (mounted) {
+          setState(() {
+            isAssignedToday = false;
+          });
+        }
+      } else {
+        debugPrint('AssignmentBoard: リセット状態の検証失敗 - 再試行');
+
+        // 再度リセットを実行
+        await UserSettingsFirestoreService.saveMultipleSettings({
+          'assignment_$today': null,
+          'assignedDate': null,
+        });
+
+        if (mounted) {
+          setState(() {
+            isAssignedToday = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('AssignmentBoard: リセット状態の検証エラー: $e');
+
+      // エラーの場合も確実にリセット状態にする
+      if (mounted) {
+        setState(() {
+          isAssignedToday = false;
+        });
+      }
+    }
+  }
+
   bool _isWeekend() {
     final wd = DateTime.now().weekday;
     return wd == DateTime.saturday || wd == DateTime.sunday;
@@ -1041,7 +1243,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       debugPrint('AssignmentBoard: Firestoreからの今日の担当履歴削除エラー: $e');
     }
 
-    // グループにも同期
+    // グループにも同期（今日の担当データを完全に削除）
     try {
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.hasGroup) {
@@ -1050,6 +1252,13 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           'AssignmentBoard: 今日の担当履歴をグループから削除開始 - groupId: ${group.id}',
         );
 
+        // 今日の担当データを完全に削除（空のマップを送信）
+        await GroupDataSyncService.syncTodayAssignment(
+          group.id,
+          {}, // 空のマップを送信してデータをクリア
+        );
+
+        // 担当履歴からも削除
         final assignmentHistoryData = {
           today: {'deleted': true, 'savedAt': DateTime.now().toIso8601String()},
         };
@@ -1121,6 +1330,9 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       // 個人状態の場合は、_loadState()を呼び出してデータを再読み込み
       await _loadState();
     }
+
+    // リセット後の状態を確実にチェックして永続化
+    await _verifyResetState();
 
     debugPrint('AssignmentBoard: 今日の担当リセット完了');
   }
@@ -1430,7 +1642,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                       team.name,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 20,
+                                        fontSize:
+                                            20 *
+                                            Provider.of<ThemeSettings>(
+                                              context,
+                                            ).fontSizeScale,
                                         color: Provider.of<ThemeSettings>(
                                           context,
                                         ).fontColor1,
@@ -1478,7 +1694,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                           : '',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 18,
+                                        fontSize:
+                                            18 *
+                                            Provider.of<ThemeSettings>(
+                                              context,
+                                            ).fontSizeScale,
                                         color: Provider.of<ThemeSettings>(
                                           context,
                                         ).fontColor1,
@@ -1524,7 +1744,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                       textAlign: TextAlign.right,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 18,
+                                        fontSize:
+                                            18 *
+                                            Provider.of<ThemeSettings>(
+                                              context,
+                                            ).fontSizeScale,
                                         color: Provider.of<ThemeSettings>(
                                           context,
                                         ).fontColor1,

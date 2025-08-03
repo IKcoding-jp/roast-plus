@@ -54,17 +54,6 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
 
     // 通知からアプリが起動された時の処理
     _handleNotificationLaunch();
-
-    // デフォルトテーマの初期化
-    _initializeDefaultTheme();
-  }
-
-  /// デフォルトテーマの初期化
-  void _initializeDefaultTheme() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
-      themeSettings.initializeDefaultTheme();
-    });
   }
 
   /// 通知からアプリが起動された時の処理

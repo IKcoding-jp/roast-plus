@@ -26,15 +26,15 @@ class _HomeHeaderState extends State<HomeHeader> {
   String _getSecondMessage() {
     final hour = DateTime.now().hour;
     if (hour >= 4 && hour < 7) {
-      return '新しい一日の始まりです。美味しいコーヒーでスタートしましょう！';
+      return '新しい一日の始まりです。';
     } else if (hour >= 7 && hour < 10) {
-      return '朝の焙煎、今日も一緒にがんばりましょう！';
+      return '今日も一緒にお仕事頑張りましょう！';
     } else if (hour >= 10 && hour < 12) {
       return '今日もお仕事、応援しています！';
     } else if (hour >= 12 && hour < 14) {
-      return '午後もコーヒーと一緒にリフレッシュしましょう☕️';
+      return 'お昼休憩の時間ですね。美味しいご飯とコーヒーでリフレッシュしましょう🍽️☕️';
     } else if (hour >= 14 && hour < 17) {
-      return 'もうひと踏ん張り！素敵な焙煎タイムを！';
+      return 'もうひと踏ん張り！がんばりましょう！';
     } else if (hour >= 17 && hour < 19) {
       return '本日もお疲れ様でした。ゆっくり休憩しましょう。';
     } else if (hour >= 19 || hour < 0) {

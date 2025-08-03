@@ -203,8 +203,14 @@ class _CelebrationDialogState extends State<_CelebrationDialog>
                         children: [
                           // Lottieアニメーション
                           SizedBox(
-                            width: 150,
-                            height: 150,
+                            width:
+                                widget.lottieAsset.contains('Coffie Cap.json')
+                                ? 300
+                                : 180,
+                            height:
+                                widget.lottieAsset.contains('Coffie Cap.json')
+                                ? 300
+                                : 180,
                             child: Lottie.asset(
                               widget.lottieAsset,
                               fit: BoxFit.contain,

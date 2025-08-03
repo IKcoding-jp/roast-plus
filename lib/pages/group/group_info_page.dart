@@ -778,9 +778,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         final currentLevel = groupGamificationProfile?.level ?? 1;
         final experiencePoints =
             groupGamificationProfile?.experiencePoints ?? 0;
-        final levelProgress = groupGamificationProfile?.levelProgress ?? 0.0;
-        final experienceToNextLevel =
-            groupGamificationProfile?.experienceToNextLevel ?? 0;
+
         final memberCount = group.members.length;
 
         // デバッグ情報を出力
@@ -1343,90 +1341,6 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     if (level < 9000) return 'ローストエンペラー';
     if (level < 9999) return 'ローストマイスター';
     return 'レベル9999 ローストエターナル';
-  }
-
-  // レベルに応じたアイコンを構築
-  Widget _buildLevelIcon(
-    ThemeSettings themeSettings,
-    Map<String, dynamic> levelStyle,
-    String specialEffect,
-  ) {
-    final iconSize = levelStyle['iconSize'] as double;
-    final hasGlow = levelStyle['hasGlow'] as bool;
-
-    IconData iconData = Icons.emoji_events;
-    Color iconColor = themeSettings.iconColor; // 基本はテーマのアイコン色
-
-    // 特殊効果に応じてアイコンと色を変更
-    switch (specialEffect) {
-      case 'rainbow':
-        iconData = Icons.auto_awesome;
-        iconColor = Colors.purple;
-        break;
-      case 'golden':
-        iconData = Icons.star;
-        iconColor = Colors.amber;
-        break;
-      case 'legendary':
-        iconData = Icons.whatshot;
-        iconColor = Colors.orange;
-        break;
-      case 'pioneer':
-        iconData = Icons.explore;
-        iconColor = Colors.blue;
-        break;
-      case 'emperor':
-        iconData = Icons.workspace_premium;
-        iconColor = Colors.yellow;
-        break;
-      case 'eternal':
-        iconData = Icons.all_inclusive;
-        iconColor = Colors.white;
-        break;
-      default:
-        iconData = Icons.emoji_events;
-        iconColor = themeSettings.iconColor;
-    }
-
-    Widget icon = Icon(iconData, color: iconColor, size: iconSize);
-
-    // グロー効果を追加
-    if (hasGlow) {
-      return Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: iconColor.withOpacity(0.5),
-              blurRadius: 8,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: icon,
-      );
-    }
-
-    return icon;
-  }
-
-  // レベルに応じたテキスト色を取得
-  Color _getLevelTextColor(ThemeSettings themeSettings, String specialEffect) {
-    switch (specialEffect) {
-      case 'rainbow':
-        return Colors.purple;
-      case 'golden':
-        return Colors.amber;
-      case 'legendary':
-        return Colors.orange;
-      case 'pioneer':
-        return Colors.blue;
-      case 'emperor':
-        return Colors.yellow;
-      case 'eternal':
-        return Colors.white;
-      default:
-        return themeSettings.fontColor1;
-    }
   }
 
   Widget _buildDataPermissionSettings([StateSetter? setModalState]) {

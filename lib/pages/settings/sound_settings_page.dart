@@ -325,20 +325,22 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
         backgroundColor: themeSettings.appBarColor,
         foregroundColor: themeSettings.appBarTextColor,
       ),
-      body: Container(
-        color: themeSettings.backgroundColor,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildTimerSoundSection(themeSettings),
-                  const SizedBox(height: 24),
-                  _buildNotificationSoundSection(themeSettings),
-                  const SizedBox(height: 24),
-                  _buildVolumeSection(themeSettings),
-                ],
-              ),
+      body: SafeArea(
+        child: Container(
+          color: themeSettings.backgroundColor,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _buildTimerSoundSection(themeSettings),
+                    const SizedBox(height: 24),
+                    _buildNotificationSoundSection(themeSettings),
+                    const SizedBox(height: 24),
+                    _buildVolumeSection(themeSettings),
+                  ],
+                ),
+        ),
       ),
     );
   }

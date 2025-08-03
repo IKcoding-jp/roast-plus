@@ -3,6 +3,7 @@ import '../services/theme_cloud_service.dart';
 import '../services/user_settings_firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
 class ThemeSettings extends ChangeNotifier {
@@ -1091,9 +1092,14 @@ class ThemeSettings extends ChangeNotifier {
               defaultTheme['inputTextColor']!.value,
         ),
         borderColor: defaultTheme['borderColor']!,
-        fontSizeScale: settings['theme_fontSizeScale'] ?? 1.0,
+        fontSizeScale:
+            await _loadFontSizeScaleFromLocal() ??
+            settings['theme_fontSizeScale'] ??
+            1.0,
         fontFamily: _getValidFontFamily(
-          settings['theme_fontFamily'] ?? 'Noto Sans JP',
+          await _loadFontFamilyFromLocal() ??
+              settings['theme_fontFamily'] ??
+              'Noto Sans JP',
         ),
         bottomNavigationSelectedColor:
             settings['theme_bottomNavigationSelectedColor'] != null
@@ -1363,13 +1369,48 @@ class ThemeSettings extends ChangeNotifier {
   void updateFontSizeScale(double scale) {
     fontSizeScale = scale;
     notifyListeners();
-    save();
+    // フォントサイズはローカル保存のみ（Firestore保存をスキップ）
+    _saveToLocalOnly();
   }
 
   void updateFontFamily(String family) {
     fontFamily = family;
     notifyListeners();
-    save();
+    // フォントファミリーはローカル保存のみ（Firestore保存をスキップ）
+    _saveToLocalOnly();
+  }
+
+  // ローカル保存のみのメソッド（Firestore保存をスキップ）
+  void _saveToLocalOnly() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('fontSizeScale', fontSizeScale);
+      await prefs.setString('fontFamily', fontFamily);
+    } catch (e) {
+      print('ローカル保存エラー: $e');
+    }
+  }
+
+  // ローカルからフォントサイズを読み込み
+  static Future<double?> _loadFontSizeScaleFromLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getDouble('fontSizeScale');
+    } catch (e) {
+      print('ローカルフォントサイズ読み込みエラー: $e');
+      return null;
+    }
+  }
+
+  // ローカルからフォントファミリーを読み込み
+  static Future<String?> _loadFontFamilyFromLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('fontFamily');
+    } catch (e) {
+      print('ローカルフォントファミリー読み込みエラー: $e');
+      return null;
+    }
   }
 
   void resetToDefault() {
