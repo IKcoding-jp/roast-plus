@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'models/roast_schedule_form_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'models/theme_settings.dart';
 import 'models/group_provider.dart';
 import 'models/work_progress_models.dart';
@@ -70,23 +72,28 @@ void main() async {
     FlutterError.presentError(details);
   };
 
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('ja_JP', null);
   final themeSettings = await ThemeSettings.load();
 
   // 初期インストール時にデフォルトテーマを適用
   await themeSettings.initializeDefaultTheme();
 
-  // 焙煎タイマー通知サービスを初期化
-  await RoastTimerNotificationService.initialize();
+  // Web版では通知サービスを初期化しない
+  if (!kIsWeb) {
+    // 焙煎タイマー通知サービスを初期化
+    await RoastTimerNotificationService.initialize();
 
-  // 通知権限をリクエスト
-  await RoastTimerNotificationService.requestPermissions();
+    // 通知権限をリクエスト
+    await RoastTimerNotificationService.requestPermissions();
+  }
 
-  // グローバルナビゲーションキーを通知サービスにセット
-  TodoNotificationService().setNavigatorKey(navigatorKey);
-
-  TodoNotificationService().startNotificationService();
+  // Web版では通知サービスを初期化しない
+  if (!kIsWeb) {
+    // グローバルナビゲーションキーを通知サービスにセット
+    TodoNotificationService().setNavigatorKey(navigatorKey);
+    TodoNotificationService().startNotificationService();
+  }
 
   // AutoSyncServiceを初期化
   await AutoSyncService.initialize();
@@ -96,13 +103,18 @@ void main() async {
     LifecycleEventHandler(
       detachedCallBack: () async {
         // アプリ終了時のリソース解放
-        TodoNotificationService().stopNotificationService();
+        if (!kIsWeb) {
+          TodoNotificationService().stopNotificationService();
+        }
         AutoSyncService.dispose();
       },
     ),
   );
 
-  await MobileAds.instance.initialize();
+  // Web版では広告を初期化しない
+  if (!kIsWeb) {
+    await MobileAds.instance.initialize();
+  }
 
   runApp(
     MultiProvider(

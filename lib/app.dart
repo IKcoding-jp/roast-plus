@@ -33,6 +33,7 @@ import 'pages/settings/app_settings_page.dart';
 import 'pages/group/group_qr_generate_page.dart';
 import 'pages/group/group_qr_scanner_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter/foundation.dart';
 import 'utils/app_performance_config.dart';
 import 'widgets/lottie_animation_widget.dart';
 // navigatorKeyが定義されているファイルをimport
@@ -50,7 +51,10 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
   @override
   void initState() {
     super.initState();
-    TodoNotificationService().setNavigatorKey(_navigatorKey);
+    // Web版では通知サービスを初期化しない
+    if (!kIsWeb) {
+      TodoNotificationService().setNavigatorKey(_navigatorKey);
+    }
 
     // 通知からアプリが起動された時の処理
     _handleNotificationLaunch();
@@ -312,23 +316,78 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
       _loading = true;
       _error = null;
     });
+
+    // Web版でのGoogle Sign-In初期化
+    if (kIsWeb) {
+      debugPrint('Web版でのGoogle Sign-Inを開始');
+    }
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
-        if (!mounted) return;
-        setState(() {
-          _loading = false;
-          _error = 'Googleアカウントの選択がキャンセルされました';
-        });
-        return;
+      // Web版ではFirebase Consoleの設定を使用
+      if (kIsWeb) {
+        try {
+          // Web版ではGoogleSignInの初期化を明示的に行う
+          final GoogleSignIn googleSignIn = GoogleSignIn(
+            clientId:
+                '781258244482-jhjdntb4lp4c3trci52feguj5oj5s40e.apps.googleusercontent.com',
+            scopes: ['email', 'profile'],
+          );
+
+          // まずサインアウトしてからサインインを試行（自動再認証の制限を回避）
+          await googleSignIn.signOut();
+
+          // 少し待ってからサインインを試行
+          await Future.delayed(Duration(seconds: 1));
+
+          // 直接サインインを試行（サイレントサインインは制限があるため）
+          final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+          if (googleUser == null) {
+            if (!mounted) return;
+            setState(() {
+              _loading = false;
+              _error = 'Googleアカウントの選択がキャンセルされました';
+            });
+            return;
+          }
+
+          final GoogleSignInAuthentication googleAuth =
+              await googleUser.authentication;
+          final credential = GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken,
+            idToken: googleAuth.idToken,
+          );
+          await FirebaseAuth.instance.signInWithCredential(credential);
+        } catch (e) {
+          if (!mounted) return;
+          setState(() {
+            _loading = false;
+            _error = 'Web版でのGoogleログインに失敗しました: $e';
+          });
+          debugPrint('Web版Google Sign-In error: $e');
+          return;
+        }
+      } else {
+        // モバイル版では従来の方法を使用
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+        if (googleUser == null) {
+          if (!mounted) return;
+          setState(() {
+            _loading = false;
+            _error = 'Googleアカウントの選択がキャンセルされました';
+          });
+          return;
+        }
+
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        await FirebaseAuth.instance.signInWithCredential(credential);
       }
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
       // 追加: ログイン成功後にクラウド設定をダウンロード
       try {
         await DataSyncService.downloadAllData();
@@ -378,6 +437,7 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
       setState(() {
         _error = 'Googleログインに失敗しました: $e';
       });
+      debugPrint('Google Sign-In error: $e');
     } finally {
       // do nothing
     }
@@ -458,7 +518,10 @@ class _PasscodeGateState extends State<PasscodeGate>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    TodoNotificationService().stopNotificationService();
+    // Web版では通知サービスを停止しない
+    if (!kIsWeb) {
+      TodoNotificationService().stopNotificationService();
+    }
     super.dispose();
   }
 
@@ -727,8 +790,11 @@ class MainScaffoldState extends State<MainScaffold> {
     super.initState();
     // 自動同期サービスを初期化
     _initializeAutoSync();
-    _loadInterstitialAd();
-    _loadBannerAd();
+    // Web版では広告を読み込まない
+    if (!kIsWeb) {
+      _loadInterstitialAd();
+      _loadBannerAd();
+    }
   }
 
   void _loadInterstitialAd() async {
@@ -860,11 +926,13 @@ class MainScaffoldState extends State<MainScaffold> {
           body: SafeArea(
             child: Stack(
               children: [
+                // Web版では寄付者チェックをスキップ
                 FutureBuilder<bool>(
-                  future: isDonorUser(),
+                  future: kIsWeb ? Future.value(true) : isDonorUser(),
                   builder: (context, snapshot) {
                     final isDonor = snapshot.data == true;
-                    final bottomPadding = isDonor
+                    // Web版では広告のパディングを適用しない
+                    final bottomPadding = kIsWeb || isDonor
                         ? 0.0
                         : (_isBannerAdLoaded ? _bannerHeight : 0.0);
 
@@ -883,26 +951,28 @@ class MainScaffoldState extends State<MainScaffold> {
                     );
                   },
                 ),
-                FutureBuilder<bool>(
-                  future: isDonorUser(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState != ConnectionState.done) {
+                // Web版では広告を表示しない
+                if (!kIsWeb)
+                  FutureBuilder<bool>(
+                    future: isDonorUser(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return SizedBox.shrink();
+                      }
+                      if (snapshot.data == true) return SizedBox.shrink();
+                      if (_isBannerAdLoaded && _bannerAd != null) {
+                        return Align(
+                          alignment: Alignment.bottomCenter,
+                          child: SizedBox(
+                            width: _bannerAd!.size.width.toDouble(),
+                            height: _bannerAd!.size.height.toDouble(),
+                            child: AdWidget(ad: _bannerAd!),
+                          ),
+                        );
+                      }
                       return SizedBox.shrink();
-                    }
-                    if (snapshot.data == true) return SizedBox.shrink();
-                    if (_isBannerAdLoaded && _bannerAd != null) {
-                      return Align(
-                        alignment: Alignment.bottomCenter,
-                        child: SizedBox(
-                          width: _bannerAd!.size.width.toDouble(),
-                          height: _bannerAd!.size.height.toDouble(),
-                          child: AdWidget(ad: _bannerAd!),
-                        ),
-                      );
-                    }
-                    return SizedBox.shrink();
-                  },
-                ),
+                    },
+                  ),
               ],
             ),
           ),

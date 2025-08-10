@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/group_provider.dart';
 import '../../models/theme_settings.dart';
 import '../../services/qr_code_service.dart';
@@ -20,7 +21,10 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
   @override
   void initState() {
     super.initState();
-    controller = MobileScannerController();
+    // Web版ではスキャナーを初期化しない
+    if (!kIsWeb) {
+      controller = MobileScannerController();
+    }
   }
 
   @override
@@ -166,7 +170,42 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
       ),
       body: Stack(
         children: [
-          MobileScanner(controller: controller, onDetect: _onDetect),
+          // Web版ではスキャナーを表示せず、メッセージを表示
+          if (kIsWeb)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.qr_code_scanner,
+                    size: 64,
+                    color: themeSettings.iconColor,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'QRコードスキャンは\nモバイルアプリでのみ利用可能です',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16 * themeSettings.fontSizeScale,
+                      fontFamily: themeSettings.fontFamily,
+                      color: themeSettings.fontColor1,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Web版では利用できません',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14 * themeSettings.fontSizeScale,
+                      fontFamily: themeSettings.fontFamily,
+                      color: themeSettings.fontColor1.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            MobileScanner(controller: controller, onDetect: _onDetect),
           if (_isJoining)
             Container(
               color: Colors.black54,

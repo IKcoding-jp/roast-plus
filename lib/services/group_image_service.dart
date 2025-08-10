@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image/image.dart' as img;
+import 'package:flutter/foundation.dart';
 
 class GroupImageService {
   static final FirebaseStorage _storage = FirebaseStorage.instance;
@@ -91,6 +92,12 @@ class GroupImageService {
 
   /// 権限をチェックしてリクエスト
   static Future<bool> _checkAndRequestPermission(Permission permission) async {
+    // Web版では権限チェックをスキップ
+    if (kIsWeb) {
+      developer.log('Web版では権限チェックをスキップ', name: 'GroupImageService');
+      return true;
+    }
+
     developer.log('権限チェック開始: $permission', name: 'GroupImageService');
 
     PermissionStatus status = await permission.status;
