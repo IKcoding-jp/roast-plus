@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'dart:async';
 import '../services/dashboard_stats_service.dart';
+import 'dart:developer' as developer;
 
 class DashboardStatsProvider extends ChangeNotifier {
   Map<String, dynamic> _statsData = {};
@@ -40,7 +41,7 @@ class DashboardStatsProvider extends ChangeNotifier {
       _statsData = await statsService.getStatsData();
       _lastUpdateTime = DateTime.now();
     } catch (e) {
-      print('統計データ読み込みエラー: $e');
+      developer.log('統計データ読み込みエラー: $e', name: 'DashboardStatsProvider');
       _statsData = {
         'totalRoastingTime': 0,
         'totalRoastingHours': 0,
@@ -72,7 +73,7 @@ class DashboardStatsProvider extends ChangeNotifier {
         });
       }
     } catch (e) {
-      print('バックグラウンド統計データ読み込みエラー: $e');
+      developer.log('バックグラウンド統計データ読み込みエラー: $e', name: 'DashboardStatsProvider');
     }
   }
 
@@ -86,7 +87,7 @@ class DashboardStatsProvider extends ChangeNotifier {
       await statsService.refreshStats();
       await loadStats();
     } catch (e) {
-      print('統計データリフレッシュエラー: $e');
+      developer.log('統計データリフレッシュエラー: $e', name: 'DashboardStatsProvider');
     }
   }
 
@@ -106,7 +107,6 @@ class DashboardStatsProvider extends ChangeNotifier {
     _scheduleUpdate();
   }
 
-  /// TODO完了時の更新（軽量化）
   Future<void> onTodoCompleted() async {
     _scheduleUpdate();
   }
@@ -176,7 +176,10 @@ class DashboardStatsProvider extends ChangeNotifier {
 
   /// ログアウト時にプロバイダー情報をクリア
   void clearOnLogout() {
-    print('DashboardStatsProvider: ログアウト時のクリア開始');
+    developer.log(
+      'DashboardStatsProvider: ログアウト時のクリア開始',
+      name: 'DashboardStatsProvider',
+    );
 
     _statsData.clear();
     _isLoading = false;
@@ -186,7 +189,10 @@ class DashboardStatsProvider extends ChangeNotifier {
     _updateTimer?.cancel();
     _updateTimer = null;
 
-    print('DashboardStatsProvider: ログアウト時のクリア完了');
+    developer.log(
+      'DashboardStatsProvider: ログアウト時のクリア完了',
+      name: 'DashboardStatsProvider',
+    );
     notifyListeners();
   }
 }

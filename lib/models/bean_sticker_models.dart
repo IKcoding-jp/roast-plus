@@ -3,6 +3,7 @@ import '../services/app_settings_firestore_service.dart';
 import 'group_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_settings_firestore_service.dart';
+import 'dart:developer' as developer;
 
 class BeanSticker {
   final String id;
@@ -23,7 +24,7 @@ class BeanSticker {
     return {
       'id': id,
       'beanName': beanName,
-      'stickerColor': stickerColor.value,
+      'stickerColor': stickerColor.toARGB32(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -33,7 +34,7 @@ class BeanSticker {
     return BeanSticker(
       id: map['id'] ?? '',
       beanName: map['beanName'] ?? '',
-      stickerColor: Color(map['stickerColor'] ?? Colors.grey.value),
+      stickerColor: Color(map['stickerColor'] ?? Colors.grey.toARGB32()),
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: DateTime.parse(map['updatedAt']),
     );
@@ -95,7 +96,7 @@ class BeanStickerProvider extends ChangeNotifier {
   }
 
   Future<void> loadBeanStickers({String? groupId}) async {
-    print('Loading bean stickers...');
+    developer.log('Loading bean stickers...', name: 'BeanStickerProvider');
     _isLoading = true;
     // notifyListeners();
 
@@ -116,7 +117,10 @@ class BeanStickerProvider extends ChangeNotifier {
             jsonList = jsonString;
           }
         } catch (e) {
-          print('Firebaseからの豆ステッカー読み込みエラー: $e');
+          developer.log(
+            'Firebaseからの豆ステッカー読み込みエラー: $e',
+            name: 'BeanStickerProvider',
+          );
         }
       }
 
@@ -126,30 +130,51 @@ class BeanStickerProvider extends ChangeNotifier {
             .toList();
         // 作成日順にソート（新しい順）
         _beanStickers.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        print('Loaded ${_beanStickers.length} bean stickers');
+        developer.log(
+          'Loaded ${_beanStickers.length} bean stickers',
+          name: 'BeanStickerProvider',
+        );
       } else {
         _beanStickers = [];
-        print('No bean stickers found in storage');
+        developer.log(
+          'No bean stickers found in storage',
+          name: 'BeanStickerProvider',
+        );
       }
     } catch (e) {
-      print('Error loading bean stickers: $e');
+      developer.log(
+        'Error loading bean stickers: $e',
+        name: 'BeanStickerProvider',
+      );
       _beanStickers = [];
     } finally {
       _isLoading = false;
-      print('Loading completed');
+      developer.log('Loading completed', name: 'BeanStickerProvider');
       // notifyListeners()を無効化
     }
   }
 
   Future<void> _saveToStorage() async {
     try {
-      print('Converting bean stickers to JSON...');
+      developer.log(
+        'Converting bean stickers to JSON...',
+        name: 'BeanStickerProvider',
+      );
       final jsonString = _beanStickers.map((bs) => bs.toMap()).toList();
-      print('Saving to Firebase with key: $_storageKey');
+      developer.log(
+        'Saving to Firebase with key: $_storageKey',
+        name: 'BeanStickerProvider',
+      );
       await UserSettingsFirestoreService.saveSetting(_storageKey, jsonString);
-      print('Successfully saved to Firebase');
+      developer.log(
+        'Successfully saved to Firebase',
+        name: 'BeanStickerProvider',
+      );
     } catch (e) {
-      print('Error saving bean stickers: $e');
+      developer.log(
+        'Error saving bean stickers: $e',
+        name: 'BeanStickerProvider',
+      );
       rethrow;
     }
   }
@@ -174,14 +199,20 @@ class BeanStickerProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('Error saving bean stickers: $e');
+      developer.log(
+        'Error saving bean stickers: $e',
+        name: 'BeanStickerProvider',
+      );
       rethrow;
     }
   }
 
   Future<void> addBeanSticker(BeanSticker beanSticker) async {
     try {
-      print('Adding bean sticker:  ${beanSticker.beanName}');
+      developer.log(
+        'Adding bean sticker:  ${beanSticker.beanName}',
+        name: 'BeanStickerProvider',
+      );
 
       final newBeanSticker = beanSticker.copyWith(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -197,19 +228,25 @@ class BeanStickerProvider extends ChangeNotifier {
       );
 
       if (existingIndex != -1) {
-        print('Updating existing bean sticker at index: $existingIndex');
+        developer.log(
+          'Updating existing bean sticker at index: $existingIndex',
+          name: 'BeanStickerProvider',
+        );
         _beanStickers[existingIndex] = newBeanSticker.copyWith(
           id: _beanStickers[existingIndex].id,
           createdAt: _beanStickers[existingIndex].createdAt,
         );
       } else {
-        print('Adding new bean sticker');
+        developer.log('Adding new bean sticker', name: 'BeanStickerProvider');
         _beanStickers.insert(0, newBeanSticker);
       }
 
-      print('Saving to storage...');
+      developer.log('Saving to storage...', name: 'BeanStickerProvider');
       await _saveToStorage();
-      print('Bean sticker operation completed successfully');
+      developer.log(
+        'Bean sticker operation completed successfully',
+        name: 'BeanStickerProvider',
+      );
 
       // Firestoreにも保存（グループ未参加時のみ）
       final user = FirebaseAuth.instance.currentUser;
@@ -221,7 +258,10 @@ class BeanStickerProvider extends ChangeNotifier {
       }
       // notifyListeners()を無効化
     } catch (e) {
-      print('Error adding bean sticker: $e');
+      developer.log(
+        'Error adding bean sticker: $e',
+        name: 'BeanStickerProvider',
+      );
       rethrow;
     }
   }
@@ -245,7 +285,10 @@ class BeanStickerProvider extends ChangeNotifier {
         // notifyListeners()を無効化
       }
     } catch (e) {
-      print('Error updating bean sticker: $e');
+      developer.log(
+        'Error updating bean sticker: $e',
+        name: 'BeanStickerProvider',
+      );
       rethrow;
     }
   }
@@ -264,7 +307,10 @@ class BeanStickerProvider extends ChangeNotifier {
       }
       // notifyListeners()を無効化
     } catch (e) {
-      print('Error deleting bean sticker: $e');
+      developer.log(
+        'Error deleting bean sticker: $e',
+        name: 'BeanStickerProvider',
+      );
       rethrow;
     }
   }
@@ -280,7 +326,10 @@ class BeanStickerProvider extends ChangeNotifier {
       await _saveToStorage();
       // notifyListeners()を無効化
     } catch (e) {
-      print('Error deleting bean sticker by name: $e');
+      developer.log(
+        'Error deleting bean sticker by name: $e',
+        name: 'BeanStickerProvider',
+      );
       rethrow;
     }
   }

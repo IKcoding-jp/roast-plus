@@ -7,7 +7,7 @@ import 'package:roastplus/models/theme_settings.dart';
 import 'package:roastplus/models/group_provider.dart';
 import 'package:roastplus/services/roast_schedule_memo_service.dart';
 import 'package:roastplus/widgets/roast_schedule_memo_dialog.dart';
-import 'package:roastplus/widgets/bean_name_with_sticker.dart';
+import 'dart:developer' as developer;
 
 class RoastSchedulerTab extends StatefulWidget {
   final List<dynamic> breakTimes;
@@ -59,7 +59,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
         }
       }
     } catch (e) {
-      print('メモ読み込みエラー: $e');
+      developer.log('メモ読み込みエラー: $e', name: 'RoastSchedulerTab');
     } finally {
       if (mounted) {
         setState(() {
@@ -72,7 +72,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
   Future<void> _addMemo() async {
     if (!mounted) return;
 
-    final memo = await showDialog<RoastScheduleMemo>(
+    await showDialog<RoastScheduleMemo>(
       context: context,
       builder: (context) => RoastScheduleMemoDialog(
         onSave: (memo) async {
@@ -82,7 +82,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               await _loadMemos();
             }
           } catch (e) {
-            print('メモ追加エラー: $e');
+            developer.log('メモ追加エラー: $e', name: 'RoastSchedulerTab');
             if (mounted) {
               ScaffoldMessenger.of(
                 context,
@@ -97,7 +97,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
   Future<void> _editMemo(RoastScheduleMemo memo) async {
     if (!mounted) return;
 
-    final updatedMemo = await showDialog<RoastScheduleMemo>(
+    await showDialog<RoastScheduleMemo>(
       context: context,
       builder: (context) => RoastScheduleMemoDialog(
         memo: memo,
@@ -111,7 +111,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               await _loadMemos();
             }
           } catch (e) {
-            print('メモ更新エラー: $e');
+            developer.log('メモ更新エラー: $e', name: 'RoastSchedulerTab');
             if (mounted) {
               ScaffoldMessenger.of(
                 context,
@@ -138,8 +138,8 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('削除'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('削除'),
           ),
         ],
       ),
@@ -155,7 +155,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
           ).showSnackBar(SnackBar(content: Text('メモを削除しました')));
         }
       } catch (e) {
-        print('メモ削除エラー: $e');
+        developer.log('メモ削除エラー: $e', name: 'RoastSchedulerTab');
         if (mounted) {
           ScaffoldMessenger.of(
             context,
@@ -184,7 +184,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: themeSettings.iconColor.withOpacity(0.1),
+                    color: themeSettings.iconColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -201,7 +201,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(Icons.ac_unit, color: Colors.blue, size: 18),
@@ -319,12 +319,12 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                                   decoration: BoxDecoration(
                                     color: _getRoastLevelColor(
                                       memo.roastLevel!,
-                                    ).withOpacity(0.1),
+                                    ).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
                                       color: _getRoastLevelColor(
                                         memo.roastLevel!,
-                                      ).withOpacity(0.3),
+                                      ).withValues(alpha: 0.3),
                                     ),
                                   ),
                                   child: Text(
@@ -413,8 +413,8 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
         onPressed: _addMemo,
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
-        child: Icon(Icons.add),
         elevation: 6,
+        child: Icon(Icons.add),
       ),
       body: Column(
         children: [
@@ -453,8 +453,8 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                                 Icon(
                                   Icons.note_add,
                                   size: 64,
-                                  color: themeSettings.fontColor2.withOpacity(
-                                    0.5,
+                                  color: themeSettings.fontColor2.withValues(
+                                    alpha: 0.5,
                                   ),
                                 ),
                                 SizedBox(height: 16),
@@ -469,8 +469,8 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                                 Text(
                                   '右下の「+」ボタンから新しいメモを作成してください',
                                   style: TextStyle(
-                                    color: themeSettings.fontColor2.withOpacity(
-                                      0.7,
+                                    color: themeSettings.fontColor2.withValues(
+                                      alpha: 0.7,
                                     ),
                                     fontSize: 14,
                                   ),

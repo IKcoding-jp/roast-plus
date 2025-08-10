@@ -1245,6 +1245,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
     // グループにも同期（今日の担当データを完全に削除）
     try {
+      if (!mounted) return;
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.hasGroup) {
         final group = groupProvider.currentGroup!;
@@ -1274,6 +1275,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     }
 
     // グループ状態の場合は、メンバーを元の構成に戻す
+    if (!mounted) return;
     final groupProvider = context.read<GroupProvider>();
     if (groupProvider.groups.isNotEmpty) {
       // グループ状態の場合は、保存されたメンバー構成を読み込む

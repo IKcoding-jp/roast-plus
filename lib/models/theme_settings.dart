@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
 
 class ThemeSettings extends ChangeNotifier {
   Color appBarColor; // アプリバーの背景色
@@ -33,7 +34,7 @@ class ThemeSettings extends ChangeNotifier {
   // 機能別の色設定
   Color calculatorColor; // 計算機機能のアクセント色
   Color settingsColor; // 設定機能のアクセント色
-  Color todoColor; // TODO機能のアクセント色
+  Color todoColor;
   Color tastingColor; // テイスティング機能のアクセント色
 
   // Firestoreリスナー用
@@ -71,7 +72,7 @@ class ThemeSettings extends ChangeNotifier {
       customBottomNavigationSelectedColor = null;
       customBottomNavigationUnselectedColor = null;
       settingsColor = defaultTheme['settingsColor']!;
-      todoColor = defaultTheme['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
+      todoColor = defaultTheme['iconColor']!;
       calculatorColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
       fontSizeScale = 1.0;
       fontFamily = 'ZenMaruGothic';
@@ -111,7 +112,7 @@ class ThemeSettings extends ChangeNotifier {
       customBottomNavigationSelectedColor = null;
       customBottomNavigationUnselectedColor = null;
       settingsColor = defaultTheme['settingsColor']!; // デフォルトテーマの設定色を使用
-      todoColor = defaultTheme['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
+      todoColor = defaultTheme['iconColor']!;
       calculatorColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
       fontSizeScale = 1.0;
       fontFamily = 'ZenMaruGothic';
@@ -1053,43 +1054,43 @@ class ThemeSettings extends ChangeNotifier {
               defaultTheme['fontColor2']!.toARGB32(),
         ),
         iconColor: Color(
-          settings['theme_iconColor'] ?? defaultTheme['iconColor']!.value,
+          settings['theme_iconColor'] ?? defaultTheme['iconColor']!.toARGB32(),
         ),
         timerCircleColor: Color(
           settings['theme_timerCircleColor'] ??
-              defaultTheme['timerCircleColor']!.value,
+              defaultTheme['timerCircleColor']!.toARGB32(),
         ),
         bottomNavigationColor: Color(
           settings['theme_bottomNavigationColor'] ??
-              defaultTheme['bottomNavigationColor']!.value,
+              defaultTheme['bottomNavigationColor']!.toARGB32(),
         ),
         inputBackgroundColor: Color(
           settings['theme_inputBackgroundColor'] ??
-              defaultTheme['inputBackgroundColor']!.value,
+              defaultTheme['inputBackgroundColor']!.toARGB32(),
         ),
         memberBackgroundColor: Color(
           settings['theme_memberBackgroundColor'] ??
-              defaultTheme['memberBackgroundColor']!.value,
+              defaultTheme['memberBackgroundColor']!.toARGB32(),
         ),
         appBarTextColor: Color(
           settings['theme_appBarTextColor'] ??
-              defaultTheme['appBarTextColor']!.value,
+              defaultTheme['appBarTextColor']!.toARGB32(),
         ),
         bottomNavigationTextColor: Color(
           settings['theme_bottomNavigationTextColor'] ??
-              defaultTheme['bottomNavigationTextColor']!.value,
+              defaultTheme['bottomNavigationTextColor']!.toARGB32(),
         ),
         dialogBackgroundColor: Color(
           settings['theme_dialogBackgroundColor'] ??
-              defaultTheme['dialogBackgroundColor']!.value,
+              defaultTheme['dialogBackgroundColor']!.toARGB32(),
         ),
         dialogTextColor: Color(
           settings['theme_dialogTextColor'] ??
-              defaultTheme['dialogTextColor']!.value,
+              defaultTheme['dialogTextColor']!.toARGB32(),
         ),
         inputTextColor: Color(
           settings['theme_inputTextColor'] ??
-              defaultTheme['inputTextColor']!.value,
+              defaultTheme['inputTextColor']!.toARGB32(),
         ),
         borderColor: defaultTheme['borderColor']!,
         fontSizeScale:
@@ -1128,8 +1129,13 @@ class ThemeSettings extends ChangeNotifier {
             ? Color(settings['customBottomNavigationUnselectedColor'])
             : null,
       );
-    } catch (e) {
-      print('テーマ設定読み込みエラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'テーマ設定読み込みエラー',
+        name: 'ThemeSettings',
+        error: e,
+        stackTrace: st,
+      );
 
       // エラー時はデフォルトテーマを返す
       final defaultTheme = presets['デフォルト']!;
@@ -1235,9 +1241,17 @@ class ThemeSettings extends ChangeNotifier {
         'custom_themes': themeData,
       });
 
-      print('ThemeSettings: Firebaseにテーマ設定を保存しました');
-    } catch (e) {
-      print('テーマ設定保存エラー: $e');
+      developer.log(
+        'ThemeSettings: Firebaseにテーマ設定を保存しました',
+        name: 'ThemeSettings',
+      );
+    } catch (e, st) {
+      developer.log(
+        'テーマ設定保存エラー',
+        name: 'ThemeSettings',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -1386,8 +1400,13 @@ class ThemeSettings extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble('fontSizeScale', fontSizeScale);
       await prefs.setString('fontFamily', fontFamily);
-    } catch (e) {
-      print('ローカル保存エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'ローカル保存エラー',
+        name: 'ThemeSettings',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -1396,8 +1415,13 @@ class ThemeSettings extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getDouble('fontSizeScale');
-    } catch (e) {
-      print('ローカルフォントサイズ読み込みエラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'ローカルフォントサイズ読み込みエラー',
+        name: 'ThemeSettings',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
@@ -1407,8 +1431,13 @@ class ThemeSettings extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString('fontFamily');
-    } catch (e) {
-      print('ローカルフォントファミリー読み込みエラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'ローカルフォントファミリー読み込みエラー',
+        name: 'ThemeSettings',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
@@ -1437,7 +1466,7 @@ class ThemeSettings extends ChangeNotifier {
     customBottomNavigationSelectedColor =
         defaultTheme['bottomNavigationSelectedColor']!;
     settingsColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
-    todoColor = defaultTheme['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
+    todoColor = defaultTheme['iconColor']!; // ToDo色もアイコンの色と同じ値に設定
     calculatorColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
     fontSizeScale = 1.0;
     fontFamily = 'ZenMaruGothic';
@@ -1475,7 +1504,7 @@ class ThemeSettings extends ChangeNotifier {
       _bottomNavigationUnselectedColor =
           preset['bottomNavigationUnselectedColor'];
       settingsColor = preset['iconColor']!; // アイコンの色と同じ値に設定
-      todoColor = preset['iconColor']!; // TODOの色もアイコンの色と同じ値に設定
+      todoColor = preset['iconColor']!; // ToDo色もアイコンの色と同じ値に設定
       calculatorColor = preset['iconColor']!; // アイコンの色と同じ値に設定
       // ここで一度だけ通知
       notifyListeners();
@@ -1497,7 +1526,8 @@ class ThemeSettings extends ChangeNotifier {
     customThemes[name] = themeData;
 
     final themeDataMap = customThemes.map(
-      (key, value) => MapEntry(key, value.map((k, v) => MapEntry(k, v.value))),
+      (key, value) =>
+          MapEntry(key, value.map((k, v) => MapEntry(k, v.toARGB32()))),
     );
     await UserSettingsFirestoreService.saveSetting(
       'custom_themes',
@@ -1507,8 +1537,13 @@ class ThemeSettings extends ChangeNotifier {
     // クラウドにも保存
     try {
       await ThemeCloudService.saveCustomThemesToCloud(customThemes);
-    } catch (e) {
-      print('カスタムテーマのクラウド保存に失敗しました: $e');
+    } catch (e, st) {
+      developer.log(
+        'カスタムテーマのクラウド保存に失敗しました',
+        name: 'ThemeSettings',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -1518,8 +1553,13 @@ class ThemeSettings extends ChangeNotifier {
     Map<String, Map<String, Color>> cloudCustomThemes = {};
     try {
       cloudCustomThemes = await ThemeCloudService.getCustomThemesFromCloud();
-    } catch (e) {
-      print('クラウドからのカスタムテーマ取得に失敗しました: $e');
+    } catch (e, st) {
+      developer.log(
+        'クラウドからのカスタムテーマ取得に失敗しました',
+        name: 'ThemeSettings',
+        error: e,
+        stackTrace: st,
+      );
     }
 
     // クラウドのカスタムテーマがあれば使用、なければローカルの設定を使用
@@ -1552,7 +1592,8 @@ class ThemeSettings extends ChangeNotifier {
     customThemes.remove(name);
 
     final themeDataMap = customThemes.map(
-      (key, value) => MapEntry(key, value.map((k, v) => MapEntry(k, v.value))),
+      (key, value) =>
+          MapEntry(key, value.map((k, v) => MapEntry(k, v.toARGB32()))),
     );
     await UserSettingsFirestoreService.saveSetting(
       'custom_themes',
@@ -1562,8 +1603,13 @@ class ThemeSettings extends ChangeNotifier {
     // クラウドからも削除
     try {
       await ThemeCloudService.saveCustomThemesToCloud(customThemes);
-    } catch (e) {
-      print('カスタムテーマのクラウド削除に失敗しました: $e');
+    } catch (e, st) {
+      developer.log(
+        'カスタムテーマのクラウド削除に失敗しました',
+        name: 'ThemeSettings',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 

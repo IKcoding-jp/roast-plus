@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../services/work_progress_firestore_service.dart';
 import '../services/user_settings_firestore_service.dart';
+import 'dart:developer' as developer;
 
 enum WorkStage {
   handpick, // ハンドピック
@@ -160,14 +161,24 @@ class WorkProgressProvider extends ChangeNotifier {
             } else {
               _workProgressList = [];
             }
-          } catch (e) {
-            print('Firebaseからの作業進捗読み込みエラー: $e');
+          } catch (e, st) {
+            developer.log(
+              'Firebaseからの作業進捗読み込みエラー',
+              name: 'WorkProgressProvider',
+              error: e,
+              stackTrace: st,
+            );
             _workProgressList = [];
           }
         }
       }
-    } catch (e) {
-      print('Error loading work progress: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error loading work progress',
+        name: 'WorkProgressProvider',
+        error: e,
+        stackTrace: st,
+      );
       _workProgressList = [];
     } finally {
       _isLoading = false;
@@ -181,8 +192,13 @@ class WorkProgressProvider extends ChangeNotifier {
     try {
       final jsonString = _workProgressList.map((wp) => wp.toMap()).toList();
       await UserSettingsFirestoreService.saveSetting(_storageKey, jsonString);
-    } catch (e) {
-      print('Error saving work progress: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error saving work progress',
+        name: 'WorkProgressProvider',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -213,15 +229,25 @@ class WorkProgressProvider extends ChangeNotifier {
             newWorkProgress,
           );
         }
-      } catch (e) {
-        print('Firestore保存エラー: $e');
+      } catch (e, st) {
+        developer.log(
+          'Firestore保存エラー',
+          name: 'WorkProgressProvider',
+          error: e,
+          stackTrace: st,
+        );
         // Firestore保存に失敗してもローカル保存は続行
       }
 
       await _saveToStorage(groupId: groupId);
       notifyListeners();
-    } catch (e) {
-      print('Error adding work progress: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error adding work progress',
+        name: 'WorkProgressProvider',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -251,16 +277,26 @@ class WorkProgressProvider extends ChangeNotifier {
               workProgress,
             );
           }
-        } catch (e) {
-          print('Firestore更新エラー: $e');
+        } catch (e, st) {
+          developer.log(
+            'Firestore更新エラー',
+            name: 'WorkProgressProvider',
+            error: e,
+            stackTrace: st,
+          );
           // Firestore更新に失敗してもローカル保存は続行
         }
 
         await _saveToStorage(groupId: groupId);
         notifyListeners();
       }
-    } catch (e) {
-      print('Error updating work progress: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error updating work progress',
+        name: 'WorkProgressProvider',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -283,16 +319,26 @@ class WorkProgressProvider extends ChangeNotifier {
           } else {
             await WorkProgressFirestoreService.deleteWorkProgressRecord(id);
           }
-        } catch (e) {
-          print('Firestore削除エラー: $e');
+        } catch (e, st) {
+          developer.log(
+            'Firestore削除エラー',
+            name: 'WorkProgressProvider',
+            error: e,
+            stackTrace: st,
+          );
           // Firestore削除に失敗してもローカル保存は続行
         }
 
         await _saveToStorage(groupId: groupId);
         notifyListeners();
       }
-    } catch (e) {
-      print('Error deleting work progress: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error deleting work progress',
+        name: 'WorkProgressProvider',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }

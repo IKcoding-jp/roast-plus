@@ -373,9 +373,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                           leading: Container(
                             padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: themeSettings.iconColor.withValues(
-                                alpha: 0.1,
-                              ),
+                              color: themeSettings.iconColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
@@ -405,9 +403,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                                   record['memo'].toString(),
                                   style: TextStyle(
                                     fontSize: 14 * themeSettings.fontSizeScale,
-                                    color: themeSettings.fontColor1.withValues(
-                                      alpha: 0.8,
-                                    ),
+                                    color: themeSettings.fontColor1.withValues(alpha: 0.8),
                                   ),
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
@@ -418,9 +414,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                                 '記録日時: $formattedDate',
                                 style: TextStyle(
                                   fontSize: 12 * themeSettings.fontSizeScale,
-                                  color: themeSettings.fontColor1.withValues(
-                                    alpha: 0.6,
-                                  ),
+                                  color: themeSettings.fontColor1.withValues(alpha: 0.6),
                                 ),
                               ),
                             ],

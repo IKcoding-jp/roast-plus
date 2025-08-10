@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'group_gamification_models.dart';
 
 import '../widgets/badge_celebration_widget.dart';
-
+import 'dart:developer' as developer;
 
 /// ゲーミフィケーション機能の状態管理プロバイダー（グループレベルシステム）
 class GamificationProvider extends ChangeNotifier {
@@ -20,9 +20,12 @@ class GamificationProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       _isInitialized = true;
-      print('ゲーミフィケーションプロバイダー初期化完了（グループレベルシステム）');
+      developer.log(
+        'ゲーミフィケーションプロバイダー初期化完了（グループレベルシステム）',
+        name: 'GamificationProvider',
+      );
     } catch (e) {
-      print('ゲーミフィケーション初期化エラー: $e');
+      developer.log('ゲーミフィケーション初期化エラー: $e', name: 'GamificationProvider');
     } finally {
       _setLoading(false);
     }
@@ -102,20 +105,29 @@ class GamificationProvider extends ChangeNotifier {
       // await GamificationStorage.saveUserProfile(updated);
       // notifyListeners();
       // ※実装例としてダミー処理
-      print('recordRoasting: 焙煎時間 $minutes 分分の経験値を加算');
+      developer.log(
+        'recordRoasting: 焙煎時間 $minutes 分分の経験値を加算',
+        name: 'GamificationProvider',
+      );
     } catch (e) {
-      print('recordRoastingエラー: $e');
+      developer.log('recordRoastingエラー: $e', name: 'GamificationProvider');
     }
   }
 
   /// ログアウト時にプロバイダー情報をクリア
   void clearOnLogout() {
-    print('GamificationProvider: ログアウト時のクリア開始');
+    developer.log(
+      'GamificationProvider: ログアウト時のクリア開始',
+      name: 'GamificationProvider',
+    );
 
     _isLoading = false;
     _isInitialized = false;
 
-    print('GamificationProvider: ログアウト時のクリア完了');
+    developer.log(
+      'GamificationProvider: ログアウト時のクリア完了',
+      name: 'GamificationProvider',
+    );
     notifyListeners();
   }
 }

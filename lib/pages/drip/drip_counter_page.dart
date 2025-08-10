@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:roastplus/pages/drip/DripPackRecordListPage.dart';
+import 'package:roastplus/pages/drip/drip_pack_record_list_page.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
@@ -11,6 +11,7 @@ import '../../services/user_settings_firestore_service.dart';
 import '../../services/group_data_sync_service.dart';
 import '../../utils/permission_utils.dart';
 import '../../widgets/permission_denied_page.dart';
+import 'dart:developer' as developer;
 
 class DripCounterPage extends StatefulWidget {
   const DripCounterPage({super.key});
@@ -112,8 +113,13 @@ class DripCounterPageState extends State<DripCounterPage>
           });
         }
       }
-    } catch (e) {
-      print('ドリップパックカウンター権限チェックエラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'ドリップパックカウンター権限チェックエラー',
+        name: 'DripCounterPage',
+        error: e,
+        stackTrace: st,
+      );
       if (mounted) {
         setState(() {
           _canUseDripCounter = false;
@@ -291,7 +297,7 @@ class DripCounterPageState extends State<DripCounterPage>
     final primaryGradient = LinearGradient(
       colors: [
         themeSettings.buttonColor,
-        themeSettings.buttonColor.withOpacity(0.8),
+        themeSettings.buttonColor.withValues(alpha: 0.8),
       ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -300,7 +306,7 @@ class DripCounterPageState extends State<DripCounterPage>
     final cardGradient = LinearGradient(
       colors: [
         themeSettings.cardBackgroundColor,
-        themeSettings.cardBackgroundColor.withOpacity(0.95),
+        themeSettings.cardBackgroundColor.withValues(alpha: 0.95),
       ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -361,12 +367,12 @@ class DripCounterPageState extends State<DripCounterPage>
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 20,
                               offset: Offset(0, 8),
                             ),
                             BoxShadow(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               blurRadius: 1,
                               offset: Offset(0, 1),
                             ),
@@ -384,8 +390,8 @@ class DripCounterPageState extends State<DripCounterPage>
                                 decoration: BoxDecoration(
                                   gradient: RadialGradient(
                                     colors: [
-                                      themeSettings.buttonColor.withOpacity(
-                                        0.1,
+                                      themeSettings.buttonColor.withValues(
+                                        alpha: 0.1,
                                       ),
                                       Colors.transparent,
                                     ],
@@ -433,7 +439,9 @@ class DripCounterPageState extends State<DripCounterPage>
                                                               .fontColor1,
                                                           themeSettings
                                                               .fontColor1
-                                                              .withOpacity(0.8),
+                                                              .withValues(
+                                                                alpha: 0.8,
+                                                              ),
                                                         ],
                                                         begin:
                                                             Alignment.topCenter,
@@ -452,13 +460,13 @@ class DripCounterPageState extends State<DripCounterPage>
                                                 shadows: [
                                                   Shadow(
                                                     color: Colors.black
-                                                        .withOpacity(0.1),
+                                                        .withValues(alpha: 0.1),
                                                     blurRadius: 8,
                                                     offset: Offset(2, 2),
                                                   ),
                                                   Shadow(
                                                     color: Colors.white
-                                                        .withOpacity(0.8),
+                                                        .withValues(alpha: 0.8),
                                                     blurRadius: 2,
                                                     offset: Offset(0, 1),
                                                   ),
@@ -481,20 +489,26 @@ class DripCounterPageState extends State<DripCounterPage>
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      themeSettings.iconColor.withOpacity(0.1),
-                                      themeSettings.iconColor.withOpacity(0.05),
+                                      themeSettings.iconColor.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      themeSettings.iconColor.withValues(
+                                        alpha: 0.05,
+                                      ),
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(24),
                                   border: Border.all(
-                                    color: themeSettings.iconColor.withOpacity(
-                                      0.2,
+                                    color: themeSettings.iconColor.withValues(
+                                      alpha: 0.2,
                                     ),
                                     width: 1.5,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.05,
+                                      ),
                                       blurRadius: 4,
                                       offset: Offset(0, 2),
                                     ),
@@ -535,12 +549,12 @@ class DripCounterPageState extends State<DripCounterPage>
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 20,
                               offset: Offset(0, 8),
                             ),
                             BoxShadow(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               blurRadius: 1,
                               offset: Offset(0, 1),
                             ),
@@ -585,12 +599,12 @@ class DripCounterPageState extends State<DripCounterPage>
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 20,
                               offset: Offset(0, 8),
                             ),
                             BoxShadow(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               blurRadius: 1,
                               offset: Offset(0, 1),
                             ),
@@ -648,7 +662,7 @@ class DripCounterPageState extends State<DripCounterPage>
                                     boxShadow: [
                                       BoxShadow(
                                         color: themeSettings.buttonColor
-                                            .withOpacity(0.3),
+                                            .withValues(alpha: 0.3),
                                         blurRadius: 12,
                                         offset: Offset(0, 4),
                                       ),
@@ -715,18 +729,18 @@ class DripCounterPageState extends State<DripCounterPage>
             LinearGradient(
               colors: [
                 themeSettings.buttonColor,
-                themeSettings.buttonColor.withOpacity(0.8),
+                themeSettings.buttonColor.withValues(alpha: 0.8),
               ],
             ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: themeSettings.buttonColor.withOpacity(0.3),
+            color: themeSettings.buttonColor.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: Offset(0, 3),
           ),
           BoxShadow(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             blurRadius: 1,
             offset: Offset(0, 1),
           ),
@@ -748,7 +762,7 @@ class DripCounterPageState extends State<DripCounterPage>
                 letterSpacing: 1.5,
                 shadows: [
                   Shadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 2,
                     offset: Offset(1, 1),
                   ),
@@ -786,8 +800,8 @@ class DripCounterPageState extends State<DripCounterPage>
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    themeSettings.iconColor.withOpacity(0.1),
-                    themeSettings.iconColor.withOpacity(0.05),
+                    themeSettings.iconColor.withValues(alpha: 0.1),
+                    themeSettings.iconColor.withValues(alpha: 0.05),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(8),
@@ -813,7 +827,7 @@ class DripCounterPageState extends State<DripCounterPage>
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: Offset(0, 2),
               ),
@@ -867,8 +881,8 @@ class DripCounterPageState extends State<DripCounterPage>
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    themeSettings.iconColor.withOpacity(0.1),
-                    themeSettings.iconColor.withOpacity(0.05),
+                    themeSettings.iconColor.withValues(alpha: 0.1),
+                    themeSettings.iconColor.withValues(alpha: 0.05),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(8),
@@ -898,7 +912,7 @@ class DripCounterPageState extends State<DripCounterPage>
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: Offset(0, 2),
               ),
@@ -1004,7 +1018,10 @@ class DripCounterPageState extends State<DripCounterPage>
           'records': records,
         });
 
-        print('ドリップパック記録をグループに同期しました: $count袋');
+        developer.log(
+          'ドリップパック記録をグループに同期しました: $count袋',
+          name: 'DripCounterPage',
+        );
       } else {
         // ローカルモード：ローカルデータにのみ保存
         final saved = await UserSettingsFirestoreService.getSetting(
@@ -1019,7 +1036,10 @@ class DripCounterPageState extends State<DripCounterPage>
           'dripPackRecords',
           records,
         );
-        print('ドリップパック記録をローカルに保存しました: $count袋');
+        developer.log(
+          'ドリップパック記録をローカルに保存しました: $count袋',
+          name: 'DripCounterPage',
+        );
       }
 
       // グループレベルシステムでドリップパック記録を処理（グループモードの場合のみ）
@@ -1037,6 +1057,7 @@ class DripCounterPageState extends State<DripCounterPage>
       }
 
       // UIをリセット
+      if (!mounted) return;
       setState(() {
         _beanController.clear();
         _selectedRoast = null;
@@ -1049,8 +1070,13 @@ class DripCounterPageState extends State<DripCounterPage>
           backgroundColor: Colors.green,
         ),
       );
-    } catch (e) {
-      print('ドリップパック記録保存エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'ドリップパック記録保存エラー',
+        name: 'DripCounterPage',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -1074,8 +1100,13 @@ class DripCounterPageState extends State<DripCounterPage>
           context: context,
         );
       }
-    } catch (e) {
-      print('グループレベルシステム処理エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'グループレベルシステム処理エラー',
+        name: 'DripCounterPage',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -1109,7 +1140,7 @@ class DripCounterPageState extends State<DripCounterPage>
               Text(
                 '0〜500の数字を入力してください',
                 style: TextStyle(
-                  color: themeSettings.fontColor1.withOpacity(0.8),
+                  color: themeSettings.fontColor1.withValues(alpha: 0.8),
                   fontSize: 14,
                 ),
               ),
@@ -1126,12 +1157,12 @@ class DripCounterPageState extends State<DripCounterPage>
                 decoration: InputDecoration(
                   hintText: '0',
                   hintStyle: TextStyle(
-                    color: themeSettings.fontColor1.withOpacity(0.5),
+                    color: themeSettings.fontColor1.withValues(alpha: 0.5),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: themeSettings.iconColor.withOpacity(0.3),
+                      color: themeSettings.iconColor.withValues(alpha: 0.3),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -1157,7 +1188,7 @@ class DripCounterPageState extends State<DripCounterPage>
               child: Text(
                 'キャンセル',
                 style: TextStyle(
-                  color: themeSettings.fontColor1.withOpacity(0.7),
+                  color: themeSettings.fontColor1.withValues(alpha: 0.7),
                 ),
               ),
             ),

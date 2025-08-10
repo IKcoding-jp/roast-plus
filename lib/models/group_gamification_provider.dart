@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/group_gamification_models.dart';
 import '../services/group_gamification_service.dart';
 import '../services/group_firestore_service.dart';
+import 'dart:developer' as developer;
 
 /// グループ中心のゲーミフィケーション状態管理プロバイダー
 class GroupGamificationProvider extends ChangeNotifier {
@@ -29,9 +30,15 @@ class GroupGamificationProvider extends ChangeNotifier {
       _profile = await GroupGamificationService.getGroupProfile(groupId);
       _isInitialized = true;
 
-      print('グループゲーミフィケーションプロバイダー初期化完了: グループ $groupId, レベル${_profile.level}');
+      developer.log(
+        'グループゲーミフィケーションプロバイダー初期化完了: グループ $groupId, レベル${_profile.level}',
+        name: 'GroupGamificationProvider',
+      );
     } catch (e) {
-      print('グループゲーミフィケーション初期化エラー: $e');
+      developer.log(
+        'グループゲーミフィケーション初期化エラー: $e',
+        name: 'GroupGamificationProvider',
+      );
       _setError('グループの初期化に失敗しました: $e');
       _profile = GroupGamificationProfile.initial(groupId);
     } finally {
@@ -52,7 +59,7 @@ class GroupGamificationProvider extends ChangeNotifier {
         // グループに参加していない
         _isInitialized = false;
         _currentGroupId = null;
-        print('グループに参加していません');
+        developer.log('グループに参加していません', name: 'GroupGamificationProvider');
         return;
       }
 
@@ -60,7 +67,7 @@ class GroupGamificationProvider extends ChangeNotifier {
       final firstGroup = groups.first;
       await initializeWithGroup(firstGroup.id);
     } catch (e) {
-      print('グループ自動初期化エラー: $e');
+      developer.log('グループ自動初期化エラー: $e', name: 'GroupGamificationProvider');
       _setError('グループの取得に失敗しました: $e');
       _isInitialized = false;
     } finally {
@@ -100,7 +107,7 @@ class GroupGamificationProvider extends ChangeNotifier {
 
       return result;
     } catch (e) {
-      print('出勤記録エラー: $e');
+      developer.log('出勤記録エラー: $e', name: 'GroupGamificationProvider');
       return GroupActivityResult(
         success: false,
         message: '出勤記録に失敗しました',
@@ -144,7 +151,7 @@ class GroupGamificationProvider extends ChangeNotifier {
 
       return result;
     } catch (e) {
-      print('焙煎記録エラー: $e');
+      developer.log('焙煎記録エラー: $e', name: 'GroupGamificationProvider');
       return GroupActivityResult(
         success: false,
         message: '焙煎記録に失敗しました',
@@ -188,7 +195,7 @@ class GroupGamificationProvider extends ChangeNotifier {
 
       return result;
     } catch (e) {
-      print('ドリップパック記録エラー: $e');
+      developer.log('ドリップパック記録エラー: $e', name: 'GroupGamificationProvider');
       return GroupActivityResult(
         success: false,
         message: 'ドリップパック記録に失敗しました',
@@ -231,7 +238,7 @@ class GroupGamificationProvider extends ChangeNotifier {
 
       return result;
     } catch (e) {
-      print('テイスティング記録エラー: $e');
+      developer.log('テイスティング記録エラー: $e', name: 'GroupGamificationProvider');
       return GroupActivityResult(
         success: false,
         message: 'テイスティング記録に失敗しました',
@@ -274,7 +281,7 @@ class GroupGamificationProvider extends ChangeNotifier {
 
       return result;
     } catch (e) {
-      print('作業進捗記録エラー: $e');
+      developer.log('作業進捗記録エラー: $e', name: 'GroupGamificationProvider');
       return GroupActivityResult(
         success: false,
         message: '作業進捗記録に失敗しました',
@@ -306,7 +313,7 @@ class GroupGamificationProvider extends ChangeNotifier {
         }
       });
     } catch (e) {
-      print('プロフィール更新エラー: $e');
+      developer.log('プロフィール更新エラー: $e', name: 'GroupGamificationProvider');
     }
   }
 
@@ -318,11 +325,17 @@ class GroupGamificationProvider extends ChangeNotifier {
         try {
           notifyListeners();
         } catch (e) {
-          print('GroupGamificationProvider: notifyListenersエラー: $e');
+          developer.log(
+            'GroupGamificationProvider: notifyListenersエラー: $e',
+            name: 'GroupGamificationProvider',
+          );
         }
       });
     } catch (e) {
-      print('GroupGamificationProvider: _safeNotifyListenersエラー: $e');
+      developer.log(
+        'GroupGamificationProvider: _safeNotifyListenersエラー: $e',
+        name: 'GroupGamificationProvider',
+      );
     }
   }
 
@@ -333,7 +346,10 @@ class GroupGamificationProvider extends ChangeNotifier {
 
     // レベルアップアニメーション
     if (result.levelUp) {
-      print('🎉 レベルアップ！ レベル ${result.newLevel} に上がりました！');
+      developer.log(
+        '🎉 レベルアップ！ レベル ${result.newLevel} に上がりました！',
+        name: 'GroupGamificationProvider',
+      );
       // レベルアップの視覚的フィードバック
       _showLevelUpFeedback(result.newLevel);
     }
@@ -341,7 +357,10 @@ class GroupGamificationProvider extends ChangeNotifier {
     // バッジ獲得アニメーション
     if (result.newBadges.isNotEmpty) {
       for (final badge in result.newBadges) {
-        print('🏆 新しいバッジを獲得しました: ${badge.name}');
+        developer.log(
+          '🏆 新しいバッジを獲得しました: ${badge.name}',
+          name: 'GroupGamificationProvider',
+        );
       }
       // バッジ獲得の視覚的フィードバック
       _showBadgeAcquisitionFeedback(result.newBadges);
@@ -349,7 +368,10 @@ class GroupGamificationProvider extends ChangeNotifier {
 
     // 経験値獲得表示
     if (result.experienceGained > 0) {
-      print('✨ +${result.experienceGained}XP 獲得！');
+      developer.log(
+        '✨ +${result.experienceGained}XP 獲得！',
+        name: 'GroupGamificationProvider',
+      );
     }
 
     // 最終的なUI更新
@@ -370,7 +392,10 @@ class GroupGamificationProvider extends ChangeNotifier {
   void _showBadgeAcquisitionFeedback(List<GroupBadge> newBadges) {
     // バッジ獲得時の特別な処理
     // 必要に応じてアニメーションや通知を追加
-    print('バッジ獲得フィードバック: ${newBadges.length}個のバッジを獲得');
+    developer.log(
+      'バッジ獲得フィードバック: ${newBadges.length}個のバッジを獲得',
+      name: 'GroupGamificationProvider',
+    );
 
     // バッジ獲得のお祝い表示をスケジュール
     // 注意: このメソッドはUIコンテキストがないため、実際のダイアログ表示は
@@ -398,7 +423,7 @@ class GroupGamificationProvider extends ChangeNotifier {
         _currentGroupId!,
       );
     } catch (e) {
-      print('詳細統計取得エラー: $e');
+      developer.log('詳細統計取得エラー: $e', name: 'GroupGamificationProvider');
       return {};
     }
   }
@@ -422,8 +447,9 @@ class GroupGamificationProvider extends ChangeNotifier {
       if (_profile.level != profile.level ||
           _profile.badges.length != profile.badges.length ||
           _profile.experiencePoints != profile.experiencePoints) {
-        print(
+        developer.log(
           'プロフィール更新検知: レベル=${profile.level}, バッジ数=${profile.badges.length}, 経験値=${profile.experiencePoints}',
+          name: 'GroupGamificationProvider',
         );
         _profile = profile;
         notifyListeners();
@@ -465,7 +491,10 @@ class GroupGamificationProvider extends ChangeNotifier {
   /// デバッグ情報を出力
   Future<void> debugPrint() async {
     if (!hasGroup) {
-      print('=== グループゲーミフィケーション（未参加） ===');
+      developer.log(
+        '=== グループゲーミフィケーション（未参加） ===',
+        name: 'GroupGamificationProvider',
+      );
       return;
     }
 

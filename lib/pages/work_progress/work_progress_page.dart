@@ -73,7 +73,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                   dataPermissions['taskStatus'];
               final access = AccessLevel.values.firstWhere(
                 (e) => e.name == accessStr,
-                orElse: () => AccessLevel.admin_leader,
+                orElse: () => AccessLevel.adminLeader,
               );
               final groupRole = groupProvider.getCurrentUserRole();
               print(
@@ -81,13 +81,13 @@ class _WorkProgressPageState extends State<WorkProgressPage>
               );
               if (groupRole != null) {
                 bool canEdit = false;
-                if (access == AccessLevel.all_members) {
+                if (access == AccessLevel.allMembers) {
                   canEdit = true;
-                } else if (access == AccessLevel.admin_leader) {
+                } else if (access == AccessLevel.adminLeader) {
                   canEdit =
                       groupRole == GroupRole.admin ||
                       groupRole == GroupRole.leader;
-                } else if (access == AccessLevel.admin_only) {
+                } else if (access == AccessLevel.adminOnly) {
                   canEdit = groupRole == GroupRole.admin;
                 }
                 print('[DEBUG] canEdit判定: $canEdit');

@@ -6,6 +6,7 @@ import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../models/group_gamification_models.dart';
+import 'dart:developer' as developer;
 
 import '../../services/group_statistics_service.dart';
 import '../../services/group_firestore_service.dart';
@@ -98,9 +99,15 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       final newSettings = GroupSettings.fromJson(currentGroup.settings);
       if (_groupSettings!.allowLeaderManageGroup !=
           newSettings.allowLeaderManageGroup) {
-        print('GroupInfoPage: リーダー管理権限が変更されました');
-        print('GroupInfoPage: 古い設定: ${_groupSettings!.allowLeaderManageGroup}');
-        print('GroupInfoPage: 新しい設定: ${newSettings.allowLeaderManageGroup}');
+        developer.log('リーダー管理権限が変更されました', name: 'GroupInfoPage');
+        developer.log(
+          '古い設定: ${_groupSettings!.allowLeaderManageGroup}',
+          name: 'GroupInfoPage',
+        );
+        developer.log(
+          '新しい設定: ${newSettings.allowLeaderManageGroup}',
+          name: 'GroupInfoPage',
+        );
 
         setState(() {
           _groupSettings = newSettings;
@@ -118,7 +125,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       }
       _fadeController.dispose();
     } catch (e) {
-      print('FadeController破棄エラー: $e');
+      developer.log('FadeController破棄エラー: $e', name: 'GroupInfoPage', error: e);
     }
 
     try {
@@ -127,7 +134,11 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       }
       _slideController.dispose();
     } catch (e) {
-      print('SlideController破棄エラー: $e');
+      developer.log(
+        'SlideController破棄エラー: $e',
+        name: 'GroupInfoPage',
+        error: e,
+      );
     }
 
     // テキストコントローラーを安全に破棄
@@ -135,7 +146,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       _nameController.dispose();
       _descriptionController.dispose();
     } catch (e) {
-      print('TextController破棄エラー: $e');
+      developer.log('TextController破棄エラー: $e', name: 'GroupInfoPage', error: e);
     }
 
     // ゲーミフィケーションプロファイルの監視を停止
@@ -144,7 +155,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         _groupProvider!.unwatchGroupGamificationProfile(_currentGroupId!);
       }
     } catch (e) {
-      print('ゲーミフィケーション監視停止エラー: $e');
+      developer.log('ゲーミフィケーション監視停止エラー: $e', name: 'GroupInfoPage', error: e);
     }
 
     // GroupProviderのリスナーを削除
@@ -153,7 +164,11 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         _groupProvider!.removeListener(_onGroupProviderChanged);
       }
     } catch (e) {
-      print('GroupProviderリスナー削除エラー: $e');
+      developer.log(
+        'GroupProviderリスナー削除エラー: $e',
+        name: 'GroupInfoPage',
+        error: e,
+      );
     }
 
     super.dispose();
@@ -184,7 +199,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         try {
           _groupProvider!.unwatchGroupGamificationProfile(_currentGroupId!);
         } catch (e) {
-          print('前のグループの監視停止エラー: $e');
+          developer.log('前のグループの監視停止エラー: $e', name: 'GroupInfoPage', error: e);
         }
       }
 
@@ -192,9 +207,12 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       if (currentGroupId != null && mounted) {
         try {
           _groupProvider!.watchGroupGamificationProfile(currentGroupId);
-          print('GroupInfoPage: ゲーミフィケーションプロファイルの監視を開始: $currentGroupId');
+          developer.log(
+            'ゲーミフィケーションプロファイルの監視を開始: $currentGroupId',
+            name: 'GroupInfoPage',
+          );
         } catch (e) {
-          print('新しいグループの監視開始エラー: $e');
+          developer.log('新しいグループの監視開始エラー: $e', name: 'GroupInfoPage', error: e);
         }
       }
 
@@ -224,9 +242,9 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           await GroupDataSyncService.getGroupDripPackTotalCount(group.id);
 
       // 統計データの取得を確認
-      print('GroupInfoPage: グループ統計データ取得完了');
-      print('GroupInfoPage: 統計データ: $_groupStats');
-      print('GroupInfoPage: ドリップパック合計数: $_dripPackTotalCount');
+      developer.log('グループ統計データ取得完了', name: 'GroupInfoPage');
+      developer.log('統計データ: $_groupStats', name: 'GroupInfoPage');
+      developer.log('ドリップパック合計数: $_dripPackTotalCount', name: 'GroupInfoPage');
 
       // ウィジェットが破棄されている場合は処理を中断
       if (!mounted) return;
@@ -259,7 +277,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         }
       }
     } catch (e) {
-      print('グループデータ読み込みエラー: $e');
+      developer.log('グループデータ読み込みエラー: $e', name: 'GroupInfoPage', error: e);
       if (mounted) {
         setState(() => _loading = false);
       }
@@ -278,11 +296,20 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       final groupProvider = context.read<GroupProvider>();
       final currentGroup = groupProvider.currentGroup!;
 
-      print('GroupInfoPage: グループ更新開始');
-      print('GroupInfoPage: 現在の名前: ${currentGroup.name}');
-      print('GroupInfoPage: 新しい名前: ${_nameController.text.trim()}');
-      print('GroupInfoPage: 現在の説明: ${currentGroup.description}');
-      print('GroupInfoPage: 新しい説明: ${_descriptionController.text.trim()}');
+      developer.log('グループ更新開始', name: 'GroupInfoPage');
+      developer.log('現在の名前: ${currentGroup.name}', name: 'GroupInfoPage');
+      developer.log(
+        '新しい名前: ${_nameController.text.trim()}',
+        name: 'GroupInfoPage',
+      );
+      developer.log(
+        '現在の説明: ${currentGroup.description}',
+        name: 'GroupInfoPage',
+      );
+      developer.log(
+        '新しい説明: ${_descriptionController.text.trim()}',
+        name: 'GroupInfoPage',
+      );
 
       final updatedGroup = currentGroup.copyWith(
         name: _nameController.text.trim(),
@@ -292,7 +319,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
       final success = await groupProvider.updateGroup(updatedGroup);
 
-      print('GroupInfoPage: 更新結果: $success');
+      developer.log('更新結果: $success', name: 'GroupInfoPage');
 
       if (success && mounted) {
         await groupProvider.loadUserGroups();
@@ -307,7 +334,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             ),
           );
         }
-        print('GroupInfoPage: グループ更新完了');
+        developer.log('グループ更新完了', name: 'GroupInfoPage');
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -315,10 +342,13 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             backgroundColor: Colors.red,
           ),
         );
-        print('GroupInfoPage: グループ更新失敗: ${groupProvider.error}');
+        developer.log(
+          'グループ更新失敗: ${groupProvider.error}',
+          name: 'GroupInfoPage',
+        );
       }
     } catch (e) {
-      print('GroupInfoPage: グループ更新エラー: $e');
+      developer.log('グループ更新エラー: $e', name: 'GroupInfoPage', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -385,31 +415,30 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     StateSetter? setModalState,
   ]) async {
     try {
-      print('GroupInfoPage: 設定更新開始');
-      print('GroupInfoPage: 現在の設定: $_groupSettings');
-      print('GroupInfoPage: 新しい設定: $newSettings');
-      print(
-        'GroupInfoPage: 新しい設定のdataPermissions: ${newSettings.dataPermissions}',
+      developer.log('設定更新開始', name: 'GroupInfoPage');
+      developer.log('現在の設定: $_groupSettings', name: 'GroupInfoPage');
+      developer.log('新しい設定: $newSettings', name: 'GroupInfoPage');
+      developer.log(
+        '新しい設定のdataPermissions: ${newSettings.dataPermissions}',
+        name: 'GroupInfoPage',
       );
 
       if (_groupSettings != null) {
-        print(
-          'GroupInfoPage: 現在のallowMemberInvite: ${_groupSettings!.allowMemberInvite}',
+        developer.log(
+          '現在のallowMemberInvite: ${_groupSettings!.allowMemberInvite}',
+          name: 'GroupInfoPage',
         );
-        print(
-          'GroupInfoPage: 新しいallowMemberInvite: ${newSettings.allowMemberInvite}',
+        developer.log(
+          '新しいallowMemberInvite: ${newSettings.allowMemberInvite}',
+          name: 'GroupInfoPage',
         );
-        print(
-          'GroupInfoPage: 現在のallowMemberViewMembers: ${_groupSettings!.allowMemberViewMembers}',
+        developer.log(
+          '現在のallowMemberViewMembers: ${_groupSettings!.allowMemberViewMembers}',
+          name: 'GroupInfoPage',
         );
-        print(
-          'GroupInfoPage: 新しいallowMemberViewMembers: ${newSettings.allowMemberViewMembers}',
-        );
-        print(
-          'GroupInfoPage: 現在のallowMemberViewMembers: ${_groupSettings!.allowMemberViewMembers}',
-        );
-        print(
-          'GroupInfoPage: 新しいallowMemberViewMembers: ${newSettings.allowMemberViewMembers}',
+        developer.log(
+          '新しいallowMemberViewMembers: ${newSettings.allowMemberViewMembers}',
+          name: 'GroupInfoPage',
         );
       }
 
@@ -418,14 +447,23 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         settings: newSettings,
       );
 
-      print('GroupFirestoreService: Firestore更新完了');
+      developer.log(
+        'GroupFirestoreService: Firestore更新完了',
+        name: 'GroupInfoPage',
+      );
 
       if (mounted) {
-        print('GroupInfoPage: setState前の_groupSettings: $_groupSettings');
+        developer.log(
+          'setState前の_groupSettings: $_groupSettings',
+          name: 'GroupInfoPage',
+        );
         setState(() {
           _groupSettings = newSettings;
         });
-        print('GroupInfoPage: setState後の_groupSettings: $_groupSettings');
+        developer.log(
+          'setState後の_groupSettings: $_groupSettings',
+          name: 'GroupInfoPage',
+        );
 
         // ボトムシート内でも状態更新
         if (setModalState != null) {
@@ -443,10 +481,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           }
         });
 
-        print('GroupInfoPage: ローカル状態更新完了');
+        developer.log('ローカル状態更新完了', name: 'GroupInfoPage');
       }
     } catch (e) {
-      print('GroupInfoPage: 設定更新エラー: $e');
+      developer.log('設定更新エラー: $e', name: 'GroupInfoPage', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -722,7 +760,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           Icon(
             Icons.group_off,
             size: 80,
-            color: themeSettings.fontColor1.withOpacity(0.5),
+            color: themeSettings.fontColor1.withValues(alpha: 0.5),
           ),
           SizedBox(height: 16),
           Text(
@@ -738,7 +776,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             'グループに参加してチームの成長を確認しましょう',
             style: TextStyle(
               fontSize: 14 * themeSettings.fontSizeScale,
-              color: themeSettings.fontColor1.withOpacity(0.7),
+              color: themeSettings.fontColor1.withValues(alpha: 0.7),
               fontFamily: themeSettings.fontFamily,
             ),
             textAlign: TextAlign.center,
@@ -782,18 +820,27 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         final memberCount = group.members.length;
 
         // デバッグ情報を出力
-        print('GroupInfoPage: メンバー数: $memberCount');
-        print(
-          'GroupInfoPage: メンバー一覧: ${group.members.map((m) => '${m.displayName}(${m.email})').join(', ')}',
+        developer.log('メンバー数: $memberCount', name: 'GroupInfoPage');
+        developer.log(
+          'メンバー一覧: ${group.members.map((m) => '${m.displayName}(${m.email})').join(', ')}',
+          name: 'GroupInfoPage',
         );
-        print('GroupInfoPage: グループゲーミフィケーションプロファイル: $groupGamificationProfile');
-        print('GroupInfoPage: バッジ数: $badgeCount / $allBadgeCount');
-        print(
-          'GroupInfoPage: 利用可能なバッジID: ${GroupBadgeConditions.conditions.map((c) => c.badgeId).toList()}',
+        developer.log(
+          'グループゲーミフィケーションプロファイル: $groupGamificationProfile',
+          name: 'GroupInfoPage',
+        );
+        developer.log(
+          'バッジ数: $badgeCount / $allBadgeCount',
+          name: 'GroupInfoPage',
+        );
+        developer.log(
+          '利用可能なバッジID: ${GroupBadgeConditions.conditions.map((c) => c.badgeId).toList()}',
+          name: 'GroupInfoPage',
         );
         if (groupGamificationProfile?.badges.isNotEmpty == true) {
-          print(
-            'GroupInfoPage: 獲得済みバッジ: ${groupGamificationProfile!.badges.map((b) => '${b.name}(${b.id})').join(', ')}',
+          developer.log(
+            '獲得済みバッジ: ${groupGamificationProfile!.badges.map((b) => '${b.name}(${b.id})').join(', ')}',
+            name: 'GroupInfoPage',
           );
         }
 
@@ -810,7 +857,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                 borderRadius: BorderRadius.circular(20),
               ),
               color: themeSettings.cardBackgroundColor,
-              shadowColor: themeSettings.buttonColor.withOpacity(0.15),
+              shadowColor: themeSettings.buttonColor.withValues(alpha: 0.15),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: size.height * 0.9, // Card内の最大高さを設定
@@ -868,13 +915,15 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                           padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: _isDarkTheme(themeSettings)
-                                ? Colors.white.withOpacity(0.05)
-                                : themeSettings.cardBackgroundColor.withOpacity(
-                                    0.1,
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : themeSettings.cardBackgroundColor.withValues(
+                                    alpha: 0.1,
                                   ),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: themeSettings.buttonColor.withOpacity(0.2),
+                              color: themeSettings.buttonColor.withValues(
+                                alpha: 0.2,
+                              ),
                               width: 1,
                             ),
                           ),
@@ -978,13 +1027,15 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                           padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: _isDarkTheme(themeSettings)
-                                ? Colors.white.withOpacity(0.05)
-                                : themeSettings.cardBackgroundColor.withOpacity(
-                                    0.1,
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : themeSettings.cardBackgroundColor.withValues(
+                                    alpha: 0.1,
                                   ),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: themeSettings.buttonColor.withOpacity(0.2),
+                              color: themeSettings.buttonColor.withValues(
+                                alpha: 0.2,
+                              ),
                               width: 1,
                             ),
                           ),
@@ -1016,7 +1067,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                       fontSize:
                                           16 * themeSettings.fontSizeScale,
                                       color: themeSettings.fontColor1
-                                          .withOpacity(0.7),
+                                          .withValues(alpha: 0.7),
                                       fontFamily: themeSettings.fontFamily,
                                     ),
                                   ),
@@ -1030,7 +1081,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                 ),
                                 minHeight: 8,
                                 backgroundColor: themeSettings.fontColor1
-                                    .withOpacity(0.1),
+                                    .withValues(alpha: 0.1),
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   themeSettings.buttonColor,
                                 ),
@@ -1051,11 +1102,13 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                   // デバッグ情報
                                   if (condition.badgeId ==
                                       'group_attendance_10') {
-                                    print(
-                                      'GroupInfoPage: バッジチェック - ${condition.name}: $isEarned',
+                                    developer.log(
+                                      'バッジチェック - ${condition.name}: $isEarned',
+                                      name: 'GroupInfoPage',
                                     );
-                                    print(
-                                      'GroupInfoPage: 全バッジID: ${groupGamificationProfile?.badges.map((b) => b.id).toList()}',
+                                    developer.log(
+                                      '全バッジID: ${groupGamificationProfile?.badges.map((b) => b.id).toList()}',
+                                      name: 'GroupInfoPage',
                                     );
                                   }
                                   final earnedBadge = groupGamificationProfile
@@ -1081,15 +1134,20 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                     padding: EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color: isEarned
-                                          ? condition.color.withOpacity(0.1)
-                                          : themeSettings.fontColor1
-                                                .withOpacity(0.05),
+                                          ? condition.color.withValues(
+                                              alpha: 0.1,
+                                            )
+                                          : themeSettings.fontColor1.withValues(
+                                              alpha: 0.05,
+                                            ),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isEarned
-                                            ? condition.color.withOpacity(0.3)
+                                            ? condition.color.withValues(
+                                                alpha: 0.3,
+                                              )
                                             : themeSettings.fontColor1
-                                                  .withOpacity(0.1),
+                                                  .withValues(alpha: 0.1),
                                         width: 1,
                                       ),
                                     ),
@@ -1100,11 +1158,11 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                           padding: EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             color: isEarned
-                                                ? condition.color.withOpacity(
-                                                    0.2,
+                                                ? condition.color.withValues(
+                                                    alpha: 0.2,
                                                   )
                                                 : themeSettings.fontColor1
-                                                      .withOpacity(0.1),
+                                                      .withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(
                                               8,
                                             ),
@@ -1114,7 +1172,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                             color: isEarned
                                                 ? condition.color
                                                 : themeSettings.fontColor1
-                                                      .withOpacity(0.3),
+                                                      .withValues(alpha: 0.3),
                                             size: 24,
                                           ),
                                         ),
@@ -1155,7 +1213,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                                             .fontSizeScale,
                                                     color: themeSettings
                                                         .fontColor1
-                                                        .withOpacity(0.7),
+                                                        .withValues(alpha: 0.7),
                                                     fontFamily: themeSettings
                                                         .fontFamily,
                                                   ),
@@ -1191,18 +1249,18 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                                                 .fontSizeScale,
                                                         color: isEarned
                                                             ? condition.color
-                                                                  .withOpacity(
-                                                                    0.8,
+                                                                  .withValues(
+                                                                    alpha: 0.8,
                                                                   )
                                                             : isAchievable
                                                             ? Colors.green
-                                                                  .withOpacity(
-                                                                    0.8,
+                                                                  .withValues(
+                                                                    alpha: 0.8,
                                                                   )
                                                             : themeSettings
                                                                   .fontColor1
-                                                                  .withOpacity(
-                                                                    0.7,
+                                                                  .withValues(
+                                                                    alpha: 0.7,
                                                                   ),
                                                         fontFamily:
                                                             themeSettings
@@ -1226,7 +1284,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                                         themeSettings
                                                             .fontSizeScale,
                                                     color: condition.color
-                                                        .withOpacity(0.8),
+                                                        .withValues(alpha: 0.8),
                                                     fontFamily: themeSettings
                                                         .fontFamily,
                                                   ),
@@ -1244,7 +1302,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                                           color: isEarned
                                               ? condition.color
                                               : themeSettings.fontColor1
-                                                    .withOpacity(0.3),
+                                                    .withValues(alpha: 0.3),
                                           size: 24,
                                         ),
                                       ],
@@ -1315,8 +1373,8 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           style: TextStyle(
             fontSize: 18 * themeSettings.fontSizeScale,
             color: _isDarkTheme(themeSettings)
-                ? Colors.white.withOpacity(0.8)
-                : themeSettings.fontColor1.withOpacity(0.6),
+                ? Colors.white.withValues(alpha: 0.8)
+                : themeSettings.fontColor1.withValues(alpha: 0.6),
             fontFamily: themeSettings.fontFamily,
           ),
         ),
@@ -1344,11 +1402,12 @@ class _GroupInfoPageState extends State<GroupInfoPage>
   }
 
   Widget _buildDataPermissionSettings([StateSetter? setModalState]) {
-    print('GroupInfoPage: _buildDataPermissionSettings開始');
-    print('GroupInfoPage: 現在の_groupSettings: $_groupSettings');
+    developer.log('_buildDataPermissionSettings開始', name: 'GroupInfoPage');
+    developer.log('現在の_groupSettings: $_groupSettings', name: 'GroupInfoPage');
     if (_groupSettings != null) {
-      print(
-        'GroupInfoPage: 現在のdataPermissions: ${_groupSettings!.dataPermissions}',
+      developer.log(
+        '現在のdataPermissions: ${_groupSettings!.dataPermissions}',
+        name: 'GroupInfoPage',
       );
     }
 
@@ -1375,7 +1434,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             'roastRecordInput',
           ),
           onChanged: (AccessLevel level) {
-            print('GroupInfoPage: 焙煎記録入力権限変更 - 新しい権限: $level');
+            developer.log('焙煎記録入力権限変更 - 新しい権限: $level', name: 'GroupInfoPage');
             if (setModalState != null) {
               setModalState(() {
                 final newPermissions = Map<String, AccessLevel>.from(
@@ -1397,8 +1456,9 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                 );
               });
             }
-            print(
-              'GroupInfoPage: setState完了 - 新しい設定: ${_groupSettings!.dataPermissions}',
+            developer.log(
+              'setState完了 - 新しい設定: ${_groupSettings!.dataPermissions}',
+              name: 'GroupInfoPage',
             );
             _updateGroupSettings(_groupSettings!);
           },
@@ -1412,7 +1472,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             'roastRecords',
           ),
           onChanged: (AccessLevel level) {
-            print('GroupInfoPage: 焙煎記録一覧権限変更 - 新しい権限: $level');
+            developer.log('焙煎記録一覧権限変更 - 新しい権限: $level', name: 'GroupInfoPage');
             if (setModalState != null) {
               setModalState(() {
                 final newPermissions = Map<String, AccessLevel>.from(
@@ -1434,8 +1494,9 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                 );
               });
             }
-            print(
-              'GroupInfoPage: setState完了 - 新しい設定: ${_groupSettings!.dataPermissions}',
+            developer.log(
+              'setState完了 - 新しい設定: ${_groupSettings!.dataPermissions}',
+              name: 'GroupInfoPage',
             );
             _updateGroupSettings(_groupSettings!);
           },
@@ -1480,8 +1541,11 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             'assignment_board',
           ),
           onChanged: (AccessLevel level) {
-            print('GroupInfoPage: 担当表権限変更 - 新しいレベル: $level');
-            print('GroupInfoPage: 変更前の設定: ${_groupSettings!.dataPermissions}');
+            developer.log('担当表権限変更 - 新しいレベル: $level', name: 'GroupInfoPage');
+            developer.log(
+              '変更前の設定: ${_groupSettings!.dataPermissions}',
+              name: 'GroupInfoPage',
+            );
 
             if (setModalState != null) {
               setModalState(() {
@@ -1505,7 +1569,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               });
             }
 
-            print('GroupInfoPage: 変更後の設定: ${_groupSettings!.dataPermissions}');
+            developer.log(
+              '変更後の設定: ${_groupSettings!.dataPermissions}',
+              name: 'GroupInfoPage',
+            );
             _updateGroupSettings(_groupSettings!);
           },
         ),
@@ -1650,7 +1717,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     required AccessLevel currentLevel,
     required Function(AccessLevel) onChanged,
   }) {
-    print('GroupInfoPage: $dataType の現在の権限: $currentLevel');
+    developer.log('$dataType の現在の権限: $currentLevel', name: 'GroupInfoPage');
 
     final themeSettings = Provider.of<ThemeSettings>(context);
     return Container(
@@ -1658,7 +1725,9 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       decoration: BoxDecoration(
         color: themeSettings.cardBackgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: themeSettings.fontColor1.withOpacity(0.1)),
+        border: Border.all(
+          color: themeSettings.fontColor1.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1683,7 +1752,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                       description,
                       style: TextStyle(
                         fontSize: 14 * themeSettings.fontSizeScale,
-                        color: themeSettings.fontColor1.withOpacity(0.7),
+                        color: themeSettings.fontColor1.withValues(alpha: 0.7),
                         fontFamily: themeSettings.fontFamily,
                       ),
                     ),
@@ -1694,10 +1763,14 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _getAccessLevelColor(currentLevel).withOpacity(0.1),
+                  color: _getAccessLevelColor(
+                    currentLevel,
+                  ).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: _getAccessLevelColor(currentLevel).withOpacity(0.3),
+                    color: _getAccessLevelColor(
+                      currentLevel,
+                    ).withValues(alpha: 0.3),
                   ),
                 ),
                 child: Text(
@@ -1718,24 +1791,24 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               // 管理者ボタン
               Expanded(
                 child: GestureDetector(
-                  onTap: () => onChanged(AccessLevel.admin_only),
+                  onTap: () => onChanged(AccessLevel.adminOnly),
                   child: Container(
                     margin: EdgeInsets.only(right: 8),
                     padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     decoration: BoxDecoration(
                       color:
-                          _isLevelSelected(currentLevel, AccessLevel.admin_only)
-                          ? _getAccessLevelColor(AccessLevel.admin_only)
-                          : themeSettings.fontColor1.withOpacity(0.05),
+                          _isLevelSelected(currentLevel, AccessLevel.adminOnly)
+                          ? _getAccessLevelColor(AccessLevel.adminOnly)
+                          : themeSettings.fontColor1.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color:
                             _isLevelSelected(
                               currentLevel,
-                              AccessLevel.admin_only,
+                              AccessLevel.adminOnly,
                             )
-                            ? _getAccessLevelColor(AccessLevel.admin_only)
-                            : themeSettings.fontColor1.withOpacity(0.2),
+                            ? _getAccessLevelColor(AccessLevel.adminOnly)
+                            : themeSettings.fontColor1.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Text(
@@ -1745,14 +1818,14 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                         color:
                             _isLevelSelected(
                               currentLevel,
-                              AccessLevel.admin_only,
+                              AccessLevel.adminOnly,
                             )
                             ? Colors.white
                             : themeSettings.fontColor1,
                         fontWeight:
                             _isLevelSelected(
                               currentLevel,
-                              AccessLevel.admin_only,
+                              AccessLevel.adminOnly,
                             )
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -1766,7 +1839,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               // リーダーボタン
               Expanded(
                 child: GestureDetector(
-                  onTap: () => onChanged(AccessLevel.admin_leader),
+                  onTap: () => onChanged(AccessLevel.adminLeader),
                   child: Container(
                     margin: EdgeInsets.only(right: 8),
                     padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -1774,19 +1847,19 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                       color:
                           _isLevelSelected(
                             currentLevel,
-                            AccessLevel.admin_leader,
+                            AccessLevel.adminLeader,
                           )
-                          ? _getAccessLevelColor(AccessLevel.admin_leader)
-                          : themeSettings.fontColor1.withOpacity(0.05),
+                          ? _getAccessLevelColor(AccessLevel.adminLeader)
+                          : themeSettings.fontColor1.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color:
                             _isLevelSelected(
                               currentLevel,
-                              AccessLevel.admin_leader,
+                              AccessLevel.adminLeader,
                             )
-                            ? _getAccessLevelColor(AccessLevel.admin_leader)
-                            : themeSettings.fontColor1.withOpacity(0.2),
+                            ? _getAccessLevelColor(AccessLevel.adminLeader)
+                            : themeSettings.fontColor1.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Text(
@@ -1796,14 +1869,14 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                         color:
                             _isLevelSelected(
                               currentLevel,
-                              AccessLevel.admin_leader,
+                              AccessLevel.adminLeader,
                             )
                             ? Colors.white
                             : themeSettings.fontColor1,
                         fontWeight:
                             _isLevelSelected(
                               currentLevel,
-                              AccessLevel.admin_leader,
+                              AccessLevel.adminLeader,
                             )
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -1817,26 +1890,23 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               // メンバーボタン
               Expanded(
                 child: GestureDetector(
-                  onTap: () => onChanged(AccessLevel.all_members),
+                  onTap: () => onChanged(AccessLevel.allMembers),
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     decoration: BoxDecoration(
                       color:
-                          _isLevelSelected(
-                            currentLevel,
-                            AccessLevel.all_members,
-                          )
-                          ? _getAccessLevelColor(AccessLevel.all_members)
-                          : themeSettings.fontColor1.withOpacity(0.05),
+                          _isLevelSelected(currentLevel, AccessLevel.allMembers)
+                          ? _getAccessLevelColor(AccessLevel.allMembers)
+                          : themeSettings.fontColor1.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color:
                             _isLevelSelected(
                               currentLevel,
-                              AccessLevel.all_members,
+                              AccessLevel.allMembers,
                             )
-                            ? _getAccessLevelColor(AccessLevel.all_members)
-                            : themeSettings.fontColor1.withOpacity(0.2),
+                            ? _getAccessLevelColor(AccessLevel.allMembers)
+                            : themeSettings.fontColor1.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Text(
@@ -1846,14 +1916,14 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                         color:
                             _isLevelSelected(
                               currentLevel,
-                              AccessLevel.all_members,
+                              AccessLevel.allMembers,
                             )
                             ? Colors.white
                             : themeSettings.fontColor1,
                         fontWeight:
                             _isLevelSelected(
                               currentLevel,
-                              AccessLevel.all_members,
+                              AccessLevel.allMembers,
                             )
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -1873,22 +1943,22 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
   Color _getAccessLevelColor(AccessLevel level) {
     switch (level) {
-      case AccessLevel.admin_only:
+      case AccessLevel.adminOnly:
         return Colors.red;
-      case AccessLevel.admin_leader:
+      case AccessLevel.adminLeader:
         return Colors.orange;
-      case AccessLevel.all_members:
+      case AccessLevel.allMembers:
         return Colors.blue;
     }
   }
 
   String _getAccessLevelDisplayName(AccessLevel level) {
     switch (level) {
-      case AccessLevel.admin_only:
+      case AccessLevel.adminOnly:
         return '管理者のみ';
-      case AccessLevel.admin_leader:
+      case AccessLevel.adminLeader:
         return '管理者とリーダー';
-      case AccessLevel.all_members:
+      case AccessLevel.allMembers:
         return '全メンバー';
     }
   }
@@ -1899,18 +1969,18 @@ class _GroupInfoPageState extends State<GroupInfoPage>
   /// メンバーをタップ: 管理者とリーダーとメンバーが選択
   bool _isLevelSelected(AccessLevel currentLevel, AccessLevel buttonLevel) {
     switch (buttonLevel) {
-      case AccessLevel.admin_only:
+      case AccessLevel.adminOnly:
         // 管理者ボタンは、現在の権限が管理者のみ、管理者・リーダー、全メンバーの場合に選択
-        return currentLevel == AccessLevel.admin_only ||
-            currentLevel == AccessLevel.admin_leader ||
-            currentLevel == AccessLevel.all_members;
-      case AccessLevel.admin_leader:
+        return currentLevel == AccessLevel.adminOnly ||
+            currentLevel == AccessLevel.adminLeader ||
+            currentLevel == AccessLevel.allMembers;
+      case AccessLevel.adminLeader:
         // リーダーボタンは、現在の権限が管理者・リーダーまたは全メンバーの場合に選択
-        return currentLevel == AccessLevel.admin_leader ||
-            currentLevel == AccessLevel.all_members;
-      case AccessLevel.all_members:
+        return currentLevel == AccessLevel.adminLeader ||
+            currentLevel == AccessLevel.allMembers;
+      case AccessLevel.allMembers:
         // メンバーボタンは、現在の権限が全メンバーの場合のみ選択
-        return currentLevel == AccessLevel.all_members;
+        return currentLevel == AccessLevel.allMembers;
     }
   }
 
@@ -1935,7 +2005,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           description: 'メンバーがQRコードを生成して他のユーザーを招待できる',
           value: _groupSettings!.allowMemberInvite,
           onChanged: (value) {
-            print('GroupInfoPage: メンバーが招待できる onChanged: $value');
+            developer.log(
+              'メンバーが招待できる onChanged: $value',
+              name: 'GroupInfoPage',
+            );
             if (setModalState != null) {
               setModalState(() {
                 _groupSettings = _groupSettings!.copyWith(
@@ -1958,7 +2031,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           description: 'メンバーがグループのメンバー一覧を表示できる',
           value: _groupSettings!.allowMemberViewMembers,
           onChanged: (value) {
-            print('GroupInfoPage: メンバーがメンバー一覧を見れる onChanged: $value');
+            developer.log(
+              'メンバーがメンバー一覧を見れる onChanged: $value',
+              name: 'GroupInfoPage',
+            );
             if (setModalState != null) {
               setModalState(() {
                 _groupSettings = _groupSettings!.copyWith(
@@ -1981,7 +2057,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           description: 'リーダーが権限設定・グループ名変更・グループ削除を実行できる',
           value: _groupSettings!.allowLeaderManageGroup,
           onChanged: (value) {
-            print('GroupInfoPage: リーダーがグループ管理できる onChanged: $value');
+            developer.log(
+              'リーダーがグループ管理できる onChanged: $value',
+              name: 'GroupInfoPage',
+            );
             if (setModalState != null) {
               setModalState(() {
                 _groupSettings = _groupSettings!.copyWith(
@@ -2012,9 +2091,9 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
     return GestureDetector(
       onTap: () {
-        print('GestureDetector tapped: $title');
-        print('Current value: $value');
-        print('Toggling to: ${!value}');
+        developer.log('GestureDetector tapped: $title', name: 'GroupInfoPage');
+        developer.log('Current value: $value', name: 'GroupInfoPage');
+        developer.log('Toggling to: ${!value}', name: 'GroupInfoPage');
         onChanged(!value);
       },
       child: Row(
@@ -2037,7 +2116,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                   description,
                   style: TextStyle(
                     fontSize: 12 * themeSettings.fontSizeScale,
-                    color: themeSettings.fontColor1.withOpacity(0.7),
+                    color: themeSettings.fontColor1.withValues(alpha: 0.7),
                     fontFamily: themeSettings.fontFamily,
                   ),
                 ),
@@ -2047,9 +2126,12 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           Switch(
             value: value,
             onChanged: (newValue) {
-              print('Switch onChanged called: $title');
-              print('Current value: $value');
-              print('New value: $newValue');
+              developer.log(
+                'Switch onChanged called: $title',
+                name: 'GroupInfoPage',
+              );
+              developer.log('Current value: $value', name: 'GroupInfoPage');
+              developer.log('New value: $newValue', name: 'GroupInfoPage');
               onChanged(newValue);
             },
             activeColor: themeSettings.buttonColor,
@@ -2077,24 +2159,24 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         return Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: themeSettings.fontColor1.withOpacity(0.05),
+            color: themeSettings.fontColor1.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: themeSettings.fontColor1.withOpacity(0.1),
+              color: themeSettings.fontColor1.withValues(alpha: 0.1),
             ),
           ),
           child: Row(
             children: [
               Icon(
                 Icons.lock,
-                color: themeSettings.fontColor1.withOpacity(0.5),
+                color: themeSettings.fontColor1.withValues(alpha: 0.5),
                 size: 20,
               ),
               SizedBox(width: 8),
               Text(
                 'メンバー一覧の表示権限がありません',
                 style: TextStyle(
-                  color: themeSettings.fontColor1.withOpacity(0.7),
+                  color: themeSettings.fontColor1.withValues(alpha: 0.7),
                   fontSize: 14 * themeSettings.fontSizeScale,
                   fontFamily: themeSettings.fontFamily,
                 ),
@@ -2157,7 +2239,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: roleColor.withOpacity(0.1),
+                    backgroundColor: roleColor.withValues(alpha: 0.1),
                     backgroundImage: member.photoUrl != null
                         ? NetworkImage(member.photoUrl!)
                         : null,
@@ -2199,7 +2281,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             '+${sortedMembers.length - 8}',
             style: TextStyle(
               fontSize: 16,
-              color: themeSettings.fontColor1.withOpacity(0.6),
+              color: themeSettings.fontColor1.withValues(alpha: 0.6),
             ),
           ),
       ],
@@ -2229,7 +2311,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         : 'メンバー';
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.3),
+      barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (context) {
         return Dialog(
           shape: RoundedRectangleBorder(
@@ -2246,7 +2328,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                 // 上部に大きなアイコンと名前
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: roleColor.withOpacity(0.12),
+                  backgroundColor: roleColor.withValues(alpha: 0.12),
                   backgroundImage: member.photoUrl != null
                       ? NetworkImage(member.photoUrl!)
                       : null,
@@ -2277,7 +2359,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: roleColor.withOpacity(0.15),
+                    color: roleColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -2527,7 +2609,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             group.description,
             style: TextStyle(
               fontSize: 18 * themeSettings.fontSizeScale,
-              color: themeSettings.fontColor1.withOpacity(0.7),
+              color: themeSettings.fontColor1.withValues(alpha: 0.7),
               fontFamily: themeSettings.fontFamily,
             ),
             maxLines: 2,
@@ -2555,7 +2637,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               hintText: 'グループ名',
               hintStyle: TextStyle(
                 fontSize: 24 * themeSettings.fontSizeScale,
-                color: themeSettings.fontColor1.withOpacity(0.5),
+                color: themeSettings.fontColor1.withValues(alpha: 0.5),
                 fontFamily: themeSettings.fontFamily,
               ),
               border: OutlineInputBorder(
@@ -2594,13 +2676,13 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               hintText: 'グループの説明（任意）',
               hintStyle: TextStyle(
                 fontSize: 18 * themeSettings.fontSizeScale,
-                color: themeSettings.fontColor1.withOpacity(0.5),
+                color: themeSettings.fontColor1.withValues(alpha: 0.5),
                 fontFamily: themeSettings.fontFamily,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: themeSettings.fontColor1.withOpacity(0.3),
+                  color: themeSettings.fontColor1.withValues(alpha: 0.3),
                 ),
               ),
               focusedBorder: OutlineInputBorder(

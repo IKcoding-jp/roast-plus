@@ -17,6 +17,7 @@ import 'services/todo_notification_service.dart';
 import 'services/auto_sync_service.dart';
 import 'services/roast_timer_notification_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'dart:developer' as developer;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -54,7 +55,7 @@ void main() async {
         details.exception.toString().contains('HardwareKeyboard') ||
         details.exception.toString().contains('KeyUpEvent#') ||
         details.exception.toString().contains('PhysicalKeyboardKey#')) {
-      print('キーボードイベントエラーを無視: ${details.exception}');
+      developer.log('キーボードイベントエラーを無視: ${details.exception}', name: 'Main');
       return;
     }
 
@@ -85,7 +86,6 @@ void main() async {
   // グローバルナビゲーションキーを通知サービスにセット
   TodoNotificationService().setNavigatorKey(navigatorKey);
 
-  // TODO通知サービスを開始
   TodoNotificationService().startNotificationService();
 
   // AutoSyncServiceを初期化
@@ -139,7 +139,7 @@ class LifecycleEventHandler extends WidgetsBindingObserver {
             overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
           );
         } catch (e) {
-          print('システムUI設定エラー: $e');
+          developer.log('システムUI設定エラー: $e', name: 'Main');
         }
         break;
       case AppLifecycleState.detached:

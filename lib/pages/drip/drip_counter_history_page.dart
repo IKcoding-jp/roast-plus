@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
 import '../../services/group_data_sync_service.dart';
 import '../../services/user_settings_firestore_service.dart';
+import 'dart:developer' as developer;
 
 class DripCounterHistoryPage extends StatefulWidget {
   const DripCounterHistoryPage({super.key});
@@ -80,8 +81,13 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
           _records = List<Map<String, dynamic>>.from(saved);
         });
       }
-    } catch (e) {
-      print('ドリップパック記録の読み込みエラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'ドリップパック記録の読み込みエラー',
+        name: 'DripCounterHistoryPage',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -123,8 +129,13 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
         'dripPackRecords',
         _records,
       );
-    } catch (e) {
-      print('ドリップパック記録の保存エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'ドリップパック記録の保存エラー',
+        name: 'DripCounterHistoryPage',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 

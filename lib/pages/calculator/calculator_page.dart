@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import 'dart:developer' as developer;
 
 class CalculatorPage extends StatefulWidget {
   const CalculatorPage({super.key});
@@ -171,14 +172,22 @@ class _CalculatorPageState extends State<CalculatorPage> {
     final themeSettings = Provider.of<ThemeSettings>(context);
 
     // デバッグ用：現在のcalculatorColorの値をログ出力
-    print(
+    developer.log(
       'CalculatorPage: 現在のcalculatorColor: ${themeSettings.calculatorColor}',
+      name: 'CalculatorPage',
     );
-    print(
-      'CalculatorPage: calculatorColorの値: ${themeSettings.calculatorColor.value}',
+    developer.log(
+      'CalculatorPage: calculatorColorのARGB: ${themeSettings.calculatorColor.toARGB32()}',
+      name: 'CalculatorPage',
     );
-    print('CalculatorPage: 現在のiconColor: ${themeSettings.iconColor}');
-    print('CalculatorPage: iconColorの値: ${themeSettings.iconColor.value}');
+    developer.log(
+      'CalculatorPage: 現在のiconColor: ${themeSettings.iconColor}',
+      name: 'CalculatorPage',
+    );
+    developer.log(
+      'CalculatorPage: iconColorのARGB: ${themeSettings.iconColor.toARGB32()}',
+      name: 'CalculatorPage',
+    );
 
     return Scaffold(
       backgroundColor: themeSettings.backgroundColor,
@@ -216,7 +225,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                   color: themeSettings.backgroundColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: themeSettings.calculatorColor.withOpacity(0.3),
+                    color: themeSettings.calculatorColor.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -229,7 +238,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
                         '$_operand1 $_operator',
                         style: TextStyle(
                           fontSize: 18 * themeSettings.fontSizeScale,
-                          color: themeSettings.fontColor1.withOpacity(0.6),
+                          color: themeSettings.fontColor1.withValues(
+                            alpha: 0.6,
+                          ),
                           fontFamily: themeSettings.fontFamily,
                         ),
                       ),
@@ -266,20 +277,22 @@ class _CalculatorPageState extends State<CalculatorPage> {
                           _buildButton(
                             text: 'C',
                             onPressed: () => _onButtonPressed('C'),
-                            backgroundColor: Colors.red.withOpacity(0.8),
+                            backgroundColor: Colors.red.withValues(alpha: 0.8),
                             textColor: Colors.white,
                           ),
                           _buildButton(
                             text: '⌫',
                             onPressed: () => _onButtonPressed('⌫'),
-                            backgroundColor: Colors.orange.withOpacity(0.8),
+                            backgroundColor: Colors.orange.withValues(
+                              alpha: 0.8,
+                            ),
                             textColor: Colors.white,
                           ),
                           _buildButton(
                             text: '÷',
                             onPressed: () => _onButtonPressed('÷'),
                             backgroundColor: themeSettings.calculatorColor
-                                .withOpacity(0.8),
+                                .withValues(alpha: 0.8),
                             textColor: Colors.white,
                           ),
                         ],
@@ -306,7 +319,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             text: '×',
                             onPressed: () => _onButtonPressed('×'),
                             backgroundColor: themeSettings.calculatorColor
-                                .withOpacity(0.8),
+                                .withValues(alpha: 0.8),
                             textColor: Colors.white,
                           ),
                         ],
@@ -333,7 +346,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             text: '-',
                             onPressed: () => _onButtonPressed('-'),
                             backgroundColor: themeSettings.calculatorColor
-                                .withOpacity(0.8),
+                                .withValues(alpha: 0.8),
                             textColor: Colors.white,
                           ),
                         ],
@@ -360,7 +373,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             text: '+',
                             onPressed: () => _onButtonPressed('+'),
                             backgroundColor: themeSettings.calculatorColor
-                                .withOpacity(0.8),
+                                .withValues(alpha: 0.8),
                             textColor: Colors.white,
                           ),
                         ],
@@ -383,7 +396,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
                           _buildButton(
                             text: '=',
                             onPressed: () => _onButtonPressed('='),
-                            backgroundColor: Colors.green.withOpacity(0.8),
+                            backgroundColor: Colors.green.withValues(
+                              alpha: 0.8,
+                            ),
                             textColor: Colors.white,
                           ),
                         ],

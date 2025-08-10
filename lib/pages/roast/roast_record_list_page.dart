@@ -287,10 +287,10 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     } else {
       final groupSettings = groupProvider.getCurrentGroupSettings();
       if (groupSettings?.getPermissionForDataType('roastRecords') ==
-          AccessLevel.admin_only) {
+          AccessLevel.adminOnly) {
         message = '管理者のみ削除可能です';
       } else if (groupSettings?.getPermissionForDataType('roastRecords') ==
-          AccessLevel.admin_leader) {
+          AccessLevel.adminLeader) {
         message = '管理者・リーダーのみ削除可能です';
       } else {
         message = '権限がありません';
@@ -315,10 +315,10 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     if (currentGroup != null) {
       final groupSettings = groupProvider.getCurrentGroupSettings();
       if (groupSettings?.getPermissionForDataType('roastRecords') ==
-          AccessLevel.admin_only) {
+          AccessLevel.adminOnly) {
         message = '管理者のみ編集可能です';
       } else if (groupSettings?.getPermissionForDataType('roastRecords') ==
-          AccessLevel.admin_leader) {
+          AccessLevel.adminLeader) {
         message = '管理者・リーダーのみ編集可能です';
       } else {
         message = '権限がありません';

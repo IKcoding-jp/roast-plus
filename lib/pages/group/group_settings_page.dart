@@ -308,13 +308,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
       // 選択状態を配列で表現
       List<bool> selected = [false, false, false];
       switch (currentPermission) {
-        case AccessLevel.admin_only:
+        case AccessLevel.adminOnly:
           selected = [true, false, false];
           break;
-        case AccessLevel.admin_leader:
+        case AccessLevel.adminLeader:
           selected = [true, true, false];
           break;
-        case AccessLevel.all_members:
+        case AccessLevel.allMembers:
           selected = [true, true, true];
           break;
       }
@@ -347,7 +347,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         print(
                           'GroupSettingsPage: 管理者ボタンタップ - データタイプ: $dataType',
                         );
-                        _updateDataPermission(dataType, AccessLevel.admin_only);
+                        _updateDataPermission(dataType, AccessLevel.adminOnly);
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
@@ -357,11 +357,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         ),
                         decoration: BoxDecoration(
                           color: selected[0]
-                              ? _getPermissionColor(AccessLevel.admin_only)
+                              ? _getPermissionColor(AccessLevel.adminOnly)
                               : Colors.transparent,
                           border: Border.all(
                             color: selected[0]
-                                ? _getPermissionColor(AccessLevel.admin_only)
+                                ? _getPermissionColor(AccessLevel.adminOnly)
                                 : Colors.grey,
                             width: 1,
                           ),
@@ -394,7 +394,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         );
                         _updateDataPermission(
                           dataType,
-                          AccessLevel.admin_leader,
+                          AccessLevel.adminLeader,
                         );
                       },
                       borderRadius: BorderRadius.circular(8),
@@ -405,11 +405,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         ),
                         decoration: BoxDecoration(
                           color: selected[1]
-                              ? _getPermissionColor(AccessLevel.admin_leader)
+                              ? _getPermissionColor(AccessLevel.adminLeader)
                               : Colors.transparent,
                           border: Border.all(
                             color: selected[1]
-                                ? _getPermissionColor(AccessLevel.admin_leader)
+                                ? _getPermissionColor(AccessLevel.adminLeader)
                                 : Colors.grey,
                             width: 1,
                           ),
@@ -438,7 +438,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       print(
                         'GroupSettingsPage: メンバーボタンタップ - データタイプ: $dataType',
                       );
-                      _updateDataPermission(dataType, AccessLevel.all_members);
+                      _updateDataPermission(dataType, AccessLevel.allMembers);
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
@@ -448,11 +448,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       ),
                       decoration: BoxDecoration(
                         color: selected[2]
-                            ? _getPermissionColor(AccessLevel.all_members)
+                            ? _getPermissionColor(AccessLevel.allMembers)
                             : Colors.transparent,
                         border: Border.all(
                           color: selected[2]
-                              ? _getPermissionColor(AccessLevel.all_members)
+                              ? _getPermissionColor(AccessLevel.allMembers)
                               : Colors.grey,
                           width: 1,
                         ),
@@ -480,11 +480,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             Builder(
               builder: (_) {
                 String desc = '';
-                if (currentPermission == AccessLevel.admin_only) {
+                if (currentPermission == AccessLevel.adminOnly) {
                   desc = '管理者が追加・削除・編集できます';
-                } else if (currentPermission == AccessLevel.admin_leader) {
+                } else if (currentPermission == AccessLevel.adminLeader) {
                   desc = 'リーダーが追加・削除・編集できます';
-                } else if (currentPermission == AccessLevel.all_members) {
+                } else if (currentPermission == AccessLevel.allMembers) {
                   desc = 'メンバー全員が追加・削除・編集できます';
                 }
                 return Text(
@@ -579,11 +579,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
   Color _getPermissionColor(AccessLevel permission) {
     switch (permission) {
-      case AccessLevel.admin_only:
+      case AccessLevel.adminOnly:
         return Colors.red; // 管理者のみは赤
-      case AccessLevel.admin_leader:
+      case AccessLevel.adminLeader:
         return Colors.orange; // リーダーのみはオレンジ
-      case AccessLevel.all_members:
+      case AccessLevel.allMembers:
         return Colors.green; // メンバーも編集可は緑
     }
   }

@@ -1,4 +1,6 @@
+// ignore_for_file: constant_identifier_names
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer' as developer;
 
 /// グループの権限レベル
 enum GroupRole {
@@ -7,7 +9,7 @@ enum GroupRole {
   member, // メンバー（閲覧のみ）
 }
 
-enum AccessLevel { admin_only, admin_leader, all_members }
+enum AccessLevel { adminOnly, adminLeader, allMembers }
 
 /// グループ設定
 class GroupSettings {
@@ -45,7 +47,7 @@ class GroupSettings {
               key,
               AccessLevel.values.firstWhere(
                 (e) => e.name == value,
-                orElse: () => AccessLevel.admin_leader,
+                orElse: () => AccessLevel.adminLeader,
               ),
             ),
           ) ??
@@ -81,15 +83,15 @@ class GroupSettings {
   static GroupSettings defaultSettings() {
     return const GroupSettings(
       dataPermissions: {
-        'roastRecordInput': AccessLevel.all_members,
-        'work_progress': AccessLevel.admin_leader, // ← 追加
-        'roastRecords': AccessLevel.admin_leader,
-        'dripCounter': AccessLevel.all_members,
-        'assignment_board': AccessLevel.all_members, // 担当表関連の権限を一本化
-        'todaySchedule': AccessLevel.all_members, // メンバーが編集できるように変更
-        'taskStatus': AccessLevel.all_members,
-        'cuppingNotes': AccessLevel.all_members,
-        'circleStamps': AccessLevel.admin_only,
+        'roastRecordInput': AccessLevel.allMembers,
+        'work_progress': AccessLevel.adminLeader, // ← 追加
+        'roastRecords': AccessLevel.adminLeader,
+        'dripCounter': AccessLevel.allMembers,
+        'assignment_board': AccessLevel.allMembers, // 担当表関連の権限を一本化
+        'todaySchedule': AccessLevel.allMembers, // メンバーが編集できるように変更
+        'taskStatus': AccessLevel.allMembers,
+        'cuppingNotes': AccessLevel.allMembers,
+        'circleStamps': AccessLevel.adminOnly,
       },
       allowMemberInvite: false,
       allowMemberViewMembers: true,
@@ -99,13 +101,22 @@ class GroupSettings {
 
   /// 指定されたデータタイプの権限を取得
   AccessLevel getPermissionForDataType(String dataType) {
-    print('GroupSettings: データタイプ権限取得 - データタイプ: $dataType');
-    print('GroupSettings: 現在の権限設定: $dataPermissions');
+    developer.log(
+      'GroupSettings: データタイプ権限取得 - データタイプ: $dataType',
+      name: 'GroupSettings',
+    );
+    developer.log(
+      'GroupSettings: 現在の権限設定: $dataPermissions',
+      name: 'GroupSettings',
+    );
 
     // 明示的に設定された権限を優先
     if (dataPermissions.containsKey(dataType)) {
       final permission = dataPermissions[dataType]!;
-      print('GroupSettings: 明示的に設定された権限を使用: $permission');
+      developer.log(
+        'GroupSettings: 明示的に設定された権限を使用: $permission',
+        name: 'GroupSettings',
+      );
       return permission;
     }
 
@@ -113,8 +124,9 @@ class GroupSettings {
     if (dataType == 'work_progress' &&
         dataPermissions.containsKey('roastRecordInput')) {
       final fallbackPermission = dataPermissions['roastRecordInput']!;
-      print(
+      developer.log(
         'GroupSettings: work_progress権限が存在しないため、roastRecordInput権限を参照: $fallbackPermission',
+        name: 'GroupSettings',
       );
       return fallbackPermission;
     }
@@ -123,35 +135,46 @@ class GroupSettings {
     if (dataType == 'today_schedule' &&
         dataPermissions.containsKey('todaySchedule')) {
       final todaySchedulePermission = dataPermissions['todaySchedule']!;
-      print(
+      developer.log(
         'GroupSettings: today_schedule権限が存在しないため、todaySchedule権限を参照: $todaySchedulePermission',
+        name: 'GroupSettings',
       );
       return todaySchedulePermission;
     }
 
-    final permission = dataPermissions[dataType] ?? AccessLevel.admin_leader;
-    print('GroupSettings: デフォルト権限を使用: $permission');
+    final permission = dataPermissions[dataType] ?? AccessLevel.adminLeader;
+    developer.log(
+      'GroupSettings: デフォルト権限を使用: $permission',
+      name: 'GroupSettings',
+    );
 
     return permission;
   }
 
   /// 指定されたデータタイプの編集権限をチェック
   bool canEditDataType(String dataType, GroupRole userRole) {
-    print('GroupSettings: 編集権限チェック開始 - データタイプ: $dataType, ユーザーロール: $userRole');
+    developer.log(
+      'GroupSettings: 編集権限チェック開始 - データタイプ: $dataType, ユーザーロール: $userRole',
+      name: 'GroupSettings',
+    );
 
     final accessLevel = getPermissionForDataType(dataType);
-    print('GroupSettings: 設定されたアクセスレベル: $accessLevel');
+    developer.log(
+      'GroupSettings: 設定されたアクセスレベル: $accessLevel',
+      name: 'GroupSettings',
+    );
 
     final result = switch (accessLevel) {
-      AccessLevel.admin_only => userRole == GroupRole.admin,
-      AccessLevel.admin_leader =>
+      AccessLevel.adminOnly => userRole == GroupRole.admin,
+      AccessLevel.adminLeader =>
         userRole == GroupRole.admin || userRole == GroupRole.leader,
-      AccessLevel.all_members => true,
+      AccessLevel.allMembers => true,
     };
 
-    print('GroupSettings: 編集権限結果: $result');
-    print(
+    developer.log('GroupSettings: 編集権限結果: $result', name: 'GroupSettings');
+    developer.log(
       'GroupSettings: 権限チェック詳細 - admin_only: ${userRole == GroupRole.admin}, admin_leader: ${userRole == GroupRole.admin || userRole == GroupRole.leader}',
+      name: 'GroupSettings',
     );
     return result;
   }
@@ -164,8 +187,9 @@ class GroupSettings {
     if (!updatedPermissions.containsKey('today_schedule') &&
         updatedPermissions.containsKey('todaySchedule')) {
       final todaySchedulePermission = updatedPermissions['todaySchedule']!;
-      print(
+      developer.log(
         'GroupSettings: today_schedule権限が存在しないため、todayScheduleと同じ値に設定: $todaySchedulePermission',
+        name: 'GroupSettings',
       );
       updatedPermissions['today_schedule'] = todaySchedulePermission;
     }
@@ -344,16 +368,17 @@ class Group {
   /// 指定されたユーザーの権限を取得
   GroupRole? getMemberRole(String uid) {
     try {
-      print('Group: getMemberRole開始 - uid: $uid');
-      print('Group: メンバー数: ${members.length}');
-      print(
+      developer.log('Group: getMemberRole開始 - uid: $uid', name: 'Group');
+      developer.log('Group: メンバー数: ${members.length}', name: 'Group');
+      developer.log(
         'Group: メンバー一覧: ${members.map((m) => '${m.uid}:${m.role}').toList()}',
+        name: 'Group',
       );
 
       final member = members.firstWhere(
         (m) => m.uid == uid,
         orElse: () {
-          print('Group: メンバーが見つかりません - uid: $uid');
+          developer.log('Group: メンバーが見つかりません - uid: $uid', name: 'Group');
           return GroupMember(
             uid: '',
             email: '',
@@ -365,14 +390,22 @@ class Group {
       );
 
       if (member.uid.isNotEmpty) {
-        print('Group: メンバーが見つかりました - uid: ${member.uid}, role: ${member.role}');
+        developer.log(
+          'Group: メンバーが見つかりました - uid: ${member.uid}, role: ${member.role}',
+          name: 'Group',
+        );
         return member.role;
       } else {
-        print('Group: メンバーのuidが空です - デフォルトロールを返します');
+        developer.log('Group: メンバーのuidが空です - デフォルトロールを返します', name: 'Group');
         return GroupRole.member;
       }
-    } catch (e) {
-      print('Group: getMemberRole エラー - uid: $uid, error: $e');
+    } catch (e, st) {
+      developer.log(
+        'Group: getMemberRole エラー - uid: $uid',
+        name: 'Group',
+        error: e,
+        stackTrace: st,
+      );
       return GroupRole.member;
     }
   }

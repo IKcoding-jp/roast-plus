@@ -129,11 +129,11 @@ class PermissionUtils {
   /// 権限レベルを日本語で取得
   static String getAccessLevelDisplayName(AccessLevel accessLevel) {
     switch (accessLevel) {
-      case AccessLevel.admin_only:
+      case AccessLevel.adminOnly:
         return '管理者のみ';
-      case AccessLevel.admin_leader:
+      case AccessLevel.adminLeader:
         return '管理者・リーダー';
-      case AccessLevel.all_members:
+      case AccessLevel.allMembers:
         return '全メンバー';
     }
   }
@@ -162,4 +162,3 @@ class PermissionUtils {
     }
   }
 }
- 

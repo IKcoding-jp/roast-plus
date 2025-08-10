@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 import '../services/tasting_firestore_service.dart';
 import '../services/user_settings_firestore_service.dart';
 import 'dart:async';
@@ -195,8 +196,13 @@ class TastingProvider extends ChangeNotifier {
         _isLoading = false;
         notifyListeners();
       },
-      onError: (e) {
-        print('テイスティング記録ストリーム購読エラー: $e');
+      onError: (e, st) {
+        developer.log(
+          'テイスティング記録ストリーム購読エラー',
+          name: 'TastingProvider',
+          error: e,
+          stackTrace: st,
+        );
         _isLoading = false;
         notifyListeners();
       },
@@ -287,13 +293,23 @@ class TastingProvider extends ChangeNotifier {
           } else {
             _tastingRecords = [];
           }
-        } catch (e) {
-          print('Firebaseからのテイスティング記録読み込みエラー: $e');
+        } catch (e, st) {
+          developer.log(
+            'Firebaseからのテイスティング記録読み込みエラー',
+            name: 'TastingProvider',
+            error: e,
+            stackTrace: st,
+          );
           _tastingRecords = [];
         }
       }
-    } catch (e) {
-      print('Error loading tasting records: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error loading tasting records',
+        name: 'TastingProvider',
+        error: e,
+        stackTrace: st,
+      );
       _tastingRecords = [];
     } finally {
       _isLoading = false;
@@ -305,8 +321,13 @@ class TastingProvider extends ChangeNotifier {
     try {
       final jsonString = _tastingRecords.map((tr) => tr.toMap()).toList();
       await UserSettingsFirestoreService.saveSetting(_storageKey, jsonString);
-    } catch (e) {
-      print('Error saving tasting records: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error saving tasting records',
+        name: 'TastingProvider',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -328,8 +349,13 @@ class TastingProvider extends ChangeNotifier {
         final doc = await TastingFirestoreService.getTastingRecordDoc(id);
         return doc.exists;
       }
-    } catch (e) {
-      print('Firestore存在確認エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'Firestore存在確認エラー',
+        name: 'TastingProvider',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -351,7 +377,10 @@ class TastingProvider extends ChangeNotifier {
         groupId: groupId,
       );
       if (exists) {
-        print('同じIDのレコードがFirestoreに存在するため、保存をスキップします');
+        developer.log(
+          '同じIDのレコードがFirestoreに存在するため、保存をスキップします',
+          name: 'TastingProvider',
+        );
         return;
       }
 
@@ -367,15 +396,25 @@ class TastingProvider extends ChangeNotifier {
         } else {
           await TastingFirestoreService.saveTastingRecord(newTastingRecord);
         }
-      } catch (e) {
-        print('Firestore保存エラー: $e');
+      } catch (e, st) {
+        developer.log(
+          'Firestore保存エラー',
+          name: 'TastingProvider',
+          error: e,
+          stackTrace: st,
+        );
         // Firestore保存に失敗してもローカル保存は続行
       }
 
       await _saveToStorage();
       notifyListeners();
-    } catch (e) {
-      print('Error adding tasting record: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error adding tasting record',
+        name: 'TastingProvider',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -402,16 +441,26 @@ class TastingProvider extends ChangeNotifier {
           } else {
             await TastingFirestoreService.updateTastingRecord(updatedRecord);
           }
-        } catch (e) {
-          print('Firestore更新エラー: $e');
+        } catch (e, st) {
+          developer.log(
+            'Firestore更新エラー',
+            name: 'TastingProvider',
+            error: e,
+            stackTrace: st,
+          );
           // Firestore更新に失敗してもローカル保存は続行
         }
 
         await _saveToStorage();
         notifyListeners();
       }
-    } catch (e) {
-      print('Error updating tasting record: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error updating tasting record',
+        name: 'TastingProvider',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -427,15 +476,25 @@ class TastingProvider extends ChangeNotifier {
         } else {
           await TastingFirestoreService.deleteTastingRecord(id);
         }
-      } catch (e) {
-        print('Firestore削除エラー: $e');
+      } catch (e, st) {
+        developer.log(
+          'Firestore削除エラー',
+          name: 'TastingProvider',
+          error: e,
+          stackTrace: st,
+        );
         // Firestore削除に失敗してもローカル保存は続行
       }
 
       await _saveToStorage();
       notifyListeners();
-    } catch (e) {
-      print('Error deleting tasting record: $e');
+    } catch (e, st) {
+      developer.log(
+        'Error deleting tasting record',
+        name: 'TastingProvider',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }

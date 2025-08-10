@@ -27,7 +27,7 @@ class UserBadge {
       'name': name,
       'description': description,
       'icon': iconCodePoint,
-      'color': color.value,
+      'color': color.toARGB32(),
       'earnedAt': earnedAt.toIso8601String(),
     };
   }

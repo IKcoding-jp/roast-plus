@@ -99,13 +99,13 @@ class _RoastEditPageState extends State<RoastEditPage> {
       );
 
       switch (permission) {
-        case AccessLevel.admin_only:
+        case AccessLevel.adminOnly:
           message = '管理者のみ編集可能です';
           break;
-        case AccessLevel.admin_leader:
+        case AccessLevel.adminLeader:
           message = '管理者・リーダーのみ編集可能です';
           break;
-        case AccessLevel.all_members:
+        case AccessLevel.allMembers:
           message = '全メンバーが編集可能です';
           break;
         default:
@@ -244,7 +244,9 @@ class _RoastEditPageState extends State<RoastEditPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
+                    color: Provider.of<ThemeSettings>(
+                      context,
+                    ).cardBackgroundColor,
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'auto_sync_service.dart';
+import 'dart:developer' as developer;
 
 class AppSettingsFirestoreService {
   static final _firestore = FirebaseFirestore.instance;
@@ -38,7 +39,7 @@ class AppSettingsFirestoreService {
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('sound_settings');
     } catch (e) {
-      print('音声設定保存エラー: $e');
+      developer.log('音声設定保存エラー: $e', name: 'AppSettingsFirestoreService');
       rethrow;
     }
   }
@@ -57,7 +58,7 @@ class AppSettingsFirestoreService {
 
       return doc.exists ? doc.data() : null;
     } catch (e) {
-      print('音声設定取得エラー: $e');
+      developer.log('音声設定取得エラー: $e', name: 'AppSettingsFirestoreService');
       return null;
     }
   }
@@ -86,7 +87,7 @@ class AppSettingsFirestoreService {
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('font_size_settings');
     } catch (e) {
-      print('フォントサイズ設定保存エラー: $e');
+      developer.log('フォントサイズ設定保存エラー: $e', name: 'AppSettingsFirestoreService');
       rethrow;
     }
   }
@@ -105,7 +106,7 @@ class AppSettingsFirestoreService {
 
       return doc.exists ? doc.data() : null;
     } catch (e) {
-      print('フォントサイズ設定取得エラー: $e');
+      developer.log('フォントサイズ設定取得エラー: $e', name: 'AppSettingsFirestoreService');
       return null;
     }
   }
@@ -134,7 +135,7 @@ class AppSettingsFirestoreService {
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('passcode_settings');
     } catch (e) {
-      print('パスコード設定保存エラー: $e');
+      developer.log('パスコード設定保存エラー: $e', name: 'AppSettingsFirestoreService');
       rethrow;
     }
   }
@@ -153,7 +154,7 @@ class AppSettingsFirestoreService {
 
       return doc.exists ? doc.data() : null;
     } catch (e) {
-      print('パスコード設定取得エラー: $e');
+      developer.log('パスコード設定取得エラー: $e', name: 'AppSettingsFirestoreService');
       return null;
     }
   }
@@ -184,7 +185,7 @@ class AppSettingsFirestoreService {
         'todo_notification_settings',
       );
     } catch (e) {
-      print('TODO通知設定保存エラー: $e');
+      developer.log('TODO通知設定保存エラー: $e', name: 'AppSettingsFirestoreService');
       rethrow;
     }
   }
@@ -203,7 +204,7 @@ class AppSettingsFirestoreService {
 
       return doc.exists ? doc.data() : null;
     } catch (e) {
-      print('TODO通知設定取得エラー: $e');
+      developer.log('TODO通知設定取得エラー: $e', name: 'AppSettingsFirestoreService');
       return null;
     }
   }
@@ -224,7 +225,7 @@ class AppSettingsFirestoreService {
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('bean_stickers');
     } catch (e) {
-      print('豆のシール設定保存エラー: $e');
+      developer.log('豆のシール設定保存エラー: $e', name: 'AppSettingsFirestoreService');
       rethrow;
     }
   }
@@ -246,7 +247,10 @@ class AppSettingsFirestoreService {
             'savedAt': FieldValue.serverTimestamp(),
           });
     } catch (e) {
-      print('グループ豆のシール設定保存エラー: $e');
+      developer.log(
+        'グループ豆のシール設定保存エラー: $e',
+        name: 'AppSettingsFirestoreService',
+      );
       rethrow;
     }
   }
@@ -266,7 +270,10 @@ class AppSettingsFirestoreService {
       if (data == null || data['beanStickers'] == null) return null;
       return data['beanStickers'];
     } catch (e) {
-      print('グループ豆のシール設定取得エラー: $e');
+      developer.log(
+        'グループ豆のシール設定取得エラー: $e',
+        name: 'AppSettingsFirestoreService',
+      );
       return null;
     }
   }
@@ -328,7 +335,7 @@ class AppSettingsFirestoreService {
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('app_settings');
     } catch (e) {
-      print('全アプリ設定保存エラー: $e');
+      developer.log('全アプリ設定保存エラー: $e', name: 'AppSettingsFirestoreService');
       rethrow;
     }
   }
@@ -352,7 +359,7 @@ class AppSettingsFirestoreService {
         'todo_notifications': futures[3],
       };
     } catch (e) {
-      print('全アプリ設定取得エラー: $e');
+      developer.log('全アプリ設定取得エラー: $e', name: 'AppSettingsFirestoreService');
       return {};
     }
   }

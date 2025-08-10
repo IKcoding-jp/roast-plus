@@ -23,7 +23,7 @@ class RoastRecord {
     required this.time,
     required this.memo,
     required this.timestamp,
-    this.accessLevel = AccessLevel.admin_leader,
+    this.accessLevel = AccessLevel.adminLeader,
     this.createdBy,
     this.createdAt,
     this.updatedBy,
@@ -43,7 +43,7 @@ class RoastRecord {
           : DateTime.tryParse(map['timestamp'] ?? '') ?? DateTime.now(),
       accessLevel: AccessLevel.values.firstWhere(
         (e) => e.name == (map['accessLevel'] ?? 'admin_leader'),
-        orElse: () => AccessLevel.admin_leader,
+        orElse: () => AccessLevel.adminLeader,
       ),
       createdBy: map['createdBy'],
       createdAt: map['createdAt'] is Timestamp
