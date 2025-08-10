@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
@@ -163,7 +164,7 @@ class _GroupListPageState extends State<GroupListPage> {
                       margin: EdgeInsets.all(16),
                       padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
+                        color: Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.orange),
                       ),
@@ -229,10 +230,14 @@ class _GroupListPageState extends State<GroupListPage> {
                       group.id,
                     );
 
-                    print(
-                      'GroupListPage: グループリスト表示 - インデックス: $index, グループ名: ${group.name}',
+                    developer.log(
+                      'グループリスト表示 - インデックス: $index, グループ名: ${group.name}',
+                      name: 'GroupListPage',
                     );
-                    print('GroupListPage: グループ画像URL: ${group.imageUrl}');
+                    developer.log(
+                      'グループ画像URL: ${group.imageUrl}',
+                      name: 'GroupListPage',
+                    );
 
                     return Card(
                       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -342,8 +347,8 @@ class _GroupListPageState extends State<GroupListPage> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: themeSettings.iconColor.withOpacity(
-                                      0.1,
+                                    color: themeSettings.iconColor.withValues(
+                                      alpha: 0.1,
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -372,7 +377,7 @@ class _GroupListPageState extends State<GroupListPage> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.1),
+                                    color: Colors.green.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(
@@ -406,7 +411,7 @@ class _GroupListPageState extends State<GroupListPage> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.1),
+                                    color: Colors.blue.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(
@@ -440,7 +445,7 @@ class _GroupListPageState extends State<GroupListPage> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.1),
+                                    color: Colors.orange.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(

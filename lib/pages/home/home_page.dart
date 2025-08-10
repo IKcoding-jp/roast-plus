@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
@@ -161,7 +162,7 @@ class _HomePageState extends State<HomePage> {
 
     if (groupProvider.showGroupCreationCelebration &&
         groupProvider.newlyCreatedGroupId != null) {
-      print('HomePage: グループ作成後のバッジ獲得演出を開始');
+      developer.log('グループ作成後のバッジ獲得演出を開始', name: 'HomePage');
 
       // フラグをリセット
       groupProvider.resetGroupCreationCelebration();

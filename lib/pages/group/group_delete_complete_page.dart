@@ -30,10 +30,10 @@ class GroupDeleteCompletePage extends StatelessWidget {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.red.withOpacity(0.3),
+                    color: Colors.red.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -62,7 +62,7 @@ class GroupDeleteCompletePage extends StatelessWidget {
                   color: themeSettings.cardBackgroundColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: themeSettings.iconColor.withOpacity(0.2),
+                    color: themeSettings.iconColor.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -89,7 +89,7 @@ class GroupDeleteCompletePage extends StatelessWidget {
                       'グループ機能により、メンバー間でデータを共有し、\n協力してコーヒー業務を進めることができます。',
                       style: TextStyle(
                         fontSize: 14,
-                        color: themeSettings.fontColor1.withOpacity(0.8),
+                        color: themeSettings.fontColor1.withValues(alpha: 0.8),
                         height: 1.4,
                       ),
                       textAlign: TextAlign.center,
@@ -160,7 +160,7 @@ class GroupDeleteCompletePage extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: themeSettings.iconColor,
                         side: BorderSide(
-                          color: themeSettings.iconColor.withOpacity(0.5),
+                          color: themeSettings.iconColor.withValues(alpha: 0.5),
                           width: 2,
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -182,7 +182,7 @@ class GroupDeleteCompletePage extends StatelessWidget {
                   color: themeSettings.memberBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: themeSettings.iconColor.withOpacity(0.1),
+                    color: themeSettings.iconColor.withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
@@ -211,7 +211,7 @@ class GroupDeleteCompletePage extends StatelessWidget {
                       '• 焙煎記録の共有\n• スケジュールの同期\n• メンバー間の協力\n• ゲーミフィケーション',
                       style: TextStyle(
                         fontSize: 12,
-                        color: themeSettings.fontColor1.withOpacity(0.7),
+                        color: themeSettings.fontColor1.withValues(alpha: 0.7),
                         height: 1.4,
                       ),
                     ),

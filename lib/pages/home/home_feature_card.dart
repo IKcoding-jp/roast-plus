@@ -92,16 +92,16 @@ class HomeFeatureCard extends StatelessWidget {
   /// カードの背景色を取得
   Color _getCardColor() {
     if (customColor != null) {
-      return customColor!.withOpacity(0.15);
+      return customColor!.withValues(alpha: 0.15);
     }
 
     // 重要機能は濃いブラウン
     if (isImportant) {
-      return Color(0xFF8B4513).withOpacity(0.15); // 濃いブラウン
+      return Color(0xFF8B4513).withValues(alpha: 0.15); // 濃いブラウン
     }
 
     // デフォルトはアイコン色
-    return themeSettings.iconColor.withOpacity(0.1);
+    return themeSettings.iconColor.withValues(alpha: 0.1);
   }
 
   /// アイコンの色を取得
@@ -122,15 +122,15 @@ class HomeFeatureCard extends StatelessWidget {
   /// ボーダーの色を取得
   Color _getBorderColor() {
     if (customColor != null) {
-      return customColor!.withOpacity(0.3);
+      return customColor!.withValues(alpha: 0.3);
     }
 
     // 重要機能は濃いブラウン
     if (isImportant) {
-      return Color(0xFF8B4513).withOpacity(0.4); // 濃いブラウン
+      return Color(0xFF8B4513).withValues(alpha: 0.4); // 濃いブラウン
     }
 
     // デフォルトはアイコン色
-    return themeSettings.iconColor.withOpacity(0.15);
+    return themeSettings.iconColor.withValues(alpha: 0.15);
   }
 }

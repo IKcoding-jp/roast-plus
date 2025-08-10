@@ -150,9 +150,9 @@ class RoastAnalysisPage extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Provider.of<ThemeSettings>(
-                                context,
-                              ).iconColor.withOpacity(0.12), // テーマのアイコン色を薄く反映
+                              color: Provider.of<ThemeSettings>(context)
+                                  .iconColor
+                                  .withValues(alpha: 0.12), // テーマのアイコン色を薄く反映
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
@@ -318,7 +318,7 @@ class RoastAnalysisPage extends StatelessWidget {
                                   children: [
                                     TableRow(
                                       decoration: BoxDecoration(
-                                        color: brown.withOpacity(0.08),
+                                        color: brown.withValues(alpha: 0.08),
                                       ),
                                       children: const [
                                         Padding(
@@ -404,7 +404,9 @@ class RoastAnalysisPage extends StatelessWidget {
                               Container(
                                 padding: EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Color(0xFFFF8225).withOpacity(0.12),
+                                  color: Color(
+                                    0xFFFF8225,
+                                  ).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
@@ -435,7 +437,7 @@ class RoastAnalysisPage extends StatelessWidget {
                                         fontSize: 14,
                                         color: Provider.of<ThemeSettings>(
                                           context,
-                                        ).fontColor1.withOpacity(0.8),
+                                        ).fontColor1.withValues(alpha: 0.8),
                                       ),
                                     ),
                                   ],

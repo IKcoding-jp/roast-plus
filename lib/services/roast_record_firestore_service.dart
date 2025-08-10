@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/roast_record.dart';
 import '../utils/permission_utils.dart';
+import 'dart:developer' as developer;
 
 class RoastRecordFirestoreService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -45,8 +46,13 @@ class RoastRecordFirestoreService {
         final dataMap = data as Map<String, dynamic>;
         return RoastRecord.fromMap(dataMap, id: doc.id);
       }).toList();
-    } catch (e) {
-      print('焙煎記録取得エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        '焙煎記録取得エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
   }
@@ -69,8 +75,13 @@ class RoastRecordFirestoreService {
               return RoastRecord.fromMap(data, id: doc.id);
             }).toList();
           });
-    } catch (e) {
-      print('焙煎記録ストリーム取得エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        '焙煎記録ストリーム取得エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       return Stream.value([]);
     }
   }
@@ -86,8 +97,13 @@ class RoastRecordFirestoreService {
           .doc(user.uid)
           .collection('roastRecords')
           .add(record.toMap());
-    } catch (e) {
-      print('焙煎記録追加エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        '焙煎記録追加エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -104,8 +120,13 @@ class RoastRecordFirestoreService {
           .collection('roastRecords')
           .doc(record.id)
           .update(record.toMap());
-    } catch (e) {
-      print('焙煎記録更新エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        '焙煎記録更新エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -122,8 +143,13 @@ class RoastRecordFirestoreService {
           .collection('roastRecords')
           .doc(recordId)
           .delete();
-    } catch (e) {
-      print('焙煎記録削除エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        '焙煎記録削除エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -142,8 +168,13 @@ class RoastRecordFirestoreService {
         final data = doc.data();
         return RoastRecord.fromMap(data, id: doc.id);
       }).toList();
-    } catch (e) {
-      print('グループ焙煎記録取得エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'グループ焙煎記録取得エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
   }
@@ -163,8 +194,13 @@ class RoastRecordFirestoreService {
               return RoastRecord.fromMap(data, id: doc.id);
             }).toList();
           });
-    } catch (e) {
-      print('グループ焙煎記録ストリーム取得エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'グループ焙煎記録ストリーム取得エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       return Stream.value([]);
     }
   }
@@ -193,8 +229,13 @@ class RoastRecordFirestoreService {
             'createdBy': user?.uid,
             'createdAt': FieldValue.serverTimestamp(),
           });
-    } catch (e) {
-      print('グループ焙煎記録追加エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'グループ焙煎記録追加エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -227,8 +268,13 @@ class RoastRecordFirestoreService {
             'updatedBy': user?.uid,
             'updatedAt': FieldValue.serverTimestamp(),
           });
-    } catch (e) {
-      print('グループ焙煎記録更新エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'グループ焙煎記録更新エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -252,8 +298,13 @@ class RoastRecordFirestoreService {
           .collection('roastRecords')
           .doc(recordId)
           .delete();
-    } catch (e) {
-      print('グループ焙煎記録削除エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'グループ焙煎記録削除エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -270,8 +321,13 @@ class RoastRecordFirestoreService {
       }
       // 数値のみの場合は分として扱う
       return int.tryParse(timeString) ?? 0;
-    } catch (e) {
-      print('焙煎時間パースエラー: $e');
+    } catch (e, st) {
+      developer.log(
+        '焙煎時間パースエラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       return 0;
     }
   }
@@ -287,10 +343,18 @@ class RoastRecordFirestoreService {
         totalMinutes += minutes;
       }
 
-      print('グループ $groupId の累積焙煎時間: ${totalMinutes.toStringAsFixed(1)}分');
+      developer.log(
+        'グループ $groupId の累積焙煎時間: ${totalMinutes.toStringAsFixed(1)}分',
+        name: 'RoastRecordFirestoreService',
+      );
       return totalMinutes;
-    } catch (e) {
-      print('累積焙煎時間計算エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        '累積焙煎時間計算エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       return 0.0;
     }
   }
@@ -321,10 +385,18 @@ class RoastRecordFirestoreService {
         'lastCalculated': DateTime.now().toIso8601String(),
       };
 
-      print('グループ $groupId の焙煎統計再計算完了: $stats');
+      developer.log(
+        'グループ $groupId の焙煎統計再計算完了: $stats',
+        name: 'RoastRecordFirestoreService',
+      );
       return stats;
-    } catch (e) {
-      print('焙煎統計再計算エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        '焙煎統計再計算エラー: $e',
+        name: 'RoastRecordFirestoreService',
+        error: e,
+        stackTrace: st,
+      );
       return {
         'totalRoastTimeMinutes': 0.0,
         'totalRoastDays': 0,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
@@ -16,7 +17,7 @@ class MemberEditPage extends StatefulWidget {
   const MemberEditPage({super.key});
 
   @override
-  _MemberEditPageState createState() => _MemberEditPageState();
+  State<MemberEditPage> createState() => _MemberEditPageState();
 }
 
 class _MemberEditPageState extends State<MemberEditPage> {
@@ -178,7 +179,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         setState(() {});
       }
     } catch (e) {
-      print('メンバー読み込みエラー: $e');
+      developer.log('メンバー読み込みエラー: $e', name: 'MemberEditPage', error: e);
       if (mounted) {
         setState(() {});
       }
@@ -212,6 +213,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   Future<void> _saveMembers() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final groupProvider = context.read<GroupProvider>();
     try {
       // 現在のラベルデータを取得（既存のデータを保持）
       final currentSettings =
@@ -243,7 +246,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         });
       }
     } catch (e) {
-      print('メンバー保存エラー: $e');
+      developer.log('メンバー保存エラー: $e', name: 'MemberEditPage', error: e);
     }
 
     // 新しい形式でローカルに保存
@@ -272,10 +275,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
     // グループに同期
     try {
-      final groupProvider = context.read<GroupProvider>();
       if (groupProvider.groups.isNotEmpty) {
         final group = groupProvider.groups.first;
-        print('MemberEditPage: 担当表データをグループに同期開始 - groupId: ${group.id}');
+        developer.log(
+          '担当表データをグループに同期開始 - groupId: ${group.id}',
+          name: 'MemberEditPage',
+        );
 
         final assignmentData = {
           'teams': teams.map((team) => team.toMap()).toList(),
@@ -288,15 +293,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
           group.id,
           assignmentData,
         );
-        print('MemberEditPage: 担当表データ同期完了');
+        developer.log('担当表データ同期完了', name: 'MemberEditPage');
       }
     } catch (e) {
-      print('MemberEditPage: 担当表データ同期エラー: $e');
+      developer.log('担当表データ同期エラー: $e', name: 'MemberEditPage', error: e);
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('メンバー保存しました')));
+    if (!mounted) return;
+    messenger.showSnackBar(const SnackBar(content: Text('メンバー保存しました')));
   }
 
   void _addTeam() {

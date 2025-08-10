@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 import 'package:roastplus/models/roast_record.dart';
 import 'package:roastplus/services/roast_record_firestore_service.dart';
@@ -90,10 +91,16 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
       try {
         final groupProvider = context.read<GroupProvider>();
         if (groupProvider.groups.isEmpty && !groupProvider.loading) {
-          print('RoastRecordListPage: グループが読み込まれていないため、読み込みを開始します');
+          developer.log(
+            'グループが読み込まれていないため、読み込みを開始します',
+            name: 'RoastRecordListPage',
+          );
           groupProvider.loadUserGroups();
         } else if (groupProvider.hasGroup) {
-          print('RoastRecordListPage: グループが既に読み込まれています - グループデータ監視を開始');
+          developer.log(
+            'グループが既に読み込まれています - グループデータ監視を開始',
+            name: 'RoastRecordListPage',
+          );
           _startGroupDataWatching(groupProvider);
           // グループが既に読み込まれている場合は権限チェックを実行
           _checkEditPermissions();
@@ -102,7 +109,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
           _checkEditPermissions();
         }
       } catch (e) {
-        print('RoastRecordListPage: グループ読み込み確認エラー: $e');
+        developer.log(
+          'グループ読み込み確認エラー: $e',
+          name: 'RoastRecordListPage',
+          error: e,
+        );
         // エラーが発生した場合も権限チェックを実行
         _checkEditPermissions();
       }
@@ -112,7 +123,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
   // グループデータの監視を開始
   void _startGroupDataWatching(GroupProvider groupProvider) {
     if (groupProvider.hasGroup && !groupProvider.isWatchingGroupData) {
-      print('RoastRecordListPage: グループデータ監視開始');
+      developer.log('グループデータ監視開始', name: 'RoastRecordListPage');
       groupProvider.startWatchingGroupData();
     }
   }
@@ -120,7 +131,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
   // グループデータの監視を停止
   void _stopGroupDataWatching(GroupProvider groupProvider) {
     if (groupProvider.isWatchingGroupData) {
-      print('RoastRecordListPage: グループデータ監視停止');
+      developer.log('グループデータ監視停止', name: 'RoastRecordListPage');
       groupProvider.stopWatchingGroupData();
     }
   }
@@ -132,7 +143,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
       try {
         _groupProvider!.removeListener(_groupProviderListener!);
       } catch (e) {
-        print('RoastRecordListPage: リスナー削除エラー: $e');
+        developer.log('リスナー削除エラー: $e', name: 'RoastRecordListPage', error: e);
       }
     }
 
@@ -141,7 +152,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
       try {
         _stopGroupDataWatching(_groupProvider!);
       } catch (e) {
-        print('RoastRecordListPage: グループデータ監視停止エラー: $e');
+        developer.log(
+          'グループデータ監視停止エラー: $e',
+          name: 'RoastRecordListPage',
+          error: e,
+        );
       }
     }
 
@@ -158,8 +173,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
     try {
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.hasGroup) {
-        print(
-          'RoastRecordListPage: グループ権限チェック開始 - グループID: ${groupProvider.currentGroup!.id}',
+        developer.log(
+          'グループ権限チェック開始 - グループID: ${groupProvider.currentGroup!.id}',
+          name: 'RoastRecordListPage',
         );
 
         final canEdit = await PermissionUtils.canEditDataType(
@@ -171,7 +187,10 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
           dataType: 'roastRecords',
         );
 
-        print('RoastRecordListPage: 権限チェック結果 - 編集: $canEdit, 削除: $canDelete');
+        developer.log(
+          '権限チェック結果 - 編集: $canEdit, 削除: $canDelete',
+          name: 'RoastRecordListPage',
+        );
 
         setState(() {
           _canEditRoastRecords = canEdit;
@@ -179,7 +198,10 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
           _isCheckingPermissions = false;
         });
       } else {
-        print('RoastRecordListPage: グループに参加していないため、編集・削除権限を有効化');
+        developer.log(
+          'グループに参加していないため、編集・削除権限を有効化',
+          name: 'RoastRecordListPage',
+        );
         setState(() {
           _canEditRoastRecords = true;
           _canDeleteRoastRecordsPermission = true;
@@ -187,7 +209,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
         });
       }
     } catch (e) {
-      print('焙煎記録編集権限チェックエラー: $e');
+      developer.log(
+        '焙煎記録編集権限チェックエラー: $e',
+        name: 'RoastRecordListPage',
+        error: e,
+      );
       setState(() {
         _canEditRoastRecords = false;
         _canDeleteRoastRecordsPermission = false;
@@ -203,7 +229,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
 
   // グループデータの変更を監視
   void _setupGroupDataListener() {
-    print('RoastRecordListPage: グループデータリスナーを設定開始');
+    developer.log('グループデータリスナーを設定開始', name: 'RoastRecordListPage');
 
     // GroupProviderの変更を監視
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -218,7 +244,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
 
         // 初回の権限チェックを実行
         if (groupProvider.hasGroup) {
-          print('RoastRecordListPage: 初回権限チェックを実行');
+          developer.log('初回権限チェックを実行', name: 'RoastRecordListPage');
           _checkEditPermissions();
         }
 
@@ -226,8 +252,11 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
         _groupProviderListener = () {
           if (!mounted) return;
 
-          print('RoastRecordListPage: GroupProviderの変更を検知');
-          print('RoastRecordListPage: グループ数: ${groupProvider.groups.length}');
+          developer.log('GroupProviderの変更を検知', name: 'RoastRecordListPage');
+          developer.log(
+            'グループ数: ${groupProvider.groups.length}',
+            name: 'RoastRecordListPage',
+          );
 
           // グループが追加された場合、監視を開始
           _startGroupDataWatching(groupProvider);
@@ -238,18 +267,22 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
 
         groupProvider.addListener(_groupProviderListener!);
       } catch (e) {
-        print('RoastRecordListPage: グループデータリスナー設定エラー: $e');
+        developer.log(
+          'グループデータリスナー設定エラー: $e',
+          name: 'RoastRecordListPage',
+          error: e,
+        );
       }
     });
 
-    print('RoastRecordListPage: グループデータリスナー設定完了');
+    developer.log('グループデータリスナー設定完了', name: 'RoastRecordListPage');
   }
 
   // Firestoreからのリアルタイム更新を監視
   void _setupFirestoreListener() {
     if (!mounted) return;
 
-    print('RoastRecordListPage: Firestoreリスナーを設定開始');
+    developer.log('Firestoreリスナーを設定開始', name: 'RoastRecordListPage');
     try {
       final groupProvider = context.read<GroupProvider>();
 
@@ -265,13 +298,21 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
         _recordsStream = RoastRecordFirestoreService.getRecordsStream();
       }
 
-      print('RoastRecordListPage: Firestoreリスナー設定完了');
+      developer.log('Firestoreリスナー設定完了', name: 'RoastRecordListPage');
     } catch (e) {
-      print('RoastRecordListPage: Firestoreリスナー設定エラー: $e');
+      developer.log(
+        'Firestoreリスナー設定エラー: $e',
+        name: 'RoastRecordListPage',
+        error: e,
+      );
       try {
         _recordsStream = RoastRecordFirestoreService.getRecordsStream();
       } catch (e2) {
-        print('RoastRecordListPage: フォールバックストリーム設定エラー: $e2');
+        developer.log(
+          'フォールバックストリーム設定エラー: $e2',
+          name: 'RoastRecordListPage',
+          error: e2,
+        );
       }
     }
   }
@@ -339,16 +380,19 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
 
   // 焙煎記録を編集
   void _editRecord(RoastRecord record) {
-    print('RoastRecordListPage: 編集開始 - 権限状態: $_canEditRoastRecords');
+    developer.log(
+      '編集開始 - 権限状態: $_canEditRoastRecords',
+      name: 'RoastRecordListPage',
+    );
 
     // 権限チェック
     if (!_canEditRoastRecordsMethod(context)) {
-      print('RoastRecordListPage: 編集権限なし - エラーメッセージを表示');
+      developer.log('編集権限なし - エラーメッセージを表示', name: 'RoastRecordListPage');
       _showEditPermissionError();
       return;
     }
 
-    print('RoastRecordListPage: 編集権限あり - RoastEditPageに遷移');
+    developer.log('編集権限あり - RoastEditPageに遷移', name: 'RoastRecordListPage');
 
     final initialData = {
       'bean': record.bean,
@@ -366,7 +410,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
       ),
     ).then((updatedData) async {
       if (updatedData != null) {
-        print('RoastRecordListPage: 編集完了 - Firestoreを更新');
+        if (!mounted) return;
+        developer.log('編集完了 - Firestoreを更新', name: 'RoastRecordListPage');
         // 更新されたデータでFirestoreを更新
         final updatedRecord = RoastRecord(
           id: record.id,
@@ -957,7 +1002,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                           color: selected
                                               ? Provider.of<ThemeSettings>(
                                                   context,
-                                                ).buttonColor.withOpacity(0.08)
+                                                ).buttonColor.withValues(
+                                                  alpha: 0.08,
+                                                )
                                               : Provider.of<ThemeSettings>(
                                                   context,
                                                 ).cardBackgroundColor,
@@ -978,8 +1025,8 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                                                 ThemeSettings
                                                               >(context)
                                                               .iconColor
-                                                              .withOpacity(
-                                                                0.12,
+                                                              .withValues(
+                                                                alpha: 0.12,
                                                               ),
                                                       borderRadius:
                                                           BorderRadius.circular(
@@ -1028,8 +1075,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                                                       ThemeSettings
                                                                     >(context)
                                                                     .fontColor1
-                                                                    .withOpacity(
-                                                                      0.7,
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.7,
                                                                     ),
                                                           ),
                                                         ),
@@ -1148,8 +1196,9 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                                                             context,
                                                                           )
                                                                           .fontColor1
-                                                                          .withOpacity(
-                                                                            0.7,
+                                                                          .withValues(
+                                                                            alpha:
+                                                                                0.7,
                                                                           ),
                                                                 ),
                                                                 overflow:
@@ -1259,7 +1308,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Color(0xFF795548).withOpacity(0.3)),
+        border: Border.all(color: Color(0xFF795548).withValues(alpha: 0.3)),
       ),
       child: DropdownButtonFormField<String>(
         value: value,
@@ -1297,7 +1346,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
         decoration: BoxDecoration(
           color: Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Color(0xFF795548).withOpacity(0.3)),
+          border: Border.all(color: Color(0xFF795548).withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

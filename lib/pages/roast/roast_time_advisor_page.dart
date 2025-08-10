@@ -180,6 +180,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
           TextButton(
             onPressed: () async {
               await _audioPlayer.stop();
+              if (!mounted) return;
               Navigator.pop(context);
               if (_mode == RoastMode.preheating) {
                 setState(() {
@@ -249,6 +250,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     );
 
     if (result == true) {
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => RoastRecordPage()),
@@ -313,7 +315,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Color(0xFF795548).withOpacity(0.3),
+                            color: const Color(
+                              0xFF795548,
+                            ).withValues(alpha: 0.3),
                           ),
                         ),
                         child: TextField(
@@ -444,7 +448,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Color(0xFF795548).withOpacity(0.3),
+                            color: const Color(
+                              0xFF795548,
+                            ).withValues(alpha: 0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -484,7 +490,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Color(0xFF795548).withOpacity(0.3),
+                            color: const Color(
+                              0xFF795548,
+                            ).withValues(alpha: 0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -725,6 +733,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
             icon: Icon(Icons.settings),
             tooltip: 'タイマー設定',
             onPressed: () {
+              if (!mounted) return;
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => RoastTimerSettingsPage()),
@@ -776,9 +785,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 value: progress,
                                 strokeWidth: 12,
                                 color: Color(0xFF795548),
-                                backgroundColor: Color(
+                                backgroundColor: const Color(
                                   0xFF795548,
-                                ).withOpacity(0.2),
+                                ).withValues(alpha: 0.2),
                               ),
                             ),
                             Text(

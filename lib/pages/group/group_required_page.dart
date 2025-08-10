@@ -31,10 +31,10 @@ class GroupRequiredPage extends StatelessWidget {
                 width: 70,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: themeSettings.iconColor.withOpacity(0.1),
+                  color: themeSettings.iconColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: themeSettings.iconColor.withOpacity(0.3),
+                    color: themeSettings.iconColor.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -67,7 +67,7 @@ class GroupRequiredPage extends StatelessWidget {
                   color: themeSettings.cardBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: themeSettings.iconColor.withOpacity(0.2),
+                    color: themeSettings.iconColor.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -147,7 +147,7 @@ class GroupRequiredPage extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: themeSettings.iconColor,
                     side: BorderSide(
-                      color: themeSettings.iconColor.withOpacity(0.5),
+                      color: themeSettings.iconColor.withValues(alpha: 0.5),
                       width: 2,
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -167,7 +167,7 @@ class GroupRequiredPage extends StatelessWidget {
                   color: themeSettings.memberBackgroundColor,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: themeSettings.iconColor.withOpacity(0.1),
+                    color: themeSettings.iconColor.withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
@@ -209,10 +209,10 @@ class GroupRequiredPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: Colors.blue.withOpacity(0.3),
+                    color: Colors.blue.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -260,7 +260,7 @@ class GroupRequiredPage extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 12,
-              color: themeSettings.fontColor1.withOpacity(0.8),
+              color: themeSettings.fontColor1.withValues(alpha: 0.8),
               height: 1.3,
             ),
           ),

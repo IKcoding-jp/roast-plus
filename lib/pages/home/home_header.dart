@@ -54,7 +54,7 @@ class _HomeHeaderState extends State<HomeHeader> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: widget.themeSettings.iconColor.withOpacity(0.2),
+              color: widget.themeSettings.iconColor.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -82,7 +82,9 @@ class _HomeHeaderState extends State<HomeHeader> {
                   _getSecondMessage(),
                   style: TextStyle(
                     fontSize: 16 * widget.themeSettings.fontSizeScale,
-                    color: widget.themeSettings.fontColor1.withOpacity(0.7),
+                    color: widget.themeSettings.fontColor1.withValues(
+                      alpha: 0.7,
+                    ),
                     fontFamily: widget.themeSettings.fontFamily,
                   ),
                 ),

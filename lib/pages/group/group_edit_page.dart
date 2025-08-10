@@ -44,6 +44,9 @@ class _GroupEditPageState extends State<GroupEditPage> {
     });
 
     try {
+      final navigator = Navigator.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+
       final updatedGroup = widget.group.copyWith(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
@@ -53,19 +56,21 @@ class _GroupEditPageState extends State<GroupEditPage> {
       final groupProvider = context.read<GroupProvider>();
       final success = await groupProvider.updateGroup(updatedGroup);
 
-      if (success && mounted) {
+      if (success) {
         // グループリストを再読み込みして最新の情報を取得
         await groupProvider.loadUserGroups();
         await groupProvider.loadAllGroupStatistics();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        if (!mounted) return;
+        navigator.pop();
+        messenger.showSnackBar(
           SnackBar(
             content: Text('グループ設定を更新しました'),
             backgroundColor: Colors.green,
           ),
         );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      } else {
+        if (!mounted) return;
+        messenger.showSnackBar(
           SnackBar(
             content: Text(groupProvider.error ?? '更新に失敗しました'),
             backgroundColor: Colors.red,
@@ -74,7 +79,8 @@ class _GroupEditPageState extends State<GroupEditPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(
           SnackBar(
             content: Text('エラーが発生しました: $e'),
             backgroundColor: Colors.red,
@@ -93,6 +99,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
   Future<void> _deleteGroup() async {
     final groupProvider = context.read<GroupProvider>();
     final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     // 1回目の確認
     final confirm1 = await showDialog<bool>(
       context: context,
@@ -114,6 +121,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
     );
     if (confirm1 != true) return;
     // 2回目の確認
+    if (!mounted) return;
     final confirm2 = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -136,14 +144,16 @@ class _GroupEditPageState extends State<GroupEditPage> {
 
     try {
       final success = await groupProvider.deleteGroup(widget.group.id);
-      if (success && mounted) {
+      if (success) {
         await groupProvider.loadUserGroups(); // グループリスト再取得
+        if (!mounted) return;
         navigator.pop(); // 設定ページを閉じる
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('グループを削除しました'), backgroundColor: Colors.red),
         );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      } else {
+        if (!mounted) return;
+        messenger.showSnackBar(
           SnackBar(
             content: Text(groupProvider.error ?? '削除に失敗しました'),
             backgroundColor: Colors.red,
@@ -152,7 +162,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('エラーが発生しました: $e'),
             backgroundColor: Colors.red,
@@ -223,8 +233,8 @@ class _GroupEditPageState extends State<GroupEditPage> {
                             Container(
                               padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: themeSettings.iconColor.withOpacity(
-                                  0.12,
+                                color: themeSettings.iconColor.withValues(
+                                  alpha: 0.12,
                                 ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -287,8 +297,8 @@ class _GroupEditPageState extends State<GroupEditPage> {
                             Container(
                               padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: themeSettings.iconColor.withOpacity(
-                                  0.12,
+                                color: themeSettings.iconColor.withValues(
+                                  alpha: 0.12,
                                 ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -345,8 +355,8 @@ class _GroupEditPageState extends State<GroupEditPage> {
                               Container(
                                 padding: EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: themeSettings.iconColor.withOpacity(
-                                    0.12,
+                                  color: themeSettings.iconColor.withValues(
+                                    alpha: 0.12,
                                   ),
                                   borderRadius: BorderRadius.circular(8),
                                 ),

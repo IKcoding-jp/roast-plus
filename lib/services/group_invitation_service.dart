@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
+import 'dart:developer' as developer;
 
 /// グループ招待コード・QRコード管理サービス
 class GroupInvitationService {
@@ -54,10 +55,19 @@ class GroupInvitationService {
         'invitationCodeUpdatedAt': FieldValue.serverTimestamp(),
       });
 
-      print('招待コード「$invitationCode」を作成しました（グループ: $groupId）');
+      developer.log(
+        '招待コード「$invitationCode」を作成しました（グループ: $groupId）',
+        name: 'GroupInvitationService',
+      );
       return invitationCode;
-    } catch (e) {
-      print('招待コード作成エラー: $e');
+    } catch (e, s) {
+      developer.log(
+        '招待コード作成エラー',
+        name: 'GroupInvitationService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       rethrow;
     }
   }
@@ -95,8 +105,14 @@ class GroupInvitationService {
         'isMaxUsesReached': isMaxUsesReached,
         'isValid': isActive && !isExpired && !isMaxUsesReached,
       };
-    } catch (e) {
-      print('招待コード情報取得エラー: $e');
+    } catch (e, s) {
+      developer.log(
+        '招待コード情報取得エラー',
+        name: 'GroupInvitationService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       return null;
     }
   }
@@ -149,10 +165,19 @@ class GroupInvitationService {
             'lastUsedByName': _userDisplayName,
           });
 
-      print('招待コード「$invitationCode」を使用してグループに参加しました');
+      developer.log(
+        '招待コード「$invitationCode」を使用してグループに参加しました',
+        name: 'GroupInvitationService',
+      );
       return true;
-    } catch (e) {
-      print('招待コード使用エラー: $e');
+    } catch (e, s) {
+      developer.log(
+        '招待コード使用エラー',
+        name: 'GroupInvitationService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       rethrow;
     }
   }
@@ -210,9 +235,17 @@ class GroupInvitationService {
             'isActive': true,
           });
 
-      print('グループ $groupId にメンバーとして参加しました');
+      developer.log(
+        'グループ $groupId にメンバーとして参加しました',
+        name: 'GroupInvitationService',
+      );
     } catch (e) {
-      print('グループ参加エラー: $e');
+      developer.log(
+        'グループ参加エラー',
+        name: 'GroupInvitationService',
+        error: e,
+        level: 1000,
+      );
       rethrow;
     }
   }
@@ -240,8 +273,14 @@ class GroupInvitationService {
       }
 
       return invitations;
-    } catch (e) {
-      print('招待コード一覧取得エラー: $e');
+    } catch (e, s) {
+      developer.log(
+        '招待コード一覧取得エラー',
+        name: 'GroupInvitationService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       return [];
     }
   }
@@ -260,9 +299,17 @@ class GroupInvitationService {
             'deactivatedBy': _uid,
           });
 
-      print('招待コード「$invitationCode」を無効化しました');
+      developer.log(
+        '招待コード「$invitationCode」を無効化しました',
+        name: 'GroupInvitationService',
+      );
     } catch (e) {
-      print('招待コード無効化エラー: $e');
+      developer.log(
+        '招待コード無効化エラー',
+        name: 'GroupInvitationService',
+        error: e,
+        level: 1000,
+      );
       rethrow;
     }
   }
@@ -290,9 +337,18 @@ class GroupInvitationService {
       }
 
       await batch.commit();
-      print('期限切れ招待コード ${snapshot.docs.length} 件をクリーンアップしました');
-    } catch (e) {
-      print('招待コードクリーンアップエラー: $e');
+      developer.log(
+        '期限切れ招待コード ${snapshot.docs.length} 件をクリーンアップしました',
+        name: 'GroupInvitationService',
+      );
+    } catch (e, s) {
+      developer.log(
+        '招待コードクリーンアップエラー',
+        name: 'GroupInvitationService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
     }
   }
 
@@ -328,8 +384,14 @@ class GroupInvitationService {
         'createdAt': invitationInfo['createdAt'],
         'expiresAt': invitationInfo['expiresAt'],
       };
-    } catch (e) {
-      print('招待コード統計取得エラー: $e');
+    } catch (e, s) {
+      developer.log(
+        '招待コード統計取得エラー',
+        name: 'GroupInvitationService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       return {};
     }
   }
@@ -366,8 +428,14 @@ class GroupInvitationService {
         'invitationValid': invitationInfo['isValid'],
         'invitationExpiresAt': invitationInfo['expiresAt'],
       };
-    } catch (e) {
-      print('グループ情報取得エラー: $e');
+    } catch (e, s) {
+      developer.log(
+        'グループ情報取得エラー',
+        name: 'GroupInvitationService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       return null;
     }
   }
@@ -375,7 +443,10 @@ class GroupInvitationService {
   /// グループの招待コードを削除
   static Future<void> deleteGroupInvitations(String groupId) async {
     try {
-      print('GroupInvitationService: グループ招待コード削除開始 - groupId: $groupId');
+      developer.log(
+        'グループ招待コード削除開始 - groupId: $groupId',
+        name: 'GroupInvitationService',
+      );
 
       // グループに関連する招待コードを取得
       final querySnapshot = await _firestore
@@ -391,17 +462,22 @@ class GroupInvitationService {
 
       if (querySnapshot.docs.isNotEmpty) {
         await batch.commit();
-        print(
-          'GroupInvitationService: グループ招待コード削除完了 - groupId: $groupId, 削除件数: ${querySnapshot.docs.length}',
+        developer.log(
+          'グループ招待コード削除完了 - groupId: $groupId, 削除件数: ${querySnapshot.docs.length}',
+          name: 'GroupInvitationService',
         );
       } else {
-        print(
-          'GroupInvitationService: グループ招待コードは存在しませんでした - groupId: $groupId',
+        developer.log(
+          'グループ招待コードは存在しませんでした - groupId: $groupId',
+          name: 'GroupInvitationService',
         );
       }
     } catch (e) {
-      print(
-        'GroupInvitationService: グループ招待コード削除エラー - groupId: $groupId, error: $e',
+      developer.log(
+        'グループ招待コード削除エラー - groupId: $groupId',
+        name: 'GroupInvitationService',
+        error: e,
+        level: 1000,
       );
       rethrow;
     }

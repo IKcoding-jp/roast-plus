@@ -4,6 +4,7 @@ import '../models/group_models.dart';
 import 'group_invitation_service.dart';
 
 import 'dart:math';
+import 'dart:developer' as developer;
 import 'dart:async';
 
 class GroupFirestoreService {
@@ -28,16 +29,20 @@ class GroupFirestoreService {
         return await operation().timeout(_timeout);
       } catch (e) {
         retryCount++;
-        print('GroupFirestoreService: 操作失敗 (試行 $retryCount/$_maxRetries): $e');
+        developer.log(
+          '操作失敗 (試行 $retryCount/$_maxRetries): $e',
+          name: 'GroupFirestoreService',
+          error: e,
+        );
 
         if (retryCount >= _maxRetries) {
-          print('GroupFirestoreService: 最大リトライ回数に達しました');
+          developer.log('最大リトライ回数に達しました', name: 'GroupFirestoreService');
           rethrow;
         }
 
         // リトライ前に少し待機
         await Future.delayed(_retryDelay);
-        print('GroupFirestoreService: リトライ中...');
+        developer.log('リトライ中...', name: 'GroupFirestoreService');
       }
     }
   }
@@ -69,7 +74,7 @@ class GroupFirestoreService {
   }) async {
     return _retryOperation(() async {
       try {
-        print('GroupFirestoreService: グループ作成開始');
+        developer.log('グループ作成開始', name: 'GroupFirestoreService');
 
         if (_uid == null) throw Exception('未ログイン');
         if (_email == null) throw Exception('メールアドレスが取得できません');
@@ -77,7 +82,7 @@ class GroupFirestoreService {
         final now = DateTime.now();
         final groupId = _firestore.collection('groups').doc().id;
 
-        print('GroupFirestoreService: グループID生成: $groupId');
+        developer.log('グループID生成: $groupId', name: 'GroupFirestoreService');
 
         final creator = GroupMember(
           uid: _uid!,
@@ -95,7 +100,7 @@ class GroupFirestoreService {
         // 招待コードを生成（8文字のランダム文字列）
         final inviteCode = _generateInviteCode();
 
-        print('GroupFirestoreService: 招待コード生成: $inviteCode');
+        developer.log('招待コード生成: $inviteCode', name: 'GroupFirestoreService');
 
         final group = Group(
           id: groupId,
@@ -109,16 +114,16 @@ class GroupFirestoreService {
           inviteCode: inviteCode,
         );
 
-        print('GroupFirestoreService: グループドキュメント保存開始');
+        developer.log('グループドキュメント保存開始', name: 'GroupFirestoreService');
         await _firestore
             .collection('groups')
             .doc(groupId)
             .set(group.toJson())
             .timeout(_timeout);
-        print('GroupFirestoreService: グループドキュメント保存完了');
+        developer.log('グループドキュメント保存完了', name: 'GroupFirestoreService');
 
         // ユーザーのグループ参加情報も保存
-        print('GroupFirestoreService: ユーザーグループ情報保存開始');
+        developer.log('ユーザーグループ情報保存開始', name: 'GroupFirestoreService');
         await _firestore
             .collection('users')
             .doc(_uid)
@@ -131,18 +136,16 @@ class GroupFirestoreService {
               'joinedAt': now.toIso8601String(),
             })
             .timeout(_timeout);
-        print('GroupFirestoreService: ユーザーグループ情報保存完了');
+        developer.log('ユーザーグループ情報保存完了', name: 'GroupFirestoreService');
 
-        print('GroupFirestoreService: グループ作成完了');
+        developer.log('グループ作成完了', name: 'GroupFirestoreService');
         return group;
       } catch (e) {
-        print('GroupFirestoreService: グループ作成エラー: $e');
+        developer.log('グループ作成エラー: $e', name: 'GroupFirestoreService', error: e);
         rethrow;
       }
     });
   }
-
-
 
   /// ユーザーが参加しているグループを取得
   static Future<List<Group>> getUserGroups() async {
@@ -200,17 +203,20 @@ class GroupFirestoreService {
     // 更新日時を現在時刻に設定
     final updatedGroup = group.copyWith(updatedAt: DateTime.now());
 
-    print('GroupFirestoreService: グループ更新開始');
-    print('GroupFirestoreService: グループID: ${group.id}');
-    print('GroupFirestoreService: 新しい名前: ${updatedGroup.name}');
-    print('GroupFirestoreService: 新しい説明: ${updatedGroup.description}');
+    developer.log('グループ更新開始', name: 'GroupFirestoreService');
+    developer.log('グループID: ${group.id}', name: 'GroupFirestoreService');
+    developer.log('新しい名前: ${updatedGroup.name}', name: 'GroupFirestoreService');
+    developer.log(
+      '新しい説明: ${updatedGroup.description}',
+      name: 'GroupFirestoreService',
+    );
 
     await _firestore
         .collection('groups')
         .doc(group.id)
         .update(updatedGroup.toJson());
 
-    print('GroupFirestoreService: グループ更新完了');
+    developer.log('グループ更新完了', name: 'GroupFirestoreService');
   }
 
   /// グループを削除
@@ -225,7 +231,10 @@ class GroupFirestoreService {
       throw Exception('リーダーのみグループを削除できます');
     }
 
-    print('GroupFirestoreService: グループ削除開始 - groupId: $groupId');
+    developer.log(
+      'グループ削除開始 - groupId: $groupId',
+      name: 'GroupFirestoreService',
+    );
 
     try {
       // グループに保存されたデータを削除
@@ -250,16 +259,22 @@ class GroupFirestoreService {
             .delete();
       }
 
-      print('GroupFirestoreService: グループ削除完了 - groupId: $groupId');
+      developer.log(
+        'グループ削除完了 - groupId: $groupId',
+        name: 'GroupFirestoreService',
+      );
     } catch (e) {
-      print('GroupFirestoreService: グループ削除エラー: $e');
+      developer.log('グループ削除エラー: $e', name: 'GroupFirestoreService', error: e);
       rethrow;
     }
   }
 
   /// グループに保存されたデータを削除
   static Future<void> _deleteGroupData(String groupId) async {
-    print('GroupFirestoreService: グループデータ削除開始 - groupId: $groupId');
+    developer.log(
+      'グループデータ削除開始 - groupId: $groupId',
+      name: 'GroupFirestoreService',
+    );
 
     try {
       // グループの共有データを削除
@@ -268,16 +283,26 @@ class GroupFirestoreService {
       // グループのサブコレクションを削除
       await _deleteGroupSubcollections(groupId);
 
-      print('GroupFirestoreService: グループデータ削除完了 - groupId: $groupId');
+      developer.log(
+        'グループデータ削除完了 - groupId: $groupId',
+        name: 'GroupFirestoreService',
+      );
     } catch (e) {
-      print('GroupFirestoreService: グループデータ削除エラー: $e');
+      developer.log(
+        'グループデータ削除エラー: $e',
+        name: 'GroupFirestoreService',
+        error: e,
+      );
       rethrow;
     }
   }
 
   /// グループの共有データを削除
   static Future<void> _deleteGroupSharedData(String groupId) async {
-    print('GroupFirestoreService: グループ共有データ削除開始 - groupId: $groupId');
+    developer.log(
+      'グループ共有データ削除開始 - groupId: $groupId',
+      name: 'GroupFirestoreService',
+    );
 
     try {
       // 共有データの種類を定義
@@ -299,23 +324,35 @@ class GroupFirestoreService {
               .collection('shared_data')
               .doc(dataType)
               .delete();
-          print('GroupFirestoreService: 共有データ削除完了 - dataType: $dataType');
+          developer.log(
+            '共有データ削除完了 - dataType: $dataType',
+            name: 'GroupFirestoreService',
+          );
         } catch (e) {
-          print(
-            'GroupFirestoreService: 共有データ削除エラー - dataType: $dataType, error: $e',
+          developer.log(
+            '共有データ削除エラー - dataType: $dataType, error: $e',
+            name: 'GroupFirestoreService',
+            error: e,
           );
           // 個別のエラーは無視して続行
         }
       }
     } catch (e) {
-      print('GroupFirestoreService: グループ共有データ削除エラー: $e');
+      developer.log(
+        'グループ共有データ削除エラー: $e',
+        name: 'GroupFirestoreService',
+        error: e,
+      );
       rethrow;
     }
   }
 
   /// グループのサブコレクションを削除
   static Future<void> _deleteGroupSubcollections(String groupId) async {
-    print('GroupFirestoreService: グループサブコレクション削除開始 - groupId: $groupId');
+    developer.log(
+      'グループサブコレクション削除開始 - groupId: $groupId',
+      name: 'GroupFirestoreService',
+    );
 
     try {
       // 削除対象のサブコレクション
@@ -335,18 +372,25 @@ class GroupFirestoreService {
       for (final subcollection in subcollections) {
         try {
           await _deleteSubcollection(groupId, subcollection);
-          print(
-            'GroupFirestoreService: サブコレクション削除完了 - subcollection: $subcollection',
+          developer.log(
+            'サブコレクション削除完了 - subcollection: $subcollection',
+            name: 'GroupFirestoreService',
           );
         } catch (e) {
-          print(
-            'GroupFirestoreService: サブコレクション削除エラー - subcollection: $subcollection, error: $e',
+          developer.log(
+            'サブコレクション削除エラー - subcollection: $subcollection, error: $e',
+            name: 'GroupFirestoreService',
+            error: e,
           );
           // 個別のエラーは無視して続行
         }
       }
     } catch (e) {
-      print('GroupFirestoreService: グループサブコレクション削除エラー: $e');
+      developer.log(
+        'グループサブコレクション削除エラー: $e',
+        name: 'GroupFirestoreService',
+        error: e,
+      );
       rethrow;
     }
   }
@@ -374,14 +418,22 @@ class GroupFirestoreService {
       // バッチを実行
       if (querySnapshot.docs.isNotEmpty) {
         await batch.commit();
-        print(
-          'GroupFirestoreService: サブコレクション削除完了 - $subcollectionName: ${querySnapshot.docs.length}件',
+        developer.log(
+          'サブコレクション削除完了 - $subcollectionName: ${querySnapshot.docs.length}件',
+          name: 'GroupFirestoreService',
         );
       } else {
-        print('GroupFirestoreService: サブコレクションは空でした - $subcollectionName');
+        developer.log(
+          'サブコレクションは空でした - $subcollectionName',
+          name: 'GroupFirestoreService',
+        );
       }
     } catch (e) {
-      print('GroupFirestoreService: サブコレクション削除エラー - $subcollectionName: $e');
+      developer.log(
+        'サブコレクション削除エラー - $subcollectionName: $e',
+        name: 'GroupFirestoreService',
+        error: e,
+      );
       rethrow;
     }
   }
@@ -389,7 +441,10 @@ class GroupFirestoreService {
   /// グループの招待データを削除
   static Future<void> _deleteGroupInvitations(String groupId) async {
     try {
-      print('GroupFirestoreService: グループ招待データ削除開始 - groupId: $groupId');
+      developer.log(
+        'グループ招待データ削除開始 - groupId: $groupId',
+        name: 'GroupFirestoreService',
+      );
 
       // グループに関連する招待を取得
       final querySnapshot = await _firestore
@@ -405,15 +460,21 @@ class GroupFirestoreService {
 
       if (querySnapshot.docs.isNotEmpty) {
         await batch.commit();
-        print(
-          'GroupFirestoreService: グループ招待データ削除完了 - groupId: $groupId, 削除件数: ${querySnapshot.docs.length}',
+        developer.log(
+          'グループ招待データ削除完了 - groupId: $groupId, 削除件数: ${querySnapshot.docs.length}',
+          name: 'GroupFirestoreService',
         );
       } else {
-        print('GroupFirestoreService: グループ招待データは存在しませんでした - groupId: $groupId');
+        developer.log(
+          'グループ招待データは存在しませんでした - groupId: $groupId',
+          name: 'GroupFirestoreService',
+        );
       }
     } catch (e) {
-      print(
-        'GroupFirestoreService: グループ招待データ削除エラー - groupId: $groupId, error: $e',
+      developer.log(
+        'グループ招待データ削除エラー - groupId: $groupId, error: $e',
+        name: 'GroupFirestoreService',
+        error: e,
       );
       rethrow;
     }
@@ -519,8 +580,9 @@ class GroupFirestoreService {
           'joinedAt': DateTime.now().toIso8601String(),
         });
 
-    print(
-      'GroupFirestoreService: 招待コード参加完了 - グループID: ${group.id}, メンバー数: ${updatedGroup.members.length}',
+    developer.log(
+      '招待コード参加完了 - グループID: ${group.id}, メンバー数: ${updatedGroup.members.length}',
+      name: 'GroupFirestoreService',
     );
 
     // 招待を更新
@@ -529,8 +591,9 @@ class GroupFirestoreService {
       'acceptedAt': DateTime.now().toIso8601String(),
     });
 
-    print(
-      'GroupFirestoreService: 招待承諾完了 - グループID: ${group.id}, メンバー数: ${updatedGroup.members.length}',
+    developer.log(
+      '招待承諾完了 - グループID: ${group.id}, メンバー数: ${updatedGroup.members.length}',
+      name: 'GroupFirestoreService',
     );
   }
 
@@ -754,35 +817,36 @@ class GroupFirestoreService {
     required String dataType,
     required Map<String, dynamic> data,
   }) async {
-    print('GroupFirestoreService: syncGroupData開始');
-    print('GroupFirestoreService: グループID: $groupId');
-    print('GroupFirestoreService: データタイプ: $dataType');
-    print('GroupFirestoreService: 同期データ: $data');
+    developer.log('syncGroupData開始', name: 'GroupFirestoreService');
+    developer.log('グループID: $groupId', name: 'GroupFirestoreService');
+    developer.log('データタイプ: $dataType', name: 'GroupFirestoreService');
+    developer.log('同期データ: $data', name: 'GroupFirestoreService');
 
     if (_uid == null || _uid!.isEmpty) {
-      print('GroupFirestoreService: 未ログインエラー');
+      developer.log('未ログインエラー', name: 'GroupFirestoreService');
       throw Exception('未ログイン');
     }
 
-    print('GroupFirestoreService: ユーザーID: $_uid');
+    developer.log('ユーザーID: $_uid', name: 'GroupFirestoreService');
     final group = await getGroup(groupId);
     if (group == null) {
-      print('GroupFirestoreService: グループが見つかりません');
+      developer.log('グループが見つかりません', name: 'GroupFirestoreService');
       throw Exception('グループが見つかりません');
     }
 
-    print('GroupFirestoreService: グループ取得完了');
-    print(
-      'GroupFirestoreService: グループメンバー: ${group.members.map((m) => m.uid).toList()}',
+    developer.log('グループ取得完了', name: 'GroupFirestoreService');
+    developer.log(
+      'グループメンバー: ${group.members.map((m) => m.uid).toList()}',
+      name: 'GroupFirestoreService',
     );
 
     // メンバーのみ同期可能
     if (!group.isMember(_uid!)) {
-      print('GroupFirestoreService: グループメンバーではありません');
+      developer.log('グループメンバーではありません', name: 'GroupFirestoreService');
       throw Exception('グループメンバーのみデータを同期できます');
     }
 
-    print('GroupFirestoreService: メンバー権限チェック完了、Firestoreに保存開始');
+    developer.log('メンバー権限チェック完了、Firestoreに保存開始', name: 'GroupFirestoreService');
     await _firestore
         .collection('groups')
         .doc(groupId)
@@ -793,7 +857,7 @@ class GroupFirestoreService {
           'updatedBy': _uid,
           'updatedAt': FieldValue.serverTimestamp(),
         });
-    print('GroupFirestoreService: Firestore保存完了');
+    developer.log('Firestore保存完了', name: 'GroupFirestoreService');
   }
 
   /// グループの共有データを取得
@@ -886,30 +950,34 @@ class GroupFirestoreService {
   }) async {
     if (_uid == null || _uid!.isEmpty) throw Exception('未ログイン');
 
-    print('GroupFirestoreService: 設定更新開始');
-    print('GroupFirestoreService: グループID: $groupId');
-    print('GroupFirestoreService: ユーザーID: $_uid');
-    print('GroupFirestoreService: 更新する設定: $settings');
-    print(
-      'GroupFirestoreService: 更新する設定のdataPermissions: ${settings.dataPermissions}',
+    developer.log('設定更新開始', name: 'GroupFirestoreService');
+    developer.log('グループID: $groupId', name: 'GroupFirestoreService');
+    developer.log('ユーザーID: $_uid', name: 'GroupFirestoreService');
+    developer.log('更新する設定: $settings', name: 'GroupFirestoreService');
+    developer.log(
+      '更新する設定のdataPermissions: ${settings.dataPermissions}',
+      name: 'GroupFirestoreService',
     );
 
     final group = await getGroup(groupId);
     if (group == null) throw Exception('グループが見つかりません');
 
-    print('GroupFirestoreService: グループ取得完了');
-    print('GroupFirestoreService: 現在のグループ設定: ${group.settings}');
+    developer.log('グループ取得完了', name: 'GroupFirestoreService');
+    developer.log(
+      '現在のグループ設定: ${group.settings}',
+      name: 'GroupFirestoreService',
+    );
 
     // 管理者またはリーダーのみ設定変更可能
     final userRole = group.getMemberRole(_uid!);
-    print('GroupFirestoreService: ユーザーロール: $userRole');
+    developer.log('ユーザーロール: $userRole', name: 'GroupFirestoreService');
 
     if (userRole != GroupRole.admin && userRole != GroupRole.leader) {
-      print('GroupFirestoreService: 権限不足');
+      developer.log('権限不足', name: 'GroupFirestoreService');
       throw Exception('管理者またはリーダーのみ設定を変更できます');
     }
 
-    print('GroupFirestoreService: 権限チェック完了');
+    developer.log('権限チェック完了', name: 'GroupFirestoreService');
 
     final updatedSettings = settings.copyWith(updatedAt: DateTime.now());
     // settingsフィールドのみをmergeでsetする
@@ -918,7 +986,10 @@ class GroupFirestoreService {
       'updatedAt': DateTime.now().toIso8601String(),
     }, SetOptions(merge: true));
 
-    print('GroupFirestoreService: Firestore set(merge: true)で更新完了');
+    developer.log(
+      'Firestore set(merge: true)で更新完了',
+      name: 'GroupFirestoreService',
+    );
   }
 
   /// 指定されたデータタイプの編集権限をチェック

@@ -30,10 +30,10 @@ class GroupDeletedPage extends StatelessWidget {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.orange.withOpacity(0.3),
+                    color: Colors.orange.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -62,7 +62,7 @@ class GroupDeletedPage extends StatelessWidget {
                   color: themeSettings.cardBackgroundColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: themeSettings.iconColor.withOpacity(0.2),
+                    color: themeSettings.iconColor.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -89,7 +89,7 @@ class GroupDeletedPage extends StatelessWidget {
                       'ローストプラスを利用するには、\n新しいグループに参加する必要があります。',
                       style: TextStyle(
                         fontSize: 14,
-                        color: themeSettings.fontColor1.withOpacity(0.8),
+                        color: themeSettings.fontColor1.withValues(alpha: 0.8),
                         height: 1.4,
                       ),
                       textAlign: TextAlign.center,
@@ -160,7 +160,7 @@ class GroupDeletedPage extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: themeSettings.iconColor,
                         side: BorderSide(
-                          color: themeSettings.iconColor.withOpacity(0.5),
+                          color: themeSettings.iconColor.withValues(alpha: 0.5),
                           width: 2,
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -182,7 +182,7 @@ class GroupDeletedPage extends StatelessWidget {
                   color: themeSettings.memberBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: themeSettings.iconColor.withOpacity(0.1),
+                    color: themeSettings.iconColor.withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
@@ -211,7 +211,7 @@ class GroupDeletedPage extends StatelessWidget {
                       '• 新しいグループを作成する\n• 他のグループの招待を受ける\n• グループ機能を再開する',
                       style: TextStyle(
                         fontSize: 12,
-                        color: themeSettings.fontColor1.withOpacity(0.7),
+                        color: themeSettings.fontColor1.withValues(alpha: 0.7),
                         height: 1.4,
                       ),
                     ),

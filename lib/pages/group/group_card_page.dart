@@ -154,7 +154,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
                       margin: EdgeInsets.all(16),
                       padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
+                        color: Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.orange),
                       ),
@@ -354,7 +354,9 @@ class _GroupCardPageState extends State<GroupCardPage> {
                         Text(
                           group.description,
                           style: TextStyle(
-                            color: themeSettings.fontColor1.withOpacity(0.7),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.7,
+                            ),
                             fontSize: 14 * themeSettings.fontSizeScale,
                             fontFamily: themeSettings.fontFamily,
                           ),
@@ -366,7 +368,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.2),
+                        color: Colors.amber.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.amber),
                       ),
@@ -415,7 +417,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: themeSettings.iconColor.withOpacity(0.1),
+                  color: themeSettings.iconColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -538,9 +540,9 @@ class _GroupCardPageState extends State<GroupCardPage> {
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -553,7 +555,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
                 Text(
                   label,
                   style: TextStyle(
-                    color: themeSettings.fontColor1.withOpacity(0.7),
+                    color: themeSettings.fontColor1.withValues(alpha: 0.7),
                     fontSize: 12 * themeSettings.fontSizeScale,
                     fontFamily: themeSettings.fontFamily,
                   ),
@@ -587,7 +589,10 @@ class _GroupCardPageState extends State<GroupCardPage> {
         height: 60,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.3),
+            width: 2,
+          ),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(13),
@@ -640,7 +645,7 @@ class _GroupCardPageState extends State<GroupCardPage> {
           colors: isLeader
               ? [Colors.amber.shade300, Colors.amber.shade600]
               : [
-                  themeSettings.iconColor.withOpacity(0.7),
+                  themeSettings.iconColor.withValues(alpha: 0.7),
                   themeSettings.iconColor,
                 ],
           begin: Alignment.topLeft,

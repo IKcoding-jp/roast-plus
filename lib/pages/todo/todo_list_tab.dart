@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -36,10 +37,10 @@ class TodoListTabState extends State<TodoListTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.groups.isEmpty && !groupProvider.loading) {
-        print('TodoListTab: グループが読み込まれていないため、読み込みを開始します');
+        developer.log('TodoListTab: グループが読み込まれていないため、読み込みを開始します');
         groupProvider.loadUserGroups();
       } else if (groupProvider.groups.isNotEmpty) {
-        print('TodoListTab: グループが既に読み込まれています - グループデータ監視を開始');
+        developer.log('TodoListTab: グループが既に読み込まれています - グループデータ監視を開始');
         _startGroupDataWatching(groupProvider);
       }
     });
@@ -53,7 +54,7 @@ class TodoListTabState extends State<TodoListTab> {
 
   // グループデータの変更を監視
   void _setupGroupDataListener() {
-    print('TodoListTab: グループデータリスナーを設定開始');
+    developer.log('TodoListTab: グループデータリスナーを設定開始');
 
     // GroupProviderの変更を監視
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -64,8 +65,8 @@ class TodoListTabState extends State<TodoListTab> {
 
       // GroupProviderの変更を監視
       groupProvider.addListener(() {
-        print('TodoListTab: GroupProviderの変更を検知');
-        print('TodoListTab: グループ数: ${groupProvider.groups.length}');
+        developer.log('TodoListTab: GroupProviderの変更を検知');
+        developer.log('TodoListTab: グループ数: ${groupProvider.groups.length}');
 
         // グループが追加された場合、監視を開始
         _startGroupDataWatching(groupProvider);
@@ -80,13 +81,13 @@ class TodoListTabState extends State<TodoListTab> {
       });
     });
 
-    print('TodoListTab: グループデータリスナー設定完了');
+    developer.log('TodoListTab: グループデータリスナー設定完了');
   }
 
   // グループデータの監視を開始
   void _startGroupDataWatching(GroupProvider groupProvider) {
     if (groupProvider.groups.isNotEmpty && !groupProvider.isWatchingGroupData) {
-      print('TodoListTab: グループデータ監視を開始します');
+      developer.log('TodoListTab: グループデータ監視を開始します');
       groupProvider.startWatchingGroupData();
     }
   }
@@ -94,64 +95,64 @@ class TodoListTabState extends State<TodoListTab> {
   // 編集権限をチェック
   Future<void> _checkEditPermissions() async {
     try {
-      print('TodoListTab: 編集権限チェック開始');
+      developer.log('TodoListTab: 編集権限チェック開始');
       final groupProvider = context.read<GroupProvider>();
-      print('TodoListTab: グループ数: ${groupProvider.groups.length}');
+      developer.log('TodoListTab: グループ数: ${groupProvider.groups.length}');
 
       if (groupProvider.groups.isNotEmpty) {
         final group = groupProvider.groups.first;
         final currentUser = FirebaseAuth.instance.currentUser;
-        print('TodoListTab: 現在のユーザー: ${currentUser?.uid}');
+        developer.log('TodoListTab: 現在のユーザー: ${currentUser?.uid}');
 
         if (currentUser != null) {
           final userRole = group.getMemberRole(currentUser.uid);
-          print('TodoListTab: ユーザーロール: $userRole');
+          developer.log('TodoListTab: ユーザーロール: $userRole');
           final groupSettings = groupProvider.getCurrentGroupSettings();
-          print('TodoListTab: グループ設定: $groupSettings');
+          developer.log('TodoListTab: グループ設定: $groupSettings');
 
           if (groupSettings != null) {
-            // TODOリストの編集権限をチェック
+            // タスクリストの編集権限をチェック
             final canEditTodoList = groupSettings.canEditDataType(
               'todo_list',
               userRole ?? GroupRole.member,
             );
 
-            print('TodoListTab: 権限チェック結果:');
-            print('TodoListTab: - todo_list: $canEditTodoList');
+            developer.log('TodoListTab: 権限チェック結果:');
+            developer.log('TodoListTab: - todo_list: $canEditTodoList');
 
             // 現在の権限と比較して変更があったかチェック
             final hasChanged = _canEditTodoList != canEditTodoList;
 
             if (hasChanged) {
-              print('TodoListTab: 権限に変更を検知しました！');
-              print('TodoListTab: 変更前 - todo_list: $_canEditTodoList');
-              print('TodoListTab: 変更後 - todo_list: $canEditTodoList');
+              developer.log('TodoListTab: 権限に変更を検知しました！');
+              developer.log('TodoListTab: 変更前 - todo_list: $_canEditTodoList');
+              developer.log('TodoListTab: 変更後 - todo_list: $canEditTodoList');
             }
 
             setState(() {
               _canEditTodoList = canEditTodoList;
             });
 
-            print('TodoListTab: 編集権限チェック完了');
-            print('TodoListTab: TODOリスト編集可能: $_canEditTodoList');
+            developer.log('TodoListTab: 編集権限チェック完了');
+            developer.log('TodoListTab: TODOリスト編集可能: $_canEditTodoList');
           } else {
-            print('TodoListTab: グループ設定がnullです');
+            developer.log('TodoListTab: グループ設定がnullです');
           }
         } else {
-          print('TodoListTab: 現在のユーザーがnullです');
+          developer.log('TodoListTab: 現在のユーザーがnullです');
         }
       } else {
-        print('TodoListTab: グループがありません');
+        developer.log('TodoListTab: グループがありません');
       }
     } catch (e) {
-      print('TodoListTab: 編集権限チェックエラー: $e');
-      print('TodoListTab: エラーの詳細: ${e.toString()}');
+      developer.log('TodoListTab: 編集権限チェックエラー: $e');
+      developer.log('TodoListTab: エラーの詳細: ${e.toString()}');
     }
   }
 
   // FirestoreからTODOリストを読み込み
   Future<void> _loadTodosFromFirestore() async {
-    print('TodoListTab: FirestoreからTODOリストを読み込み開始');
+    developer.log('TodoListTab: FirestoreからTODOリストを読み込み開始');
     try {
       final today = DateTime.now();
       final docId =
@@ -168,7 +169,7 @@ class TodoListTabState extends State<TodoListTab> {
         final data = doc.data()!;
         final todos = data['todos'] as List<dynamic>?;
         if (todos != null) {
-          print('TodoListTab: Firestoreから読み込んだTODOリスト: $todos');
+          developer.log('TodoListTab: Firestoreから読み込んだTODOリスト: $todos');
           setState(() {
             _todos = todos
                 .map(
@@ -181,11 +182,11 @@ class TodoListTabState extends State<TodoListTab> {
                 .toList();
           });
           _sortTodos();
-          print('TodoListTab: TODOリストを更新しました');
+          developer.log('TodoListTab: TODOリストを更新しました');
         }
       }
     } catch (e) {
-      print('TodoListTab: FirestoreからのTODOリスト読み込みエラー: $e');
+      developer.log('TodoListTab: FirestoreからのTODOリスト読み込みエラー: $e');
     }
   }
 
@@ -199,7 +200,7 @@ class TodoListTabState extends State<TodoListTab> {
         _todos = loaded;
       });
     } catch (e) {
-      print('TODO読み込みエラー: $e');
+      developer.log('TODO読み込みエラー: $e');
       setState(() {
         _todos = [];
       });
@@ -278,10 +279,10 @@ class TodoListTabState extends State<TodoListTab> {
         );
         // グループ同期は行わない
       } catch (e) {
-        print('TodoListTab: TODOリスト保存エラー: $e');
+        developer.log('TodoListTab: TODOリスト保存エラー: $e');
       }
     } catch (e) {
-      print('TODO保存エラー: $e');
+      developer.log('TODO保存エラー: $e');
     }
   }
 
@@ -731,7 +732,7 @@ class TodoListTabState extends State<TodoListTab> {
                                     style: TextStyle(
                                       color: Provider.of<ThemeSettings>(
                                         context,
-                                      ).fontColor1.withOpacity(0.7),
+                                      ).fontColor1.withValues(alpha: 0.7),
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -766,8 +767,10 @@ class TodoListTabState extends State<TodoListTab> {
                                     color: item.isDone
                                         ? Provider.of<ThemeSettings>(
                                             context,
-                                          ).iconColor.withOpacity(0.2)
-                                        : Color(0xFF795548).withOpacity(0.2),
+                                          ).iconColor.withValues(alpha: 0.2)
+                                        : const Color(
+                                            0xFF795548,
+                                          ).withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
@@ -823,9 +826,12 @@ class TodoListTabState extends State<TodoListTab> {
                                                   Provider.of<ThemeSettings>(
                                                     context,
                                                   ).fontSizeScale,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor1.withOpacity(0.7),
+                                              color:
+                                                  Provider.of<ThemeSettings>(
+                                                    context,
+                                                  ).fontColor1.withValues(
+                                                    alpha: 0.7,
+                                                  ),
                                             ),
                                           ),
                                         ],
@@ -834,7 +840,9 @@ class TodoListTabState extends State<TodoListTab> {
                                   : null,
                               trailing: Container(
                                 decoration: BoxDecoration(
-                                  color: Color(0xFFE57373).withOpacity(0.1),
+                                  color: const Color(
+                                    0xFFE57373,
+                                  ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: IconButton(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -78,10 +79,10 @@ class TodoListPageState extends State<TodoListPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final groupProvider = context.read<GroupProvider>();
       if (!groupProvider.hasGroup && !groupProvider.loading) {
-        print('TodoListPage: グループが読み込まれていないため、読み込みを開始します');
+        developer.log('TodoListPage: グループが読み込まれていないため、読み込みを開始します');
         groupProvider.loadUserGroups();
       } else if (groupProvider.hasGroup) {
-        print('TodoListPage: グループが既に読み込まれています - グループデータ監視を開始');
+        developer.log('TodoListPage: グループが既に読み込まれています - グループデータ監視を開始');
         _startGroupDataWatching(groupProvider);
       }
     });
@@ -96,7 +97,7 @@ class TodoListPageState extends State<TodoListPage>
 
   // グループデータの変更を監視
   void _setupGroupDataListener() {
-    print('TodoListPage: グループデータリスナーを設定開始');
+    developer.log('TodoListPage: グループデータリスナーを設定開始');
 
     // GroupProviderの変更を監視
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -107,8 +108,8 @@ class TodoListPageState extends State<TodoListPage>
 
       // GroupProviderの変更を監視
       groupProvider.addListener(() {
-        print('TodoListPage: GroupProviderの変更を検知');
-        print('TodoListPage: グループ数: ${groupProvider.groups.length}');
+        developer.log('TodoListPage: GroupProviderの変更を検知');
+        developer.log('TodoListPage: グループ数: ${groupProvider.groups.length}');
 
         // グループが追加された場合、監視を開始
         _startGroupDataWatching(groupProvider);
@@ -123,13 +124,13 @@ class TodoListPageState extends State<TodoListPage>
       });
     });
 
-    print('TodoListPage: グループデータリスナー設定完了');
+    developer.log('TodoListPage: グループデータリスナー設定完了');
   }
 
   // グループデータの監視を開始
   void _startGroupDataWatching(GroupProvider groupProvider) {
     if (groupProvider.hasGroup && !groupProvider.isWatchingGroupData) {
-      print('TodoListPage: グループデータ監視を開始します');
+      developer.log('TodoListPage: グループデータ監視を開始します');
       groupProvider.startWatchingGroupData();
     }
   }
@@ -137,64 +138,64 @@ class TodoListPageState extends State<TodoListPage>
   // 編集権限をチェック
   Future<void> _checkEditPermissions() async {
     try {
-      print('TodoListPage: 編集権限チェック開始');
+      developer.log('TodoListPage: 編集権限チェック開始');
       final groupProvider = context.read<GroupProvider>();
-      print('TodoListPage: グループあり: ${groupProvider.hasGroup}');
+      developer.log('TodoListPage: グループあり: ${groupProvider.hasGroup}');
 
       if (groupProvider.hasGroup) {
         final group = groupProvider.currentGroup!;
         final currentUser = FirebaseAuth.instance.currentUser;
-        print('TodoListPage: 現在のユーザー: ${currentUser?.uid}');
+        developer.log('TodoListPage: 現在のユーザー: ${currentUser?.uid}');
 
         if (currentUser != null) {
           final userRole = group.getMemberRole(currentUser.uid);
-          print('TodoListPage: ユーザーロール: $userRole');
+          developer.log('TodoListPage: ユーザーロール: $userRole');
           final groupSettings = groupProvider.getCurrentGroupSettings();
-          print('TodoListPage: グループ設定: $groupSettings');
+          developer.log('TodoListPage: グループ設定: $groupSettings');
 
           if (groupSettings != null) {
-            // TODOリストの編集権限をチェック
+            // タスクリストの編集権限をチェック
             final canEditTodoList = groupSettings.canEditDataType(
               'todo_list',
               userRole ?? GroupRole.member,
             );
 
-            print('TodoListPage: 権限チェック結果:');
-            print('TodoListPage: - todo_list: $canEditTodoList');
+            developer.log('TodoListPage: 権限チェック結果:');
+            developer.log('TodoListPage: - todo_list: $canEditTodoList');
 
             // 現在の権限と比較して変更があったかチェック
             final hasChanged = _canEditTodoList != canEditTodoList;
 
             if (hasChanged) {
-              print('TodoListPage: 権限に変更を検知しました！');
-              print('TodoListPage: 変更前 - todo_list: $_canEditTodoList');
-              print('TodoListPage: 変更後 - todo_list: $canEditTodoList');
+              developer.log('TodoListPage: 権限に変更を検知しました！');
+              developer.log('TodoListPage: 変更前 - todo_list: $_canEditTodoList');
+              developer.log('TodoListPage: 変更後 - todo_list: $canEditTodoList');
             }
 
             setState(() {
               _canEditTodoList = canEditTodoList;
             });
 
-            print('TodoListPage: 編集権限チェック完了');
-            print('TodoListPage: TODOリスト編集可能: $_canEditTodoList');
+            developer.log('TodoListPage: 編集権限チェック完了');
+            developer.log('TodoListPage: TODOリスト編集可能: $_canEditTodoList');
           } else {
-            print('TodoListPage: グループ設定がnullです');
+            developer.log('TodoListPage: グループ設定がnullです');
           }
         } else {
-          print('TodoListPage: 現在のユーザーがnullです');
+          developer.log('TodoListPage: 現在のユーザーがnullです');
         }
       } else {
-        print('TodoListPage: グループがありません');
+        developer.log('TodoListPage: グループがありません');
       }
     } catch (e) {
-      print('TodoListPage: 編集権限チェックエラー: $e');
-      print('TodoListPage: エラーの詳細: ${e.toString()}');
+      developer.log('TodoListPage: 編集権限チェックエラー: $e');
+      developer.log('TodoListPage: エラーの詳細: ${e.toString()}');
     }
   }
 
-  // FirestoreからTODOリストを読み込み
+  // Firestoreからタスクリストを読み込み
   Future<void> _loadTodosFromFirestore() async {
-    print('TodoListPage: FirestoreからTODOリストを読み込み開始');
+    developer.log('TodoListPage: FirestoreからTODOリストを読み込み開始');
     try {
       final today = DateTime.now();
       final docId =
@@ -211,7 +212,7 @@ class TodoListPageState extends State<TodoListPage>
         final data = doc.data()!;
         final todos = data['todos'] as List<dynamic>?;
         if (todos != null) {
-          print('TodoListPage: Firestoreから読み込んだTODOリスト: $todos');
+          developer.log('TodoListPage: Firestoreから読み込んだTODOリスト: $todos');
           if (mounted) {
             setState(() {
               _todos = todos
@@ -225,7 +226,7 @@ class TodoListPageState extends State<TodoListPage>
                   .toList();
             });
             _sortTodos();
-            print('TodoListPage: TODOリストを更新しました');
+            developer.log('TodoListPage: TODOリストを更新しました');
             // ここでローカルにも保存する
             final saved = _todos.map((e) => e.toStorageString()).toList();
             await UserSettingsFirestoreService.saveSetting(_storageKey, saved);
@@ -233,7 +234,7 @@ class TodoListPageState extends State<TodoListPage>
         }
       }
     } catch (e) {
-      print('TodoListPage: FirestoreからのTODOリスト読み込みエラー: $e');
+      developer.log('TodoListPage: FirestoreからのTODOリスト読み込みエラー: $e');
     }
   }
 
@@ -248,7 +249,7 @@ class TodoListPageState extends State<TodoListPage>
         _todos = loaded;
       });
     } catch (e) {
-      print('TODO読み込みエラー: $e');
+      developer.log('TODO読み込みエラー: $e');
       setState(() {
         _todos = [];
       });
@@ -326,11 +327,11 @@ class TodoListPageState extends State<TodoListPage>
         );
         // グループ同期は行わない
       } catch (e) {
-        print('TodoListPage: TODOリスト保存エラー: $e');
+        developer.log('TodoListPage: TODOリスト保存エラー: $e');
       }
       // ソート設定は固定のため保存不要
     } catch (e) {
-      print('TODO保存エラー: $e');
+      developer.log('TODO保存エラー: $e');
     }
   }
 
@@ -355,7 +356,7 @@ class TodoListPageState extends State<TodoListPage>
       todo.isDone = !todo.isDone;
     });
 
-    // TODOが完了した場合、通知履歴をクリア
+    // タスクが完了した場合、通知履歴をクリア
     if (todo.isDone && todo.time.isNotEmpty) {
       TodoNotificationService().clearTodoNotification(todo.title, todo.time);
     }
@@ -613,7 +614,9 @@ class TodoListPageState extends State<TodoListPage>
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
+                  color: Provider.of<ThemeSettings>(
+                    context,
+                  ).cardBackgroundColor,
                   child: Padding(
                     padding: EdgeInsets.all(20),
                     child: Column(
@@ -823,7 +826,7 @@ class TodoListPageState extends State<TodoListPage>
                                       style: TextStyle(
                                         color: Provider.of<ThemeSettings>(
                                           context,
-                                        ).fontColor1.withOpacity(0.7),
+                                        ).fontColor1.withValues(alpha: 0.7),
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -859,8 +862,10 @@ class TodoListPageState extends State<TodoListPage>
                                                   ThemeSettings
                                                 >(context)
                                                 .iconColor
-                                                .withOpacity(0.2)
-                                          : Color(0xFF795548).withOpacity(0.2),
+                                                .withValues(alpha: 0.2)
+                                          : const Color(
+                                              0xFF795548,
+                                            ).withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(
@@ -931,7 +936,7 @@ class TodoListPageState extends State<TodoListPage>
                                                           ThemeSettings
                                                         >(context)
                                                         .fontColor1
-                                                        .withOpacity(0.7),
+                                                        .withValues(alpha: 0.7),
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
@@ -941,7 +946,9 @@ class TodoListPageState extends State<TodoListPage>
                                     : null,
                                 trailing: Container(
                                   decoration: BoxDecoration(
-                                    color: Color(0xFFE57373).withOpacity(0.1),
+                                    color: const Color(
+                                      0xFFE57373,
+                                    ).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: IconButton(

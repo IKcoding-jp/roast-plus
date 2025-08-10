@@ -71,14 +71,14 @@ class _BadgeListPageState extends State<BadgeListPage>
         if (profile != null && _cachedProfile != profile) {
           setState(() {
             _cachedProfile = profile;
-            print(
+            debugPrint(
               'バッジ一覧: プロフィールが更新されました - レベル: ${profile.level}, バッジ数: ${profile.badges.length}',
             );
           });
         }
       }
     } catch (e) {
-      print('プロフィール更新チェックエラー: $e');
+      debugPrint('プロフィール更新チェックエラー: $e');
     }
   }
 
@@ -166,7 +166,7 @@ class _BadgeListPageState extends State<BadgeListPage>
         setState(() {});
       }
     } catch (e) {
-      print('プロフィール事前読み込みエラー: $e');
+      debugPrint('プロフィール事前読み込みエラー: $e');
       setState(() {});
     }
   }
@@ -318,14 +318,14 @@ class _BadgeListPageState extends State<BadgeListPage>
     final earnedBadgeIds = profile.badges.map((b) => b.id).toSet();
 
     // デバッグ情報を出力
-    print('=== バッジ一覧デバッグ情報 ===');
-    print('プロフィールレベル: ${profile.level}');
-    print('プロフィール経験値: ${profile.experiencePoints}');
-    print('獲得済みバッジ数: ${profile.badges.length}');
-    print('獲得済みバッジID: ${profile.badges.map((b) => b.id).toList()}');
-    print('獲得済みバッジ名: ${profile.badges.map((b) => b.name).toList()}');
-    print('フィルタリングされたバッジ数: ${filteredBadges.length}');
-    print('==============================');
+    debugPrint('=== バッジ一覧デバッグ情報 ===');
+    debugPrint('プロフィールレベル: ${profile.level}');
+    debugPrint('プロフィール経験値: ${profile.experiencePoints}');
+    debugPrint('獲得済みバッジ数: ${profile.badges.length}');
+    debugPrint('獲得済みバッジID: ${profile.badges.map((b) => b.id).toList()}');
+    debugPrint('獲得済みバッジ名: ${profile.badges.map((b) => b.name).toList()}');
+    debugPrint('フィルタリングされたバッジ数: ${filteredBadges.length}');
+    debugPrint('==============================');
 
     return Padding(
       padding: EdgeInsets.all(16),
@@ -350,7 +350,7 @@ class _BadgeListPageState extends State<BadgeListPage>
           if (condition.category == BadgeCategory.level && !isEarned) {
             finalIsEarned = _checkLevelBadgeCondition(condition, profile.level);
             if (finalIsEarned) {
-              print(
+              debugPrint(
                 'レベルバッジ条件達成: ${condition.name} (${condition.badgeId}) - 現在レベル: ${profile.level}',
               );
             }
@@ -360,7 +360,7 @@ class _BadgeListPageState extends State<BadgeListPage>
           final finalProgress = finalIsEarned ? 1.0 : progress;
 
           // 各バッジの状態をデバッグ出力
-          print(
+          debugPrint(
             'バッジ: ${condition.name} (${condition.badgeId}) - 獲得済み: $isEarned, 条件判定: $finalIsEarned, 進捗: ${(finalProgress * 100).toInt()}%',
           );
 
@@ -516,14 +516,14 @@ class _BadgeListPageState extends State<BadgeListPage>
         final profile = groupProvider.getGroupGamificationProfile(groupId);
         if (profile != null) {
           final progress = (profile.level / requiredLevel).clamp(0.0, 1.0);
-          print(
+          debugPrint(
             'レベルバッジ進捗計算: ${condition.badgeId} - 現在レベル=${profile.level}, 必要レベル=$requiredLevel, 進捗=$progress',
           );
           return progress;
         }
       }
     } catch (e) {
-      print('レベル進捗計算エラー: $e');
+      debugPrint('レベル進捗計算エラー: $e');
     }
 
     // フォールバック: 統計から経験値を推定してレベルを計算
@@ -575,7 +575,7 @@ class _BadgeListPageState extends State<BadgeListPage>
 
       return 'Lv.? / Lv.$requiredLevel';
     } catch (e) {
-      print('レベルバッジ進捗テキスト生成エラー: $e');
+      debugPrint('レベルバッジ進捗テキスト生成エラー: $e');
       return '';
     }
   }
@@ -620,7 +620,7 @@ class _BadgeListPageState extends State<BadgeListPage>
       // プロフィールが取得できない場合はデフォルトの説明
       return 'グループレベルをLv.$requiredLevelまで上げる';
     } catch (e) {
-      print('レベルバッジ説明生成エラー: $e');
+      debugPrint('レベルバッジ説明生成エラー: $e');
       return condition.description;
     }
   }
@@ -693,7 +693,7 @@ class _BadgeListPageState extends State<BadgeListPage>
       final requiredLevel = int.parse(levelMatch.group(1)!);
       return currentLevel >= requiredLevel;
     } catch (e) {
-      print('レベルバッジ条件チェックエラー: $e');
+      debugPrint('レベルバッジ条件チェックエラー: $e');
       return false;
     }
   }
@@ -788,8 +788,8 @@ class _BadgeCardState extends State<BadgeCard>
               gradient: widget.isEarned
                   ? LinearGradient(
                       colors: [
-                        widget.condition.color.withOpacity(0.1),
-                        widget.condition.color.withOpacity(0.05),
+                        widget.condition.color.withValues(alpha: 0.1),
+                        widget.condition.color.withValues(alpha: 0.05),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -813,7 +813,9 @@ class _BadgeCardState extends State<BadgeCard>
                           gradient: widget.isEarned
                               ? LinearGradient(
                                   colors: [
-                                    widget.condition.color.withOpacity(0.8),
+                                    widget.condition.color.withValues(
+                                      alpha: 0.8,
+                                    ),
                                     widget.condition.color,
                                   ],
                                 )
@@ -826,8 +828,8 @@ class _BadgeCardState extends State<BadgeCard>
                           boxShadow: widget.isEarned
                               ? [
                                   BoxShadow(
-                                    color: widget.condition.color.withOpacity(
-                                      0.4,
+                                    color: widget.condition.color.withValues(
+                                      alpha: 0.4,
                                     ),
                                     blurRadius: 20,
                                     spreadRadius: 5,
@@ -857,7 +859,7 @@ class _BadgeCardState extends State<BadgeCard>
                             value: widget.progress,
                             backgroundColor: Colors.grey.shade300,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              widget.condition.color.withOpacity(0.7),
+                              widget.condition.color.withValues(alpha: 0.7),
                             ),
                             strokeWidth: 4,
                           ),
@@ -956,7 +958,7 @@ class _BadgeCardState extends State<BadgeCard>
                 gradient: LinearGradient(
                   colors: widget.isEarned
                       ? [
-                          widget.condition.color.withOpacity(0.8),
+                          widget.condition.color.withValues(alpha: 0.8),
                           widget.condition.color,
                         ]
                       : [Colors.grey.shade400, Colors.grey.shade600],
@@ -1033,7 +1035,7 @@ class _BadgeCardState extends State<BadgeCard>
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: widget.condition.color.withOpacity(0.1),
+                  color: widget.condition.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

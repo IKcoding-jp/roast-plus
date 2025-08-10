@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'package:logger/logger.dart';
 import '../models/group_gamification_models.dart';
 import 'roast_record_firestore_service.dart';
 
@@ -8,6 +9,7 @@ import 'roast_record_firestore_service.dart';
 class GroupGamificationService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
+  static final _logger = Logger();
 
   // キャッシュ機能
   static final Map<String, GroupGamificationProfile> _profileCache = {};
@@ -29,13 +31,13 @@ class GroupGamificationService {
       final timestamp = _cacheTimestamps[groupId];
       if (timestamp != null &&
           DateTime.now().difference(timestamp) < _cacheExpiration) {
-        print('GroupGamificationService: キャッシュからプロフィールを取得: $groupId');
+        _logger.i('GroupGamificationService: キャッシュからプロフィールを取得: $groupId');
         return _profileCache[groupId]!;
       }
     }
 
     try {
-      print('GroupGamificationService: Firestoreからプロフィールを取得: $groupId');
+      _logger.i('GroupGamificationService: Firestoreからプロフィールを取得: $groupId');
       final doc = await _firestore
           .collection('groups')
           .doc(groupId)
@@ -57,12 +59,12 @@ class GroupGamificationService {
       _profileCache[groupId] = profile;
       _cacheTimestamps[groupId] = DateTime.now();
 
-      print(
+      _logger.i(
         'GroupGamificationService: プロフィール取得完了: $groupId (Level: ${profile.level}, XP: ${profile.experiencePoints})',
       );
       return profile;
     } catch (e) {
-      print('グループプロフィール取得エラー: $e');
+      _logger.e('グループプロフィール取得エラー: $e');
       final fallbackProfile = GroupGamificationProfile.initial(groupId);
 
       // エラー時もキャッシュに保存（短時間）
@@ -90,12 +92,12 @@ class GroupGamificationService {
           uniqueBadges.add(badge);
           seenBadgeIds.add(badge.id);
         } else {
-          print('⚠️ プロフィール保存時にバッジ重複を検知、除外: ${badge.id} (${badge.name})');
+          _logger.w('⚠️ プロフィール保存時にバッジ重複を検知、除外: ${badge.id} (${badge.name})');
         }
       }
 
       if (uniqueBadges.length != profile.badges.length) {
-        print(
+        _logger.w(
           '⚠️ プロフィール保存時に${profile.badges.length - uniqueBadges.length}個の重複バッジを除外しました',
         );
       }
@@ -115,11 +117,11 @@ class GroupGamificationService {
             'version': 1,
           });
 
-      print(
+      _logger.i(
         'グループプロフィールを保存しました: Level ${cleanProfile.level}, XP ${cleanProfile.experiencePoints}, バッジ数 ${cleanProfile.badges.length}',
       );
     } catch (e) {
-      print('グループプロフィール保存エラー: $e');
+      _logger.e('グループプロフィール保存エラー: $e');
       rethrow;
     }
   }
@@ -172,7 +174,7 @@ class GroupGamificationService {
       final reward = GroupActivityReward.attendance();
       return await _addExperienceAndUpdateProfile(groupId, reward);
     } catch (e) {
-      print('出勤記録エラー: $e');
+      _logger.e('出勤記録エラー: $e');
       return GroupActivityResult(
         success: false,
         message: '出勤記録に失敗しました',
@@ -205,7 +207,7 @@ class GroupGamificationService {
       final reward = GroupActivityReward.roasting(minutes);
       return await _addExperienceAndUpdateProfile(groupId, reward);
     } catch (e) {
-      print('焙煎記録エラー: $e');
+      _logger.e('焙煎記録エラー: $e');
       return GroupActivityResult(
         success: false,
         message: '焙煎記録に失敗しました',
@@ -241,7 +243,7 @@ class GroupGamificationService {
       final reward = GroupActivityReward.dripPack(count);
       return await _addExperienceAndUpdateProfile(groupId, reward);
     } catch (e) {
-      print('ドリップパック記録エラー: $e');
+      _logger.e('ドリップパック記録エラー: $e');
       return GroupActivityResult(
         success: false,
         message: 'ドリップパック記録に失敗しました',
@@ -261,7 +263,7 @@ class GroupGamificationService {
       final reward = GroupActivityReward.tasting();
       return await _addExperienceAndUpdateProfile(groupId, reward);
     } catch (e) {
-      print('テイスティング記録エラー: $e');
+      _logger.e('テイスティング記録エラー: $e');
       return GroupActivityResult(
         success: false,
         message: 'テイスティング記録に失敗しました',
@@ -281,7 +283,7 @@ class GroupGamificationService {
       final reward = GroupActivityReward.workProgress();
       return await _addExperienceAndUpdateProfile(groupId, reward);
     } catch (e) {
-      print('作業進捗記録エラー: $e');
+      _logger.e('作業進捗記録エラー: $e');
       return GroupActivityResult(
         success: false,
         message: '作業進捗記録に失敗しました',
@@ -311,19 +313,19 @@ class GroupGamificationService {
       final levelUp = newLevel > currentProfile.level;
 
       // デバッグ情報を出力
-      print('=== レベルアップ計算デバッグ ===');
-      print('現在の経験値: ${currentProfile.experiencePoints}');
-      print('獲得経験値: ${reward.experiencePoints}');
-      print('新しい経験値: $newExperiencePoints');
-      print('現在のレベル: ${currentProfile.level}');
-      print('新しいレベル: $newLevel');
-      print('レベルアップ: $levelUp');
+      _logger.d('=== レベルアップ計算デバッグ ===');
+      _logger.d('現在の経験値: ${currentProfile.experiencePoints}');
+      _logger.d('獲得経験値: ${reward.experiencePoints}');
+      _logger.d('新しい経験値: $newExperiencePoints');
+      _logger.d('現在のレベル: ${currentProfile.level}');
+      _logger.d('新しいレベル: $newLevel');
+      _logger.d('レベルアップ: $levelUp');
 
       // レベル2に必要な経験値を確認
       final requiredForLevel2 = _calculateRequiredXP(2);
-      print('レベル2に必要な経験値: $requiredForLevel2');
-      print('レベル2達成可能: ${newExperiencePoints >= requiredForLevel2}');
-      print('==============================');
+      _logger.d('レベル2に必要な経験値: $requiredForLevel2');
+      _logger.d('レベル2達成可能: ${newExperiencePoints >= requiredForLevel2}');
+      _logger.d('==============================');
 
       // 統計情報を更新
       final updatedStats = await _updateGroupStats(
@@ -332,19 +334,21 @@ class GroupGamificationService {
       );
 
       // 新しいバッジをチェック
-      print('バッジチェック前の状態:');
-      print('  現在のレベル: ${currentProfile.level}');
-      print('  新しいレベル: $newLevel');
-      print('  現在のバッジ数: ${currentProfile.badges.length}');
-      print('  現在のバッジID: ${currentProfile.badges.map((b) => b.id).toList()}');
+      _logger.d('バッジチェック前の状態:');
+      _logger.d('  現在のレベル: ${currentProfile.level}');
+      _logger.d('  新しいレベル: $newLevel');
+      _logger.d('  現在のバッジ数: ${currentProfile.badges.length}');
+      _logger.d(
+        '  現在のバッジID: ${currentProfile.badges.map((b) => b.id).toList()}',
+      );
 
       final newBadges = await _checkNewBadges(groupId, updatedStats);
 
       // レベルアップした場合は、レベルバッジを特別にチェック
       List<GroupBadge> levelUpBadges = [];
       if (levelUp) {
-        print('🎉 レベルアップ検知！ レベル${currentProfile.level} → $newLevel');
-        print('レベルバッジの特別チェックを実行...');
+        _logger.i('🎉 レベルアップ検知！ レベル${currentProfile.level} → $newLevel');
+        _logger.d('レベルバッジの特別チェックを実行...');
 
         // 新しいレベルで獲得可能なレベルバッジをチェック
         levelUpBadges = await _checkLevelUpBadges(
@@ -354,9 +358,9 @@ class GroupGamificationService {
         );
 
         if (levelUpBadges.isNotEmpty) {
-          print('🎊 レベルアップで新しいレベルバッジを獲得: ${levelUpBadges.length}個');
+          _logger.i('🎊 レベルアップで新しいレベルバッジを獲得: ${levelUpBadges.length}個');
           for (final badge in levelUpBadges) {
-            print('   - ${badge.name} (${badge.id})');
+            _logger.d('   - ${badge.name} (${badge.id})');
           }
         }
       }
@@ -373,10 +377,10 @@ class GroupGamificationService {
           .toList();
 
       if (uniqueNewBadges.length != allNewBadges.length) {
-        print(
+        _logger.w(
           '⚠️ バッジ重複を検知し、${allNewBadges.length - uniqueNewBadges.length}個のバッジを除外しました',
         );
-        print(
+        _logger.d(
           '   除外されたバッジID: ${allNewBadges.where((badge) => existingBadgeIds.contains(badge.id)).map((b) => b.id).toList()}',
         );
       }
@@ -405,7 +409,7 @@ class GroupGamificationService {
         newLevel: newLevel,
       );
     } catch (e) {
-      print('経験値追加エラー: $e');
+      _logger.e('経験値追加エラー: $e');
       return GroupActivityResult(
         success: false,
         message: '経験値の追加に失敗しました',
@@ -423,8 +427,8 @@ class GroupGamificationService {
     GroupStats currentStats,
   ) async {
     try {
-      print('グループ統計更新開始: groupId=$groupId');
-      print('現在の統計: ドリップパック=${currentStats.totalDripPackCount}');
+      _logger.d('グループ統計更新開始: groupId=$groupId');
+      _logger.d('現在の統計: ドリップパック=${currentStats.totalDripPackCount}');
 
       // 統計情報を再計算する前に、現在の統計を保持
       final preservedStats = currentStats;
@@ -463,13 +467,13 @@ class GroupGamificationService {
         lastActivityDate: DateTime.now(),
       );
 
-      print(
+      _logger.d(
         '統計更新完了: ドリップパック=${updatedStats.totalDripPackCount} (保持: ${preservedStats.totalDripPackCount})',
       );
 
       return updatedStats;
     } catch (e) {
-      print('統計情報更新エラー: $e');
+      _logger.e('統計情報更新エラー: $e');
       return currentStats;
     }
   }
@@ -511,7 +515,7 @@ class GroupGamificationService {
                 }
               }
             } catch (e) {
-              print('出勤記録のパースエラー: $e');
+              _logger.e('出勤記録のパースエラー: $e');
             }
           }
         }
@@ -519,7 +523,7 @@ class GroupGamificationService {
 
       return {'totalDays': uniqueDays.length};
     } catch (e) {
-      print('出勤統計計算エラー: $e');
+      _logger.e('出勤統計計算エラー: $e');
       return {'totalDays': 0};
     }
   }
@@ -539,7 +543,7 @@ class GroupGamificationService {
         'totalSessions': roastStats['totalRoastSessions'] ?? 0,
       };
     } catch (e) {
-      print('焙煎統計計算エラー: $e');
+      _logger.e('焙煎統計計算エラー: $e');
       return {'totalMinutes': 0.0, 'totalDays': 0, 'totalSessions': 0};
     }
   }
@@ -549,7 +553,7 @@ class GroupGamificationService {
     String groupId,
   ) async {
     try {
-      print('ドリップパック統計計算開始: groupId=$groupId');
+      _logger.d('ドリップパック統計計算開始: groupId=$groupId');
 
       // グループの共有データからドリップパック記録を取得
       final sharedDataDoc = await _firestore
@@ -567,7 +571,7 @@ class GroupGamificationService {
         final records = data?['data']?['records'] as List<dynamic>?;
 
         if (records != null) {
-          print('ドリップパック記録数: ${records.length}');
+          _logger.d('ドリップパック記録数: ${records.length}');
 
           for (final record in records) {
             final count = record['count'] ?? 0;
@@ -592,17 +596,17 @@ class GroupGamificationService {
             totalCount += intCount;
             uniqueDays.add(dateKey);
 
-            print(
+            _logger.d(
               'ドリップパック記録: count=$count, intCount=$intCount, dateKey=$dateKey',
             );
           }
         }
       }
 
-      print('ドリップパック統計計算完了: 総数=$totalCount, 記録日数=${uniqueDays.length}');
+      _logger.d('ドリップパック統計計算完了: 総数=$totalCount, 記録日数=${uniqueDays.length}');
       return {'totalCount': totalCount, 'totalDays': uniqueDays.length};
     } catch (e) {
-      print('ドリップパック統計計算エラー: $e');
+      _logger.e('ドリップパック統計計算エラー: $e');
       return {'totalCount': 0, 'totalDays': 0};
     }
   }
@@ -618,7 +622,7 @@ class GroupGamificationService {
 
       return {'totalRecords': tastingSnapshot.docs.length};
     } catch (e) {
-      print('テイスティング統計計算エラー: $e');
+      _logger.e('テイスティング統計計算エラー: $e');
       return {'totalRecords': 0};
     }
   }
@@ -653,15 +657,15 @@ class GroupGamificationService {
 
       // 全員出勤した日を特定
       final Set<String> allMemberDays = {};
-      dailyAttendanceCount.forEach((dateKey, count) {
-        if (count >= memberCount) {
+      dailyAttendanceCount.forEach((dateKey, attendanceCount) {
+        if (attendanceCount >= memberCount) {
           allMemberDays.add(dateKey);
         }
       });
 
       return allMemberDays;
     } catch (e) {
-      print('全員出勤チェックエラー: $e');
+      _logger.e('全員出勤チェックエラー: $e');
       return {};
     }
   }
@@ -677,19 +681,21 @@ class GroupGamificationService {
     final currentProfile = await getGroupProfile(groupId);
     final currentLevel = currentProfile.level;
 
-    print(
+    _logger.d(
       'バッジチェック開始: ドリップパック総数=${stats.totalDripPackCount}, 現在のレベル=$currentLevel',
     );
-    print('バッジチェック詳細:');
-    print('  プロフィールレベル: ${currentProfile.level}');
-    print('  プロフィールバッジ数: ${currentProfile.badges.length}');
-    print('  プロフィールバッジID: ${currentProfile.badges.map((b) => b.id).toList()}');
-    print('  統計情報詳細:');
-    print('    - ドリップパック総数: ${stats.totalDripPackCount}');
-    print('    - 出勤日数: ${stats.totalAttendanceDays}');
-    print('    - 焙煎時間: ${stats.totalRoastTimeMinutes}分');
-    print('    - 焙煎日数: ${stats.totalRoastDays}');
-    print('    - テイスティング記録数: ${stats.totalTastingRecords}');
+    _logger.d('バッジチェック詳細:');
+    _logger.d('  プロフィールレベル: ${currentProfile.level}');
+    _logger.d('  プロフィールバッジ数: ${currentProfile.badges.length}');
+    _logger.d(
+      '  プロフィールバッジID: ${currentProfile.badges.map((b) => b.id).toList()}',
+    );
+    _logger.d('  統計情報詳細:');
+    _logger.d('    - ドリップパック総数: ${stats.totalDripPackCount}');
+    _logger.d('    - 出勤日数: ${stats.totalAttendanceDays}');
+    _logger.d('    - 焙煎時間: ${stats.totalRoastTimeMinutes}分');
+    _logger.d('    - 焙煎日数: ${stats.totalRoastDays}');
+    _logger.d('    - テイスティング記録数: ${stats.totalTastingRecords}');
 
     // プロフィールのバッジを使用
     final Set<String> profileBadgeIds = currentProfile.badges
@@ -701,28 +707,28 @@ class GroupGamificationService {
         .where((condition) => condition.category == BadgeCategory.level)
         .toList();
 
-    print('レベルバッジチェック開始: ${levelConditions.length}個のレベルバッジをチェック');
+    _logger.d('レベルバッジチェック開始: ${levelConditions.length}個のレベルバッジをチェック');
 
     for (final condition in levelConditions) {
       final isEarned = profileBadgeIds.contains(condition.badgeId);
       final conditionMet = _checkLevelBadgeCondition(condition, currentLevel);
 
-      print('レベルバッジ詳細チェック:');
-      print('  バッジID: ${condition.badgeId}');
-      print('  バッジ名: ${condition.name}');
-      print('  獲得済み: $isEarned');
-      print('  条件達成: $conditionMet');
-      print('  現在レベル: $currentLevel');
+      _logger.d('レベルバッジ詳細チェック:');
+      _logger.d('  バッジID: ${condition.badgeId}');
+      _logger.d('  バッジ名: ${condition.name}');
+      _logger.d('  獲得済み: $isEarned');
+      _logger.d('  条件達成: $conditionMet');
+      _logger.d('  現在レベル: $currentLevel');
 
       if (!isEarned && conditionMet) {
         final newBadge = condition.createBadge(_uid!, _userDisplayName!);
         newBadges.add(newBadge);
 
-        print('🎉 新しいレベルバッジを獲得: ${newBadge.name} (${newBadge.id})');
-        print('  カテゴリ: ${condition.category}');
-        print('  現在レベル: $currentLevel');
+        _logger.i('🎉 新しいレベルバッジを獲得: ${newBadge.name} (${newBadge.id})');
+        _logger.d('  カテゴリ: ${condition.category}');
+        _logger.d('  現在レベル: $currentLevel');
       } else if (isEarned) {
-        print('⏭️ レベルバッジスキップ（既に獲得済み）: ${condition.badgeId}');
+        _logger.d('⏭️ レベルバッジスキップ（既に獲得済み）: ${condition.badgeId}');
       }
     }
 
@@ -731,7 +737,7 @@ class GroupGamificationService {
         .where((condition) => condition.category != BadgeCategory.level)
         .toList();
 
-    print('その他バッジチェック開始: ${otherConditions.length}個のバッジをチェック');
+    _logger.d('その他バッジチェック開始: ${otherConditions.length}個のバッジをチェック');
 
     for (final condition in otherConditions) {
       final isEarned = profileBadgeIds.contains(condition.badgeId);
@@ -739,7 +745,7 @@ class GroupGamificationService {
 
       // ドリップパックバッジのみ詳細ログ
       if (condition.category == BadgeCategory.dripPack) {
-        print(
+        _logger.d(
           'ドリップパックバッジチェック: ${condition.badgeId} - 獲得済み=$isEarned, 条件達成=$conditionMet',
         );
       }
@@ -748,14 +754,14 @@ class GroupGamificationService {
         final newBadge = condition.createBadge(_uid!, _userDisplayName!);
         newBadges.add(newBadge);
 
-        print('🏆 新しいバッジを獲得: ${newBadge.name} (${newBadge.id})');
-        print('  カテゴリ: ${condition.category}');
+        _logger.i('🏆 新しいバッジを獲得: ${newBadge.name} (${newBadge.id})');
+        _logger.d('  カテゴリ: ${condition.category}');
       } else if (isEarned) {
-        print('⏭️ バッジスキップ（既に獲得済み）: ${condition.badgeId}');
+        _logger.d('⏭️ バッジスキップ（既に獲得済み）: ${condition.badgeId}');
       }
     }
 
-    print('バッジチェック完了: 新規獲得数=${newBadges.length}');
+    _logger.d('バッジチェック完了: 新規獲得数=${newBadges.length}');
     return newBadges;
   }
 
@@ -768,32 +774,34 @@ class GroupGamificationService {
     final List<GroupBadge> levelUpBadges = [];
     final Set<String> currentBadgeIds = currentBadges.map((b) => b.id).toSet();
 
-    print('レベルアップ時のレベルバッジチェック開始: 新レベル=$newLevel');
-    print('現在のバッジID: ${currentBadgeIds.toList()}');
+    _logger.d('レベルアップ時のレベルバッジチェック開始: 新レベル=$newLevel');
+    _logger.d('現在のバッジID: ${currentBadgeIds.toList()}');
 
     for (final condition in GroupBadgeConditions.conditions) {
       if (condition.category == BadgeCategory.level) {
         final isEarned = currentBadgeIds.contains(condition.badgeId);
         final conditionMet = _checkLevelBadgeCondition(condition, newLevel);
 
-        print('レベルアップ時のレベルバッジ詳細チェック:');
-        print('  バッジID: ${condition.badgeId}');
-        print('  バッジ名: ${condition.name}');
-        print('  獲得済み: $isEarned');
-        print('  条件達成: $conditionMet');
-        print('  新レベル: $newLevel');
+        _logger.d('レベルアップ時のレベルバッジ詳細チェック:');
+        _logger.d('  バッジID: ${condition.badgeId}');
+        _logger.d('  バッジ名: ${condition.name}');
+        _logger.d('  獲得済み: $isEarned');
+        _logger.d('  条件達成: $conditionMet');
+        _logger.d('  新レベル: $newLevel');
 
         if (!isEarned && conditionMet) {
           final newBadge = condition.createBadge(_uid!, _userDisplayName!);
           levelUpBadges.add(newBadge);
-          print('🎉 レベルアップで新しいレベルバッジを獲得: ${newBadge.name} (${newBadge.id})');
+          _logger.i(
+            '🎉 レベルアップで新しいレベルバッジを獲得: ${newBadge.name} (${newBadge.id})',
+          );
         } else if (isEarned) {
-          print('⏭️ レベルアップ時のレベルバッジスキップ（既に獲得済み）: ${condition.badgeId}');
+          _logger.d('⏭️ レベルアップ時のレベルバッジスキップ（既に獲得済み）: ${condition.badgeId}');
         }
       }
     }
 
-    print('レベルアップ時のレベルバッジチェック完了: 新規獲得数=${levelUpBadges.length}');
+    _logger.d('レベルアップ時のレベルバッジチェック完了: 新規獲得数=${levelUpBadges.length}');
     return levelUpBadges;
   }
 
@@ -884,22 +892,22 @@ class GroupGamificationService {
       r'group_level_(\d+)',
     ).firstMatch(condition.badgeId);
     if (levelMatch == null) {
-      print('レベルバッジID解析エラー: ${condition.badgeId}');
+      _logger.e('レベルバッジID解析エラー: ${condition.badgeId}');
       return false;
     }
 
     final requiredLevel = int.parse(levelMatch.group(1)!);
     final conditionMet = currentLevel >= requiredLevel;
 
-    print('レベルバッジ条件チェック詳細:');
-    print('  バッジID: ${condition.badgeId}');
-    print('  現在レベル: $currentLevel');
-    print('  必要レベル: $requiredLevel');
-    print('  条件達成: $conditionMet');
+    _logger.d('レベルバッジ条件チェック詳細:');
+    _logger.d('  バッジID: ${condition.badgeId}');
+    _logger.d('  現在レベル: $currentLevel');
+    _logger.d('  必要レベル: $requiredLevel');
+    _logger.d('  条件達成: $conditionMet');
 
     // 条件を満たしている場合は即座にログ出力
     if (conditionMet) {
-      print(
+      _logger.i(
         '🎉 レベルバッジ条件達成: ${condition.badgeId} (レベル$currentLevel >= $requiredLevel)',
       );
     }
@@ -913,7 +921,7 @@ class GroupGamificationService {
       final profile = await getGroupProfile(groupId);
       return profile.stats;
     } catch (e) {
-      print('グループ統計取得エラー: $e');
+      _logger.e('グループ統計取得エラー: $e');
       return GroupStats.initial();
     }
   }
@@ -924,7 +932,7 @@ class GroupGamificationService {
       final profile = await getGroupProfile(groupId);
       return profile.badges;
     } catch (e) {
-      print('グループバッジ取得エラー: $e');
+      _logger.e('グループバッジ取得エラー: $e');
       return [];
     }
   }
@@ -938,7 +946,7 @@ class GroupGamificationService {
       final badges = await getGroupBadges(groupId);
       return badges.where((badge) => badge.category == category).toList();
     } catch (e) {
-      print('カテゴリ別バッジ取得エラー: $e');
+      _logger.e('カテゴリ別バッジ取得エラー: $e');
       return [];
     }
   }
@@ -961,16 +969,16 @@ class GroupGamificationService {
               if (!doc.exists) return GroupGamificationProfile.initial(groupId);
               return GroupGamificationProfile.fromJson(doc.data()!);
             } catch (e) {
-              print('GroupGamificationService: プロフィールJSON解析エラー: $e');
+              _logger.e('GroupGamificationService: プロフィールJSON解析エラー: $e');
               return GroupGamificationProfile.initial(groupId);
             }
           })
           .handleError((error) {
-            print('GroupGamificationService: プロフィール監視エラー: $error');
+            _logger.e('GroupGamificationService: プロフィール監視エラー: $error');
             return GroupGamificationProfile.initial(groupId);
           });
     } catch (e) {
-      print('GroupGamificationService: プロフィール監視開始エラー: $e');
+      _logger.e('GroupGamificationService: プロフィール監視開始エラー: $e');
       return Stream.value(GroupGamificationProfile.initial(groupId));
     }
   }
@@ -1135,7 +1143,7 @@ class GroupGamificationService {
             profile.badges.length / GroupBadgeConditions.conditions.length,
       };
     } catch (e) {
-      print('詳細統計取得エラー: $e');
+      _logger.e('詳細統計取得エラー: $e');
       return {};
     }
   }
@@ -1157,11 +1165,11 @@ class GroupGamificationService {
     if (groupId != null) {
       _profileCache.remove(groupId);
       _cacheTimestamps.remove(groupId);
-      print('GroupGamificationService: キャッシュをクリア: $groupId');
+      _logger.d('GroupGamificationService: キャッシュをクリア: $groupId');
     } else {
       _profileCache.clear();
       _cacheTimestamps.clear();
-      print('GroupGamificationService: 全キャッシュをクリア');
+      _logger.d('GroupGamificationService: 全キャッシュをクリア');
     }
   }
 
@@ -1169,26 +1177,28 @@ class GroupGamificationService {
   static Future<void> debugPrintGroupProfile(String groupId) async {
     try {
       final profile = await getGroupProfile(groupId);
-      print('=== グループゲーミフィケーションプロフィール ===');
-      print('グループID: ${profile.groupId}');
-      print('レベル: ${profile.level} (${profile.displayTitle})');
-      print('経験値: ${profile.experiencePoints}');
-      print('次のレベルまで: ${profile.experienceToNextLevel}XP');
-      print('出勤累計: ${profile.stats.totalAttendanceDays}日');
-      print('焙煎時間: ${profile.stats.totalRoastTimeHours.toStringAsFixed(1)}時間');
-      print('ドリップパック: ${profile.stats.totalDripPackCount}個');
-      print('バッジ数: ${profile.badges.length}');
+      _logger.i('=== グループゲーミフィケーションプロフィール ===');
+      _logger.i('グループID: ${profile.groupId}');
+      _logger.i('レベル: ${profile.level} (${profile.displayTitle})');
+      _logger.i('経験値: ${profile.experiencePoints}');
+      _logger.i('次のレベルまで: ${profile.experienceToNextLevel}XP');
+      _logger.i('出勤累計: ${profile.stats.totalAttendanceDays}日');
+      _logger.i(
+        '焙煎時間: ${profile.stats.totalRoastTimeHours.toStringAsFixed(1)}時間',
+      );
+      _logger.i('ドリップパック: ${profile.stats.totalDripPackCount}個');
+      _logger.i('バッジ数: ${profile.badges.length}');
       if (profile.badges.isNotEmpty) {
-        print('獲得バッジ:');
+        _logger.i('獲得バッジ:');
         for (final badge in profile.badges) {
-          print(
+          _logger.i(
             '  - ${badge.name}: ${badge.description} (by ${badge.earnedByUserName})',
           );
         }
       }
-      print('===============================');
+      _logger.i('===============================');
     } catch (e) {
-      print('デバッグ情報取得エラー: $e');
+      _logger.e('デバッグ情報取得エラー: $e');
     }
   }
 
@@ -1197,7 +1207,7 @@ class GroupGamificationService {
     String groupId,
   ) async {
     try {
-      print('焙煎記録の再計算開始: groupId=$groupId');
+      _logger.i('焙煎記録の再計算開始: groupId=$groupId');
 
       // 既存の焙煎記録を取得
       final records = await RoastRecordFirestoreService.getGroupRecords(
@@ -1206,7 +1216,7 @@ class GroupGamificationService {
       double totalMinutes = 0.0;
       Set<String> roastDays = {};
 
-      print('取得した焙煎記録数: ${records.length}');
+      _logger.d('取得した焙煎記録数: ${records.length}');
 
       for (final record in records) {
         final minutes = RoastRecordFirestoreService.parseRoastTimeToMinutes(
@@ -1219,10 +1229,10 @@ class GroupGamificationService {
             '${record.timestamp.year}-${record.timestamp.month.toString().padLeft(2, '0')}-${record.timestamp.day.toString().padLeft(2, '0')}';
         roastDays.add(dateKey);
 
-        print('記録: ${record.bean} - ${record.time} ($minutes分)');
+        _logger.d('記録: ${record.bean} - ${record.time} ($minutes分)');
       }
 
-      print(
+      _logger.i(
         '再計算結果: 総時間=${totalMinutes.toStringAsFixed(1)}分, 焙煎日数=${roastDays.length}日',
       );
 
@@ -1248,15 +1258,15 @@ class GroupGamificationService {
       // プロフィールを保存
       await _saveGroupProfile(groupId, updatedProfile);
 
-      print('焙煎記録の再計算完了');
-      print('新しいバッジ獲得数: ${newBadges.length}');
+      _logger.i('焙煎記録の再計算完了');
+      _logger.i('新しいバッジ獲得数: ${newBadges.length}');
       if (newBadges.isNotEmpty) {
         for (final badge in newBadges) {
-          print('  - ${badge.name}: ${badge.description}');
+          _logger.i('  - ${badge.name}: ${badge.description}');
         }
       }
     } catch (e) {
-      print('焙煎記録の再計算エラー: $e');
+      _logger.e('焙煎記録の再計算エラー: $e');
       rethrow;
     }
   }
@@ -1266,15 +1276,15 @@ class GroupGamificationService {
     String groupId,
   ) async {
     try {
-      print('ドリップパック記録の再計算開始: groupId=$groupId');
+      _logger.i('ドリップパック記録の再計算開始: groupId=$groupId');
 
       // グループの共有データからドリップパック記録を取得
       final dripPackStats = await _calculateDripPackStats(groupId);
       final totalCount = dripPackStats['totalCount'] ?? 0;
       final totalDays = dripPackStats['totalDays'] ?? 0;
 
-      print('取得したドリップパック記録日数: $totalDays');
-      print('再計算結果: 累積数=$totalCount個');
+      _logger.d('取得したドリップパック記録日数: $totalDays');
+      _logger.d('再計算結果: 累積数=$totalCount個');
 
       // 現在のプロフィールを取得
       final currentProfile = await getGroupProfile(groupId);
@@ -1294,7 +1304,7 @@ class GroupGamificationService {
           .toList();
 
       if (uniqueNewBadges.length != allNewBadges.length) {
-        print(
+        _logger.w(
           '⚠️ 再計算時にバッジ重複を検知し、${allNewBadges.length - uniqueNewBadges.length}個のバッジを除外しました',
         );
       }
@@ -1309,15 +1319,15 @@ class GroupGamificationService {
       // プロフィールを保存
       await _saveGroupProfile(groupId, updatedProfile);
 
-      print('ドリップパック記録の再計算完了');
-      print('新しいバッジ獲得数: ${uniqueNewBadges.length}');
+      _logger.i('ドリップパック記録の再計算完了');
+      _logger.i('新しいバッジ獲得数: ${uniqueNewBadges.length}');
       if (uniqueNewBadges.isNotEmpty) {
         for (final badge in uniqueNewBadges) {
-          print('  - ${badge.name}: ${badge.description}');
+          _logger.i('  - ${badge.name}: ${badge.description}');
         }
       }
     } catch (e) {
-      print('ドリップパック記録の再計算エラー: $e');
+      _logger.e('ドリップパック記録の再計算エラー: $e');
       rethrow;
     }
   }
@@ -1325,7 +1335,7 @@ class GroupGamificationService {
   /// 既存のプロフィールから重複バッジを除去（修復用）
   static Future<void> removeDuplicateBadges(String groupId) async {
     try {
-      print('重複バッジ除去開始: groupId=$groupId');
+      _logger.i('重複バッジ除去開始: groupId=$groupId');
 
       final profile = await getGroupProfile(groupId);
       final originalCount = profile.badges.length;
@@ -1339,12 +1349,12 @@ class GroupGamificationService {
           uniqueBadges.add(badge);
           seenBadgeIds.add(badge.id);
         } else {
-          print('重複バッジを除去: ${badge.id} (${badge.name})');
+          _logger.w('重複バッジを除去: ${badge.id} (${badge.name})');
         }
       }
 
       if (uniqueBadges.length != originalCount) {
-        print(
+        _logger.i(
           '重複バッジ除去完了: $originalCount個 → ${uniqueBadges.length}個 (${originalCount - uniqueBadges.length}個除去)',
         );
 
@@ -1355,12 +1365,12 @@ class GroupGamificationService {
         );
 
         await _saveGroupProfile(groupId, updatedProfile);
-        print('プロフィールを更新しました');
+        _logger.i('プロフィールを更新しました');
       } else {
-        print('重複バッジは見つかりませんでした');
+        _logger.i('重複バッジは見つかりませんでした');
       }
     } catch (e) {
-      print('重複バッジ除去エラー: $e');
+      _logger.e('重複バッジ除去エラー: $e');
       rethrow;
     }
   }

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
@@ -86,17 +87,17 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
     });
 
     try {
-      print('GroupCreatePage: グループ作成開始');
+      developer.log('グループ作成開始', name: 'GroupCreatePage');
 
       final success = await groupProvider.createGroup(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
       );
 
-      print('GroupCreatePage: グループ作成結果: $success');
+      developer.log('グループ作成結果: $success', name: 'GroupCreatePage');
 
       if (success && mounted) {
-        print('GroupCreatePage: ホーム画面に遷移開始');
+        developer.log('ホーム画面に遷移開始', name: 'GroupCreatePage');
 
         // 成功メッセージを先に表示
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,7 +108,7 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
         await Future.delayed(Duration(milliseconds: 3000));
 
         if (mounted) {
-          print('GroupCreatePage: ホーム画面遷移開始');
+          developer.log('ホーム画面遷移開始', name: 'GroupCreatePage');
 
           try {
             // ホームページに自動遷移
@@ -115,9 +116,15 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
               '/',
               (route) => false, // すべてのページをクリア
             );
-            print('GroupCreatePage: ホーム画面遷移完了');
-          } catch (e) {
-            print('GroupCreatePage: 遷移エラー: $e');
+            developer.log('ホーム画面遷移完了', name: 'GroupCreatePage');
+          } catch (e, st) {
+            developer.log(
+              '遷移エラー: $e',
+              name: 'GroupCreatePage',
+              error: e,
+              stackTrace: st,
+              level: 1000,
+            );
             // エラーが発生した場合は前の画面に戻る
             if (mounted) {
               Navigator.of(context).pop();
@@ -125,7 +132,11 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
           }
         }
       } else if (mounted) {
-        print('GroupCreatePage: グループ作成失敗: ${groupProvider.error}');
+        developer.log(
+          'グループ作成失敗: ${groupProvider.error}',
+          name: 'GroupCreatePage',
+          level: 900,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(groupProvider.error ?? 'グループの作成に失敗しました'),
@@ -133,8 +144,14 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
           ),
         );
       }
-    } catch (e) {
-      print('GroupCreatePage: グループ作成エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'グループ作成エラー: $e',
+        name: 'GroupCreatePage',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

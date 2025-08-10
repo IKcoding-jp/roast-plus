@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/group_models.dart';
@@ -133,8 +134,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    print(
-      'GroupSettingsPage: build開始 - _loading: $_loading, _settings: $_settings',
+    developer.log(
+      'build開始 - _loading: $_loading, _settings: $_settings',
+      name: 'GroupSettingsPage',
     );
     final themeSettings = Provider.of<ThemeSettings>(context);
 
@@ -280,11 +282,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   }
 
   List<Widget> _buildDataPermissionSettings(ThemeSettings themeSettings) {
-    print('GroupSettingsPage: _buildDataPermissionSettings開始');
-    print('GroupSettingsPage: _settings: $_settings');
+    developer.log('_buildDataPermissionSettings開始', name: 'GroupSettingsPage');
+    developer.log('_settings: $_settings', name: 'GroupSettingsPage');
     if (_settings != null) {
-      print(
-        'GroupSettingsPage: 現在のdataPermissions: ${_settings!.dataPermissions}',
+      developer.log(
+        '現在のdataPermissions: ${_settings!.dataPermissions}',
+        name: 'GroupSettingsPage',
       );
     }
 
@@ -303,7 +306,10 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
       final displayName = entry.value;
       final currentPermission = _settings!.getPermissionForDataType(dataType);
 
-      print('GroupSettingsPage: $dataType の現在の権限: $currentPermission');
+      developer.log(
+        '$dataType の現在の権限: $currentPermission',
+        name: 'GroupSettingsPage',
+      );
 
       // 選択状態を配列で表現
       List<bool> selected = [false, false, false];
@@ -319,7 +325,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
           break;
       }
 
-      print('GroupSettingsPage: $dataType の選択状態: $selected');
+      developer.log('$dataType の選択状態: $selected', name: 'GroupSettingsPage');
 
       return Padding(
         padding: EdgeInsets.only(bottom: 16),
@@ -344,8 +350,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     padding: EdgeInsets.only(right: 8),
                     child: InkWell(
                       onTap: () {
-                        print(
-                          'GroupSettingsPage: 管理者ボタンタップ - データタイプ: $dataType',
+                        developer.log(
+                          '管理者ボタンタップ - データタイプ: $dataType',
+                          name: 'GroupSettingsPage',
                         );
                         _updateDataPermission(dataType, AccessLevel.adminOnly);
                       },
@@ -389,8 +396,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     padding: EdgeInsets.only(right: 8),
                     child: InkWell(
                       onTap: () {
-                        print(
-                          'GroupSettingsPage: リーダーボタンタップ - データタイプ: $dataType',
+                        developer.log(
+                          'リーダーボタンタップ - データタイプ: $dataType',
+                          name: 'GroupSettingsPage',
                         );
                         _updateDataPermission(
                           dataType,
@@ -435,8 +443,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 Expanded(
                   child: InkWell(
                     onTap: () {
-                      print(
-                        'GroupSettingsPage: メンバーボタンタップ - データタイプ: $dataType',
+                      developer.log(
+                        'メンバーボタンタップ - データタイプ: $dataType',
+                        name: 'GroupSettingsPage',
                       );
                       _updateDataPermission(dataType, AccessLevel.allMembers);
                     },
@@ -490,7 +499,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 return Text(
                   desc,
                   style: TextStyle(
-                    color: themeSettings.fontColor1.withOpacity(0.7),
+                    color: themeSettings.fontColor1.withValues(alpha: 0.7),
                     fontSize: 12 * themeSettings.fontSizeScale,
                     fontFamily: themeSettings.fontFamily,
                   ),

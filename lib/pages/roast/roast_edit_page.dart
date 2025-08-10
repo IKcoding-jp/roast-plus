@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
@@ -51,32 +52,32 @@ class _RoastEditPageState extends State<RoastEditPage> {
   // 権限チェック
   Future<void> _checkPermissions() async {
     try {
-      print('RoastEditPage: 権限チェック開始');
+      developer.log('権限チェック開始', name: 'RoastEditPage');
 
       final groupProvider = Provider.of<GroupProvider>(context, listen: false);
       if (groupProvider.hasGroup) {
-        print('RoastEditPage: グループに参加中 - 権限チェック実行');
+        developer.log('グループに参加中 - 権限チェック実行', name: 'RoastEditPage');
 
         final canEdit = await PermissionUtils.canEditDataType(
           groupId: groupProvider.currentGroup!.id,
           dataType: 'roastRecords',
         );
 
-        print('RoastEditPage: 権限チェック結果 - 編集: $canEdit');
+        developer.log('権限チェック結果 - 編集: $canEdit', name: 'RoastEditPage');
 
         setState(() {
           _canEdit = canEdit;
           _isCheckingPermissions = false;
         });
       } else {
-        print('RoastEditPage: グループに参加していないため、編集可能');
+        developer.log('グループに参加していないため、編集可能', name: 'RoastEditPage');
         setState(() {
           _canEdit = true;
           _isCheckingPermissions = false;
         });
       }
     } catch (e) {
-      print('RoastEditPage: 権限チェックエラー: $e');
+      developer.log('権限チェックエラー: $e', name: 'RoastEditPage', error: e);
       setState(() {
         _canEdit = false;
         _isCheckingPermissions = false;
@@ -211,7 +212,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Row(
@@ -260,7 +261,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                 decoration: BoxDecoration(
                                   color: Provider.of<ThemeSettings>(
                                     context,
-                                  ).iconColor.withOpacity(0.12),
+                                  ).iconColor.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
@@ -309,7 +310,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                   hintStyle: TextStyle(
                                     color: Provider.of<ThemeSettings>(
                                       context,
-                                    ).fontColor1.withOpacity(0.6),
+                                    ).fontColor1.withValues(alpha: 0.6),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -341,7 +342,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                   hintStyle: TextStyle(
                                     color: Provider.of<ThemeSettings>(
                                       context,
-                                    ).fontColor1.withOpacity(0.6),
+                                    ).fontColor1.withValues(alpha: 0.6),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -397,7 +398,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                         hintStyle: TextStyle(
                                           color: Provider.of<ThemeSettings>(
                                             context,
-                                          ).fontColor1.withOpacity(0.6),
+                                          ).fontColor1.withValues(alpha: 0.6),
                                           fontSize: 13,
                                         ),
                                       ),
@@ -444,7 +445,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                         hintStyle: TextStyle(
                                           color: Provider.of<ThemeSettings>(
                                             context,
-                                          ).fontColor1.withOpacity(0.6),
+                                          ).fontColor1.withValues(alpha: 0.6),
                                           fontSize: 13,
                                         ),
                                       ),
@@ -479,7 +480,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                   hintStyle: TextStyle(
                                     color: Provider.of<ThemeSettings>(
                                       context,
-                                    ).fontColor1.withOpacity(0.6),
+                                    ).fontColor1.withValues(alpha: 0.6),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -524,7 +525,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                   hintStyle: TextStyle(
                                     color: Provider.of<ThemeSettings>(
                                       context,
-                                    ).fontColor1.withOpacity(0.6),
+                                    ).fontColor1.withValues(alpha: 0.6),
                                     fontSize: 13,
                                   ),
                                 ),

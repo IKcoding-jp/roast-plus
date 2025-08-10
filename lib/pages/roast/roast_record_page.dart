@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import 'dart:async';
 import '../../models/roast_record.dart';
@@ -93,7 +94,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(Icons.coffee_maker, color: iconColor, size: 24),
@@ -136,7 +137,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -189,7 +190,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(Icons.timer, color: iconColor, size: 20),
@@ -260,7 +261,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.12),
+                color: iconColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: iconColor, size: 20),
@@ -295,7 +296,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 vertical: 12,
               ),
               hintText: hint,
-              hintStyle: TextStyle(color: accentColor.withOpacity(0.6)),
+              hintStyle: TextStyle(color: accentColor.withValues(alpha: 0.6)),
             ),
           ),
         ),
@@ -344,7 +345,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.12),
+                color: iconColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.scale, color: iconColor, size: 20),
@@ -378,7 +379,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 vertical: 12,
               ),
               hintText: '重さを選択',
-              hintStyle: TextStyle(color: accentColor.withOpacity(0.6)),
+              hintStyle: TextStyle(color: accentColor.withValues(alpha: 0.6)),
             ),
             items: [
               '200',
@@ -444,6 +445,8 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
 
     try {
       final groupProvider = context.read<GroupProvider>();
+      final gamificationProvider = context.read<GamificationProvider>();
+
       if (groupProvider.hasGroup) {
         // グループに参加している場合はグループの記録を保存
         for (final record in newRecords) {
@@ -461,7 +464,6 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
           await RoastRecordFirestoreService.addRecord(record);
         }
         // 個人ゲーミフィケーション（経験値加算）
-        final gamificationProvider = context.read<GamificationProvider>();
         double totalMinutes = 0;
         for (final record in newRecords) {
           final timeParts = record.time.split(':');
@@ -486,7 +488,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
         );
       }
     } catch (e) {
-      print('焙煎記録保存エラー: $e');
+      developer.log('焙煎記録保存エラー: $e', name: 'RoastRecordPage', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('保存に失敗しました: $e'), backgroundColor: Colors.red),
@@ -548,7 +550,11 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
         }
       }
     } catch (e) {
-      print('複数焙煎記録のグループレベルシステム処理エラー: $e');
+      developer.log(
+        '複数焙煎記録のグループレベルシステム処理エラー: $e',
+        name: 'RoastRecordPage',
+        error: e,
+      );
     }
   }
 
@@ -682,7 +688,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                   color: Theme.of(context).scaffoldBackgroundColor,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: Offset(0, -2),
                     ),

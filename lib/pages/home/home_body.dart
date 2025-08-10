@@ -252,7 +252,7 @@ class _HomeBodyState extends State<HomeBody> {
             border: Border.all(color: Colors.white, width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withOpacity(0.3),
+                color: Colors.green.withValues(alpha: 0.3),
                 blurRadius: 4,
                 offset: Offset(0, 2),
               ),

@@ -74,7 +74,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
 
     await showDialog<RoastScheduleMemo>(
       context: context,
-      builder: (context) => RoastScheduleMemoDialog(
+      builder: (dialogContext) => RoastScheduleMemoDialog(
         onSave: (memo) async {
           try {
             await RoastScheduleMemoService.addMemo(memo, groupId: _groupId);
@@ -83,9 +83,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
             }
           } catch (e) {
             developer.log('メモ追加エラー: $e', name: 'RoastSchedulerTab');
-            if (mounted) {
+            if (mounted && dialogContext.mounted) {
               ScaffoldMessenger.of(
-                context,
+                dialogContext,
               ).showSnackBar(SnackBar(content: Text('メモの追加に失敗しました')));
             }
           }
@@ -99,7 +99,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
 
     await showDialog<RoastScheduleMemo>(
       context: context,
-      builder: (context) => RoastScheduleMemoDialog(
+      builder: (dialogContext) => RoastScheduleMemoDialog(
         memo: memo,
         onSave: (updatedMemo) async {
           try {
@@ -112,9 +112,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
             }
           } catch (e) {
             developer.log('メモ更新エラー: $e', name: 'RoastSchedulerTab');
-            if (mounted) {
+            if (mounted && dialogContext.mounted) {
               ScaffoldMessenger.of(
-                context,
+                dialogContext,
               ).showSnackBar(SnackBar(content: Text('メモの更新に失敗しました')));
             }
           }
@@ -128,16 +128,16 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('メモを削除'),
         content: Text('このメモを削除しますか？'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text('キャンセル'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: Text('削除'),
           ),
@@ -145,15 +145,15 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && mounted) {
       try {
         await RoastScheduleMemoService.deleteMemo(memoId, groupId: _groupId);
-        if (mounted) {
-          await _loadMemos();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('メモを削除しました')));
-        }
+        if (!mounted) return;
+        await _loadMemos();
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('メモを削除しました')));
       } catch (e) {
         developer.log('メモ削除エラー: $e', name: 'RoastSchedulerTab');
         if (mounted) {

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_gamification_models.dart';
 import 'group_firestore_service.dart';
@@ -15,7 +16,7 @@ class GroupDataSyncService {
     String groupId,
     Map<String, dynamic> roastData,
   ) async {
-    print('GroupDataSyncService: 焙煎記録の同期権限チェック開始');
+    developer.log('GroupDataSyncService: 焙煎記録の同期権限チェック開始');
     // 同期権限チェック（編集権限とは別）
     final canSync = await GroupFirestoreService.canSyncDataType(
       groupId: groupId,
@@ -23,18 +24,18 @@ class GroupDataSyncService {
     );
 
     if (!canSync) {
-      print('GroupDataSyncService: 焙煎記録の同期権限がありません');
+      developer.log('GroupDataSyncService: 焙煎記録の同期権限がありません');
       throw Exception('焙煎記録の同期権限がありません');
     }
-    print('GroupDataSyncService: 焙煎記録の同期権限チェック完了');
+    developer.log('GroupDataSyncService: 焙煎記録の同期権限チェック完了');
 
-    print('GroupDataSyncService: 焙煎記録データをFirestoreに保存中...');
+    developer.log('GroupDataSyncService: 焙煎記録データをFirestoreに保存中...');
     await GroupFirestoreService.syncGroupData(
       groupId: groupId,
       dataType: 'roast_records',
       data: roastData,
     );
-    print('GroupDataSyncService: 焙煎記録データの保存完了');
+    developer.log('GroupDataSyncService: 焙煎記録データの保存完了');
   }
 
   /// グループの焙煎記録を取得
@@ -115,7 +116,7 @@ class GroupDataSyncService {
       data: dripData,
     );
 
-    print(
+    developer.log(
       'GroupDataSyncService: ドリップカウンター記録を同期しました - groupId: $groupId, 記録数: ${dripData['records']?.length ?? 0}',
     );
   }
@@ -170,10 +171,10 @@ class GroupDataSyncService {
         }
       }
 
-      print('GroupDataSyncService: ドリップパック合計数取得完了: $totalCount個');
+      developer.log('GroupDataSyncService: ドリップパック合計数取得完了: $totalCount個');
       return totalCount;
     } catch (e) {
-      print('GroupDataSyncService: ドリップパック合計数取得エラー: $e');
+      developer.log('GroupDataSyncService: ドリップパック合計数取得エラー: $e');
       return 0;
     }
   }
@@ -617,7 +618,7 @@ class GroupDataSyncService {
     String groupId,
     Map<String, dynamic> data,
   ) async {
-    print('GroupDataSyncService: ゲーミフィケーションデータの同期権限チェック開始');
+    developer.log('GroupDataSyncService: ゲーミフィケーションデータの同期権限チェック開始');
 
     // 同期権限チェック
     final canSync = await GroupFirestoreService.canSyncDataType(
@@ -626,14 +627,14 @@ class GroupDataSyncService {
     );
 
     if (!canSync) {
-      print('GroupDataSyncService: ゲーミフィケーションデータの同期権限がありません');
+      developer.log('GroupDataSyncService: ゲーミフィケーションデータの同期権限がありません');
       throw Exception('ゲーミフィケーションデータの同期権限がありません');
     }
-    print('GroupDataSyncService: ゲーミフィケーションデータの同期権限チェック完了');
+    developer.log('GroupDataSyncService: ゲーミフィケーションデータの同期権限チェック完了');
 
-    print('GroupDataSyncService: ゲーミフィケーションデータをFirestoreに保存中...');
+    developer.log('GroupDataSyncService: ゲーミフィケーションデータをFirestoreに保存中...');
     await GamificationFirestoreService.saveGroupGamificationData(groupId, data);
-    print('GroupDataSyncService: ゲーミフィケーションデータの保存完了');
+    developer.log('GroupDataSyncService: ゲーミフィケーションデータの保存完了');
   }
 
   /// グループのゲーミフィケーションデータを取得
@@ -648,7 +649,7 @@ class GroupDataSyncService {
       );
       return data;
     } catch (e) {
-      print('グループゲーミフィケーションデータ取得エラー: $e');
+      developer.log('グループゲーミフィケーションデータ取得エラー: $e');
       return null;
     }
   }
@@ -714,32 +715,36 @@ class GroupDataSyncService {
 
   /// 全データをグループに同期
   static Future<void> syncAllDataToGroup(String groupId) async {
-    print('GroupDataSyncService: syncAllDataToGroup 開始 - groupId: $groupId');
+    developer.log(
+      'GroupDataSyncService: syncAllDataToGroup 開始 - groupId: $groupId',
+    );
 
     if (_uid == null || _uid!.isEmpty) {
       throw Exception('未ログイン');
     }
 
-    print('GroupDataSyncService: データ同期は全メンバーで可能です');
+    developer.log('GroupDataSyncService: データ同期は全メンバーで可能です');
 
     // 焙煎記録を同期
-    print('GroupDataSyncService: 焙煎記録の同期を開始');
+    developer.log('GroupDataSyncService: 焙煎記録の同期を開始');
     final roastRecordsSnapshot = await _firestore
         .collection('users')
         .doc(_uid)
         .collection('roast_records')
         .get();
 
-    print('GroupDataSyncService: 焙煎記録数: ${roastRecordsSnapshot.docs.length}');
+    developer.log(
+      'GroupDataSyncService: 焙煎記録数: ${roastRecordsSnapshot.docs.length}',
+    );
     final roastRecords = roastRecordsSnapshot.docs.map((doc) {
       final data = doc.data();
       data['id'] = doc.id;
       return data;
     }).toList();
 
-    print('GroupDataSyncService: 焙煎記録をグループに同期中...');
+    developer.log('GroupDataSyncService: 焙煎記録をグループに同期中...');
     await syncRoastRecords(groupId, {'records': roastRecords});
-    print('GroupDataSyncService: 焙煎記録の同期完了');
+    developer.log('GroupDataSyncService: 焙煎記録の同期完了');
 
     // TODOリストを同期
     final today = DateTime.now();
@@ -783,7 +788,7 @@ class GroupDataSyncService {
     }
 
     // 本日のスケジュールを同期
-    print('GroupDataSyncService: 本日のスケジュール同期を開始');
+    developer.log('GroupDataSyncService: 本日のスケジュール同期を開始');
     final todayScheduleDoc = await _firestore
         .collection('users')
         .doc(_uid)
@@ -791,19 +796,21 @@ class GroupDataSyncService {
         .doc(todoDocId)
         .get();
 
-    print(
+    developer.log(
       'GroupDataSyncService: 本日のスケジュールドキュメント存在: ${todayScheduleDoc.exists}',
     );
     if (todayScheduleDoc.exists) {
-      print('GroupDataSyncService: 本日のスケジュールデータ: ${todayScheduleDoc.data()}');
+      developer.log(
+        'GroupDataSyncService: 本日のスケジュールデータ: ${todayScheduleDoc.data()}',
+      );
       await syncTodaySchedule(groupId, todayScheduleDoc.data()!);
-      print('GroupDataSyncService: 本日のスケジュール同期完了');
+      developer.log('GroupDataSyncService: 本日のスケジュール同期完了');
     } else {
-      print('GroupDataSyncService: 本日のスケジュールドキュメントが存在しません');
+      developer.log('GroupDataSyncService: 本日のスケジュールドキュメントが存在しません');
     }
 
     // 時間ラベルを同期
-    print('GroupDataSyncService: 時間ラベル同期を開始');
+    developer.log('GroupDataSyncService: 時間ラベル同期を開始');
     final timeLabelsDoc = await _firestore
         .collection('users')
         .doc(_uid)
@@ -811,17 +818,19 @@ class GroupDataSyncService {
         .doc('timeLabels')
         .get();
 
-    print('GroupDataSyncService: 時間ラベルドキュメント存在: ${timeLabelsDoc.exists}');
+    developer.log(
+      'GroupDataSyncService: 時間ラベルドキュメント存在: ${timeLabelsDoc.exists}',
+    );
     if (timeLabelsDoc.exists) {
-      print('GroupDataSyncService: 時間ラベルデータ: ${timeLabelsDoc.data()}');
+      developer.log('GroupDataSyncService: 時間ラベルデータ: ${timeLabelsDoc.data()}');
       await syncTimeLabels(groupId, timeLabelsDoc.data()!);
-      print('GroupDataSyncService: 時間ラベル同期完了');
+      developer.log('GroupDataSyncService: 時間ラベル同期完了');
     } else {
-      print('GroupDataSyncService: 時間ラベルドキュメントが存在しません');
+      developer.log('GroupDataSyncService: 時間ラベルドキュメントが存在しません');
     }
 
     // 今日の担当履歴を同期
-    print('GroupDataSyncService: 今日の担当履歴同期を開始');
+    developer.log('GroupDataSyncService: 今日の担当履歴同期を開始');
     final todayDate = DateTime.now();
     final todayKey =
         '${todayDate.year}-${todayDate.month.toString().padLeft(2, '0')}-${todayDate.day.toString().padLeft(2, '0')}';
@@ -832,26 +841,28 @@ class GroupDataSyncService {
         .doc(todayKey)
         .get();
 
-    print(
+    developer.log(
       'GroupDataSyncService: 今日の担当履歴ドキュメント存在: ${todayAssignmentDoc.exists}',
     );
     if (todayAssignmentDoc.exists) {
-      print('GroupDataSyncService: 今日の担当履歴データ: ${todayAssignmentDoc.data()}');
+      developer.log(
+        'GroupDataSyncService: 今日の担当履歴データ: ${todayAssignmentDoc.data()}',
+      );
       await syncTodayAssignment(groupId, todayAssignmentDoc.data()!);
-      print('GroupDataSyncService: 今日の担当履歴同期完了');
+      developer.log('GroupDataSyncService: 今日の担当履歴同期完了');
     } else {
-      print('GroupDataSyncService: 今日の担当履歴ドキュメントが存在しません');
+      developer.log('GroupDataSyncService: 今日の担当履歴ドキュメントが存在しません');
     }
 
     // 担当履歴を同期
-    print('GroupDataSyncService: 担当履歴同期を開始');
+    developer.log('GroupDataSyncService: 担当履歴同期を開始');
     final assignmentHistorySnapshot = await _firestore
         .collection('users')
         .doc(_uid)
         .collection('assignmentHistory')
         .get();
 
-    print(
+    developer.log(
       'GroupDataSyncService: 担当履歴数: ${assignmentHistorySnapshot.docs.length}',
     );
     final assignmentHistory = <String, dynamic>{};
@@ -860,22 +871,22 @@ class GroupDataSyncService {
     }
 
     if (assignmentHistory.isNotEmpty) {
-      print('GroupDataSyncService: 担当履歴データ: $assignmentHistory');
+      developer.log('GroupDataSyncService: 担当履歴データ: $assignmentHistory');
       await syncAssignmentHistory(groupId, assignmentHistory);
-      print('GroupDataSyncService: 担当履歴同期完了');
+      developer.log('GroupDataSyncService: 担当履歴同期完了');
     } else {
-      print('GroupDataSyncService: 担当履歴データがありません');
+      developer.log('GroupDataSyncService: 担当履歴データがありません');
     }
 
     // テイスティング記録を同期
-    print('GroupDataSyncService: テイスティング記録同期を開始');
+    developer.log('GroupDataSyncService: テイスティング記録同期を開始');
     final tastingRecordsSnapshot = await _firestore
         .collection('users')
         .doc(_uid)
         .collection('tasting_records')
         .get();
 
-    print(
+    developer.log(
       'GroupDataSyncService: テイスティング記録数: ${tastingRecordsSnapshot.docs.length}',
     );
     final tastingRecords = tastingRecordsSnapshot.docs.map((doc) {
@@ -885,22 +896,24 @@ class GroupDataSyncService {
     }).toList();
 
     if (tastingRecords.isNotEmpty) {
-      print('GroupDataSyncService: テイスティング記録をグループに同期中...');
+      developer.log('GroupDataSyncService: テイスティング記録をグループに同期中...');
       await syncTastingRecords(groupId, {'records': tastingRecords});
-      print('GroupDataSyncService: テイスティング記録の同期完了');
+      developer.log('GroupDataSyncService: テイスティング記録の同期完了');
     } else {
-      print('GroupDataSyncService: テイスティング記録データがありません');
+      developer.log('GroupDataSyncService: テイスティング記録データがありません');
     }
 
     // 作業進捗記録を同期
-    print('GroupDataSyncService: 作業進捗記録同期を開始');
+    developer.log('GroupDataSyncService: 作業進捗記録同期を開始');
     final workProgressSnapshot = await _firestore
         .collection('users')
         .doc(_uid)
         .collection('work_progress')
         .get();
 
-    print('GroupDataSyncService: 作業進捗記録数: ${workProgressSnapshot.docs.length}');
+    developer.log(
+      'GroupDataSyncService: 作業進捗記録数: ${workProgressSnapshot.docs.length}',
+    );
     final workProgressRecords = workProgressSnapshot.docs.map((doc) {
       final data = doc.data();
       data['id'] = doc.id;
@@ -908,32 +921,32 @@ class GroupDataSyncService {
     }).toList();
 
     if (workProgressRecords.isNotEmpty) {
-      print('GroupDataSyncService: 作業進捗記録をグループに同期中...');
+      developer.log('GroupDataSyncService: 作業進捗記録をグループに同期中...');
       await syncWorkProgress(groupId, {'records': workProgressRecords});
-      print('GroupDataSyncService: 作業進捗記録の同期完了');
+      developer.log('GroupDataSyncService: 作業進捗記録の同期完了');
     } else {
-      print('GroupDataSyncService: 作業進捗記録データがありません');
+      developer.log('GroupDataSyncService: 作業進捗記録データがありません');
     }
 
     // アプリ設定を同期
-    print('GroupDataSyncService: アプリ設定同期を開始');
+    developer.log('GroupDataSyncService: アプリ設定同期を開始');
     final appSettings = await _getAllAppSettingsFromUser();
     if (appSettings.isNotEmpty) {
-      print('GroupDataSyncService: アプリ設定をグループに同期中...');
+      developer.log('GroupDataSyncService: アプリ設定をグループに同期中...');
       await syncAppSettings(groupId, appSettings);
-      print('GroupDataSyncService: アプリ設定の同期完了');
+      developer.log('GroupDataSyncService: アプリ設定の同期完了');
     } else {
-      print('GroupDataSyncService: アプリ設定データがありません');
+      developer.log('GroupDataSyncService: アプリ設定データがありません');
     }
 
     // ゲーミフィケーションデータを同期
     try {
-      print('GroupDataSyncService: ゲーミフィケーションデータ同期を開始');
+      developer.log('GroupDataSyncService: ゲーミフィケーションデータ同期を開始');
       // 個人レベルシステムは削除されたため、グループゲーミフィケーションのみを使用
       return;
       // 個人レベルシステムは削除されたため、グループゲーミフィケーションのみを使用
     } catch (e) {
-      print('GroupDataSyncService: ゲーミフィケーションデータ同期エラー: $e');
+      developer.log('GroupDataSyncService: ゲーミフィケーションデータ同期エラー: $e');
     }
   }
 
@@ -1041,12 +1054,16 @@ class GroupDataSyncService {
 
   /// グループデータをローカルに適用
   static Future<void> applyGroupDataToLocal(String groupId) async {
-    print('GroupDataSyncService: applyGroupDataToLocal 開始 - groupId: $groupId');
+    developer.log(
+      'GroupDataSyncService: applyGroupDataToLocal 開始 - groupId: $groupId',
+    );
     if (_uid == null) throw Exception('未ログイン');
 
     try {
       final groupData = await getAllDataFromGroup(groupId);
-      print('GroupDataSyncService: 取得したグループデータ: ${groupData.keys.toList()}');
+      developer.log(
+        'GroupDataSyncService: 取得したグループデータ: ${groupData.keys.toList()}',
+      );
 
       // 焙煎記録を適用
       if (groupData['roast_records'] != null) {
@@ -1102,9 +1119,9 @@ class GroupDataSyncService {
       }
 
       // 本日のスケジュールを適用
-      print('GroupDataSyncService: 本日のスケジュール適用チェック');
+      developer.log('GroupDataSyncService: 本日のスケジュール適用チェック');
       if (groupData['today_schedule'] != null) {
-        print(
+        developer.log(
           'GroupDataSyncService: 本日のスケジュールデータを適用中: ${groupData['today_schedule']}',
         );
         final today = DateTime.now();
@@ -1116,15 +1133,15 @@ class GroupDataSyncService {
             .collection('todaySchedule')
             .doc(todayScheduleDocId)
             .set(groupData['today_schedule'], SetOptions(merge: true));
-        print('GroupDataSyncService: 本日のスケジュール適用完了');
+        developer.log('GroupDataSyncService: 本日のスケジュール適用完了');
       } else {
-        print('GroupDataSyncService: 本日のスケジュールデータがありません');
+        developer.log('GroupDataSyncService: 本日のスケジュールデータがありません');
       }
 
       // 時間ラベルを適用
-      print('GroupDataSyncService: 時間ラベル適用チェック');
+      developer.log('GroupDataSyncService: 時間ラベル適用チェック');
       if (groupData['time_labels'] != null) {
-        print(
+        developer.log(
           'GroupDataSyncService: 時間ラベルデータを適用中: ${groupData['time_labels']}',
         );
         await _firestore
@@ -1133,15 +1150,15 @@ class GroupDataSyncService {
             .collection('labels')
             .doc('timeLabels')
             .set(groupData['time_labels'], SetOptions(merge: true));
-        print('GroupDataSyncService: 時間ラベル適用完了');
+        developer.log('GroupDataSyncService: 時間ラベル適用完了');
       } else {
-        print('GroupDataSyncService: 時間ラベルデータがありません');
+        developer.log('GroupDataSyncService: 時間ラベルデータがありません');
       }
 
       // 今日の担当履歴を適用
-      print('GroupDataSyncService: 今日の担当履歴適用チェック');
+      developer.log('GroupDataSyncService: 今日の担当履歴適用チェック');
       if (groupData['today_assignment'] != null) {
-        print(
+        developer.log(
           'GroupDataSyncService: 今日の担当履歴データを適用中: ${groupData['today_assignment']}',
         );
         final today = DateTime.now();
@@ -1153,15 +1170,15 @@ class GroupDataSyncService {
             .collection('assignmentHistory')
             .doc(todayKey)
             .set(groupData['today_assignment'], SetOptions(merge: true));
-        print('GroupDataSyncService: 今日の担当履歴適用完了');
+        developer.log('GroupDataSyncService: 今日の担当履歴適用完了');
       } else {
-        print('GroupDataSyncService: 今日の担当履歴データがありません');
+        developer.log('GroupDataSyncService: 今日の担当履歴データがありません');
       }
 
       // 担当履歴を適用
-      print('GroupDataSyncService: 担当履歴適用チェック');
+      developer.log('GroupDataSyncService: 担当履歴適用チェック');
       if (groupData['assignment_history'] != null) {
-        print(
+        developer.log(
           'GroupDataSyncService: 担当履歴データを適用中: ${groupData['assignment_history']}',
         );
         final assignmentHistory =
@@ -1176,15 +1193,15 @@ class GroupDataSyncService {
               .doc(dateKey)
               .set(historyData, SetOptions(merge: true));
         }
-        print('GroupDataSyncService: 担当履歴適用完了');
+        developer.log('GroupDataSyncService: 担当履歴適用完了');
       } else {
-        print('GroupDataSyncService: 担当履歴データがありません');
+        developer.log('GroupDataSyncService: 担当履歴データがありません');
       }
 
       // テイスティング記録を適用
-      print('GroupDataSyncService: テイスティング記録適用チェック');
+      developer.log('GroupDataSyncService: テイスティング記録適用チェック');
       if (groupData['tasting_records'] != null) {
-        print(
+        developer.log(
           'GroupDataSyncService: テイスティング記録データを適用中: ${groupData['tasting_records']}',
         );
         final records =
@@ -1199,15 +1216,15 @@ class GroupDataSyncService {
                 .set(record, SetOptions(merge: true));
           }
         }
-        print('GroupDataSyncService: テイスティング記録適用完了');
+        developer.log('GroupDataSyncService: テイスティング記録適用完了');
       } else {
-        print('GroupDataSyncService: テイスティング記録データがありません');
+        developer.log('GroupDataSyncService: テイスティング記録データがありません');
       }
 
       // 作業進捗記録を適用
-      print('GroupDataSyncService: 作業進捗記録適用チェック');
+      developer.log('GroupDataSyncService: 作業進捗記録適用チェック');
       if (groupData['work_progress'] != null) {
-        print(
+        developer.log(
           'GroupDataSyncService: 作業進捗記録データを適用中: ${groupData['work_progress']}',
         );
         final records = groupData['work_progress']['records'] as List<dynamic>?;
@@ -1221,15 +1238,15 @@ class GroupDataSyncService {
                 .set(record, SetOptions(merge: true));
           }
         }
-        print('GroupDataSyncService: 作業進捗記録適用完了');
+        developer.log('GroupDataSyncService: 作業進捗記録適用完了');
       } else {
-        print('GroupDataSyncService: 作業進捗記録データがありません');
+        developer.log('GroupDataSyncService: 作業進捗記録データがありません');
       }
 
       // アプリ設定を適用
-      print('GroupDataSyncService: アプリ設定適用チェック');
+      developer.log('GroupDataSyncService: アプリ設定適用チェック');
       if (groupData['app_settings'] != null) {
-        print(
+        developer.log(
           'GroupDataSyncService: アプリ設定データを適用中: ${groupData['app_settings']}',
         );
         final appSettings = groupData['app_settings'] as Map<String, dynamic>;
@@ -1274,9 +1291,9 @@ class GroupDataSyncService {
               .set(appSettings['todo_notifications'], SetOptions(merge: true));
         }
 
-        print('GroupDataSyncService: アプリ設定適用完了');
+        developer.log('GroupDataSyncService: アプリ設定適用完了');
       } else {
-        print('GroupDataSyncService: アプリ設定データがありません');
+        developer.log('GroupDataSyncService: アプリ設定データがありません');
       }
     } catch (e) {
       throw Exception('ローカルデータの適用に失敗しました: $e');

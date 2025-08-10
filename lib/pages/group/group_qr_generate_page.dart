@@ -210,7 +210,7 @@ class _GroupQRGeneratePageState extends State<GroupQRGeneratePage> {
                 Icon(
                   Icons.lock,
                   size: 80,
-                  color: themeSettings.fontColor1.withOpacity(0.5),
+                  color: themeSettings.fontColor1.withValues(alpha: 0.5),
                 ),
                 SizedBox(height: 24),
                 Text(
@@ -226,7 +226,7 @@ class _GroupQRGeneratePageState extends State<GroupQRGeneratePage> {
                 Text(
                   'QRコードの生成には管理者またはリーダーの権限が必要です。\n\nメンバーが招待できる設定が有効になっている場合は、管理者またはリーダーに設定の確認を依頼してください。',
                   style: TextStyle(
-                    color: themeSettings.fontColor1.withOpacity(0.7),
+                    color: themeSettings.fontColor1.withValues(alpha: 0.7),
                     fontSize: 14 * themeSettings.fontSizeScale,
                     fontFamily: themeSettings.fontFamily,
                   ),
@@ -356,7 +356,7 @@ class _GroupQRGeneratePageState extends State<GroupQRGeneratePage> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 10,
                                   offset: Offset(0, 4),
                                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../../models/theme_settings.dart';
@@ -50,7 +51,7 @@ class LabelEditPageState extends State<LabelEditPage> {
 
   /// グループ監視の初期化
   void _initializeGroupMonitoring() {
-    print('LabelEditPage: グループ監視初期化開始');
+    developer.log('グループ監視初期化開始', name: 'LabelEditPage');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final groupProvider = context.read<GroupProvider>();
       _startGroupMonitoring(groupProvider);
@@ -59,14 +60,14 @@ class LabelEditPageState extends State<LabelEditPage> {
 
   /// グループ監視を開始
   void _startGroupMonitoring(GroupProvider groupProvider) {
-    print('LabelEditPage: グループ監視開始');
+    developer.log('グループ監視開始', name: 'LabelEditPage');
 
     // 既存のサブスクリプションをクリーンアップ
     _groupAssignmentSubscription?.cancel();
 
     if (groupProvider.hasGroup) {
       final group = groupProvider.currentGroup!;
-      print('LabelEditPage: グループ監視開始 - groupId: ${group.id}');
+      developer.log('グループ監視開始 - groupId: ${group.id}', name: 'LabelEditPage');
 
       // グループの担当表データを監視
       _groupAssignmentSubscription =
@@ -74,7 +75,10 @@ class LabelEditPageState extends State<LabelEditPage> {
             groupAssignmentData,
           ) {
             if (!mounted) return; // ウィジェットが破棄されている場合は処理しない
-            print('LabelEditPage: グループ担当表データ変更検知: $groupAssignmentData');
+            developer.log(
+              'グループ担当表データ変更検知: $groupAssignmentData',
+              name: 'LabelEditPage',
+            );
             if (groupAssignmentData != null) {
               setState(() {
                 if (groupAssignmentData['leftLabels'] != null) {
@@ -128,7 +132,7 @@ class LabelEditPageState extends State<LabelEditPage> {
         });
       }
     } catch (e) {
-      print('ラベル読み込みエラー: $e');
+      developer.log('ラベル読み込みエラー: $e', name: 'LabelEditPage', error: e);
       if (mounted) {
         setState(() {
           leftLabels = [''];
@@ -164,6 +168,8 @@ class LabelEditPageState extends State<LabelEditPage> {
 
   Future<void> _saveLabels() async {
     try {
+      final messenger = ScaffoldMessenger.of(context);
+      final groupProvider = context.read<GroupProvider>();
       // コントローラーから値を取得
       leftLabels.clear();
       rightLabels.clear();
@@ -173,20 +179,25 @@ class LabelEditPageState extends State<LabelEditPage> {
       }
 
       // 現在のメンバーデータを取得（既存のデータを保持）
-      print('LabelEditPage: 現在のメンバーデータ取得開始');
+      developer.log('現在のメンバーデータ取得開始', name: 'LabelEditPage');
       final currentSettings =
           await UserSettingsFirestoreService.getMultipleSettings([
             'teams',
             'assignment_team_a',
             'assignment_team_b',
           ]);
-      print('LabelEditPage: 現在のメンバーデータ取得完了: $currentSettings');
-      print('LabelEditPage: teamsの型: ${currentSettings['teams']?.runtimeType}');
-      print(
-        'LabelEditPage: assignment_team_aの型: ${currentSettings['assignment_team_a']?.runtimeType}',
+      developer.log('現在のメンバーデータ取得完了: $currentSettings', name: 'LabelEditPage');
+      developer.log(
+        'teamsの型: ${currentSettings['teams']?.runtimeType}',
+        name: 'LabelEditPage',
       );
-      print(
-        'LabelEditPage: assignment_team_bの型: ${currentSettings['assignment_team_b']?.runtimeType}',
+      developer.log(
+        'assignment_team_aの型: ${currentSettings['assignment_team_a']?.runtimeType}',
+        name: 'LabelEditPage',
+      );
+      developer.log(
+        'assignment_team_bの型: ${currentSettings['assignment_team_b']?.runtimeType}',
+        name: 'LabelEditPage',
       );
 
       // 新しい形式のteamsデータがある場合は使用、なければ古い形式を使用
@@ -196,7 +207,7 @@ class LabelEditPageState extends State<LabelEditPage> {
       try {
         if (currentSettings['teams'] != null) {
           final teamsJson = currentSettings['teams'];
-          print('LabelEditPage: 新しい形式のteamsデータを使用: $teamsJson');
+          developer.log('新しい形式のteamsデータを使用: $teamsJson', name: 'LabelEditPage');
 
           // teamsJsonがListかどうかチェック
           if (teamsJson is List && teamsJson.isNotEmpty) {
@@ -206,7 +217,10 @@ class LabelEditPageState extends State<LabelEditPage> {
               if (members is List) {
                 currentAMembers = List<String>.from(members);
               } else {
-                print('LabelEditPage: teamAのmembersがListではありません: $members');
+                developer.log(
+                  'teamAのmembersがListではありません: $members',
+                  name: 'LabelEditPage',
+                );
                 currentAMembers = [];
               }
             }
@@ -218,14 +232,20 @@ class LabelEditPageState extends State<LabelEditPage> {
                 if (members is List) {
                   currentBMembers = List<String>.from(members);
                 } else {
-                  print('LabelEditPage: teamBのmembersがListではありません: $members');
+                  developer.log(
+                    'teamBのmembersがListではありません: $members',
+                    name: 'LabelEditPage',
+                  );
                   currentBMembers = [];
                 }
               }
             }
           } else if (teamsJson is String) {
             // 文字列として保存されている場合、JSONとしてパースを試行
-            print('LabelEditPage: teamsJsonが文字列です。JSONパースを試行: $teamsJson');
+            developer.log(
+              'teamsJsonが文字列です。JSONパースを試行: $teamsJson',
+              name: 'LabelEditPage',
+            );
             try {
               final decodedTeams = json.decode(teamsJson) as List;
               if (decodedTeams.isNotEmpty) {
@@ -248,14 +268,21 @@ class LabelEditPageState extends State<LabelEditPage> {
                 }
               }
             } catch (parseError) {
-              print('LabelEditPage: teamsJsonのJSONパースに失敗: $parseError');
+              developer.log(
+                'teamsJsonのJSONパースに失敗: $parseError',
+                name: 'LabelEditPage',
+                error: parseError,
+              );
             }
           } else {
-            print('LabelEditPage: teamsJsonがListでもStringでもありません: $teamsJson');
+            developer.log(
+              'teamsJsonがListでもStringでもありません: $teamsJson',
+              name: 'LabelEditPage',
+            );
           }
         } else {
           // 古い形式のデータを使用
-          print('LabelEditPage: 古い形式のデータを使用');
+          developer.log('古い形式のデータを使用', name: 'LabelEditPage');
           final aMembersData = currentSettings['assignment_team_a'];
           final bMembersData = currentSettings['assignment_team_b'];
 
@@ -263,17 +290,25 @@ class LabelEditPageState extends State<LabelEditPage> {
             currentAMembers = List<String>.from(aMembersData);
           } else if (aMembersData is String) {
             // 文字列として保存されている場合
-            print('LabelEditPage: assignment_team_aが文字列です: $aMembersData');
+            developer.log(
+              'assignment_team_aが文字列です: $aMembersData',
+              name: 'LabelEditPage',
+            );
             try {
               final decoded = json.decode(aMembersData) as List;
               currentAMembers = List<String>.from(decoded);
             } catch (parseError) {
-              print('LabelEditPage: assignment_team_aのJSONパースに失敗: $parseError');
+              developer.log(
+                'assignment_team_aのJSONパースに失敗: $parseError',
+                name: 'LabelEditPage',
+                error: parseError,
+              );
               currentAMembers = [];
             }
           } else {
-            print(
-              'LabelEditPage: assignment_team_aがListでもStringでもありません: $aMembersData',
+            developer.log(
+              'assignment_team_aがListでもStringでもありません: $aMembersData',
+              name: 'LabelEditPage',
             );
             currentAMembers = [];
           }
@@ -282,39 +317,48 @@ class LabelEditPageState extends State<LabelEditPage> {
             currentBMembers = List<String>.from(bMembersData);
           } else if (bMembersData is String) {
             // 文字列として保存されている場合
-            print('LabelEditPage: assignment_team_bが文字列です: $bMembersData');
+            developer.log(
+              'assignment_team_bが文字列です: $bMembersData',
+              name: 'LabelEditPage',
+            );
             try {
               final decoded = json.decode(bMembersData) as List;
               currentBMembers = List<String>.from(decoded);
             } catch (parseError) {
-              print('LabelEditPage: assignment_team_bのJSONパースに失敗: $parseError');
+              developer.log(
+                'assignment_team_bのJSONパースに失敗: $parseError',
+                name: 'LabelEditPage',
+                error: parseError,
+              );
               currentBMembers = [];
             }
           } else {
-            print(
-              'LabelEditPage: assignment_team_bがListでもStringでもありません: $bMembersData',
+            developer.log(
+              'assignment_team_bがListでもStringでもありません: $bMembersData',
+              name: 'LabelEditPage',
             );
             currentBMembers = [];
           }
         }
-        print(
-          'LabelEditPage: メンバーデータ処理完了 - A班: $currentAMembers, B班: $currentBMembers',
+        developer.log(
+          'メンバーデータ処理完了 - A班: $currentAMembers, B班: $currentBMembers',
+          name: 'LabelEditPage',
         );
       } catch (e) {
-        print('LabelEditPage: メンバーデータ処理エラー: $e');
+        developer.log('メンバーデータ処理エラー: $e', name: 'LabelEditPage', error: e);
         // エラーが発生した場合は空の配列を使用
         currentAMembers = [];
         currentBMembers = [];
       }
 
-      print('LabelEditPage: UserSettings保存開始');
+      developer.log('UserSettings保存開始', name: 'LabelEditPage');
       await UserSettingsFirestoreService.saveMultipleSettings({
         'leftLabels': leftLabels,
         'rightLabels': rightLabels,
         'a班': currentAMembers,
         'b班': currentBMembers,
       });
-      print('LabelEditPage: UserSettings保存完了');
+      developer.log('UserSettings保存完了', name: 'LabelEditPage');
 
       // 新しい形式でも保存（後方互換性のため）
       try {
@@ -325,27 +369,29 @@ class LabelEditPageState extends State<LabelEditPage> {
         await UserSettingsFirestoreService.saveMultipleSettings({
           'teams': teamsJson,
         });
-        print('LabelEditPage: 新しい形式での保存完了');
+        developer.log('新しい形式での保存完了', name: 'LabelEditPage');
       } catch (e) {
-        print('LabelEditPage: 新しい形式での保存エラー: $e');
+        developer.log('新しい形式での保存エラー: $e', name: 'LabelEditPage', error: e);
       }
 
       // Firestoreにも保存（メンバーは既存のデータを保持）
-      print('LabelEditPage: Firestore保存開始');
+      developer.log('Firestore保存開始', name: 'LabelEditPage');
       await AssignmentFirestoreService.saveAssignmentMembers(
         aMembers: currentAMembers,
         bMembers: currentBMembers,
         leftLabels: leftLabels,
         rightLabels: rightLabels,
       );
-      print('LabelEditPage: Firestore保存完了');
+      developer.log('Firestore保存完了', name: 'LabelEditPage');
 
       // グループに同期
       try {
-        final groupProvider = context.read<GroupProvider>();
         if (groupProvider.groups.isNotEmpty) {
           final group = groupProvider.groups.first;
-          print('LabelEditPage: 担当表データをグループに同期開始 - groupId: ${group.id}');
+          developer.log(
+            '担当表データをグループに同期開始 - groupId: ${group.id}',
+            name: 'LabelEditPage',
+          );
 
           final assignmentData = {
             'aMembers': currentAMembers,
@@ -359,21 +405,24 @@ class LabelEditPageState extends State<LabelEditPage> {
             group.id,
             assignmentData,
           );
-          print('LabelEditPage: 担当表データ同期完了');
+          developer.log('担当表データ同期完了', name: 'LabelEditPage');
         }
       } catch (e) {
-        print('LabelEditPage: 担当表データ同期エラー: $e');
+        developer.log('担当表データ同期エラー: $e', name: 'LabelEditPage', error: e);
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('ラベル保存しました')));
+      if (!mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text('ラベル保存しました')));
     } catch (e, stackTrace) {
-      print('ラベル保存エラー: $e');
-      print('スタックトレース: $stackTrace');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('ラベル保存に失敗しました: $e')));
+      developer.log(
+        'ラベル保存エラー: $e',
+        name: 'LabelEditPage',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(SnackBar(content: Text('ラベル保存に失敗しました: $e')));
     }
   }
 

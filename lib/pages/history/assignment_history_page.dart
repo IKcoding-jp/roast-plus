@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 import 'dart:async';
 import '../../services/assignment_firestore_service.dart';
@@ -68,22 +69,26 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
 
   /// グループ監視を開始
   void _startGroupMonitoring(GroupProvider groupProvider) {
-    print('AssignmentHistoryPage: グループ監視開始');
+    developer.log('グループ監視開始', name: 'AssignmentHistoryPage');
 
     // 既存のサブスクリプションをクリーンアップ
     _groupAssignmentHistorySubscription?.cancel();
 
     if (groupProvider.groups.isNotEmpty) {
       final group = groupProvider.groups.first;
-      print('AssignmentHistoryPage: グループ監視開始 - groupId: ${group.id}');
+      developer.log(
+        'グループ監視開始 - groupId: ${group.id}',
+        name: 'AssignmentHistoryPage',
+      );
 
       // グループの担当履歴を監視
       _groupAssignmentHistorySubscription =
           GroupDataSyncService.watchGroupAssignmentHistory(group.id).listen((
             groupAssignmentHistoryData,
           ) {
-            print(
-              'AssignmentHistoryPage: グループ担当履歴変更検知: $groupAssignmentHistoryData',
+            developer.log(
+              'グループ担当履歴変更検知: $groupAssignmentHistoryData',
+              name: 'AssignmentHistoryPage',
             );
             if (groupAssignmentHistoryData != null) {
               _updateLocalAssignmentHistory(groupAssignmentHistoryData);
@@ -97,7 +102,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
   void _updateLocalAssignmentHistory(
     Map<String, dynamic> groupAssignmentHistoryData,
   ) {
-    print('AssignmentHistoryPage: ローカル担当履歴更新開始');
+    developer.log('ローカル担当履歴更新開始', name: 'AssignmentHistoryPage');
     groupAssignmentHistoryData.forEach((dateKey, historyData) async {
       if (historyData is Map<String, dynamic>) {
         if (historyData['deleted'] == true) {
@@ -106,9 +111,13 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
             await UserSettingsFirestoreService.deleteSetting(
               'assignment_$dateKey',
             );
-            print('AssignmentHistoryPage: 担当履歴削除 - $dateKey');
+            developer.log('担当履歴削除 - $dateKey', name: 'AssignmentHistoryPage');
           } catch (e) {
-            print('担当履歴削除エラー: $e');
+            developer.log(
+              '担当履歴削除エラー: $e',
+              name: 'AssignmentHistoryPage',
+              error: e,
+            );
           }
         } else if (historyData['assignments'] != null) {
           // 更新の場合
@@ -118,9 +127,16 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
               'assignment_$dateKey',
               assignments,
             );
-            print('AssignmentHistoryPage: 担当履歴更新 - $dateKey: $assignments');
+            developer.log(
+              '担当履歴更新 - $dateKey: $assignments',
+              name: 'AssignmentHistoryPage',
+            );
           } catch (e) {
-            print('担当履歴更新エラー: $e');
+            developer.log(
+              '担当履歴更新エラー: $e',
+              name: 'AssignmentHistoryPage',
+              error: e,
+            );
           }
         }
       }
@@ -145,10 +161,13 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
   Future<void> _loadAssignmentHistoryFromFirestore() async {
     if (!mounted) return;
     try {
-      print('AssignmentHistoryPage: Firestoreからの履歴一括取得開始');
+      developer.log('Firestoreからの履歴一括取得開始', name: 'AssignmentHistoryPage');
       final allHistory =
           await AssignmentFirestoreService.loadAllAssignmentHistory();
-      print('AssignmentHistoryPage: 取得した履歴数: ${allHistory.length}');
+      developer.log(
+        '取得した履歴数: ${allHistory.length}',
+        name: 'AssignmentHistoryPage',
+      );
 
       for (final entry in allHistory.entries) {
         try {
@@ -157,20 +176,29 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
             'assignment_${entry.key}',
             assignments,
           );
-          print(
-            'AssignmentHistoryPage: 履歴保存完了 - ${entry.key}: ${assignments.length}件',
+          developer.log(
+            '履歴保存完了 - ${entry.key}: ${assignments.length}件',
+            name: 'AssignmentHistoryPage',
           );
         } catch (e) {
-          print('AssignmentHistoryPage: 履歴保存エラー (${entry.key}): $e');
+          developer.log(
+            '履歴保存エラー (${entry.key}): $e',
+            name: 'AssignmentHistoryPage',
+            error: e,
+          );
         }
       }
 
       if (mounted) {
         setState(() {});
-        print('AssignmentHistoryPage: 履歴一括取得完了');
+        developer.log('履歴一括取得完了', name: 'AssignmentHistoryPage');
       }
     } catch (e) {
-      print('AssignmentHistoryPage: Firestoreからの履歴一括取得エラー: $e');
+      developer.log(
+        'Firestoreからの履歴一括取得エラー: $e',
+        name: 'AssignmentHistoryPage',
+        error: e,
+      );
     }
   }
 
@@ -185,7 +213,10 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
             groupProvider.currentGroup!.id,
           ).listen((groupSettings) {
             if (!mounted) return;
-            print('AssignmentHistoryPage: グループ設定変更検知: $groupSettings');
+            developer.log(
+              'グループ設定変更検知: $groupSettings',
+              name: 'AssignmentHistoryPage',
+            );
             if (groupSettings != null) {
               _checkEditPermissionFromSettings(groupSettings, groupProvider);
             }
@@ -207,8 +238,9 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.groups.isNotEmpty) {
         final group = groupProvider.groups.first;
-        print(
-          'AssignmentHistoryPage: 担当履歴をグループに同期開始 - groupId: ${group.id}, dateKey: $dateKey',
+        developer.log(
+          '担当履歴をグループに同期開始 - groupId: ${group.id}, dateKey: $dateKey',
+          name: 'AssignmentHistoryPage',
         );
 
         final assignmentHistoryData = {
@@ -222,10 +254,10 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
           group.id,
           assignmentHistoryData,
         );
-        print('AssignmentHistoryPage: 担当履歴同期完了');
+        developer.log('担当履歴同期完了', name: 'AssignmentHistoryPage');
       }
     } catch (e) {
-      print('AssignmentHistoryPage: 担当履歴同期エラー: $e');
+      developer.log('担当履歴同期エラー: $e', name: 'AssignmentHistoryPage', error: e);
     }
   }
 
@@ -235,8 +267,9 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.groups.isNotEmpty) {
         final group = groupProvider.groups.first;
-        print(
-          'AssignmentHistoryPage: 担当履歴削除をグループに同期開始 - groupId: ${group.id}, dateKey: $dateKey',
+        developer.log(
+          '担当履歴削除をグループに同期開始 - groupId: ${group.id}, dateKey: $dateKey',
+          name: 'AssignmentHistoryPage',
         );
         // 削除マーカーを送信
         final assignmentHistoryData = {
@@ -249,16 +282,17 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
           group.id,
           assignmentHistoryData,
         );
-        print('AssignmentHistoryPage: 担当履歴削除同期完了');
+        developer.log('担当履歴削除同期完了', name: 'AssignmentHistoryPage');
       }
     } catch (e) {
-      print('AssignmentHistoryPage: 担当履歴削除同期エラー: $e');
+      developer.log('担当履歴削除同期エラー: $e', name: 'AssignmentHistoryPage', error: e);
     }
   }
 
   Future<void> _editAssignment(String dateKey, List<String> original) async {
     final groupProvider = context.read<GroupProvider>();
     final isInGroup = groupProvider.groups.isNotEmpty;
+    final navigator = Navigator.of(context);
 
     List<TextEditingController> controllers = original
         .map((e) => TextEditingController(text: e))
@@ -272,6 +306,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
     final leftLabels = _safeStringListFromDynamic(settings['leftLabels']);
     final rightLabels = _safeStringListFromDynamic(settings['rightLabels']);
 
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -328,18 +363,30 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                     leftLabels: leftLabels,
                     rightLabels: rightLabels,
                   );
-                  print('AssignmentHistoryPage: 編集内容をFirestoreに保存完了');
+                  developer.log(
+                    '編集内容をFirestoreに保存完了',
+                    name: 'AssignmentHistoryPage',
+                  );
                 } catch (e) {
-                  print('AssignmentHistoryPage: Firestore保存エラー: $e');
+                  developer.log(
+                    'Firestore保存エラー: $e',
+                    name: 'AssignmentHistoryPage',
+                    error: e,
+                  );
                 }
                 // グループに参加している場合のみグループに同期
                 if (isInGroup) {
                   await _syncAssignmentHistoryToGroup(dateKey, updated);
                 }
-                Navigator.pop(context);
+                if (!mounted) return;
+                navigator.pop();
                 setState(() {});
               } catch (e) {
-                print('担当履歴保存エラー: $e');
+                developer.log(
+                  '担当履歴保存エラー: $e',
+                  name: 'AssignmentHistoryPage',
+                  error: e,
+                );
               }
             },
             child: Text(
@@ -406,9 +453,13 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
         // Firestoreからも削除
         try {
           await AssignmentFirestoreService.deleteAssignmentHistory(dateKey);
-          print('AssignmentHistoryPage: Firestoreから履歴削除完了');
+          developer.log('Firestoreから履歴削除完了', name: 'AssignmentHistoryPage');
         } catch (e) {
-          print('AssignmentHistoryPage: Firestore削除エラー: $e');
+          developer.log(
+            'Firestore削除エラー: $e',
+            name: 'AssignmentHistoryPage',
+            error: e,
+          );
         }
 
         // グループに参加している場合のみグループに削除を同期
@@ -417,7 +468,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
         }
         setState(() {});
       } catch (e) {
-        print('担当履歴削除エラー: $e');
+        developer.log('担当履歴削除エラー: $e', name: 'AssignmentHistoryPage', error: e);
       }
     }
   }
@@ -437,8 +488,10 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
         }
       }
     } catch (e) {
-      print(
-        'AssignmentHistoryPage: データ変換エラー: $e, data: $data, data type: ${data.runtimeType}',
+      developer.log(
+        'データ変換エラー: $e, data: $data, data type: ${data.runtimeType}',
+        name: 'AssignmentHistoryPage',
+        error: e,
       );
     }
 
@@ -455,7 +508,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        print('AssignmentHistoryPage: ユーザーが認証されていません');
+        developer.log('ユーザーが認証されていません', name: 'AssignmentHistoryPage');
         setState(() {
           _canEditAssignmentHistory = false;
         });
@@ -464,7 +517,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
 
       final group = groupProvider.currentGroup;
       if (group == null) {
-        print('AssignmentHistoryPage: グループが見つかりません');
+        developer.log('グループが見つかりません', name: 'AssignmentHistoryPage');
         setState(() {
           _canEditAssignmentHistory = true;
         });
@@ -473,7 +526,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
 
       final userRole = group.getMemberRole(currentUser.uid);
       if (userRole == null) {
-        print('AssignmentHistoryPage: ユーザーロールが取得できません');
+        developer.log('ユーザーロールが取得できません', name: 'AssignmentHistoryPage');
         setState(() {
           _canEditAssignmentHistory = false;
         });
@@ -484,18 +537,26 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
         'assignment_board',
         userRole,
       );
-      print(
-        'AssignmentHistoryPage: 設定変更による権限チェック - ユーザーロール: $userRole, 権限: $canEdit',
+      developer.log(
+        '設定変更による権限チェック - ユーザーロール: $userRole, 権限: $canEdit',
+        name: 'AssignmentHistoryPage',
       );
 
       if (mounted && _canEditAssignmentHistory != canEdit) {
         setState(() {
           _canEditAssignmentHistory = canEdit;
         });
-        print('AssignmentHistoryPage: 権限状態を更新 - canEdit: $canEdit');
+        developer.log(
+          '権限状態を更新 - canEdit: $canEdit',
+          name: 'AssignmentHistoryPage',
+        );
       }
     } catch (e) {
-      print('AssignmentHistoryPage: 設定変更による権限チェックエラー - $e');
+      developer.log(
+        '設定変更による権限チェックエラー - $e',
+        name: 'AssignmentHistoryPage',
+        error: e,
+      );
       if (mounted) {
         setState(() {
           _canEditAssignmentHistory = false;
@@ -586,8 +647,10 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                     };
                   }
                 } catch (e) {
-                  print(
-                    'AssignmentHistoryPage: Firestoreからの履歴取得エラー ($dayKey): $e',
+                  developer.log(
+                    'Firestoreからの履歴取得エラー ($dayKey): $e',
+                    name: 'AssignmentHistoryPage',
+                    error: e,
                   );
                 }
 
@@ -697,7 +760,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                         size: 64,
                         color: Provider.of<ThemeSettings>(
                           context,
-                        ).iconColor.withOpacity(0.5),
+                        ).iconColor.withValues(alpha: 0.5),
                       ),
                       SizedBox(height: 16),
                       Text(
@@ -715,7 +778,7 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                           fontSize: 14,
                           color: Provider.of<ThemeSettings>(
                             context,
-                          ).fontColor1.withOpacity(0.7),
+                          ).fontColor1.withValues(alpha: 0.7),
                         ),
                         textAlign: TextAlign.center,
                       ),

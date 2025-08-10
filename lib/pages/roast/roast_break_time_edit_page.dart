@@ -366,12 +366,14 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
             icon: Icon(Icons.save),
             onPressed: () async {
               widget.onBreakTimesChanged(_breakTimes);
+              final navigator = Navigator.of(context);
               try {
                 await RoastBreakTimeFirestoreService.saveBreakTimes(
                   _breakTimes,
                 );
               } catch (_) {}
-              Navigator.pop(context);
+              if (!mounted) return;
+              navigator.pop();
             },
           ),
         ],
@@ -473,7 +475,9 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
+                  color: Provider.of<ThemeSettings>(
+                    context,
+                  ).cardBackgroundColor,
                   margin: EdgeInsets.only(bottom: 14),
                   child: ListTile(
                     leading: Container(
@@ -481,7 +485,7 @@ class _RoastBreakTimeEditPageState extends State<RoastBreakTimeEditPage> {
                       decoration: BoxDecoration(
                         color: Provider.of<ThemeSettings>(
                           context,
-                        ).iconColor.withOpacity(0.12),
+                        ).iconColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(

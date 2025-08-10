@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,22 +11,23 @@ class GroupImageService {
   static final ImagePicker _picker = ImagePicker();
 
   // アイコンサイズの定数
-  static const int ICON_SIZE = 200; // 200x200ピクセル
-  static const int ICON_QUALITY = 85; // JPEG品質
+  static const int iconSize = 200; // 200x200ピクセル
+  static const int iconQuality = 85; // JPEG品質
 
   /// 画像をアイコンサイズにリサイズ・クロップ
   static Uint8List _resizeImageForIcon(Uint8List imageBytes) {
-    print('GroupImageService: 画像リサイズ開始');
+    developer.log('画像リサイズ開始', name: 'GroupImageService');
 
     // 画像をデコード
     final img.Image? originalImage = img.decodeImage(imageBytes);
     if (originalImage == null) {
-      print('GroupImageService: 画像デコードに失敗');
+      developer.log('画像デコードに失敗', name: 'GroupImageService', level: 900);
       return imageBytes;
     }
 
-    print(
-      'GroupImageService: 元画像サイズ: ${originalImage.width}x${originalImage.height}',
+    developer.log(
+      '元画像サイズ: ${originalImage.width}x${originalImage.height}',
+      name: 'GroupImageService',
     );
 
     // 正方形にクロップ（中央部分を取得）
@@ -57,52 +59,57 @@ class GroupImageService {
       croppedImage = originalImage;
     }
 
-    print(
-      'GroupImageService: クロップ後サイズ: ${croppedImage.width}x${croppedImage.height}',
+    developer.log(
+      'クロップ後サイズ: ${croppedImage.width}x${croppedImage.height}',
+      name: 'GroupImageService',
     );
 
     // アイコンサイズにリサイズ
     final img.Image resizedImage = img.copyResize(
       croppedImage,
-      width: ICON_SIZE,
-      height: ICON_SIZE,
+      width: iconSize,
+      height: iconSize,
       interpolation: img.Interpolation.cubic,
     );
 
-    print(
-      'GroupImageService: リサイズ後サイズ: ${resizedImage.width}x${resizedImage.height}',
+    developer.log(
+      'リサイズ後サイズ: ${resizedImage.width}x${resizedImage.height}',
+      name: 'GroupImageService',
     );
 
     // JPEGとしてエンコード
     final Uint8List resizedBytes = Uint8List.fromList(
-      img.encodeJpg(resizedImage, quality: ICON_QUALITY),
+      img.encodeJpg(resizedImage, quality: iconQuality),
     );
 
-    print('GroupImageService: リサイズ完了、サイズ: ${resizedBytes.length} bytes');
+    developer.log(
+      'リサイズ完了、サイズ: ${resizedBytes.length} bytes',
+      name: 'GroupImageService',
+    );
     return resizedBytes;
   }
 
   /// 権限をチェックしてリクエスト
   static Future<bool> _checkAndRequestPermission(Permission permission) async {
-    print('GroupImageService: 権限チェック開始: $permission');
+    developer.log('権限チェック開始: $permission', name: 'GroupImageService');
 
     PermissionStatus status = await permission.status;
-    print('GroupImageService: 現在の権限状態: $status');
+    developer.log('現在の権限状態: $status', name: 'GroupImageService');
 
     if (status.isGranted) {
-      print('GroupImageService: 権限は既に許可されています');
+      developer.log('権限は既に許可されています', name: 'GroupImageService');
       return true;
     }
 
     if (status.isDenied) {
-      print('GroupImageService: 権限をリクエストします');
+      developer.log('権限をリクエストします', name: 'GroupImageService');
       status = await permission.request();
-      print('GroupImageService: 権限リクエスト結果: $status');
+      developer.log('権限リクエスト結果: $status', name: 'GroupImageService');
       return status.isGranted;
     }
 
     if (status.isPermanentlyDenied) {
-      print('GroupImageService: 権限が永続的に拒否されています');
+      developer.log('権限が永続的に拒否されています', name: 'GroupImageService', level: 900);
       return false;
     }
 
@@ -112,12 +119,12 @@ class GroupImageService {
   /// 画像を選択してアップロード
   static Future<String?> pickAndUploadImage(String groupId) async {
     try {
-      print('GroupImageService: 画像選択を開始');
+      developer.log('画像選択を開始', name: 'GroupImageService');
 
       // ストレージ権限をチェック
       bool hasPermission = await _checkAndRequestPermission(Permission.storage);
       if (!hasPermission) {
-        print('GroupImageService: ストレージ権限がありません');
+        developer.log('ストレージ権限がありません', name: 'GroupImageService', level: 900);
         return null;
       }
 
@@ -129,10 +136,10 @@ class GroupImageService {
         imageQuality: 100, // 最高品質で取得
       );
 
-      print('GroupImageService: 画像選択結果: ${image?.path}');
+      developer.log('画像選択結果: ${image?.path}', name: 'GroupImageService');
 
       if (image == null) {
-        print('GroupImageService: 画像が選択されませんでした');
+        developer.log('画像が選択されませんでした', name: 'GroupImageService');
         return null;
       }
 
@@ -148,16 +155,22 @@ class GroupImageService {
       await resizedFile.writeAsBytes(resizedBytes);
 
       // アップロード
-      print('GroupImageService: リサイズされた画像をアップロード開始');
+      developer.log('リサイズされた画像をアップロード開始', name: 'GroupImageService');
       final result = await uploadImage(resizedFile, groupId);
-      print('GroupImageService: アップロード結果: $result');
+      developer.log('アップロード結果: $result', name: 'GroupImageService');
 
       // 一時ファイルを削除
       await resizedFile.delete();
 
       return result;
-    } catch (e) {
-      print('画像選択・アップロードエラー: $e');
+    } catch (e, s) {
+      developer.log(
+        '画像選択・アップロードエラー',
+        name: 'GroupImageService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       return null;
     }
   }
@@ -165,12 +178,12 @@ class GroupImageService {
   /// カメラで撮影してアップロード
   static Future<String?> takeAndUploadImage(String groupId) async {
     try {
-      print('GroupImageService: カメラ撮影を開始');
+      developer.log('カメラ撮影を開始', name: 'GroupImageService');
 
       // カメラ権限をチェック
       bool hasPermission = await _checkAndRequestPermission(Permission.camera);
       if (!hasPermission) {
-        print('GroupImageService: カメラ権限がありません');
+        developer.log('カメラ権限がありません', name: 'GroupImageService', level: 900);
         return null;
       }
 
@@ -182,10 +195,10 @@ class GroupImageService {
         imageQuality: 100, // 最高品質で取得
       );
 
-      print('GroupImageService: カメラ撮影結果: ${image?.path}');
+      developer.log('カメラ撮影結果: ${image?.path}', name: 'GroupImageService');
 
       if (image == null) {
-        print('GroupImageService: 写真が撮影されませんでした');
+        developer.log('写真が撮影されませんでした', name: 'GroupImageService');
         return null;
       }
 
@@ -201,16 +214,22 @@ class GroupImageService {
       await resizedFile.writeAsBytes(resizedBytes);
 
       // アップロード
-      print('GroupImageService: リサイズされた写真をアップロード開始');
+      developer.log('リサイズされた写真をアップロード開始', name: 'GroupImageService');
       final result = await uploadImage(resizedFile, groupId);
-      print('GroupImageService: アップロード結果: $result');
+      developer.log('アップロード結果: $result', name: 'GroupImageService');
 
       // 一時ファイルを削除
       await resizedFile.delete();
 
       return result;
-    } catch (e) {
-      print('カメラ撮影・アップロードエラー: $e');
+    } catch (e, s) {
+      developer.log(
+        'カメラ撮影・アップロードエラー',
+        name: 'GroupImageService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       return null;
     }
   }
@@ -218,33 +237,42 @@ class GroupImageService {
   /// 画像をFirebase Storageにアップロード
   static Future<String?> uploadImage(File imageFile, String groupId) async {
     try {
-      print('GroupImageService: Firebase Storageアップロード開始');
-      print('GroupImageService: ファイルパス: ${imageFile.path}');
-      print('GroupImageService: ファイル存在: ${await imageFile.exists()}');
+      developer.log('Firebase Storageアップロード開始', name: 'GroupImageService');
+      developer.log('ファイルパス: ${imageFile.path}', name: 'GroupImageService');
+      developer.log(
+        'ファイル存在: ${await imageFile.exists()}',
+        name: 'GroupImageService',
+      );
 
       // ファイル名を生成
       final String fileName =
           'group_${groupId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      print('GroupImageService: ファイル名: $fileName');
+      developer.log('ファイル名: $fileName', name: 'GroupImageService');
 
       final Reference storageRef = _storage.ref().child(
         'group_images/$fileName',
       );
-      print('GroupImageService: Storage参照作成完了');
+      developer.log('Storage参照作成完了', name: 'GroupImageService');
 
       // アップロード
-      print('GroupImageService: アップロードタスク開始');
+      developer.log('アップロードタスク開始', name: 'GroupImageService');
       final UploadTask uploadTask = storageRef.putFile(imageFile);
       final TaskSnapshot snapshot = await uploadTask;
-      print('GroupImageService: アップロード完了');
+      developer.log('アップロード完了', name: 'GroupImageService');
 
       // ダウンロードURLを取得
-      print('GroupImageService: ダウンロードURL取得開始');
+      developer.log('ダウンロードURL取得開始', name: 'GroupImageService');
       final String downloadUrl = await snapshot.ref.getDownloadURL();
-      print('GroupImageService: ダウンロードURL: $downloadUrl');
+      developer.log('ダウンロードURL: $downloadUrl', name: 'GroupImageService');
       return downloadUrl;
-    } catch (e) {
-      print('画像アップロードエラー: $e');
+    } catch (e, s) {
+      developer.log(
+        '画像アップロードエラー',
+        name: 'GroupImageService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       return null;
     }
   }
@@ -254,12 +282,18 @@ class GroupImageService {
     if (imageUrl == null) return;
 
     try {
-      print('GroupImageService: 古い画像削除開始: $imageUrl');
+      developer.log('古い画像削除開始: $imageUrl', name: 'GroupImageService');
       final Reference storageRef = _storage.refFromURL(imageUrl);
       await storageRef.delete();
-      print('GroupImageService: 古い画像削除完了');
-    } catch (e) {
-      print('古い画像削除エラー: $e');
+      developer.log('古い画像削除完了', name: 'GroupImageService');
+    } catch (e, s) {
+      developer.log(
+        '古い画像削除エラー',
+        name: 'GroupImageService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
     }
   }
 
@@ -269,32 +303,41 @@ class GroupImageService {
     Uint8List imageData,
   ) async {
     try {
-      print('GroupImageService: 画像データアップロード開始');
-      print('GroupImageService: データサイズ: ${imageData.length} bytes');
+      developer.log('画像データアップロード開始', name: 'GroupImageService');
+      developer.log(
+        'データサイズ: ${imageData.length} bytes',
+        name: 'GroupImageService',
+      );
 
       // ファイル名を生成
       final String fileName =
           'group_${groupId}_${DateTime.now().millisecondsSinceEpoch}.png';
-      print('GroupImageService: ファイル名: $fileName');
+      developer.log('ファイル名: $fileName', name: 'GroupImageService');
 
       final Reference storageRef = _storage.ref().child(
         'group_images/$fileName',
       );
-      print('GroupImageService: Storage参照作成完了');
+      developer.log('Storage参照作成完了', name: 'GroupImageService');
 
       // アップロード
-      print('GroupImageService: アップロードタスク開始');
+      developer.log('アップロードタスク開始', name: 'GroupImageService');
       final UploadTask uploadTask = storageRef.putData(imageData);
       final TaskSnapshot snapshot = await uploadTask;
-      print('GroupImageService: アップロード完了');
+      developer.log('アップロード完了', name: 'GroupImageService');
 
       // ダウンロードURLを取得
-      print('GroupImageService: ダウンロードURL取得開始');
+      developer.log('ダウンロードURL取得開始', name: 'GroupImageService');
       final String downloadUrl = await snapshot.ref.getDownloadURL();
-      print('GroupImageService: ダウンロードURL: $downloadUrl');
+      developer.log('ダウンロードURL: $downloadUrl', name: 'GroupImageService');
       return downloadUrl;
-    } catch (e) {
-      print('画像データアップロードエラー: $e');
+    } catch (e, s) {
+      developer.log(
+        '画像データアップロードエラー',
+        name: 'GroupImageService',
+        error: e,
+        stackTrace: s,
+        level: 1000,
+      );
       return null;
     }
   }
