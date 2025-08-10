@@ -15,6 +15,7 @@ import '../../services/user_settings_firestore_service.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../utils/app_performance_config.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 enum RoastMode {
   idle,
@@ -754,182 +755,199 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     // 手動入力画面
     if (_mode == RoastMode.inputManualTime) {
       return Scaffold(
-        appBar: AppBar(title: Text('焙煎時間入力')),
+        appBar: AppBar(
+          title: Text('焙煎時間入力'),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              setState(() {
+                _mode = RoastMode.idle;
+              });
+            },
+            tooltip: '戻る',
+          ),
+        ),
         body: Container(
           color: Theme.of(context).scaffoldBackgroundColor,
           child: Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: kIsWeb ? 500 : double.infinity,
               ),
-              child: Card(
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
-                color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '焙煎時間を入力してください',
-                        style: TextStyle(
-                          fontSize:
-                              18 *
-                              Provider.of<ThemeSettings>(context).fontSizeScale,
-                          fontWeight: FontWeight.bold,
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Color(0xFFF3EDE7),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: TextField(
-                          controller: _manualMinuteController,
-                          keyboardType: TextInputType.numberWithOptions(
-                            decimal: false,
-                            signed: false,
-                          ),
+                child: Card(
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  color: Provider.of<ThemeSettings>(
+                    context,
+                  ).cardBackgroundColor,
+                  child: Padding(
+                    padding: EdgeInsets.all(kIsWeb ? 32.0 : 20.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '焙煎時間を入力してください',
                           style: TextStyle(
-                            fontSize:
-                                18 *
-                                Provider.of<ThemeSettings>(
-                                  context,
-                                ).fontSizeScale,
+                            fontSize: kIsWeb
+                                ? 24 *
+                                      Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontSizeScale
+                                : 18 *
+                                      Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontSizeScale,
+                            fontWeight: FontWeight.bold,
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).inputTextColor,
+                            ).fontColor1,
                           ),
-                          decoration: InputDecoration(
-                            prefixIcon: Icon(
-                              Icons.timer,
-                              color: Provider.of<ThemeSettings>(
-                                context,
-                              ).iconColor,
+                        ),
+                        SizedBox(height: kIsWeb ? 32 : 20),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFF3EDE7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: TextField(
+                            controller: _manualMinuteController,
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: false,
+                              signed: false,
                             ),
-                            labelText: '分数を入力',
-                            labelStyle: TextStyle(
+                            style: TextStyle(
+                              fontSize: kIsWeb
+                                  ? 20 *
+                                        Provider.of<ThemeSettings>(
+                                          context,
+                                        ).fontSizeScale
+                                  : 18 *
+                                        Provider.of<ThemeSettings>(
+                                          context,
+                                        ).fontSizeScale,
                               color: Provider.of<ThemeSettings>(
                                 context,
                               ).inputTextColor,
                             ),
-                            hintStyle: TextStyle(
-                              color: Provider.of<ThemeSettings>(
-                                context,
-                              ).inputTextColor.withValues(alpha: 0.6),
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 12,
+                            decoration: InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.timer,
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).iconColor,
+                              ),
+                              labelText: '分数を入力',
+                              labelStyle: TextStyle(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).inputTextColor,
+                              ),
+                              hintStyle: TextStyle(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).inputTextColor.withValues(alpha: 0.6),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: kIsWeb ? 16 : 12,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            final min = int.tryParse(
-                              _manualMinuteController.text,
-                            );
-                            if (min != null && min > 0) {
-                              _startRoasting(min);
-                            }
-                          },
-                          icon: Icon(Icons.play_arrow, size: 20),
-                          label: Text(
-                            '手動で焙煎スタート',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                        SizedBox(height: kIsWeb ? 32 : 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              final min = int.tryParse(
+                                _manualMinuteController.text,
+                              );
+                              if (min != null && min > 0) {
+                                _startRoasting(min);
+                              }
+                            },
+                            icon: Icon(Icons.play_arrow, size: 20),
+                            label: Text(
+                              '手動で焙煎スタート',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Theme.of(context)
-                                    .elevatedButtonTheme
-                                    .style
-                                    ?.backgroundColor
-                                    ?.resolve({}) ??
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor:
-                                Theme.of(context)
-                                    .elevatedButtonTheme
-                                    .style
-                                    ?.foregroundColor
-                                    ?.resolve({}) ??
-                                Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 13),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context)
+                                      .elevatedButtonTheme
+                                      .style
+                                      ?.backgroundColor
+                                      ?.resolve({}) ??
+                                  Theme.of(context).colorScheme.primary,
+                              foregroundColor:
+                                  Theme.of(context)
+                                      .elevatedButtonTheme
+                                      .style
+                                      ?.foregroundColor
+                                      ?.resolve({}) ??
+                                  Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 4,
                             ),
-                            elevation: 4,
                           ),
                         ),
-                      ),
-                      SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _mode = RoastMode.inputRecommended;
-                            });
-                          },
-                          icon: Icon(Icons.lightbulb, size: 20),
-                          label: Text(
-                            'おすすめ焙煎時間を自動で設定する',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                        SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _mode = RoastMode.inputRecommended;
+                              });
+                            },
+                            icon: Icon(Icons.lightbulb, size: 20),
+                            label: Text(
+                              'おすすめ焙煎時間を自動で設定する',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFFFF8225),
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 13),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFFFF8225),
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 4,
                             ),
-                            elevation: 4,
                           ),
                         ),
-                      ),
-                      SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            // キーボードを閉じる
-                            FocusScope.of(context).unfocus();
+                        SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              // キーボードを閉じる
+                              FocusScope.of(context).unfocus();
 
-                            setState(() {
-                              _mode = RoastMode.idle;
-                            });
-                          },
-                          icon: Icon(Icons.arrow_back),
-                          label: Text('最初の画面に戻る'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor:
-                                Theme.of(context).brightness ==
-                                        Brightness.dark ||
-                                    Provider.of<ThemeSettings>(
-                                          context,
-                                        ).backgroundColor.computeLuminance() <
-                                        0.2
-                                ? Colors.white
-                                : Provider.of<ThemeSettings>(
-                                    context,
-                                  ).appButtonColor,
-                            side: BorderSide(
-                              color:
+                              setState(() {
+                                _mode = RoastMode.idle;
+                              });
+                            },
+                            icon: Icon(Icons.arrow_back),
+                            label: Text('最初の画面に戻る'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor:
                                   Theme.of(context).brightness ==
                                           Brightness.dark ||
                                       Provider.of<ThemeSettings>(
@@ -940,19 +958,32 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                   : Provider.of<ThemeSettings>(
                                       context,
                                     ).appButtonColor,
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: 13),
-                            textStyle: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color:
+                                    Theme.of(context).brightness ==
+                                            Brightness.dark ||
+                                        Provider.of<ThemeSettings>(context)
+                                                .backgroundColor
+                                                .computeLuminance() <
+                                            0.2
+                                    ? Colors.white
+                                    : Provider.of<ThemeSettings>(
+                                        context,
+                                      ).appButtonColor,
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 15),
+                              textStyle: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -967,6 +998,15 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       return Scaffold(
         appBar: AppBar(
           title: Text('おすすめ焙煎入力'),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              setState(() {
+                _mode = RoastMode.idle;
+              });
+            },
+            tooltip: '戻る',
+          ),
           actions: [
             IconButton(
               icon: Icon(Icons.refresh),
@@ -978,347 +1018,327 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
         body: Container(
           color: Theme.of(context).scaffoldBackgroundColor,
           child: Center(
-            child: SingleChildScrollView(
-              child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '焙煎条件を選択してください',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                      // 豆の種類プルダウン
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: kIsWeb ? 600 : double.infinity,
+              ),
+              child: SingleChildScrollView(
+                child: Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  color: Provider.of<ThemeSettings>(
+                    context,
+                  ).cardBackgroundColor,
+                  child: Padding(
+                    padding: EdgeInsets.all(kIsWeb ? 32.0 : 24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '焙煎条件を選択してください',
+                          style: TextStyle(
+                            fontSize: kIsWeb ? 26 : 20,
+                            fontWeight: FontWeight.bold,
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).appButtonColor.withValues(alpha: 0.3),
+                            ).fontColor1,
                           ),
                         ),
-                        child: DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            prefixIcon: Icon(
-                              Icons.coffee,
+                        SizedBox(height: kIsWeb ? 32 : 24),
+                        // 豆の種類プルダウン
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
                               color: Provider.of<ThemeSettings>(
                                 context,
-                              ).appButtonColor,
-                            ),
-                            labelText: '豆の種類',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
+                              ).appButtonColor.withValues(alpha: 0.3),
                             ),
                           ),
-                          value: _selectedRecommendBean,
-                          items: _recommendBeanList
-                              .map(
-                                (e) =>
-                                    DropdownMenuItem(value: e, child: Text(e)),
-                              )
-                              .toList(),
-                          onChanged: (v) {
-                            setState(() {
-                              _selectedRecommendBean = v;
-                              _selectedRecommendWeight = null;
-                              _selectedRecommendRoast = null;
-                              _updateRecommendWeightList();
-                            });
-                          },
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      // 重さプルダウン
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Provider.of<ThemeSettings>(
-                              context,
-                            ).appButtonColor.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            prefixIcon: Icon(
-                              Icons.scale,
-                              color: Provider.of<ThemeSettings>(
-                                context,
-                              ).appButtonColor,
-                            ),
-                            labelText: '重さ（g）',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                          ),
-                          value: _selectedRecommendWeight,
-                          items: _recommendWeightList
-                              .map(
-                                (e) => DropdownMenuItem(
-                                  value: e,
-                                  child: Text('${e}g'),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (v) {
-                            setState(() {
-                              _selectedRecommendWeight = v;
-                              _selectedRecommendRoast = null;
-                              _updateRecommendRoastList();
-                            });
-                          },
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      // 煎り度プルダウン
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Provider.of<ThemeSettings>(
-                              context,
-                            ).appButtonColor.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            prefixIcon: Icon(
-                              Icons.local_fire_department,
-                              color: Provider.of<ThemeSettings>(
-                                context,
-                              ).appButtonColor,
-                            ),
-                            labelText: '煎り度',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                          ),
-                          value: _selectedRecommendRoast,
-                          items: _recommendRoastList
-                              .map(
-                                (e) =>
-                                    DropdownMenuItem(value: e, child: Text(e)),
-                              )
-                              .toList(),
-                          onChanged: (v) {
-                            setState(() {
-                              _selectedRecommendRoast = v;
-                            });
-                          },
-                        ),
-                      ),
-                      SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            setState(() {
-                              _recommendErrorText = '';
-                            });
-                            final bean = _selectedRecommendBean;
-                            final weightText = _selectedRecommendWeight;
-                            final roast = _selectedRecommendRoast;
-                            if (bean == null ||
-                                weightText == null ||
-                                roast == null) {
-                              setState(() {
-                                _recommendErrorText = 'データが足りません。全て選択してください。';
-                              });
-                              return;
-                            }
-                            final matching = _recommendRecords
-                                .where(
-                                  (r) =>
-                                      r.bean == bean &&
-                                      r.roast == roast &&
-                                      r.weight.toString() == weightText,
-                                )
-                                .toList();
-                            if (matching.isEmpty) {
-                              setState(() {
-                                _recommendErrorText =
-                                    '焙煎記録のデータが不足しています。焙煎記録が複数必要です。';
-                              });
-                              return;
-                            }
-                            int totalSeconds = 0;
-                            int count = 0;
-                            for (var r in matching) {
-                              final t = (r.time).split(':');
-                              int min = int.tryParse(t[0]) ?? 0;
-                              int sec =
-                                  int.tryParse(t.length > 1 ? t[1] : '0') ?? 0;
-                              totalSeconds += min * 60 + sec;
-                              count++;
-                            }
-                            if (count == 0) return;
-                            int avgSeconds = (totalSeconds ~/ count);
-                            int offset =
-                                await UserSettingsFirestoreService.getSetting(
-                                  'recommendedRoastOffsetSeconds',
-                                );
-                            int setSeconds = avgSeconds - offset;
-                            if (setSeconds < 60) setSeconds = 60;
-                            String format(int sec) =>
-                                '${(sec ~/ 60).toString().padLeft(2, '0')}:${(sec % 60).toString().padLeft(2, '0')}';
-                            if (!context.mounted) return;
-                            final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                backgroundColor: Provider.of<ThemeSettings>(
+                          child: DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.coffee,
+                                color: Provider.of<ThemeSettings>(
                                   context,
-                                ).dialogBackgroundColor,
-                                titleTextStyle: TextStyle(
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).dialogTextColor,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                contentTextStyle: TextStyle(
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).dialogTextColor,
-                                  fontSize: 16,
-                                ),
-                                title: Text('おすすめ焙煎時間'),
-                                content: Text(
-                                  '平均焙煎時間: ${format(avgSeconds)}\n'
-                                  'おすすめタイマー: ${format(setSeconds)}（平均−$offset秒）\n\n'
-                                  'この時間でタイマーを開始しますか？',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor:
-                                          Provider.of<ThemeSettings>(
-                                            context,
-                                          ).fontColor1,
-                                    ),
-                                    child: Text('キャンセル'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor:
-                                          Provider.of<ThemeSettings>(
-                                            context,
-                                          ).fontColor1,
-                                    ),
-                                    child: Text('OK'),
-                                  ),
-                                ],
+                                ).appButtonColor,
                               ),
-                            );
-                            if (confirmed == true) {
-                              _startRecommendedRoast(
-                                Duration(seconds: setSeconds),
+                              labelText: '豆の種類',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                            value: _selectedRecommendBean,
+                            items: _recommendBeanList
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(e),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) {
+                              setState(() {
+                                _selectedRecommendBean = v;
+                                _selectedRecommendWeight = null;
+                                _selectedRecommendRoast = null;
+                                _updateRecommendWeightList();
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        // 重さプルダウン
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).appButtonColor.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.scale,
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).appButtonColor,
+                              ),
+                              labelText: '重さ（g）',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                            value: _selectedRecommendWeight,
+                            items: _recommendWeightList
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text('${e}g'),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) {
+                              setState(() {
+                                _selectedRecommendWeight = v;
+                                _selectedRecommendRoast = null;
+                                _updateRecommendRoastList();
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        // 煎り度プルダウン
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).appButtonColor.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.local_fire_department,
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).appButtonColor,
+                              ),
+                              labelText: '煎り度',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                            value: _selectedRecommendRoast,
+                            items: _recommendRoastList
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(e),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) {
+                              setState(() {
+                                _selectedRecommendRoast = v;
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              setState(() {
+                                _recommendErrorText = '';
+                              });
+                              final bean = _selectedRecommendBean;
+                              final weightText = _selectedRecommendWeight;
+                              final roast = _selectedRecommendRoast;
+                              if (bean == null ||
+                                  weightText == null ||
+                                  roast == null) {
+                                setState(() {
+                                  _recommendErrorText = 'データが足りません。全て選択してください。';
+                                });
+                                return;
+                              }
+                              final matching = _recommendRecords
+                                  .where(
+                                    (r) =>
+                                        r.bean == bean &&
+                                        r.roast == roast &&
+                                        r.weight.toString() == weightText,
+                                  )
+                                  .toList();
+                              if (matching.isEmpty) {
+                                setState(() {
+                                  _recommendErrorText =
+                                      '焙煎記録のデータが不足しています。焙煎記録が複数必要です。';
+                                });
+                                return;
+                              }
+                              int totalSeconds = 0;
+                              int count = 0;
+                              for (var r in matching) {
+                                final t = (r.time).split(':');
+                                int min = int.tryParse(t[0]) ?? 0;
+                                int sec =
+                                    int.tryParse(t.length > 1 ? t[1] : '0') ??
+                                    0;
+                                totalSeconds += min * 60 + sec;
+                                count++;
+                              }
+                              if (count == 0) return;
+                              int avgSeconds = (totalSeconds ~/ count);
+                              int offset =
+                                  await UserSettingsFirestoreService.getSetting(
+                                    'recommendedRoastOffsetSeconds',
+                                  );
+                              int setSeconds = avgSeconds - offset;
+                              if (setSeconds < 60) setSeconds = 60;
+                              String format(int sec) =>
+                                  '${(sec ~/ 60).toString().padLeft(2, '0')}:${(sec % 60).toString().padLeft(2, '0')}';
+                              if (!context.mounted) return;
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  backgroundColor: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).dialogBackgroundColor,
+                                  titleTextStyle: TextStyle(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).dialogTextColor,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  contentTextStyle: TextStyle(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).dialogTextColor,
+                                    fontSize: 16,
+                                  ),
+                                  title: Text('おすすめ焙煎時間'),
+                                  content: Text(
+                                    '平均焙煎時間: ${format(avgSeconds)}\n'
+                                    'おすすめタイマー: ${format(setSeconds)}（平均−$offset秒）\n\n'
+                                    'この時間でタイマーを開始しますか？',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor:
+                                            Provider.of<ThemeSettings>(
+                                              context,
+                                            ).fontColor1,
+                                      ),
+                                      child: Text('キャンセル'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor:
+                                            Provider.of<ThemeSettings>(
+                                              context,
+                                            ).fontColor1,
+                                      ),
+                                      child: Text('OK'),
+                                    ),
+                                  ],
+                                ),
                               );
-                            }
-                          },
-                          icon: Icon(Icons.play_arrow, size: 20),
-                          label: Text(
-                            'おすすめ焙煎でスタート',
+                              if (confirmed == true) {
+                                _startRecommendedRoast(
+                                  Duration(seconds: setSeconds),
+                                );
+                              }
+                            },
+                            icon: Icon(Icons.play_arrow, size: 20),
+                            label: Text(
+                              'おすすめ焙煎でスタート',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(
+                                0xFFFF8225,
+                              ), // オレンジ色（#FF8225）
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 4,
+                            ),
+                          ),
+                        ),
+                        if (_recommendErrorText.isNotEmpty) ...[
+                          SizedBox(height: 16),
+                          Text(
+                            _recommendErrorText,
                             style: TextStyle(
-                              fontSize: 16,
+                              color: Colors.red,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(
-                              0xFFFF8225,
-                            ), // オレンジ色（#FF8225）
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            elevation: 4,
-                          ),
-                        ),
-                      ),
-                      if (_recommendErrorText.isNotEmpty) ...[
-                        SizedBox(height: 16),
-                        Text(
-                          _recommendErrorText,
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.bold,
+                        ],
+                        SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _mode = RoastMode.inputManualTime;
+                              });
+                            },
+                            icon: Icon(Icons.arrow_back),
+                            label: Text('戻る'),
                           ),
                         ),
                       ],
-                      SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _mode = RoastMode.inputManualTime;
-                            });
-                          },
-                          icon: Icon(Icons.arrow_back),
-                          label: Text('戻る'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor:
-                                Theme.of(context).brightness ==
-                                        Brightness.dark ||
-                                    Provider.of<ThemeSettings>(
-                                          context,
-                                        ).backgroundColor.computeLuminance() <
-                                        0.2
-                                ? Colors.white
-                                : Provider.of<ThemeSettings>(
-                                    context,
-                                  ).appButtonColor,
-                            side: BorderSide(
-                              color:
-                                  Theme.of(context).brightness ==
-                                          Brightness.dark ||
-                                      Provider.of<ThemeSettings>(
-                                            context,
-                                          ).backgroundColor.computeLuminance() <
-                                          0.2
-                                  ? Colors.white
-                                  : Provider.of<ThemeSettings>(
-                                      context,
-                                    ).appButtonColor,
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: 15),
-                            textStyle: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -1360,6 +1380,11 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('焙煎タイマー'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: '戻る',
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.settings),
@@ -1378,124 +1403,297 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       body: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: Center(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 24.0,
-              right: 24.0,
-              top: 24.0,
-              bottom: 24.0 + MediaQuery.of(context).viewInsets.bottom,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: kIsWeb ? 600 : double.infinity,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Card(
-                  elevation: 6,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  color: Provider.of<ThemeSettings>(
-                    context,
-                  ).cardBackgroundColor,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Provider.of<ThemeSettings>(
-                              context,
-                            ).fontColor1,
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: 24.0,
+                bottom: 24.0 + MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Card(
+                    elevation: 6,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: Provider.of<ThemeSettings>(
+                      context,
+                    ).cardBackgroundColor,
+                    child: Padding(
+                      padding: EdgeInsets.all(kIsWeb ? 32.0 : 20.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: kIsWeb ? 32 : 28,
+                              fontWeight: FontWeight.bold,
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 28),
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            SizedBox(
-                              width: 240,
-                              height: 240,
-                              child: CircularProgressIndicator(
-                                value: progress,
-                                strokeWidth: 13,
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).timerCircleColor,
-                                backgroundColor: Provider.of<ThemeSettings>(
-                                  context,
-                                ).timerCircleColor.withValues(alpha: 0.18),
+                          SizedBox(height: kIsWeb ? 32 : 28),
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SizedBox(
+                                width: kIsWeb ? 280 : 240,
+                                height: kIsWeb ? 280 : 240,
+                                child: CircularProgressIndicator(
+                                  value: progress,
+                                  strokeWidth: kIsWeb ? 15 : 13,
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).timerCircleColor,
+                                  backgroundColor: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).timerCircleColor.withValues(alpha: 0.18),
+                                ),
                               ),
-                            ),
-                            Text(
-                              _formatTime(_remainingSeconds),
-                              style: TextStyle(
-                                fontSize: 60,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2,
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).fontColor1,
+                              Text(
+                                _formatTime(_remainingSeconds),
+                                style: TextStyle(
+                                  fontSize: kIsWeb ? 72 : 60,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 2,
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontColor1,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 24),
-                        FutureBuilder<List<bool>>(
-                          future: useTimerSettingsFuture,
-                          builder: (context, snapshot) {
-                            final usePreheat = snapshot.data != null
-                                ? snapshot.data![0]
-                                : true;
-                            final useRoast = snapshot.data != null
-                                ? snapshot.data![1]
-                                : true;
-                            final useCooling = snapshot.data != null
-                                ? snapshot.data![2]
-                                : false; // デフォルトをオフに変更
-                            if (_mode == RoastMode.idle) {
-                              if (_justFinishedPreheat &&
-                                  !useRoast &&
-                                  useCooling) {
-                                // 予熱完了直後・焙煎タイマーOFF・豆冷ましタイマーON時は豆冷ましタイマーボタン
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 32 : 24),
+                          FutureBuilder<List<bool>>(
+                            future: useTimerSettingsFuture,
+                            builder: (context, snapshot) {
+                              final usePreheat = snapshot.data != null
+                                  ? snapshot.data![0]
+                                  : true;
+                              final useRoast = snapshot.data != null
+                                  ? snapshot.data![1]
+                                  : true;
+                              final useCooling = snapshot.data != null
+                                  ? snapshot.data![2]
+                                  : false; // デフォルトをオフに変更
+                              if (_mode == RoastMode.idle) {
+                                if (_justFinishedPreheat &&
+                                    !useRoast &&
+                                    useCooling) {
+                                  // 予熱完了直後・焙煎タイマーOFF・豆冷ましタイマーON時は豆冷ましタイマーボタン
+                                  return SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _startBeanCooling,
+                                      icon: Icon(Icons.ac_unit, size: 20),
+                                      label: Text(
+                                        '豆冷ましタイマーを開始',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Color(0xFF00B8D4),
+                                        foregroundColor: Colors.white,
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 15,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        elevation: 4,
+                                      ),
+                                    ),
+                                  );
+                                } else if (usePreheat) {
+                                  // 予熱タイマーON時は予熱開始ボタン
+                                  return SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _startPreheating,
+                                      icon: Icon(
+                                        Icons.local_fire_department,
+                                        size: 20,
+                                      ),
+                                      label: Text(
+                                        '予熱開始',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Theme.of(context)
+                                                .elevatedButtonTheme
+                                                .style
+                                                ?.backgroundColor
+                                                ?.resolve({}) ??
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                        foregroundColor:
+                                            Theme.of(context)
+                                                .elevatedButtonTheme
+                                                .style
+                                                ?.foregroundColor
+                                                ?.resolve({}) ??
+                                            Colors.white,
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 15,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        elevation: 4,
+                                      ),
+                                    ),
+                                  );
+                                } else if (!usePreheat &&
+                                    !useRoast &&
+                                    useCooling) {
+                                  // 予熱タイマーOFF・焙煎タイマーOFF・豆冷ましタイマーON時は豆冷ましタイマーボタン
+                                  return SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _startBeanCooling,
+                                      icon: Icon(Icons.ac_unit, size: 20),
+                                      label: Text(
+                                        '豆冷ましタイマーを開始',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Color(0xFF00B8D4),
+                                        foregroundColor: Colors.white,
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 15,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        elevation: 4,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  // 予熱タイマーOFF時は手動・おすすめ焙煎ボタン
+                                  return Column(
+                                    children: [
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            setState(() {
+                                              _mode = RoastMode.inputManualTime;
+                                            });
+                                          },
+                                          icon: Icon(
+                                            Icons.play_arrow,
+                                            size: 20,
+                                          ),
+                                          label: Text(
+                                            '手動で焙煎スタート',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                Theme.of(context)
+                                                    .elevatedButtonTheme
+                                                    .style
+                                                    ?.backgroundColor
+                                                    ?.resolve({}) ??
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                            foregroundColor:
+                                                Theme.of(context)
+                                                    .elevatedButtonTheme
+                                                    .style
+                                                    ?.foregroundColor
+                                                    ?.resolve({}) ??
+                                                Colors.white,
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 15,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            elevation: 4,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(height: 12),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            setState(() {
+                                              _mode =
+                                                  RoastMode.inputRecommended;
+                                            });
+                                          },
+                                          icon: Icon(Icons.lightbulb, size: 20),
+                                          label: Text(
+                                            'おすすめ焙煎でスタート',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Color(0xFFFF8225),
+                                            foregroundColor: Colors.white,
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 15,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            elevation: 4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+                              } else {
+                                // idle以外は従来通り
                                 return SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
-                                    onPressed: _startBeanCooling,
-                                    icon: Icon(Icons.ac_unit, size: 20),
-                                    label: Text(
-                                      '豆冷ましタイマーを開始',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Color(0xFF00B8D4),
-                                      foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 15,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      elevation: 4,
-                                    ),
-                                  ),
-                                );
-                              } else if (usePreheat) {
-                                // 予熱タイマーON時は予熱開始ボタン
-                                return SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    onPressed: _startPreheating,
+                                    onPressed: _isPaused
+                                        ? _resumeTimer
+                                        : _pauseTimer,
                                     icon: Icon(
-                                      Icons.local_fire_department,
+                                      _isPaused
+                                          ? Icons.play_arrow
+                                          : Icons.pause,
                                       size: 20,
                                     ),
                                     label: Text(
-                                      '予熱開始',
+                                      _isPaused ? '再開' : '一時停止',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -1526,182 +1724,28 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                     ),
                                   ),
                                 );
-                              } else if (!usePreheat &&
-                                  !useRoast &&
-                                  useCooling) {
-                                // 予熱タイマーOFF・焙煎タイマーOFF・豆冷ましタイマーON時は豆冷ましタイマーボタン
-                                return SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    onPressed: _startBeanCooling,
-                                    icon: Icon(Icons.ac_unit, size: 20),
-                                    label: Text(
-                                      '豆冷ましタイマーを開始',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Color(0xFF00B8D4),
-                                      foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 15,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      elevation: 4,
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                // 予熱タイマーOFF時は手動・おすすめ焙煎ボタン
-                                return Column(
-                                  children: [
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        onPressed: () {
-                                          setState(() {
-                                            _mode = RoastMode.inputManualTime;
-                                          });
-                                        },
-                                        icon: Icon(Icons.play_arrow, size: 20),
-                                        label: Text(
-                                          '手動で焙煎スタート',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              Theme.of(context)
-                                                  .elevatedButtonTheme
-                                                  .style
-                                                  ?.backgroundColor
-                                                  ?.resolve({}) ??
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                          foregroundColor:
-                                              Theme.of(context)
-                                                  .elevatedButtonTheme
-                                                  .style
-                                                  ?.foregroundColor
-                                                  ?.resolve({}) ??
-                                              Colors.white,
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: 15,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                          ),
-                                          elevation: 4,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 12),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        onPressed: () {
-                                          setState(() {
-                                            _mode = RoastMode.inputRecommended;
-                                          });
-                                        },
-                                        icon: Icon(Icons.lightbulb, size: 20),
-                                        label: Text(
-                                          'おすすめ焙煎でスタート',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Color(0xFFFF8225),
-                                          foregroundColor: Colors.white,
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: 15,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                          ),
-                                          elevation: 4,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
                               }
-                            } else {
-                              // idle以外は従来通り
-                              return SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: _isPaused
-                                      ? _resumeTimer
-                                      : _pauseTimer,
-                                  icon: Icon(
-                                    _isPaused ? Icons.play_arrow : Icons.pause,
-                                    size: 20,
-                                  ),
-                                  label: Text(
-                                    _isPaused ? '再開' : '一時停止',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context)
-                                            .elevatedButtonTheme
-                                            .style
-                                            ?.backgroundColor
-                                            ?.resolve({}) ??
-                                        Theme.of(context).colorScheme.primary,
-                                    foregroundColor:
-                                        Theme.of(context)
-                                            .elevatedButtonTheme
-                                            .style
-                                            ?.foregroundColor
-                                            ?.resolve({}) ??
-                                        Colors.white,
-                                    padding: EdgeInsets.symmetric(vertical: 15),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    elevation: 4,
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                        SizedBox(height: 16),
-                        TextButton(
-                          onPressed: _totalSeconds == 0 ? null : _skipTime,
-                          child: Text(
-                            '⏩ スキップ',
-                            style: TextStyle(
-                              color: Provider.of<ThemeSettings>(
-                                context,
-                              ).fontColor1,
-                              fontSize: 14,
+                            },
+                          ),
+                          SizedBox(height: 16),
+                          TextButton(
+                            onPressed: _totalSeconds == 0 ? null : _skipTime,
+                            child: Text(
+                              '⏩ スキップ',
+                              style: TextStyle(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

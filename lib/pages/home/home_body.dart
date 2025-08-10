@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../models/theme_settings.dart';
+import '../../models/group_provider.dart';
 import '../../services/attendance_firestore_service.dart';
 import '../../models/attendance_models.dart';
-import '../../app.dart' show mainScaffoldKey;
+import '../../utils/web_ui_utils.dart';
 import 'home_header.dart';
 import 'home_feature_section.dart';
 import 'home_feature_card.dart';
+import '../roast/roast_timer_page.dart';
+import '../business/assignment_board_page.dart';
+import '../schedule/schedule_page.dart';
 
 /// ホーム画面のメインコンテンツ
 class HomeBody extends StatefulWidget {
@@ -28,6 +32,203 @@ class _HomeBodyState extends State<HomeBody> {
 
   @override
   Widget build(BuildContext context) {
+    // WEB版とモバイル版で異なるレイアウトを適用
+    if (WebUIUtils.isWeb) {
+      return _buildWebLayout();
+    } else {
+      return _buildMobileLayout();
+    }
+  }
+
+  /// WEB版用のレイアウトを構築
+  Widget _buildWebLayout() {
+    final isDesktop = WebUIUtils.isDesktop(context);
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (isDesktop) ...[
+            // デスクトップ: 縦4列レイアウト
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 第1列: 業務セクション
+                  Expanded(
+                    child: _buildWebSection(
+                      title: '業務',
+                      subtitle: '焙煎とスケジュール管理',
+                      icon: Icons.work,
+                      accentColor: Color(0xFF8B4513),
+                      children: _buildBusinessFeatures(),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+
+                  // 第2列: 記録セクション
+                  Expanded(
+                    child: _buildWebSection(
+                      title: '記録',
+                      subtitle: 'ドリップ、テイスティング、計算機、TODO',
+                      icon: Icons.assignment,
+                      accentColor: Colors.blue.shade700,
+                      children: _buildRecordFeatures(),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+
+                  // 第3列: 功績と成長セクション
+                  Expanded(
+                    child: _buildWebSection(
+                      title: '功績と成長',
+                      subtitle: 'バッジとグループ情報',
+                      icon: Icons.emoji_events,
+                      accentColor: Color(0xFFD4AF37),
+                      children: _buildGrowthFeatures(),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+
+                  // 第4列: サポート・設定セクション
+                  Expanded(
+                    child: _buildWebSection(
+                      title: 'サポート・設定',
+                      subtitle: '設定とヘルプ',
+                      icon: Icons.settings,
+                      accentColor: Color(0xFF757575),
+                      children: _buildSupportFeatures(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            // タブレット・モバイル: 1列レイアウト
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  _buildWebSection(
+                    title: '業務',
+                    subtitle: '焙煎とスケジュール管理',
+                    icon: Icons.work,
+                    accentColor: Color(0xFF8B4513),
+                    children: _buildBusinessFeatures(),
+                  ),
+                  SizedBox(height: 20),
+
+                  _buildWebSection(
+                    title: '記録',
+                    subtitle: 'ドリップ、テイスティング、計算機、TODO',
+                    icon: Icons.assignment,
+                    accentColor: Colors.blue.shade700,
+                    children: _buildRecordFeatures(),
+                  ),
+                  SizedBox(height: 20),
+
+                  _buildWebSection(
+                    title: '功績と成長',
+                    subtitle: 'バッジとグループ情報',
+                    icon: Icons.emoji_events,
+                    accentColor: Color(0xFFD4AF37),
+                    children: _buildGrowthFeatures(),
+                  ),
+                  SizedBox(height: 20),
+
+                  _buildWebSection(
+                    title: 'サポート・設定',
+                    subtitle: '設定とヘルプ',
+                    icon: Icons.settings,
+                    accentColor: Color(0xFF757575),
+                    children: _buildSupportFeatures(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  /// WEB版用のセクションを構築
+  Widget _buildWebSection({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color accentColor,
+    required List<HomeFeatureCard> children,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // セクションヘッダー
+        Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: accentColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accentColor.withOpacity(0.2), width: 1),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: accentColor, size: 20),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16 * WebUIUtils.getFontSizeScale(context),
+                        fontWeight: FontWeight.bold,
+                        color: widget.themeSettings.fontColor1,
+                        fontFamily: widget.themeSettings.fontFamily,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12 * WebUIUtils.getFontSizeScale(context),
+                        color: widget.themeSettings.fontColor1.withOpacity(0.7),
+                        fontFamily: widget.themeSettings.fontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 12),
+        // グリッドレイアウトでカードを表示
+        GridView.count(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 1.1,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          children: children,
+        ),
+      ],
+    );
+  }
+
+  /// モバイル版用のレイアウトを構築（従来の実装）
+  Widget _buildMobileLayout() {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,16 +296,19 @@ class _HomeBodyState extends State<HomeBody> {
     });
   }
 
-  /// 業務カードを構築
+  /// 業務機能カードを構築
   List<HomeFeatureCard> _buildBusinessFeatures() {
     return [
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
         title: '焙煎タイマー',
         icon: Icons.timer,
-        onTap: () => _switchToBottomNavTab(0),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => RoastTimerPage()),
+        ),
         isImportant: true, // 重要機能
-        customColor: Color(0xFF8B4513), // 濃いブラウン
+        customColor: Color(0xFFE65100), // オレンジ（火・熱を表現）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
@@ -112,36 +316,42 @@ class _HomeBodyState extends State<HomeBody> {
         icon: Icons.edit_note,
         onTap: () => Navigator.pushNamed(context, '/roast_record'),
         isImportant: true, // 重要機能
-        customColor: Color(0xFF8B4513), // 濃いブラウン
+        customColor: Color(0xFF8D6E63), // ブラウン（コーヒー豆）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
         title: '焙煎分析',
         icon: Icons.insights,
         onTap: () => Navigator.pushNamed(context, '/roast_analysis'),
-        customColor: Colors.orange.shade600,
+        customColor: Color(0xFF6A4C93), // パープル（分析・データ）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
         title: '焙煎記録一覧',
         icon: Icons.analytics,
         onTap: () => Navigator.pushNamed(context, '/roast_record_list'),
-        customColor: Colors.orange.shade600,
+        customColor: Color(0xFF795548), // ダークブラウン（記録）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
         title: '担当表',
         icon: Icons.group,
-        onTap: () => _switchToBottomNavTab(4),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AssignmentBoard()),
+        ),
         badge: _buildAttendanceBadge(),
-        customColor: Colors.blue.shade600,
+        customColor: Color(0xFF1976D2), // ブルー（チームワーク）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
         title: 'スケジュール',
         icon: Icons.schedule,
-        onTap: () => _switchToBottomNavTab(3),
-        customColor: Colors.blue.shade600,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => SchedulePage()),
+        ),
+        customColor: Color(0xFF388E3C), // グリーン（計画・管理）
       ),
     ];
   }
@@ -151,85 +361,86 @@ class _HomeBodyState extends State<HomeBody> {
     return [
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
+        title: 'ドリップカウンター',
+        icon: Icons.local_cafe,
+        onTap: () => Navigator.pushNamed(context, '/drip'),
+        isImportant: true, // 重要機能
+        customColor: Color(0xFF6F4E37), // コーヒー色（ドリップ）
+      ),
+      HomeFeatureCard(
+        themeSettings: widget.themeSettings,
+        title: 'テイスティング記録',
+        icon: Icons.restaurant_menu,
+        onTap: () => Navigator.pushNamed(context, '/tasting'),
+        customColor: Color(0xFFD81B60), // ピンク（味覚・感覚）
+      ),
+      HomeFeatureCard(
+        themeSettings: widget.themeSettings,
+        title: '作業進捗',
+        icon: Icons.trending_up,
+        onTap: () => Navigator.pushNamed(context, '/work_progress'),
+        customColor: Color(0xFF00ACC1), // シアン（進歩・成長）
+      ),
+      HomeFeatureCard(
+        themeSettings: widget.themeSettings,
         title: 'カレンダー',
         icon: Icons.calendar_today,
         onTap: () => Navigator.pushNamed(context, '/calendar'),
-        customColor: Colors.indigo.shade600,
+        customColor: Color(0xFF7B1FA2), // ディープパープル（時間管理）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
-        title: 'ドリップパックカウンター',
-        icon: Icons.add_circle_outline,
-        onTap: () => _switchToBottomNavTab(1),
-        customColor: Colors.orange.shade600,
-      ),
-      HomeFeatureCard(
-        themeSettings: widget.themeSettings,
-        title: 'メモ・TODO',
-        icon: Icons.edit_note,
-        onTap: () => Navigator.pushNamed(context, '/todo'),
-        customColor: Colors.teal.shade600,
-      ),
-      HomeFeatureCard(
-        themeSettings: widget.themeSettings,
-        title: '電卓',
+        title: '計算機',
         icon: Icons.calculate,
         onTap: () => Navigator.pushNamed(context, '/calculator'),
-        customColor: Colors.grey.shade600,
+        customColor: Color(0xFF424242), // ダークグレー（計算・論理）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
-        title: '作業状況記録',
-        icon: Icons.work_outline,
-        onTap: () => Navigator.pushNamed(context, '/work_progress'),
-        customColor: Colors.green.shade600,
-      ),
-      HomeFeatureCard(
-        themeSettings: widget.themeSettings,
-        title: '試飲感想記録',
-        icon: Icons.local_cafe,
-        onTap: () => Navigator.pushNamed(context, '/tasting'),
-        customColor: Color(0xFF6F4E37), // コーヒー色（セピアブラウン）
+        title: 'TODO',
+        icon: Icons.checklist,
+        onTap: () => Navigator.pushNamed(context, '/todo'),
+        customColor: Color(0xFF1565C0), // インディゴ（タスク管理）
       ),
     ];
   }
 
-  /// 功績と成長機能カードを構築
+  /// 功績と成長カードを構築
   List<HomeFeatureCard> _buildGrowthFeatures() {
     return [
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
-        title: 'グループ',
-        icon: Icons.group,
+        title: 'グループ情報',
+        icon: Icons.group_work,
         onTap: () => Navigator.pushNamed(context, '/group_info'),
-        customColor: Colors.blue.shade600,
+        customColor: Color(0xFFFF9800), // オレンジ（コミュニティ）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
-        title: 'バッジ・実績',
-        icon: Icons.military_tech,
-        onTap: () => Navigator.pushNamed(context, '/badge_list'),
-        customColor: Colors.amber.shade600,
+        title: 'バッジ一覧',
+        icon: Icons.emoji_events,
+        onTap: () => Navigator.pushNamed(context, '/badges'),
+        customColor: Color(0xFFFFD700), // ゴールド（達成・栄誉）
       ),
     ];
   }
 
-  /// サポート・設定機能カードを構築
+  /// サポート・設定カードを構築
   List<HomeFeatureCard> _buildSupportFeatures() {
     return [
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
-        title: '使い方',
+        title: '使い方ガイド',
         icon: Icons.help_outline,
         onTap: () => Navigator.pushNamed(context, '/help'),
-        customColor: Colors.cyan.shade600,
+        customColor: Color(0xFF9C27B0), // パープル（学習・サポート）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
         title: '設定',
         icon: Icons.settings,
         onTap: () => Navigator.pushNamed(context, '/settings'),
-        customColor: Colors.grey.shade600,
+        customColor: Color(0xFF607D8B), // ブルーグレー（設定・調整）
       ),
     ];
   }
@@ -262,14 +473,6 @@ class _HomeBodyState extends State<HomeBody> {
         );
       },
     );
-  }
-
-  /// ボトムナビゲーションタブに切り替え
-  void _switchToBottomNavTab(int index) {
-    final mainScaffoldState = mainScaffoldKey.currentState;
-    if (mainScaffoldState != null && mainScaffoldState.mounted) {
-      mainScaffoldState.switchToTab(index);
-    }
   }
 
   /// 今日の出勤記録をチェック

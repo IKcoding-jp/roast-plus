@@ -1,12 +1,12 @@
 {
-    "name": "roastplus",
-    "short_name": "roastplus",
+    "name": "ローストプラス",
+    "short_name": "ローストプラス",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#f5f5f5",
+    "theme_color": "#8B4513",
+    "description": "コーヒー焙煎業務管理アプリ - 焙煎タイマー、記録、分析機能を提供",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
@@ -31,5 +31,8 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "categories": ["productivity", "business", "food"],
+    "lang": "ja",
+    "dir": "ltr"
 }

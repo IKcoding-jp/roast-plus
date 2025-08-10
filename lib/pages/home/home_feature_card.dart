@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/theme_settings.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// 機能カード（新しいデザイン）
 class HomeFeatureCard extends StatelessWidget {
@@ -29,60 +30,92 @@ class HomeFeatureCard extends StatelessWidget {
     final iconColor = _getIconColor();
     final borderColor = _getBorderColor();
 
-    return SizedBox(
-      height: 120, // 統一された高さ
-      child: Card(
-        elevation: isImportant ? 4 : 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: themeSettings.cardBackgroundColor,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: borderColor,
-                width: isImportant ? 2 : 1,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      width: isImportant ? 56 : 48,
-                      height: isImportant ? 56 : 48,
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        icon,
-                        color: iconColor,
-                        size: isImportant ? 28 : 24,
-                      ),
+    // WEB版とモバイル版で異なるスタイルを適用
+    final isWeb = kIsWeb;
+    final isDesktop = isWeb && MediaQuery.of(context).size.width > 1024;
+
+    return Card(
+      elevation: isImportant ? 6 : 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(isWeb ? 20 : 16),
+      ),
+      color: themeSettings.cardBackgroundColor,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(isWeb ? 20 : 16),
+        child: Container(
+          padding: EdgeInsets.all(isWeb ? 16 : 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(isWeb ? 20 : 16),
+            border: Border.all(color: borderColor, width: isImportant ? 2 : 1),
+            gradient: isWeb
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      cardColor.withOpacity(0.1),
+                      cardColor.withOpacity(0.05),
+                    ],
+                  )
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                children: [
+                  Container(
+                    width: isWeb
+                        ? (isImportant ? 56 : 48)
+                        : (isImportant ? 48 : 40),
+                    height: isWeb
+                        ? (isImportant ? 56 : 48)
+                        : (isImportant ? 48 : 40),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(isWeb ? 14 : 10),
+                      boxShadow: isWeb
+                          ? [
+                              BoxShadow(
+                                color: cardColor.withOpacity(0.3),
+                                blurRadius: 6,
+                                offset: Offset(0, 3),
+                              ),
+                            ]
+                          : null,
                     ),
-                    if (badge != null)
-                      Positioned(right: -2, top: -2, child: badge!),
-                  ],
-                ),
-                SizedBox(height: 12),
-                Text(
+                    child: Icon(
+                      icon,
+                      color: iconColor,
+                      size: isWeb
+                          ? (isImportant ? 28 : 24)
+                          : (isImportant ? 24 : 20),
+                    ),
+                  ),
+                  if (badge != null)
+                    Positioned(right: -2, top: -2, child: badge!),
+                ],
+              ),
+              SizedBox(height: isWeb ? 12 : 8),
+              Flexible(
+                child: Text(
                   title,
                   textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize:
-                        (isImportant ? 14 : 13) * themeSettings.fontSizeScale,
+                    fontSize: isWeb
+                        ? (isImportant ? 14 : 13) * themeSettings.fontSizeScale
+                        : (isImportant ? 12 : 11) * themeSettings.fontSizeScale,
                     fontWeight: isImportant ? FontWeight.bold : FontWeight.w600,
                     color: themeSettings.fontColor1,
                     fontFamily: themeSettings.fontFamily,
+                    height: 1.2,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

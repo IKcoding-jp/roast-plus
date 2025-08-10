@@ -26,11 +26,18 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 画面を縦向きに固定
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  // デバッグ情報を出力
+  developer.log('アプリ起動開始', name: 'Main');
+  developer.log('WEB版: $kIsWeb', name: 'Main');
+
+  // Web版では画面の縦向き固定を解除
+  if (!kIsWeb) {
+    // 画面を縦向きに固定
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
   //
   // システムUIの設定
   SystemChrome.setSystemUIOverlayStyle(
@@ -69,34 +76,75 @@ void main() async {
     }
 
     // その他のエラーは通常通り処理
+    developer.log('エラー発生: ${details.exception}', name: 'Main');
     FlutterError.presentError(details);
   };
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await initializeDateFormatting('ja_JP', null);
-  final themeSettings = await ThemeSettings.load();
+  try {
+    developer.log('Firebase初期化開始', name: 'Main');
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    developer.log('Firebase初期化完了', name: 'Main');
+  } catch (e) {
+    developer.log('Firebase初期化エラー: $e', name: 'Main');
+  }
 
-  // 初期インストール時にデフォルトテーマを適用
-  await themeSettings.initializeDefaultTheme();
+  try {
+    developer.log('日付フォーマット初期化開始', name: 'Main');
+    await initializeDateFormatting('ja_JP', null);
+    developer.log('日付フォーマット初期化完了', name: 'Main');
+  } catch (e) {
+    developer.log('日付フォーマット初期化エラー: $e', name: 'Main');
+  }
 
-  // Web版では通知サービスを初期化しない
-  if (!kIsWeb) {
-    // 焙煎タイマー通知サービスを初期化
-    await RoastTimerNotificationService.initialize();
+  try {
+    developer.log('テーマ設定読み込み開始', name: 'Main');
+    final themeSettings = await ThemeSettings.load();
+    developer.log('テーマ設定読み込み完了', name: 'Main');
 
-    // 通知権限をリクエスト
-    await RoastTimerNotificationService.requestPermissions();
+    // 初期インストール時にデフォルトテーマを適用
+    await themeSettings.initializeDefaultTheme();
+  } catch (e) {
+    developer.log('テーマ設定読み込みエラー: $e', name: 'Main');
   }
 
   // Web版では通知サービスを初期化しない
   if (!kIsWeb) {
-    // グローバルナビゲーションキーを通知サービスにセット
-    TodoNotificationService().setNavigatorKey(navigatorKey);
-    TodoNotificationService().startNotificationService();
+    try {
+      developer.log('通知サービス初期化開始', name: 'Main');
+      // 焙煎タイマー通知サービスを初期化
+      await RoastTimerNotificationService.initialize();
+
+      // 通知権限をリクエスト
+      await RoastTimerNotificationService.requestPermissions();
+      developer.log('通知サービス初期化完了', name: 'Main');
+    } catch (e) {
+      developer.log('通知サービス初期化エラー: $e', name: 'Main');
+    }
   }
 
-  // AutoSyncServiceを初期化
-  await AutoSyncService.initialize();
+  // Web版では通知サービスを初期化しない
+  if (!kIsWeb) {
+    try {
+      developer.log('TODO通知サービス初期化開始', name: 'Main');
+      // グローバルナビゲーションキーを通知サービスにセット
+      TodoNotificationService().setNavigatorKey(navigatorKey);
+      TodoNotificationService().startNotificationService();
+      developer.log('TODO通知サービス初期化完了', name: 'Main');
+    } catch (e) {
+      developer.log('TODO通知サービス初期化エラー: $e', name: 'Main');
+    }
+  }
+
+  try {
+    developer.log('AutoSyncService初期化開始', name: 'Main');
+    // AutoSyncServiceを初期化
+    await AutoSyncService.initialize();
+    developer.log('AutoSyncService初期化完了', name: 'Main');
+  } catch (e) {
+    developer.log('AutoSyncService初期化エラー: $e', name: 'Main');
+  }
 
   // アプリ終了時のクリーンアップを設定
   WidgetsBinding.instance.addObserver(
@@ -113,14 +161,24 @@ void main() async {
 
   // Web版では広告を初期化しない
   if (!kIsWeb) {
-    await MobileAds.instance.initialize();
+    try {
+      developer.log('広告初期化開始', name: 'Main');
+      await MobileAds.instance.initialize();
+      developer.log('広告初期化完了', name: 'Main');
+    } catch (e) {
+      developer.log('広告初期化エラー: $e', name: 'Main');
+    }
   }
+
+  developer.log('アプリ起動準備完了', name: 'Main');
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => RoastScheduleFormProvider()),
-        ChangeNotifierProvider<ThemeSettings>.value(value: themeSettings),
+        ChangeNotifierProvider<ThemeSettings>.value(
+          value: await ThemeSettings.load(),
+        ),
         ChangeNotifierProvider(create: (_) => GroupProvider()),
         ChangeNotifierProvider(create: (_) => WorkProgressProvider()),
         ChangeNotifierProvider(create: (_) => TastingProvider()),

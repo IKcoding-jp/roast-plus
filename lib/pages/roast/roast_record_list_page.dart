@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 import 'package:roastplus/models/roast_record.dart';
@@ -664,631 +665,680 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                     )
                   : Container(
                       color: Theme.of(context).scaffoldBackgroundColor,
-                      child: Column(
-                        children: [
-                          // 検索・フィルターカード
-                          Card(
-                            margin: EdgeInsets.all(16),
-                            elevation: 6,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            color: Provider.of<ThemeSettings>(
-                              context,
-                            ).cardBackgroundColor,
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // タイトル部分
-                                  GestureDetector(
-                                    onTap: () => setState(
-                                      () => _filterExpanded = !_filterExpanded,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.search,
-                                          color: Provider.of<ThemeSettings>(
-                                            context,
-                                          ).iconColor,
-                                          size: 24,
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: kIsWeb ? 1200 : double.infinity,
+                          ),
+                          child: Column(
+                            children: [
+                              // 検索・フィルターカード
+                              Card(
+                                margin: EdgeInsets.all(16),
+                                elevation: 6,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).cardBackgroundColor,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // タイトル部分
+                                      GestureDetector(
+                                        onTap: () => setState(
+                                          () => _filterExpanded =
+                                              !_filterExpanded,
                                         ),
-                                        SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            '検索・フィルター',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.search,
                                               color: Provider.of<ThemeSettings>(
                                                 context,
-                                              ).fontColor1,
+                                              ).iconColor,
+                                              size: 24,
                                             ),
-                                          ),
-                                        ),
-                                        Icon(
-                                          _filterExpanded
-                                              ? Icons.expand_less
-                                              : Icons.expand_more,
-                                          color: Provider.of<ThemeSettings>(
-                                            context,
-                                          ).iconColor,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (_filterExpanded) ...[
-                                    SizedBox(height: 16),
-                                    // 検索バー
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade50,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: Colors.grey.shade300,
+                                            SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                '検索・フィルター',
+                                                style: TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color:
+                                                      Provider.of<
+                                                            ThemeSettings
+                                                          >(context)
+                                                          .fontColor1,
+                                                ),
+                                              ),
+                                            ),
+                                            Icon(
+                                              _filterExpanded
+                                                  ? Icons.expand_less
+                                                  : Icons.expand_more,
+                                              color: Provider.of<ThemeSettings>(
+                                                context,
+                                              ).iconColor,
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      child: TextField(
-                                        decoration: InputDecoration(
-                                          hintText: 'キーワード検索',
-                                          prefixIcon: Icon(
-                                            Icons.search,
-                                            color: Provider.of<ThemeSettings>(
-                                              context,
-                                            ).iconColor,
-                                          ),
-                                          border: InputBorder.none,
-                                          contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 12,
-                                          ),
-                                        ),
-                                        onChanged: (v) =>
-                                            setState(() => _searchKeyword = v),
-                                      ),
-                                    ),
-                                    SizedBox(height: 14),
-                                    // フィルター行
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          flex: 3,
-                                          child: _buildFilterDropdown(
-                                            value: _selectedBean ?? '全て',
-                                            items: _dynamicBeanList,
-                                            label: '豆の種類',
-                                            onChanged: (v) => setState(
-                                              () => _selectedBean = v,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(width: 10),
-                                        Flexible(
-                                          flex: 2,
-                                          child: _buildFilterDropdown(
-                                            value: _selectedRoast ?? '全て',
-                                            items: _roastList,
-                                            label: '煎り度',
-                                            onChanged: (v) => setState(
-                                              () => _selectedRoast = v,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 14),
-                                    // 日付フィルター
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _buildDatePicker(
-                                            label: '開始日',
-                                            date: _startDate,
-                                            onTap: () async {
-                                              final picked =
-                                                  await showDatePicker(
-                                                    context: context,
-                                                    initialDate:
-                                                        _startDate ??
-                                                        DateTime.now(),
-                                                    firstDate: DateTime(2020),
-                                                    lastDate: DateTime(2100),
-                                                  );
-                                              if (picked != null) {
-                                                setState(
-                                                  () => _startDate = picked,
-                                                );
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          '~',
-                                          style: TextStyle(
-                                            color: Provider.of<ThemeSettings>(
-                                              context,
-                                            ).fontColor1,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Expanded(
-                                          child: _buildDatePicker(
-                                            label: '終了日',
-                                            date: _endDate,
-                                            onTap: () async {
-                                              final picked =
-                                                  await showDatePicker(
-                                                    context: context,
-                                                    initialDate:
-                                                        _endDate ??
-                                                        DateTime.now(),
-                                                    firstDate: DateTime(2020),
-                                                    lastDate: DateTime(2100),
-                                                  );
-                                              if (picked != null) {
-                                                setState(
-                                                  () => _endDate = picked,
-                                                );
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 14),
-                                    // リセットボタン
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: ElevatedButton.icon(
-                                        icon: Icon(Icons.refresh, size: 18),
-                                        label: Text('リセット'),
-                                        onPressed: () {
-                                          setState(() {
-                                            _searchKeyword = '';
-                                            _selectedBean = null;
-                                            _selectedRoast = null;
-                                            _startDate = null;
-                                            _endDate = null;
-                                          });
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              Provider.of<ThemeSettings>(
-                                                context,
-                                              ).buttonColor,
-                                          foregroundColor:
-                                              Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor2,
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 12,
-                                          ),
-                                          shape: RoundedRectangleBorder(
+                                      if (_filterExpanded) ...[
+                                        SizedBox(height: 16),
+                                        // 検索バー
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade50,
                                             borderRadius: BorderRadius.circular(
                                               10,
                                             ),
+                                            border: Border.all(
+                                              color: Colors.grey.shade300,
+                                            ),
                                           ),
-                                          elevation: 4,
+                                          child: TextField(
+                                            decoration: InputDecoration(
+                                              hintText: 'キーワード検索',
+                                              prefixIcon: Icon(
+                                                Icons.search,
+                                                color:
+                                                    Provider.of<ThemeSettings>(
+                                                      context,
+                                                    ).iconColor,
+                                              ),
+                                              border: InputBorder.none,
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 12,
+                                                  ),
+                                            ),
+                                            onChanged: (v) => setState(
+                                              () => _searchKeyword = v,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                                        SizedBox(height: 14),
+                                        // フィルター行
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              flex: 3,
+                                              child: _buildFilterDropdown(
+                                                value: _selectedBean ?? '全て',
+                                                items: _dynamicBeanList,
+                                                label: '豆の種類',
+                                                onChanged: (v) => setState(
+                                                  () => _selectedBean = v,
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(width: 10),
+                                            Flexible(
+                                              flex: 2,
+                                              child: _buildFilterDropdown(
+                                                value: _selectedRoast ?? '全て',
+                                                items: _roastList,
+                                                label: '煎り度',
+                                                onChanged: (v) => setState(
+                                                  () => _selectedRoast = v,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 14),
+                                        // 日付フィルター
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: _buildDatePicker(
+                                                label: '開始日',
+                                                date: _startDate,
+                                                onTap: () async {
+                                                  final picked =
+                                                      await showDatePicker(
+                                                        context: context,
+                                                        initialDate:
+                                                            _startDate ??
+                                                            DateTime.now(),
+                                                        firstDate: DateTime(
+                                                          2020,
+                                                        ),
+                                                        lastDate: DateTime(
+                                                          2100,
+                                                        ),
+                                                      );
+                                                  if (picked != null) {
+                                                    setState(
+                                                      () => _startDate = picked,
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              '~',
+                                              style: TextStyle(
+                                                color:
+                                                    Provider.of<ThemeSettings>(
+                                                      context,
+                                                    ).fontColor1,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Expanded(
+                                              child: _buildDatePicker(
+                                                label: '終了日',
+                                                date: _endDate,
+                                                onTap: () async {
+                                                  final picked =
+                                                      await showDatePicker(
+                                                        context: context,
+                                                        initialDate:
+                                                            _endDate ??
+                                                            DateTime.now(),
+                                                        firstDate: DateTime(
+                                                          2020,
+                                                        ),
+                                                        lastDate: DateTime(
+                                                          2100,
+                                                        ),
+                                                      );
+                                                  if (picked != null) {
+                                                    setState(
+                                                      () => _endDate = picked,
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 14),
+                                        // リセットボタン
+                                        Align(
+                                          alignment: Alignment.centerRight,
+                                          child: ElevatedButton.icon(
+                                            icon: Icon(Icons.refresh, size: 18),
+                                            label: Text('リセット'),
+                                            onPressed: () {
+                                              setState(() {
+                                                _searchKeyword = '';
+                                                _selectedBean = null;
+                                                _selectedRoast = null;
+                                                _startDate = null;
+                                                _endDate = null;
+                                              });
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Provider.of<ThemeSettings>(
+                                                    context,
+                                                  ).buttonColor,
+                                              foregroundColor:
+                                                  Provider.of<ThemeSettings>(
+                                                    context,
+                                                  ).fontColor2,
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 12,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              elevation: 4,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
 
-                          // 記録リスト
-                          Expanded(
-                            child: _records.isEmpty
-                                ? Center(
-                                    child: Card(
-                                      elevation: 6,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      color: Provider.of<ThemeSettings>(
-                                        context,
-                                      ).cardBackgroundColor,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(40),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.list,
-                                              size: 64,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).iconColor,
-                                            ),
-                                            SizedBox(height: 16),
-                                            Text(
-                                              '記録がありません',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color:
-                                                    Provider.of<ThemeSettings>(
-                                                      context,
-                                                    ).fontColor1,
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              '焙煎記録を入力してからご利用ください',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : filteredRecords.isEmpty
-                                ? Center(
-                                    child: Card(
-                                      elevation: 6,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      color: Provider.of<ThemeSettings>(
-                                        context,
-                                      ).cardBackgroundColor,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(40),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.search_off,
-                                              size: 64,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).iconColor,
-                                            ),
-                                            SizedBox(height: 16),
-                                            Text(
-                                              '条件に合う記録がありません',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color:
-                                                    Provider.of<ThemeSettings>(
-                                                      context,
-                                                    ).fontColor1,
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              '検索条件を変更してください',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : PerformanceUtils.optimizedListViewBuilder(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    itemCount: filteredRecords.length,
-                                    itemBuilder: (context, index) {
-                                      final record = filteredRecords[index];
-                                      final selected = _selectedIndexes
-                                          .contains(index);
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                        ),
+                              // 記録リスト
+                              Expanded(
+                                child: _records.isEmpty
+                                    ? Center(
                                         child: Card(
-                                          elevation: 4,
+                                          elevation: 6,
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
                                               16,
                                             ),
                                           ),
-                                          color: selected
-                                              ? Provider.of<ThemeSettings>(
-                                                  context,
-                                                ).buttonColor.withValues(
-                                                  alpha: 0.08,
-                                                )
-                                              : Provider.of<ThemeSettings>(
-                                                  context,
-                                                ).cardBackgroundColor,
-                                          child: GestureDetector(
-                                            onTap: null, // タップ機能を無効化
-                                            child: Container(
-                                              padding: const EdgeInsets.all(16),
-                                              child: Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  // アイコン部分
-                                                  Container(
-                                                    padding: EdgeInsets.all(8),
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .iconColor
-                                                              .withValues(
-                                                                alpha: 0.12,
-                                                              ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
-                                                          ),
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.coffee,
-                                                      color:
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .iconColor,
-                                                      size: 24,
-                                                    ),
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).cardBackgroundColor,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(40),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.list,
+                                                  size: 64,
+                                                  color:
+                                                      Provider.of<
+                                                            ThemeSettings
+                                                          >(context)
+                                                          .iconColor,
+                                                ),
+                                                SizedBox(height: 16),
+                                                Text(
+                                                  '記録がありません',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
                                                   ),
-                                                  SizedBox(width: 16),
-                                                  // メインコンテンツ部分
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        // タイトル部分
-                                                        BeanNameWithSticker(
-                                                          beanName: record.bean,
-                                                          textStyle: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 16,
-                                                            color:
-                                                                Provider.of<
-                                                                      ThemeSettings
-                                                                    >(context)
-                                                                    .fontColor1,
-                                                          ),
-                                                          stickerSize: 16.0,
+                                                ),
+                                                SizedBox(height: 8),
+                                                Text(
+                                                  '焙煎記録を入力してからご利用ください',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : filteredRecords.isEmpty
+                                    ? Center(
+                                        child: Card(
+                                          elevation: 6,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                          ),
+                                          color: Provider.of<ThemeSettings>(
+                                            context,
+                                          ).cardBackgroundColor,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(40),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.search_off,
+                                                  size: 64,
+                                                  color:
+                                                      Provider.of<
+                                                            ThemeSettings
+                                                          >(context)
+                                                          .iconColor,
+                                                ),
+                                                SizedBox(height: 16),
+                                                Text(
+                                                  '条件に合う記録がありません',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 8),
+                                                Text(
+                                                  '検索条件を変更してください',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : PerformanceUtils.optimizedListViewBuilder(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                        ),
+                                        itemCount: filteredRecords.length,
+                                        itemBuilder: (context, index) {
+                                          final record = filteredRecords[index];
+                                          final selected = _selectedIndexes
+                                              .contains(index);
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 8,
+                                            ),
+                                            child: Card(
+                                              elevation: 4,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                              ),
+                                              color: selected
+                                                  ? Provider.of<ThemeSettings>(
+                                                      context,
+                                                    ).buttonColor.withValues(
+                                                      alpha: 0.08,
+                                                    )
+                                                  : Provider.of<ThemeSettings>(
+                                                      context,
+                                                    ).cardBackgroundColor,
+                                              child: GestureDetector(
+                                                onTap: null, // タップ機能を無効化
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(
+                                                    16,
+                                                  ),
+                                                  child: Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      // アイコン部分
+                                                      Container(
+                                                        padding: EdgeInsets.all(
+                                                          8,
                                                         ),
-                                                        Text(
-                                                          '（${record.weight}g）',
-                                                          style: TextStyle(
-                                                            fontSize: 14,
-                                                            color:
-                                                                Provider.of<
-                                                                      ThemeSettings
-                                                                    >(context)
-                                                                    .fontColor1
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          0.7,
-                                                                    ),
-                                                          ),
-                                                        ),
-                                                        SizedBox(height: 8),
-                                                        // 詳細情報
-                                                        Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons.timer,
-                                                              size: 16,
-                                                              color:
-                                                                  Provider.of<
-                                                                        ThemeSettings
-                                                                      >(context)
-                                                                      .iconColor,
-                                                            ),
-                                                            SizedBox(width: 4),
-                                                            Flexible(
-                                                              child: Text(
-                                                                '焙煎時間: ${record.time}',
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
+                                                        decoration: BoxDecoration(
+                                                          color:
+                                                              Provider.of<
+                                                                    ThemeSettings
+                                                                  >(context)
+                                                                  .iconColor
+                                                                  .withValues(
+                                                                    alpha: 0.12,
+                                                                  ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                8,
                                                               ),
-                                                            ),
-                                                          ],
                                                         ),
-                                                        SizedBox(height: 4),
-                                                        Row(
+                                                        child: Icon(
+                                                          Icons.coffee,
+                                                          color:
+                                                              Provider.of<
+                                                                    ThemeSettings
+                                                                  >(context)
+                                                                  .iconColor,
+                                                          size: 24,
+                                                        ),
+                                                      ),
+                                                      SizedBox(width: 16),
+                                                      // メインコンテンツ部分
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
                                                           children: [
-                                                            Icon(
-                                                              Icons
-                                                                  .local_fire_department,
-                                                              size: 16,
-                                                              color:
-                                                                  Provider.of<
-                                                                        ThemeSettings
-                                                                      >(context)
-                                                                      .iconColor,
-                                                            ),
-                                                            SizedBox(width: 4),
-                                                            Flexible(
-                                                              child: Text(
-                                                                '煎り度: ${record.roast}',
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        if (record.memo
-                                                            .trim()
-                                                            .isNotEmpty) ...[
-                                                          SizedBox(height: 4),
-                                                          Row(
-                                                            crossAxisAlignment:
-                                                                CrossAxisAlignment
-                                                                    .start,
-                                                            children: [
-                                                              Icon(
-                                                                Icons.note,
-                                                                size: 16,
+                                                            // タイトル部分
+                                                            BeanNameWithSticker(
+                                                              beanName:
+                                                                  record.bean,
+                                                              textStyle: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 16,
                                                                 color:
                                                                     Provider.of<
                                                                           ThemeSettings
                                                                         >(context)
-                                                                        .iconColor,
+                                                                        .fontColor1,
                                                               ),
-                                                              SizedBox(
-                                                                width: 4,
-                                                              ),
-                                                              Expanded(
-                                                                child: Text(
-                                                                  record.memo,
-                                                                  maxLines: 2,
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .ellipsis,
-                                                                  style:
-                                                                      TextStyle(
-                                                                        fontSize:
-                                                                            13,
-                                                                      ),
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ],
-                                                        SizedBox(height: 4),
-                                                        Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons
-                                                                  .calendar_today,
-                                                              size: 16,
-                                                              color:
-                                                                  Provider.of<
-                                                                        ThemeSettings
-                                                                      >(context)
-                                                                      .iconColor,
+                                                              stickerSize: 16.0,
                                                             ),
-                                                            SizedBox(width: 4),
-                                                            Flexible(
-                                                              child: Text(
-                                                                _formatTimestamp(
-                                                                  record
-                                                                      .timestamp,
-                                                                ),
-                                                                style: TextStyle(
-                                                                  fontSize: 13,
+                                                            Text(
+                                                              '（${record.weight}g）',
+                                                              style: TextStyle(
+                                                                fontSize: 14,
+                                                                color:
+                                                                    Provider.of<
+                                                                          ThemeSettings
+                                                                        >(
+                                                                          context,
+                                                                        )
+                                                                        .fontColor1
+                                                                        .withValues(
+                                                                          alpha:
+                                                                              0.7,
+                                                                        ),
+                                                              ),
+                                                            ),
+                                                            SizedBox(height: 8),
+                                                            // 詳細情報
+                                                            Row(
+                                                              children: [
+                                                                Icon(
+                                                                  Icons.timer,
+                                                                  size: 16,
                                                                   color:
                                                                       Provider.of<
                                                                             ThemeSettings
-                                                                          >(
-                                                                            context,
-                                                                          )
-                                                                          .fontColor1
-                                                                          .withValues(
-                                                                            alpha:
-                                                                                0.7,
-                                                                          ),
+                                                                          >(context)
+                                                                          .iconColor,
                                                                 ),
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
+                                                                SizedBox(
+                                                                  width: 4,
+                                                                ),
+                                                                Flexible(
+                                                                  child: Text(
+                                                                    '焙煎時間: ${record.time}',
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            SizedBox(height: 4),
+                                                            Row(
+                                                              children: [
+                                                                Icon(
+                                                                  Icons
+                                                                      .local_fire_department,
+                                                                  size: 16,
+                                                                  color:
+                                                                      Provider.of<
+                                                                            ThemeSettings
+                                                                          >(context)
+                                                                          .iconColor,
+                                                                ),
+                                                                SizedBox(
+                                                                  width: 4,
+                                                                ),
+                                                                Flexible(
+                                                                  child: Text(
+                                                                    '煎り度: ${record.roast}',
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            if (record.memo
+                                                                .trim()
+                                                                .isNotEmpty) ...[
+                                                              SizedBox(
+                                                                height: 4,
                                                               ),
+                                                              Row(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons.note,
+                                                                    size: 16,
+                                                                    color:
+                                                                        Provider.of<
+                                                                              ThemeSettings
+                                                                            >(context)
+                                                                            .iconColor,
+                                                                  ),
+                                                                  SizedBox(
+                                                                    width: 4,
+                                                                  ),
+                                                                  Expanded(
+                                                                    child: Text(
+                                                                      record
+                                                                          .memo,
+                                                                      maxLines:
+                                                                          2,
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      style: TextStyle(
+                                                                        fontSize:
+                                                                            13,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                            SizedBox(height: 4),
+                                                            Row(
+                                                              children: [
+                                                                Icon(
+                                                                  Icons
+                                                                      .calendar_today,
+                                                                  size: 16,
+                                                                  color:
+                                                                      Provider.of<
+                                                                            ThemeSettings
+                                                                          >(context)
+                                                                          .iconColor,
+                                                                ),
+                                                                SizedBox(
+                                                                  width: 4,
+                                                                ),
+                                                                Flexible(
+                                                                  child: Text(
+                                                                    _formatTimestamp(
+                                                                      record
+                                                                          .timestamp,
+                                                                    ),
+                                                                    style: TextStyle(
+                                                                      fontSize:
+                                                                          13,
+                                                                      color:
+                                                                          Provider.of<
+                                                                                ThemeSettings
+                                                                              >(context)
+                                                                              .fontColor1
+                                                                              .withValues(
+                                                                                alpha: 0.7,
+                                                                              ),
+                                                                    ),
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                  ),
+                                                                ),
+                                                              ],
                                                             ),
                                                           ],
                                                         ),
-                                                      ],
-                                                    ),
+                                                      ),
+                                                      // アクションボタン部分
+                                                      if (!_selectionMode)
+                                                        Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            // 編集ボタン
+                                                            if (_canEditRoastRecords)
+                                                              IconButton(
+                                                                icon: Icon(
+                                                                  Icons.edit,
+                                                                  color:
+                                                                      Provider.of<
+                                                                            ThemeSettings
+                                                                          >(context)
+                                                                          .iconColor,
+                                                                ),
+                                                                onPressed: () =>
+                                                                    _editRecord(
+                                                                      record,
+                                                                    ),
+                                                                iconSize: 24,
+                                                                padding:
+                                                                    EdgeInsets.all(
+                                                                      8,
+                                                                    ),
+                                                                tooltip: '編集',
+                                                              ),
+                                                            // 削除ボタン
+                                                            if (_canDeleteRoastRecords(
+                                                                  context,
+                                                                ) &&
+                                                                _canDeleteRoastRecordsPermission)
+                                                              IconButton(
+                                                                icon: Icon(
+                                                                  Icons.delete,
+                                                                  color:
+                                                                      Provider.of<
+                                                                            ThemeSettings
+                                                                          >(context)
+                                                                          .iconColor,
+                                                                ),
+                                                                onPressed: () =>
+                                                                    _deleteRecords(
+                                                                      [index],
+                                                                    ),
+                                                                iconSize: 24,
+                                                                padding:
+                                                                    EdgeInsets.all(
+                                                                      8,
+                                                                    ),
+                                                                tooltip: '削除',
+                                                              ),
+                                                          ],
+                                                        )
+                                                      else
+                                                        Checkbox(
+                                                          value: selected,
+                                                          onChanged: (val) =>
+                                                              _toggleSelection(
+                                                                index,
+                                                              ),
+                                                          activeColor:
+                                                              Provider.of<
+                                                                    ThemeSettings
+                                                                  >(context)
+                                                                  .buttonColor,
+                                                        ),
+                                                    ],
                                                   ),
-                                                  // アクションボタン部分
-                                                  if (!_selectionMode)
-                                                    Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        // 編集ボタン
-                                                        if (_canEditRoastRecords)
-                                                          IconButton(
-                                                            icon: Icon(
-                                                              Icons.edit,
-                                                              color:
-                                                                  Provider.of<
-                                                                        ThemeSettings
-                                                                      >(context)
-                                                                      .iconColor,
-                                                            ),
-                                                            onPressed: () =>
-                                                                _editRecord(
-                                                                  record,
-                                                                ),
-                                                            iconSize: 24,
-                                                            padding:
-                                                                EdgeInsets.all(
-                                                                  8,
-                                                                ),
-                                                            tooltip: '編集',
-                                                          ),
-                                                        // 削除ボタン
-                                                        if (_canDeleteRoastRecords(
-                                                              context,
-                                                            ) &&
-                                                            _canDeleteRoastRecordsPermission)
-                                                          IconButton(
-                                                            icon: Icon(
-                                                              Icons.delete,
-                                                              color:
-                                                                  Provider.of<
-                                                                        ThemeSettings
-                                                                      >(context)
-                                                                      .iconColor,
-                                                            ),
-                                                            onPressed: () =>
-                                                                _deleteRecords([
-                                                                  index,
-                                                                ]),
-                                                            iconSize: 24,
-                                                            padding:
-                                                                EdgeInsets.all(
-                                                                  8,
-                                                                ),
-                                                            tooltip: '削除',
-                                                          ),
-                                                      ],
-                                                    )
-                                                  else
-                                                    Checkbox(
-                                                      value: selected,
-                                                      onChanged: (val) =>
-                                                          _toggleSelection(
-                                                            index,
-                                                          ),
-                                                      activeColor:
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .buttonColor,
-                                                    ),
-                                                ],
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
             );

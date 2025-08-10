@@ -35,6 +35,7 @@ import 'pages/group/group_qr_scanner_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
 import 'utils/app_performance_config.dart';
+import 'utils/web_ui_utils.dart';
 import 'widgets/lottie_animation_widget.dart';
 // navigatorKeyが定義されているファイルをimport
 
@@ -785,6 +786,15 @@ class MainScaffoldState extends State<MainScaffold> {
     AssignmentBoard(key: assignmentBoardKey), // 担当表
   ];
 
+  // ナビゲーションアイテムの定義
+  final List<NavigationItem> _navigationItems = [
+    NavigationItem(title: '焙煎タイマー', icon: Icons.local_fire_department),
+    NavigationItem(title: 'カウンター', icon: Icons.local_cafe),
+    NavigationItem(title: 'ホーム', icon: Icons.home),
+    NavigationItem(title: 'スケジュール', icon: Icons.pending_actions),
+    NavigationItem(title: '担当表', icon: Icons.group),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -905,177 +915,231 @@ class MainScaffoldState extends State<MainScaffold> {
           return const GroupRequiredPage();
         }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Row(
-              children: [
-                SizedBox(width: 8),
-                Text(
-                  'ローストプラス',
-                  style: TextStyle(
-                    color: Provider.of<ThemeSettings>(context).appBarTextColor,
-                    fontSize: MediaQuery.of(context).size.height < 600
-                        ? 16
-                        : 18,
-                  ),
-                ),
-              ],
-            ),
-            toolbarHeight: MediaQuery.of(context).size.height < 600 ? 48 : 56,
-          ),
-          body: SafeArea(
-            child: Stack(
-              children: [
-                // Web版では寄付者チェックをスキップ
-                FutureBuilder<bool>(
-                  future: kIsWeb ? Future.value(true) : isDonorUser(),
-                  builder: (context, snapshot) {
-                    final isDonor = snapshot.data == true;
-                    // Web版では広告のパディングを適用しない
-                    final bottomPadding = kIsWeb || isDonor
-                        ? 0.0
-                        : (_isBannerAdLoaded ? _bannerHeight : 0.0);
+        // WEB版とモバイル版で異なるレイアウトを適用
+        if (WebUIUtils.isWeb) {
+          return _buildWebLayout();
+        } else {
+          return _buildMobileLayout();
+        }
+      },
+    );
+  }
 
-                    // 画面サイズに応じてパディングを調整
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: bottomPadding),
-                      child: PageView(
-                        controller: _pageController,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _selectedIndex = index;
-                          });
-                        },
-                        children: _pages,
+  /// WEB版用のレイアウトを構築
+  Widget _buildWebLayout() {
+    final themeSettings = Provider.of<ThemeSettings>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: themeSettings.appBarColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.local_cafe,
+                color: themeSettings.appBarTextColor,
+                size: 24,
+              ),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'ローストプラス',
+              style: TextStyle(
+                color: themeSettings.appBarTextColor,
+                fontSize: 22 * WebUIUtils.getFontSizeScale(context),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: themeSettings.appBarColor,
+        foregroundColor: themeSettings.appBarTextColor,
+        elevation: 0,
+        toolbarHeight: 70,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+        ),
+      ),
+      body: WebUIUtils.responsiveContainer(
+        context: context,
+        child: _pages[_selectedIndex],
+      ),
+    );
+  }
+
+  /// モバイル版用のレイアウトを構築（従来の実装）
+  Widget _buildMobileLayout() {
+    final themeSettings = Provider.of<ThemeSettings>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            SizedBox(width: 8),
+            Text(
+              'ローストプラス',
+              style: TextStyle(
+                color: themeSettings.appBarTextColor,
+                fontSize: MediaQuery.of(context).size.height < 600 ? 16 : 18,
+              ),
+            ),
+          ],
+        ),
+        toolbarHeight: MediaQuery.of(context).size.height < 600 ? 48 : 56,
+      ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Web版では寄付者チェックをスキップ
+            FutureBuilder<bool>(
+              future: kIsWeb ? Future.value(true) : isDonorUser(),
+              builder: (context, snapshot) {
+                final isDonor = snapshot.data == true;
+                // Web版では広告のパディングを適用しない
+                final bottomPadding = kIsWeb || isDonor
+                    ? 0.0
+                    : (_isBannerAdLoaded ? _bannerHeight : 0.0);
+
+                // 画面サイズに応じてパディングを調整
+                return Padding(
+                  padding: EdgeInsets.only(bottom: bottomPadding),
+                  child: PageView(
+                    controller: _pageController,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _selectedIndex = index;
+                      });
+                    },
+                    children: _pages,
+                  ),
+                );
+              },
+            ),
+            // Web版では広告を表示しない
+            if (!kIsWeb)
+              FutureBuilder<bool>(
+                future: isDonorUser(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return SizedBox.shrink();
+                  }
+                  if (snapshot.data == true) return SizedBox.shrink();
+                  if (_isBannerAdLoaded && _bannerAd != null) {
+                    return Align(
+                      alignment: Alignment.bottomCenter,
+                      child: SizedBox(
+                        width: _bannerAd!.size.width.toDouble(),
+                        height: _bannerAd!.size.height.toDouble(),
+                        child: AdWidget(ad: _bannerAd!),
                       ),
                     );
-                  },
-                ),
-                // Web版では広告を表示しない
-                if (!kIsWeb)
-                  FutureBuilder<bool>(
-                    future: isDonorUser(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState != ConnectionState.done) {
-                        return SizedBox.shrink();
-                      }
-                      if (snapshot.data == true) return SizedBox.shrink();
-                      if (_isBannerAdLoaded && _bannerAd != null) {
-                        return Align(
-                          alignment: Alignment.bottomCenter,
-                          child: SizedBox(
-                            width: _bannerAd!.size.width.toDouble(),
-                            height: _bannerAd!.size.height.toDouble(),
-                            child: AdWidget(ad: _bannerAd!),
-                          ),
-                        );
-                      }
-                      return SizedBox.shrink();
-                    },
+                  }
+                  return SizedBox.shrink();
+                },
+              ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Consumer<ThemeSettings>(
+        builder: (context, themeSettings, child) {
+          final fontSize = (12 * themeSettings.fontSizeScale).clamp(8.0, 14.0);
+
+          // 画面サイズに応じてボトムナビゲーションの高さを調整
+          final screenHeight = MediaQuery.of(context).size.height;
+          final screenWidth = MediaQuery.of(context).size.width;
+
+          // 小さい画面では高さを小さく、アイコンサイズも調整
+          double barHeight;
+          double iconSize;
+
+          if (screenHeight < 600) {
+            // 非常に小さい画面（iPhone SE等）
+            barHeight = 48.0;
+            iconSize = 20.0;
+          } else if (screenHeight < 700) {
+            // 小さい画面
+            barHeight = 52.0;
+            iconSize = 22.0;
+          } else if (screenHeight < 800) {
+            // 中程度の画面
+            barHeight = 56.0;
+            iconSize = 24.0;
+          } else {
+            // 大きい画面
+            barHeight = (56 + (themeSettings.fontSizeScale - 1.0) * 20).clamp(
+              56.0,
+              80.0,
+            );
+            iconSize = 24.0;
+          }
+
+          // 幅が狭い場合はフォントサイズを小さく
+          final adjustedFontSize = screenWidth < 360
+              ? fontSize * 0.8
+              : fontSize;
+
+          return SafeArea(
+            child: Container(
+              height: barHeight,
+              decoration: BoxDecoration(
+                color: themeSettings.bottomNavigationColor,
+                border: Border(
+                  top: BorderSide(
+                    color: themeSettings.fontColor1.withValues(alpha: 0.1),
+                    width: 0.5,
                   ),
-              ],
+                ),
+              ),
+              child: BottomNavigationBar(
+                type: BottomNavigationBarType.fixed,
+                currentIndex: _selectedIndex,
+                onTap: _onItemTapped,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                selectedItemColor: themeSettings.bottomNavigationSelectedColor,
+                unselectedItemColor:
+                    themeSettings.bottomNavigationUnselectedColor,
+                selectedLabelStyle: TextStyle(
+                  fontSize: adjustedFontSize,
+                  fontFamily: themeSettings.fontFamily,
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontSize: adjustedFontSize,
+                  fontFamily: themeSettings.fontFamily,
+                  fontWeight: FontWeight.w400,
+                ),
+                items: [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.local_fire_department, size: iconSize),
+                    label: '焙煎タイマー',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.local_cafe, size: iconSize),
+                    label: 'カウンター',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home, size: iconSize),
+                    label: 'ホーム',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.pending_actions, size: iconSize),
+                    label: 'スケジュール',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.group, size: iconSize),
+                    label: '担当表',
+                  ),
+                ],
+              ),
             ),
-          ),
-          bottomNavigationBar: Consumer<ThemeSettings>(
-            builder: (context, themeSettings, child) {
-              final fontSize = (12 * themeSettings.fontSizeScale).clamp(
-                8.0,
-                14.0,
-              );
-
-              // 画面サイズに応じてボトムナビゲーションの高さを調整
-              final screenHeight = MediaQuery.of(context).size.height;
-              final screenWidth = MediaQuery.of(context).size.width;
-
-              // 小さい画面では高さを小さく、アイコンサイズも調整
-              double barHeight;
-              double iconSize;
-
-              if (screenHeight < 600) {
-                // 非常に小さい画面（iPhone SE等）
-                barHeight = 48.0;
-                iconSize = 20.0;
-              } else if (screenHeight < 700) {
-                // 小さい画面
-                barHeight = 52.0;
-                iconSize = 22.0;
-              } else if (screenHeight < 800) {
-                // 中程度の画面
-                barHeight = 56.0;
-                iconSize = 24.0;
-              } else {
-                // 大きい画面
-                barHeight = (56 + (themeSettings.fontSizeScale - 1.0) * 20)
-                    .clamp(56.0, 80.0);
-                iconSize = 24.0;
-              }
-
-              // 幅が狭い場合はフォントサイズを小さく
-              final adjustedFontSize = screenWidth < 360
-                  ? fontSize * 0.8
-                  : fontSize;
-
-              return SafeArea(
-                child: Container(
-                  height: barHeight,
-                  decoration: BoxDecoration(
-                    color: themeSettings.bottomNavigationColor,
-                    border: Border(
-                      top: BorderSide(
-                        color: themeSettings.fontColor1.withValues(alpha: 0.1),
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  child: BottomNavigationBar(
-                    type: BottomNavigationBarType.fixed,
-                    currentIndex: _selectedIndex,
-                    onTap: _onItemTapped,
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    selectedItemColor:
-                        themeSettings.bottomNavigationSelectedColor,
-                    unselectedItemColor:
-                        themeSettings.bottomNavigationUnselectedColor,
-                    selectedLabelStyle: TextStyle(
-                      fontSize: adjustedFontSize,
-                      fontFamily: themeSettings.fontFamily,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    unselectedLabelStyle: TextStyle(
-                      fontSize: adjustedFontSize,
-                      fontFamily: themeSettings.fontFamily,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    items: [
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.local_fire_department, size: iconSize),
-                        label: '焙煎タイマー',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.local_cafe, size: iconSize),
-                        label: 'カウンター',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.home, size: iconSize),
-                        label: 'ホーム',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.pending_actions, size: iconSize),
-                        label: 'スケジュール',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.group, size: iconSize),
-                        label: '担当表',
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

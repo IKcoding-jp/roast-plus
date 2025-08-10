@@ -1,5 +1,6 @@
 import '../settings/assignment_settings_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
@@ -1540,255 +1541,446 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           ),
           body: Container(
             color: Provider.of<ThemeSettings>(context).backgroundColor,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // 出勤退勤状況の表示
-                  if (!_isAttendanceLoading && visibleAttendance.isNotEmpty)
-                    Card(
-                      elevation: 4,
-                      color: Provider.of<ThemeSettings>(
-                        context,
-                      ).cardBackgroundColor,
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: kIsWeb ? 800 : double.infinity,
+                ),
+                child: SingleChildScrollView(
+                  padding: kIsWeb
+                      ? EdgeInsets.symmetric(vertical: 16, horizontal: 4)
+                      : EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // 出勤退勤状況の表示
+                      if (!_isAttendanceLoading && visibleAttendance.isNotEmpty)
+                        Card(
+                          elevation: 4,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).cardBackgroundColor,
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.access_time, color: Colors.blue),
-                                SizedBox(width: 8),
-                                Text(
-                                  '今日の出勤状況',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Provider.of<ThemeSettings>(
-                                      context,
-                                    ).fontColor1,
-                                  ),
+                                Row(
+                                  children: [
+                                    Icon(Icons.access_time, color: Colors.blue),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      '今日の出勤状況',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).fontColor1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: visibleAttendance.map((record) {
+                                    return Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            record.status ==
+                                                AttendanceStatus.present
+                                            ? Colors.white
+                                            : Colors.red,
+                                        border: Border.all(
+                                          color:
+                                              record.status ==
+                                                  AttendanceStatus.present
+                                              ? Colors.grey.shade400
+                                              : Colors.red.shade700,
+                                          width: 2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        record.memberName,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color:
+                                              record.status ==
+                                                  AttendanceStatus.present
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: visibleAttendance.map((record) {
-                                return Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        record.status ==
-                                            AttendanceStatus.present
-                                        ? Colors.white
-                                        : Colors.red,
-                                    border: Border.all(
-                                      color:
-                                          record.status ==
-                                              AttendanceStatus.present
-                                          ? Colors.grey.shade400
-                                          : Colors.red.shade700,
-                                      width: 2,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    record.memberName,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          record.status ==
-                                              AttendanceStatus.present
-                                          ? Colors.black
-                                          : Colors.white,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  SizedBox(height: 16),
-                  // 担当表の表示
-                  Container(
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Provider.of<ThemeSettings>(
-                        context,
-                      ).cardBackgroundColor,
-                      border: Border.all(color: Colors.black26),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        // ヘッダー行
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      SizedBox(height: 16),
+                      // 担当表の表示
+                      Center(
+                        child: Container(
+                          padding: kIsWeb
+                              ? EdgeInsets.symmetric(
+                                  vertical: 20,
+                                  horizontal: 16,
+                                )
+                              : EdgeInsets.all(20),
+                          constraints: kIsWeb
+                              ? BoxConstraints(maxWidth: 600)
+                              : null,
+                          decoration: BoxDecoration(
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).cardBackgroundColor,
+                            border: Border.all(color: Colors.black26),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
                             children: [
-                              SizedBox(width: 80),
-                              ...teams.map(
-                                (team) => Expanded(
+                              // ヘッダー行
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12.0),
+                                child: Row(
+                                  mainAxisAlignment: kIsWeb
+                                      ? MainAxisAlignment.center
+                                      : MainAxisAlignment.spaceBetween,
+                                  children: kIsWeb
+                                      ? [
+                                          for (
+                                            int i = 0;
+                                            i < teams.length;
+                                            i++
+                                          ) ...[
+                                            SizedBox(
+                                              width: 120,
+                                              child: Center(
+                                                child: Text(
+                                                  teams[i].name,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        20 *
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontSizeScale,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            if (i < teams.length - 1)
+                                              SizedBox(width: 8),
+                                          ],
+                                        ]
+                                      : [
+                                          SizedBox(width: 80),
+                                          ...teams.map(
+                                            (team) => Expanded(
+                                              child: Center(
+                                                child: Text(
+                                                  team.name,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        20 *
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontSizeScale,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 80),
+                                        ],
+                                ),
+                              ),
+                              // ラベルが空かつ全チームのメンバーが空の場合のみ赤字で表示
+                              if (leftLabels.isEmpty &&
+                                  teams.every((t) => t.members.isEmpty))
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 24.0,
+                                  ),
                                   child: Center(
                                     child: Text(
-                                      team.name,
+                                      'メンバーとラベルを追加してください',
                                       style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        fontSize:
-                                            20 *
-                                            Provider.of<ThemeSettings>(
-                                              context,
-                                            ).fontSizeScale,
-                                        color: Provider.of<ThemeSettings>(
-                                          context,
-                                        ).fontColor1,
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
-                              SizedBox(width: 80),
+                                )
+                              else
+                                // 柔軟な行数で表示（ラベル数分のみ）
+                                ...List.generate(leftLabels.length, (i) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8.0,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: kIsWeb
+                                          ? MainAxisAlignment.center
+                                          : MainAxisAlignment.spaceBetween,
+                                      children: kIsWeb
+                                          ? [
+                                              SizedBox(
+                                                width: 80,
+                                                child: Text(
+                                                  i < leftLabels.length
+                                                      ? leftLabels[i]
+                                                      : '',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        18 *
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontSizeScale,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                ),
+                                              ),
+                                              ...teams
+                                                  .asMap()
+                                                  .entries
+                                                  .map((entry) {
+                                                    final teamIndex = entry.key;
+                                                    final team = entry.value;
+                                                    return [
+                                                      SizedBox(
+                                                        width: 120,
+                                                        child: Center(
+                                                          child: MemberCard(
+                                                            name:
+                                                                i <
+                                                                        team
+                                                                            .members
+                                                                            .length &&
+                                                                    team
+                                                                        .members[i]
+                                                                        .isNotEmpty
+                                                                ? team.members[i]
+                                                                : '未設定',
+                                                            attendanceStatus: _getMemberAttendanceStatus(
+                                                              i <
+                                                                          team
+                                                                              .members
+                                                                              .length &&
+                                                                      team
+                                                                          .members[i]
+                                                                          .isNotEmpty
+                                                                  ? team.members[i]
+                                                                  : '未設定',
+                                                            ),
+                                                            onTap: () {
+                                                              if (i <
+                                                                      team
+                                                                          .members
+                                                                          .length &&
+                                                                  team
+                                                                      .members[i]
+                                                                      .isNotEmpty) {
+                                                                _showAttendanceDialog(
+                                                                  team.members[i],
+                                                                );
+                                                              }
+                                                            },
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      if (teamIndex <
+                                                          teams.length - 1)
+                                                        SizedBox(width: 8),
+                                                    ];
+                                                  })
+                                                  .expand((widgets) => widgets),
+                                              SizedBox(
+                                                width: 80,
+                                                child: Text(
+                                                  i < rightLabels.length
+                                                      ? rightLabels[i]
+                                                      : '',
+                                                  textAlign: TextAlign.right,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        18 *
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontSizeScale,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ]
+                                          : [
+                                              SizedBox(
+                                                width: 80,
+                                                child: Text(
+                                                  i < leftLabels.length
+                                                      ? leftLabels[i]
+                                                      : '',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        18 *
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontSizeScale,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                ),
+                                              ),
+                                              ...teams.map(
+                                                (team) => Expanded(
+                                                  child: Center(
+                                                    child: MemberCard(
+                                                      name:
+                                                          i <
+                                                                  team
+                                                                      .members
+                                                                      .length &&
+                                                              team
+                                                                  .members[i]
+                                                                  .isNotEmpty
+                                                          ? team.members[i]
+                                                          : '未設定',
+                                                      attendanceStatus: _getMemberAttendanceStatus(
+                                                        i <
+                                                                    team
+                                                                        .members
+                                                                        .length &&
+                                                                team
+                                                                    .members[i]
+                                                                    .isNotEmpty
+                                                            ? team.members[i]
+                                                            : '未設定',
+                                                      ),
+                                                      onTap: () {
+                                                        if (i <
+                                                                team
+                                                                    .members
+                                                                    .length &&
+                                                            team
+                                                                .members[i]
+                                                                .isNotEmpty) {
+                                                          _showAttendanceDialog(
+                                                            team.members[i],
+                                                          );
+                                                        }
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width: 80,
+                                                child: Text(
+                                                  i < rightLabels.length
+                                                      ? rightLabels[i]
+                                                      : '',
+                                                  textAlign: TextAlign.right,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        18 *
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontSizeScale,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                    ),
+                                  );
+                                }),
                             ],
                           ),
                         ),
-                        // ラベルが空かつ全チームのメンバーが空の場合のみ赤字で表示
-                        if (leftLabels.isEmpty &&
-                            teams.every((t) => t.members.isEmpty))
+                      ),
+                      SizedBox(height: 32),
+                      // 担当決定ボタン（編集権限がある場合のみ表示）
+                      if (_canEditAssignment == true) ...[
+                        // デバッグ情報を表示（開発時のみ）
+                        if (isDeveloperMode)
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 24.0),
-                            child: Center(
-                              child: Text(
-                                'メンバーとラベルを追加してください',
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            padding: EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              'デバッグ: 編集権限=$_canEditAssignment',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
                               ),
                             ),
-                          )
-                        else
-                          // 柔軟な行数で表示（ラベル数分のみ）
-                          ...List.generate(leftLabels.length, (i) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 8.0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  SizedBox(
-                                    width: 80,
-                                    child: Text(
-                                      i < leftLabels.length
-                                          ? leftLabels[i]
-                                          : '',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize:
-                                            18 *
-                                            Provider.of<ThemeSettings>(
-                                              context,
-                                            ).fontSizeScale,
-                                        color: Provider.of<ThemeSettings>(
-                                          context,
-                                        ).fontColor1,
-                                      ),
-                                    ),
-                                  ),
-                                  ...teams.map(
-                                    (team) => Expanded(
-                                      child: Center(
-                                        child: MemberCard(
-                                          name:
-                                              i < team.members.length &&
-                                                  team.members[i].isNotEmpty
-                                              ? team.members[i]
-                                              : '未設定',
-                                          attendanceStatus:
-                                              _getMemberAttendanceStatus(
-                                                i < team.members.length &&
-                                                        team
-                                                            .members[i]
-                                                            .isNotEmpty
-                                                    ? team.members[i]
-                                                    : '未設定',
-                                              ),
-                                          onTap: () {
-                                            if (i < team.members.length &&
-                                                team.members[i].isNotEmpty) {
-                                              _showAttendanceDialog(
-                                                team.members[i],
-                                              );
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 80,
-                                    child: Text(
-                                      i < rightLabels.length
-                                          ? rightLabels[i]
-                                          : '',
-                                      textAlign: TextAlign.right,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize:
-                                            18 *
-                                            Provider.of<ThemeSettings>(
-                                              context,
-                                            ).fontSizeScale,
-                                        color: Provider.of<ThemeSettings>(
-                                          context,
-                                        ).fontColor1,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 32),
-                  // 担当決定ボタン（編集権限がある場合のみ表示）
-                  if (_canEditAssignment == true) ...[
-                    // デバッグ情報を表示（開発時のみ）
-                    if (isDeveloperMode)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          'デバッグ: 編集権限=$_canEditAssignment',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ElevatedButton(
+                          onPressed: isButtonDisabled
+                              ? null
+                              : _shuffleAssignments,
+                          child: Text(() {
+                            if (todayIsWeekend && !isDeveloperMode) {
+                              return '土日は休み';
+                            }
+                            if (isAssignedToday) {
+                              return '今日はすでに決定済み';
+                            }
+                            if (isShuffling) {
+                              return 'シャッフル中...';
+                            }
+                            return '今日の担当を決める';
+                          }()),
                         ),
-                      ),
-                    ElevatedButton(
-                      onPressed: isButtonDisabled ? null : _shuffleAssignments,
-                      child: Text(() {
-                        if (todayIsWeekend && !isDeveloperMode) return '土日は休み';
-                        if (isAssignedToday) return '今日はすでに決定済み';
-                        if (isShuffling) return 'シャッフル中...';
-                        return '今日の担当を決める';
-                      }()),
-                    ),
-                  ] else
-                    SizedBox.shrink(),
-                  SizedBox(height: 20), // 下部に余白を追加
-                ],
+                      ] else
+                        SizedBox.shrink(),
+                      SizedBox(height: 20), // 下部に余白を追加
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -1873,9 +2065,9 @@ class MemberCard extends StatelessWidget {
     return GestureDetector(
       onTap: isUnset ? null : onTap,
       child: Container(
-        width: 100,
-        padding: EdgeInsets.symmetric(vertical: 10),
-        margin: EdgeInsets.symmetric(horizontal: 4),
+        width: kIsWeb ? 80 : 100,
+        padding: EdgeInsets.symmetric(vertical: kIsWeb ? 8 : 10),
+        margin: EdgeInsets.symmetric(horizontal: kIsWeb ? 1 : 4),
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(16),
