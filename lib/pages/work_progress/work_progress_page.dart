@@ -55,7 +55,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     _currentGroupId = newGroupId;
     _settingsSubscription?.cancel();
     if (newGroupId != null) {
-      print('[DEBUG] settings listener set for groupId: $newGroupId');
+      debugPrint('[DEBUG] settings listener set for groupId: $newGroupId');
       _settingsSubscription = FirebaseFirestore.instance
           .collection('groups')
           .doc(newGroupId)
@@ -63,7 +63,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
           .listen((doc) {
             if (!mounted) return;
             final settings = doc.data()?['settings'];
-            print('[DEBUG] settings snapshot fired: $settings');
+            debugPrint('[DEBUG] settings snapshot fired: $settings');
             if (settings != null && settings['dataPermissions'] != null) {
               final dataPermissions =
                   settings['dataPermissions'] as Map<String, dynamic>;
@@ -76,7 +76,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                 orElse: () => AccessLevel.adminLeader,
               );
               final groupRole = groupProvider.getCurrentUserRole();
-              print(
+              debugPrint(
                 '[DEBUG] work_progress access: $access, groupRole: $groupRole',
               );
               if (groupRole != null) {
@@ -90,13 +90,13 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                 } else if (access == AccessLevel.adminOnly) {
                   canEdit = groupRole == GroupRole.admin;
                 }
-                print('[DEBUG] canEdit判定: $canEdit');
+                debugPrint('[DEBUG] canEdit判定: $canEdit');
                 setState(() {
                   _canEdit = canEdit;
                 });
               }
               // GroupProviderのsettingsも更新
-              print('[DEBUG] updateCurrentGroupSettings呼び出し: $settings');
+              debugPrint('[DEBUG] updateCurrentGroupSettings呼び出し: $settings');
               groupProvider.updateCurrentGroupSettings(settings);
             }
           });
@@ -245,11 +245,11 @@ class _WorkProgressPageState extends State<WorkProgressPage>
   ) {
     switch (status) {
       case WorkStatus.before:
-        return Colors.grey.withOpacity(0.08);
+        return Colors.grey.withValues(alpha: 0.08);
       case WorkStatus.inProgress:
-        return Colors.orange.withOpacity(0.12);
+        return Colors.orange.withValues(alpha: 0.12);
       case WorkStatus.after:
-        return _getStageColor(context, stage).withOpacity(0.18);
+        return _getStageColor(context, stage).withValues(alpha: 0.18);
     }
   }
 
@@ -383,7 +383,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                   Icon(
                     Icons.work_outline,
                     size: 64,
-                    color: themeSettings.iconColor.withOpacity(0.5),
+                    color: themeSettings.iconColor.withValues(alpha: 0.5),
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -399,7 +399,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                       '右下のボタンから新しい記録を作成してください',
                       style: TextStyle(
                         fontSize: 14,
-                        color: themeSettings.fontColor1.withOpacity(0.7),
+                        color: themeSettings.fontColor1.withValues(alpha: 0.7),
                       ),
                     ),
                 ],
@@ -571,7 +571,13 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                                       ),
                                     );
 
+                                    // 非同期ギャップ後の BuildContext 使用を防止
+                                    if (!mounted) return;
+
                                     if (confirmed == true) {
+                                      final messenger = ScaffoldMessenger.of(
+                                        this.context,
+                                      );
                                       try {
                                         await workProgressProvider
                                             .deleteWorkProgress(
@@ -582,15 +588,13 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                                                         .id
                                                   : null,
                                             );
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
+                                        if (!mounted) return;
+                                        messenger.showSnackBar(
                                           SnackBar(content: Text('削除しました')),
                                         );
                                       } catch (e) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
+                                        if (!mounted) return;
+                                        messenger.showSnackBar(
                                           SnackBar(content: Text('削除に失敗しました')),
                                         );
                                       }
@@ -639,7 +643,9 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                           '作成日: ${workProgress.createdAt.toString().substring(0, 16)}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: themeSettings.fontColor1.withOpacity(0.7),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.7,
+                            ),
                           ),
                         ),
                         // 下部: メモ（存在する場合のみ）
@@ -649,7 +655,9 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                           Container(
                             padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: themeSettings.fontColor1.withOpacity(0.05),
+                              color: themeSettings.fontColor1.withValues(
+                                alpha: 0.05,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -658,8 +666,8 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                                 Icon(
                                   Icons.note,
                                   size: 16,
-                                  color: themeSettings.fontColor1.withOpacity(
-                                    0.6,
+                                  color: themeSettings.fontColor1.withValues(
+                                    alpha: 0.6,
                                   ),
                                 ),
                                 SizedBox(width: 8),
@@ -669,7 +677,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: themeSettings.fontColor1
-                                          .withOpacity(0.8),
+                                          .withValues(alpha: 0.8),
                                     ),
                                   ),
                                 ),

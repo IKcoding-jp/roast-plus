@@ -1,7 +1,22 @@
 import 'user_settings_firestore_service.dart';
+import 'dart:developer' as developer;
 
 /// SharedPreferencesからFirebaseへの設定移行サービス
 class SettingsMigrationService {
+  static const String _logName = 'SettingsMigrationService';
+  static void _logInfo(String message) =>
+      developer.log(message, name: _logName);
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
+
   /// 移行が必要な設定キーの定義
   static const Map<String, String> _settingKeys = {
     // サウンド設定
@@ -62,7 +77,6 @@ class SettingsMigrationService {
     'rightLabels': 'assignment_right_labels',
     'assignedDate': 'assignment_date',
 
-    // TODO設定
     'todo_list': 'todo_list',
     'todo_notification_enabled': 'todo_notification_enabled',
     'todo_notification_time': 'todo_notification_time',
@@ -134,8 +148,8 @@ class SettingsMigrationService {
       }
 
       return false;
-    } catch (e) {
-      print('移行必要性チェックエラー: $e');
+    } catch (e, st) {
+      _logError('移行必要性チェックエラー', e, st);
       return false;
     }
   }
@@ -143,7 +157,7 @@ class SettingsMigrationService {
   /// 設定を移行
   static Future<bool> migrateSettings() async {
     try {
-      print('設定移行を開始します...');
+      _logInfo('設定移行を開始します...');
 
       final Map<String, dynamic> settingsToMigrate = {};
 
@@ -155,12 +169,12 @@ class SettingsMigrationService {
         final value = await UserSettingsFirestoreService.getSetting(oldKey);
         if (value != null) {
           settingsToMigrate[newKey] = value;
-          print('移行対象: $oldKey -> $newKey = $value');
+          _logInfo('移行対象: $oldKey -> $newKey = $value');
         }
       }
 
       if (settingsToMigrate.isEmpty) {
-        print('移行対象の設定が見つかりませんでした');
+        _logInfo('移行対象の設定が見つかりませんでした');
         await _markMigrationCompleted();
         return true;
       }
@@ -173,10 +187,10 @@ class SettingsMigrationService {
       // 移行完了をマーク
       await _markMigrationCompleted();
 
-      print('設定移行が完了しました: ${settingsToMigrate.length}件');
+      _logInfo('設定移行が完了しました: ${settingsToMigrate.length}件');
       return true;
-    } catch (e) {
-      print('設定移行エラー: $e');
+    } catch (e, st) {
+      _logError('設定移行エラー', e, st);
       return false;
     }
   }
@@ -198,9 +212,9 @@ class SettingsMigrationService {
       await UserSettingsFirestoreService.deleteSetting(
         'settings_migration_timestamp',
       );
-      print('移行状態をリセットしました');
-    } catch (e) {
-      print('移行状態リセットエラー: $e');
+      _logInfo('移行状態をリセットしました');
+    } catch (e, st) {
+      _logError('移行状態リセットエラー', e, st);
     }
   }
 
@@ -209,12 +223,12 @@ class SettingsMigrationService {
     try {
       for (final key in _settingKeys.keys) {
         await UserSettingsFirestoreService.deleteSetting(key);
-        print('古い設定を削除: $key');
+        _logInfo('古い設定を削除: $key');
       }
 
-      print('古い設定のクリーンアップが完了しました');
-    } catch (e) {
-      print('クリーンアップエラー: $e');
+      _logInfo('古い設定のクリーンアップが完了しました');
+    } catch (e, st) {
+      _logError('クリーンアップエラー', e, st);
     }
   }
 
@@ -250,8 +264,8 @@ class SettingsMigrationService {
       status['existingSettingsCount'] = existingSettings.length;
 
       return status;
-    } catch (e) {
-      print('移行状態確認エラー: $e');
+    } catch (e, st) {
+      _logError('移行状態確認エラー', e, st);
       return {
         'migrationCompleted': false,
         'migrationTimestamp': null,

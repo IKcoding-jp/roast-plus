@@ -61,7 +61,7 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble('fontSizeScale', value);
     } catch (e) {
-      print('ローカル保存エラー: $e');
+      debugPrint('ローカル保存エラー: $e');
     }
   }
 
@@ -86,7 +86,7 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('fontFamily', value);
     } catch (e) {
-      print('ローカル保存エラー: $e');
+      debugPrint('ローカル保存エラー: $e');
     }
   }
 
@@ -276,7 +276,7 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
                                     label: '${(_fontSizeScale * 100).round()}%',
                                     activeColor: themeSettings.buttonColor,
                                     inactiveColor: themeSettings.buttonColor
-                                        .withOpacity(0.3),
+                                        .withValues(alpha: 0.3),
                                     onChanged: (value) {
                                       _onFontSizeScaleChanged(value);
                                     },

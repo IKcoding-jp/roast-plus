@@ -33,16 +33,16 @@ class _MemoListPageState extends State<MemoListPage> {
 
     try {
       // 常に個人メモを読み込み
-      print('個人メモを読み込み中...');
+      debugPrint('個人メモを読み込み中...');
       final memos = await MemoFirestoreService.getMemos();
-      print('個人メモ読み込み完了: ${memos.length}件');
+      debugPrint('個人メモ読み込み完了: ${memos.length}件');
 
       setState(() {
         _memos = memos;
         _isLoading = false;
       });
     } catch (e) {
-      print('メモ読み込みエラー: $e');
+      debugPrint('メモ読み込みエラー: $e');
       setState(() {
         _isLoading = false;
       });
@@ -74,7 +74,7 @@ class _MemoListPageState extends State<MemoListPage> {
         }
       }
     } catch (e) {
-      print('メモ編集権限チェックエラー: $e');
+      debugPrint('メモ編集権限チェックエラー: $e');
     }
   }
 
@@ -111,13 +111,13 @@ class _MemoListPageState extends State<MemoListPage> {
           );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                          content: Text('メモを削除しました'),
-            backgroundColor: themeSettings.appButtonColor,
+              content: Text('メモを削除しました'),
+              backgroundColor: themeSettings.appButtonColor,
             ),
           );
         }
       } catch (e) {
-        print('メモ削除エラー: $e');
+        debugPrint('メモ削除エラー: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -135,7 +135,7 @@ class _MemoListPageState extends State<MemoListPage> {
       await MemoFirestoreService.togglePinMemo(memo.id, !memo.isPinned);
       await _loadMemos();
     } catch (e) {
-      print('メモピン留めエラー: $e');
+      debugPrint('メモピン留めエラー: $e');
     }
   }
 
@@ -166,7 +166,7 @@ class _MemoListPageState extends State<MemoListPage> {
         );
       }
     } catch (e) {
-      print('メモ更新エラー: $e');
+      debugPrint('メモ更新エラー: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('メモの更新に失敗しました'), backgroundColor: Colors.red),
@@ -215,7 +215,7 @@ class _MemoListPageState extends State<MemoListPage> {
                   Text(
                     '新しいメモを作成してください',
                     style: TextStyle(
-                      color: themeSettings.fontColor1.withOpacity(0.7),
+                      color: themeSettings.fontColor1.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -239,8 +239,8 @@ class _MemoListPageState extends State<MemoListPage> {
                       padding: EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: memo.isPinned
-                            ? Colors.orange.withOpacity(0.2)
-                            : themeSettings.iconColor.withOpacity(0.1),
+                            ? Colors.orange.withValues(alpha: 0.2)
+                            : themeSettings.iconColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -273,7 +273,9 @@ class _MemoListPageState extends State<MemoListPage> {
                             memo.content,
                             style: TextStyle(
                               fontSize: 14 * themeSettings.fontSizeScale,
-                              color: themeSettings.fontColor1.withOpacity(0.8),
+                              color: themeSettings.fontColor1.withValues(
+                                alpha: 0.8,
+                              ),
                             ),
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
@@ -284,7 +286,9 @@ class _MemoListPageState extends State<MemoListPage> {
                           '更新: ${_formatDate(memo.updatedAt)}',
                           style: TextStyle(
                             fontSize: 12 * themeSettings.fontSizeScale,
-                            color: themeSettings.fontColor1.withOpacity(0.6),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                       ],

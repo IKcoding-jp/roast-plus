@@ -531,7 +531,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Color(0xFF795548).withOpacity(0.3),
+                            color: Color(0xFF795548).withValues(alpha: 0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(

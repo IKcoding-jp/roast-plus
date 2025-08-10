@@ -159,7 +159,6 @@ class AppSettingsFirestoreService {
     }
   }
 
-  /// TODO通知設定を保存
   static Future<void> saveTodoNotificationSettings({
     required bool todoNotificationsEnabled,
     required int notificationTime, // 分単位
@@ -190,7 +189,6 @@ class AppSettingsFirestoreService {
     }
   }
 
-  /// TODO通知設定を取得
   static Future<Map<String, dynamic>?> getTodoNotificationSettings() async {
     if (_uid == null) throw Exception('未ログイン');
 
@@ -320,7 +318,6 @@ class AppSettingsFirestoreService {
         {...passcodeSettings, 'savedAt': FieldValue.serverTimestamp()},
       );
 
-      // TODO通知設定
       batch.set(
         _firestore
             .collection('users')

@@ -139,13 +139,15 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
         userId: 'local_user',
       );
 
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
       if (widget.workProgress == null) {
         await workProgressProvider.addWorkProgress(
           workProgress,
           groupId: widget.groupId,
         );
-
-        ScaffoldMessenger.of(context).showSnackBar(
+        if (!mounted) return;
+        messenger.showSnackBar(
           SnackBar(
             content: Text('作業状況記録を作成しました'),
             backgroundColor: Colors.green,
@@ -156,20 +158,23 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
           workProgress,
           groupId: widget.groupId,
         );
+        if (!mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text('作業状況記録を更新しました')));
+      }
+      if (!mounted) return;
+      navigator.pop(true); // 保存完了を親画面に伝える
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('作業状況記録を更新しました')));
+        ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
       }
-
-      Navigator.pop(context, true); // 保存完了を親画面に伝える
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -200,7 +205,7 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
                         margin: EdgeInsets.only(bottom: 16),
                         padding: EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
+                          color: Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(

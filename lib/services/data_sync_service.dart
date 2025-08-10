@@ -105,23 +105,23 @@ class DataSyncService {
       if (cloudTheme != null) {
         // テーマ設定をローカルに保存
         await UserSettingsFirestoreService.saveMultipleSettings({
-          'theme_appBarColor': cloudTheme['appBarColor']!.value,
-          'theme_backgroundColor': cloudTheme['backgroundColor']!.value,
-          'theme_buttonColor': cloudTheme['buttonColor']!.value,
-          'theme_backgroundColor2': cloudTheme['backgroundColor2']!.value,
-          'theme_fontColor1': cloudTheme['fontColor1']!.value,
-          'theme_fontColor2': cloudTheme['fontColor2']!.value,
-          'theme_iconColor': cloudTheme['iconColor']!.value,
-          'theme_timerCircleColor': cloudTheme['timerCircleColor']!.value,
-          'theme_bottomNavigationColor':
-              cloudTheme['bottomNavigationColor']!.value,
-          'theme_inputBackgroundColor':
-              cloudTheme['inputBackgroundColor']!.value,
-          'theme_memberBackgroundColor':
-              cloudTheme['memberBackgroundColor']!.value,
-          'theme_appBarTextColor': cloudTheme['appBarTextColor']!.value,
+          'theme_appBarColor': cloudTheme['appBarColor']!.toARGB32(),
+          'theme_backgroundColor': cloudTheme['backgroundColor']!.toARGB32(),
+          'theme_buttonColor': cloudTheme['buttonColor']!.toARGB32(),
+          'theme_backgroundColor2': cloudTheme['backgroundColor2']!.toARGB32(),
+          'theme_fontColor1': cloudTheme['fontColor1']!.toARGB32(),
+          'theme_fontColor2': cloudTheme['fontColor2']!.toARGB32(),
+          'theme_iconColor': cloudTheme['iconColor']!.toARGB32(),
+          'theme_timerCircleColor': cloudTheme['timerCircleColor']!.toARGB32(),
+          'theme_bottomNavigationColor': cloudTheme['bottomNavigationColor']!
+              .toARGB32(),
+          'theme_inputBackgroundColor': cloudTheme['inputBackgroundColor']!
+              .toARGB32(),
+          'theme_memberBackgroundColor': cloudTheme['memberBackgroundColor']!
+              .toARGB32(),
+          'theme_appBarTextColor': cloudTheme['appBarTextColor']!.toARGB32(),
           'theme_bottomNavigationTextColor':
-              cloudTheme['bottomNavigationTextColor']!.value,
+              cloudTheme['bottomNavigationTextColor']!.toARGB32(),
         });
       }
 
@@ -131,7 +131,7 @@ class DataSyncService {
       if (cloudCustomThemes.isNotEmpty) {
         final themeDataMap = cloudCustomThemes.map(
           (key, value) =>
-              MapEntry(key, value.map((k, v) => MapEntry(k, v.value))),
+              MapEntry(key, value.map((k, v) => MapEntry(k, v.toARGB32()))),
         );
         await UserSettingsFirestoreService.saveSetting(
           'custom_themes',

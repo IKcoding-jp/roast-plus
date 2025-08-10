@@ -1,11 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:developer' as developer;
 import '../models/work_progress_models.dart';
 import 'auto_sync_service.dart';
 
 class WorkProgressFirestoreService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
+  static const String _logName = 'WorkProgressFirestoreService';
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   static String? get _uid => _auth.currentUser?.uid;
 
@@ -28,8 +40,8 @@ class WorkProgressFirestoreService {
       }).toList();
 
       return records;
-    } catch (e) {
-      print('作業進捗記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('作業進捗記録取得エラー', e, st);
       return [];
     }
   }
@@ -63,8 +75,8 @@ class WorkProgressFirestoreService {
       }).toList();
 
       return records;
-    } catch (e) {
-      print('指定日付の作業進捗記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('指定日付の作業進捗記録取得エラー', e, st);
       return [];
     }
   }
@@ -87,8 +99,8 @@ class WorkProgressFirestoreService {
               return WorkProgress.fromMap(data);
             }).toList();
           });
-    } catch (e) {
-      print('作業進捗記録ストリームエラー: $e');
+    } catch (e, st) {
+      _logError('作業進捗記録ストリームエラー', e, st);
       return Stream.value([]);
     }
   }
@@ -111,8 +123,8 @@ class WorkProgressFirestoreService {
 
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('work_progress');
-    } catch (e) {
-      print('作業進捗記録保存エラー: $e');
+    } catch (e, st) {
+      _logError('作業進捗記録保存エラー', e, st);
       rethrow;
     }
   }
@@ -134,8 +146,8 @@ class WorkProgressFirestoreService {
 
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('work_progress');
-    } catch (e) {
-      print('作業進捗記録更新エラー: $e');
+    } catch (e, st) {
+      _logError('作業進捗記録更新エラー', e, st);
       rethrow;
     }
   }
@@ -154,8 +166,8 @@ class WorkProgressFirestoreService {
 
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('work_progress');
-    } catch (e) {
-      print('作業進捗記録削除エラー: $e');
+    } catch (e, st) {
+      _logError('作業進捗記録削除エラー', e, st);
       rethrow;
     }
   }
@@ -180,8 +192,8 @@ class WorkProgressFirestoreService {
       }).toList();
 
       return records;
-    } catch (e) {
-      print('豆別作業進捗記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('豆別作業進捗記録取得エラー', e, st);
       return [];
     }
   }
@@ -207,8 +219,8 @@ class WorkProgressFirestoreService {
       }).toList();
 
       return records;
-    } catch (e) {
-      print('グループ作業進捗記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('グループ作業進捗記録取得エラー', e, st);
       return [];
     }
   }
@@ -231,8 +243,8 @@ class WorkProgressFirestoreService {
           .collection('work_progress')
           .doc(record.id)
           .set(recordData);
-    } catch (e) {
-      print('グループ作業進捗記録保存エラー: $e');
+    } catch (e, st) {
+      _logError('グループ作業進捗記録保存エラー', e, st);
       rethrow;
     }
   }
@@ -254,8 +266,8 @@ class WorkProgressFirestoreService {
           .collection('work_progress')
           .doc(record.id)
           .update(recordData);
-    } catch (e) {
-      print('グループ作業進捗記録更新エラー: $e');
+    } catch (e, st) {
+      _logError('グループ作業進捗記録更新エラー', e, st);
       rethrow;
     }
   }
@@ -274,8 +286,8 @@ class WorkProgressFirestoreService {
           .collection('work_progress')
           .doc(recordId)
           .delete();
-    } catch (e) {
-      print('グループ作業進捗記録削除エラー: $e');
+    } catch (e, st) {
+      _logError('グループ作業進捗記録削除エラー', e, st);
       rethrow;
     }
   }

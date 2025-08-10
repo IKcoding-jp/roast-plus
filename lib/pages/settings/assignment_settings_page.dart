@@ -35,7 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
         });
       }
     } catch (e) {
-      print('開発者モード読み込みエラー: $e');
+      debugPrint('開発者モード読み込みエラー: $e');
       if (mounted) {
         setState(() {
           developerMode = false;
@@ -52,7 +52,7 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       await UserSettingsFirestoreService.saveSetting('developerMode', value);
     } catch (e) {
-      print('開発者モード保存エラー: $e');
+      debugPrint('開発者モード保存エラー: $e');
     }
   }
 
@@ -103,7 +103,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           decoration: BoxDecoration(
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).iconColor.withOpacity(0.12),
+                            ).iconColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
@@ -136,7 +136,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   fontSize: 14,
                                   color: Provider.of<ThemeSettings>(
                                     context,
-                                  ).fontColor1.withOpacity(0.7),
+                                  ).fontColor1.withValues(alpha: 0.7),
                                 ),
                               ),
                             ],
@@ -174,7 +174,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           decoration: BoxDecoration(
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).iconColor.withOpacity(0.12),
+                            ).iconColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
@@ -207,7 +207,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   fontSize: 14,
                                   color: Provider.of<ThemeSettings>(
                                     context,
-                                  ).fontColor1.withOpacity(0.7),
+                                  ).fontColor1.withValues(alpha: 0.7),
                                 ),
                               ),
                             ],

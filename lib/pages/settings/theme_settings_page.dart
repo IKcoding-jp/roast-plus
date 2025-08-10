@@ -216,10 +216,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.1),
+                  color: Colors.amber.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.amber.withOpacity(0.3),
+                    color: Colors.amber.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -528,7 +528,7 @@ class _PresetButton extends StatelessWidget {
                 (preset?['buttonColor'] ??
                         preset?['appButtonColor'] ??
                         Colors.grey)
-                    .withOpacity(isDisabled ? 0.2 : 0.3),
+                    .withValues(alpha: isDisabled ? 0.2 : 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -571,7 +571,7 @@ class _PresetButton extends StatelessWidget {
                       end: Alignment.bottomRight,
                     ),
                     border: Border.all(
-                      color: iconColor.withOpacity(0.3),
+                      color: iconColor.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -602,7 +602,7 @@ class _PresetButton extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                 ),
                 child: Center(
                   child: Icon(Icons.lock, size: 20, color: Colors.white),
@@ -782,7 +782,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                           color: widget.initialColor,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: themeSettings.fontColor1.withOpacity(0.3),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.3,
+                            ),
                             width: 1,
                           ),
                         ),
@@ -809,7 +811,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                           color: _color,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: themeSettings.fontColor1.withOpacity(0.3),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.3,
+                            ),
                             width: 1,
                           ),
                         ),

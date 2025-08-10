@@ -1,18 +1,30 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/attendance_models.dart';
 import '../models/group_gamification_models.dart';
+import 'dart:developer' as developer;
 
 class GroupAttendanceStatisticsService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const String _logName = 'GroupAttendanceStatisticsService';
+  static void _logInfo(String message) =>
+      developer.log(message, name: _logName);
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   /// グループの出勤統計を計算
   static Future<GroupStats> calculateGroupAttendanceStats(
     String groupId,
   ) async {
     try {
-      print(
-        'GroupAttendanceStatisticsService: グループ出勤統計計算開始 - groupId: $groupId',
-      );
+      _logInfo('グループ出勤統計計算開始 - groupId: $groupId');
 
       // グループの出勤記録を取得
       final attendanceRecords = await _getGroupAttendanceRecords(groupId);
@@ -38,12 +50,12 @@ class GroupAttendanceStatisticsService {
         workProgressRecords,
       );
 
-      print(
-        'GroupAttendanceStatisticsService: グループ出勤統計計算完了 - totalAttendanceDays: ${stats.totalAttendanceDays}',
+      _logInfo(
+        'グループ出勤統計計算完了 - totalAttendanceDays: ${stats.totalAttendanceDays}',
       );
       return stats;
-    } catch (e) {
-      print('GroupAttendanceStatisticsService: グループ出勤統計計算エラー: $e');
+    } catch (e, st) {
+      _logError('グループ出勤統計計算エラー', e, st);
       return GroupStats.initial();
     }
   }
@@ -72,16 +84,16 @@ class GroupAttendanceStatisticsService {
               if (record.status == AttendanceStatus.present) {
                 records.add(record);
               }
-            } catch (e) {
-              print('出勤記録のパースエラー: $e');
+            } catch (e, st) {
+              _logError('出勤記録のパースエラー', e, st);
             }
           }
         }
       }
 
       return records;
-    } catch (e) {
-      print('グループ出勤記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('グループ出勤記録取得エラー', e, st);
       return [];
     }
   }
@@ -98,8 +110,8 @@ class GroupAttendanceStatisticsService {
           .get();
 
       return querySnapshot.docs.map((doc) => doc.data()).toList();
-    } catch (e) {
-      print('グループ焙煎記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('グループ焙煎記録取得エラー', e, st);
       return [];
     }
   }
@@ -127,8 +139,8 @@ class GroupAttendanceStatisticsService {
       }
 
       return [];
-    } catch (e) {
-      print('グループドリップパック記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('グループドリップパック記録取得エラー', e, st);
       return [];
     }
   }
@@ -145,8 +157,8 @@ class GroupAttendanceStatisticsService {
           .get();
 
       return querySnapshot.docs.map((doc) => doc.data()).toList();
-    } catch (e) {
-      print('グループテイスティング記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('グループテイスティング記録取得エラー', e, st);
       return [];
     }
   }
@@ -163,8 +175,8 @@ class GroupAttendanceStatisticsService {
           .get();
 
       return querySnapshot.docs.map((doc) => doc.data()).toList();
-    } catch (e) {
-      print('グループ作業進捗記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('グループ作業進捗記録取得エラー', e, st);
       return [];
     }
   }

@@ -1,10 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/roast_schedule_models.dart';
+import 'dart:developer' as developer;
 
 class RoastScheduleMemoService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static const String _logName = 'RoastScheduleMemoService';
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   // ユーザーのローストスケジュールメモを取得
   static Future<List<RoastScheduleMemo>> getUserMemos() async {
@@ -27,8 +39,8 @@ class RoastScheduleMemoService {
             .toList();
       }
       return [];
-    } catch (e) {
-      print('ローストスケジュールメモ取得エラー: $e');
+    } catch (e, st) {
+      _logError('ローストスケジュールメモ取得エラー', e, st);
       return [];
     }
   }
@@ -47,9 +59,9 @@ class RoastScheduleMemoService {
           .collection('roast_schedule_memos')
           .doc('memos')
           .set({'memos': memosData, 'updatedAt': FieldValue.serverTimestamp()});
-    } catch (e) {
-      print('ローストスケジュールメモ保存エラー: $e');
-      throw e;
+    } catch (e, st) {
+      _logError('ローストスケジュールメモ保存エラー', e, st);
+      rethrow;
     }
   }
 
@@ -71,8 +83,8 @@ class RoastScheduleMemoService {
             .toList();
       }
       return [];
-    } catch (e) {
-      print('グループローストスケジュールメモ取得エラー: $e');
+    } catch (e, st) {
+      _logError('グループローストスケジュールメモ取得エラー', e, st);
       return [];
     }
   }
@@ -91,9 +103,9 @@ class RoastScheduleMemoService {
           .collection('roast_schedule_memos')
           .doc('memos')
           .set({'memos': memosData, 'updatedAt': FieldValue.serverTimestamp()});
-    } catch (e) {
-      print('グループローストスケジュールメモ保存エラー: $e');
-      throw e;
+    } catch (e, st) {
+      _logError('グループローストスケジュールメモ保存エラー', e, st);
+      rethrow;
     }
   }
 
@@ -115,9 +127,9 @@ class RoastScheduleMemoService {
       } else {
         await saveUserMemos(memos);
       }
-    } catch (e) {
-      print('メモ追加エラー: $e');
-      throw e;
+    } catch (e, st) {
+      _logError('メモ追加エラー', e, st);
+      rethrow;
     }
   }
 
@@ -145,9 +157,9 @@ class RoastScheduleMemoService {
           await saveUserMemos(memos);
         }
       }
-    } catch (e) {
-      print('メモ更新エラー: $e');
-      throw e;
+    } catch (e, st) {
+      _logError('メモ更新エラー', e, st);
+      rethrow;
     }
   }
 
@@ -169,9 +181,9 @@ class RoastScheduleMemoService {
       } else {
         await saveUserMemos(memos);
       }
-    } catch (e) {
-      print('メモ削除エラー: $e');
-      throw e;
+    } catch (e, st) {
+      _logError('メモ削除エラー', e, st);
+      rethrow;
     }
   }
 }

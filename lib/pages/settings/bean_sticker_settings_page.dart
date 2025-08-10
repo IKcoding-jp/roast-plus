@@ -77,21 +77,22 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
   }
 
   Future<void> _loadBeanStickers({String? groupId}) async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
 
     try {
-      await context.read<BeanStickerProvider>().loadBeanStickers(
-        groupId: groupId,
-      );
-      final provider = context.read<BeanStickerProvider>();
+      final beanStickerProvider = context.read<BeanStickerProvider>();
+      await beanStickerProvider.loadBeanStickers(groupId: groupId);
+      if (!mounted) return;
       setState(() {
-        _beanStickers = List.from(provider.beanStickers);
+        _beanStickers = List.from(beanStickerProvider.beanStickers);
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading bean stickers: $e');
+      debugPrint('Error loading bean stickers: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -197,7 +198,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: color.withOpacity(0.5),
+                                      color: color.withValues(alpha: 0.5),
                                       blurRadius: 8,
                                       spreadRadius: 2,
                                     ),
@@ -226,6 +227,8 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
             ElevatedButton(
               onPressed: () async {
                 final beanName = _beanNameController.text.trim();
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
                 if (beanName.isNotEmpty) {
                   try {
                     final provider = context.read<BeanStickerProvider>();
@@ -249,19 +252,20 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                         ),
                       );
                     }
-                    Navigator.pop(context);
+                    navigator.pop();
                     // データを再読み込み
+                    if (!mounted) return;
                     await _loadBeanStickers();
                   } catch (e) {
-                    print('Error saving bean sticker: $e');
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+                    debugPrint('Error saving bean sticker: $e');
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('保存に失敗しました: $e')),
+                    );
                   }
                 } else {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('豆の名前を入力してください')));
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('豆の名前を入力してください')),
+                  );
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -306,18 +310,20 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
           ),
           ElevatedButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
               try {
-                await context.read<BeanStickerProvider>().deleteBeanSticker(
-                  sticker.id,
-                );
-                Navigator.pop(context);
+                final provider = context.read<BeanStickerProvider>();
+                await provider.deleteBeanSticker(sticker.id);
+                navigator.pop();
                 // データを再読み込み
+                if (!mounted) return;
                 await _loadBeanStickers();
               } catch (e) {
-                print('Error deleting bean sticker: $e');
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('削除に失敗しました: $e')));
+                debugPrint('Error deleting bean sticker: $e');
+                messenger.showSnackBar(
+                  SnackBar(content: Text('削除に失敗しました: $e')),
+                );
               }
             },
             style: ElevatedButton.styleFrom(
@@ -376,7 +382,9 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.all(16),
-                  color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
+                  color: Provider.of<ThemeSettings>(
+                    context,
+                  ).cardBackgroundColor,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -394,7 +402,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                         style: TextStyle(
                           color: Provider.of<ThemeSettings>(
                             context,
-                          ).fontColor1.withOpacity(0.8),
+                          ).fontColor1.withValues(alpha: 0.8),
                           fontSize: 14,
                         ),
                       ),
@@ -414,7 +422,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                                 size: 64,
                                 color: Provider.of<ThemeSettings>(
                                   context,
-                                ).fontColor1.withOpacity(0.5),
+                                ).fontColor1.withValues(alpha: 0.5),
                               ),
                               SizedBox(height: 16),
                               Text(
@@ -422,7 +430,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                                 style: TextStyle(
                                   color: Provider.of<ThemeSettings>(
                                     context,
-                                  ).fontColor1.withOpacity(0.7),
+                                  ).fontColor1.withValues(alpha: 0.7),
                                   fontSize: 16,
                                 ),
                               ),
@@ -432,7 +440,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                                 style: TextStyle(
                                   color: Provider.of<ThemeSettings>(
                                     context,
-                                  ).fontColor1.withOpacity(0.5),
+                                  ).fontColor1.withValues(alpha: 0.5),
                                   fontSize: 14,
                                 ),
                               ),

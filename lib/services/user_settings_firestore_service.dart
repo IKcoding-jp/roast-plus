@@ -1,11 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 /// ユーザー設定をFirestoreに保存・取得するサービス
 class UserSettingsFirestoreService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
+  static const String _logName = 'UserSettingsFirestoreService';
+  static void _logInfo(String message) =>
+      developer.log(message, name: _logName);
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   static String? get _uid => _auth.currentUser?.uid;
 
@@ -25,9 +39,9 @@ class UserSettingsFirestoreService {
         'type': _getValueType(value),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      print('設定を保存しました: $key = $value');
-    } catch (e) {
-      print('設定保存エラー: $e');
+      _logInfo('設定を保存しました: $key = $value');
+    } catch (e, st) {
+      _logError('設定保存エラー', e, st);
       rethrow;
     }
   }
@@ -42,8 +56,8 @@ class UserSettingsFirestoreService {
 
       final data = doc.data()!;
       return _convertValue(data['value'], data['type']);
-    } catch (e) {
-      print('設定取得エラー: $e');
+    } catch (e, st) {
+      _logError('設定取得エラー', e, st);
       return defaultValue;
     }
   }
@@ -67,9 +81,9 @@ class UserSettingsFirestoreService {
       }
 
       await batch.commit();
-      print('複数設定を保存しました: ${settings.keys.join(', ')}');
-    } catch (e) {
-      print('複数設定保存エラー: $e');
+      _logInfo('複数設定を保存しました: ${settings.keys.join(', ')}');
+    } catch (e, st) {
+      _logError('複数設定保存エラー', e, st);
       rethrow;
     }
   }
@@ -92,8 +106,8 @@ class UserSettingsFirestoreService {
       }
 
       return result;
-    } catch (e) {
-      print('複数設定取得エラー: $e');
+    } catch (e, st) {
+      _logError('複数設定取得エラー', e, st);
       return {};
     }
   }
@@ -104,9 +118,9 @@ class UserSettingsFirestoreService {
 
     try {
       await _userSettingsCollection.doc(key).delete();
-      print('設定を削除しました: $key');
-    } catch (e) {
-      print('設定削除エラー: $e');
+      _logInfo('設定を削除しました: $key');
+    } catch (e, st) {
+      _logError('設定削除エラー', e, st);
       rethrow;
     }
   }
@@ -125,8 +139,8 @@ class UserSettingsFirestoreService {
       }
 
       return result;
-    } catch (e) {
-      print('全設定取得エラー: $e');
+    } catch (e, st) {
+      _logError('全設定取得エラー', e, st);
       return {};
     }
   }

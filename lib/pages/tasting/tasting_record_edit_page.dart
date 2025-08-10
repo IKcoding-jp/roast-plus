@@ -187,7 +187,7 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
             description,
             style: TextStyle(
               fontSize: 14,
-              color: themeSettings.fontColor1.withOpacity(0.8),
+              color: themeSettings.fontColor1.withValues(alpha: 0.8),
             ),
           ),
         ],
@@ -231,7 +231,7 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
           max: 5.0,
           divisions: 8,
           activeColor: themeSettings.buttonColor,
-          inactiveColor: themeSettings.fontColor1.withOpacity(0.3),
+          inactiveColor: themeSettings.fontColor1.withValues(alpha: 0.3),
           onChanged: onChanged,
         ),
       ],
@@ -281,27 +281,31 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
     );
 
     try {
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
       if (_isEditing || (!_isEditing && existing.isNotEmpty)) {
         await tastingProvider.updateTastingRecord(
           tastingRecord,
           groupId: groupId,
         );
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('試飲感想記録を更新しました')));
+        if (!mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text('試飲感想記録を更新しました')));
       } else {
         await tastingProvider.addTastingRecord(tastingRecord, groupId: groupId);
         // グループレベルシステムで試飲記録を処理
         await _processTastingForGroup();
-        ScaffoldMessenger.of(context).showSnackBar(
+        if (!mounted) return;
+        messenger.showSnackBar(
           SnackBar(
             content: Text('試飲感想記録を保存しました'),
             backgroundColor: Colors.green,
           ),
         );
       }
-      Navigator.pop(context);
+      if (!mounted) return;
+      navigator.pop();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('保存に失敗しました')));
@@ -321,7 +325,7 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
         await groupProvider.processGroupTasting(groupId, context: context);
       }
     } catch (e) {
-      print('グループレベルシステム処理エラー: $e');
+      debugPrint('グループレベルシステム処理エラー: $e');
     }
   }
 
@@ -343,6 +347,11 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
             IconButton(
               icon: Icon(Icons.delete),
               onPressed: () async {
+                final navigator = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                final groupProvider = context.read<GroupProvider>();
+                final tastingProvider = context.read<TastingProvider>();
+                final recordId = widget.tastingRecord!.id;
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -363,12 +372,9 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
 
                 if (confirmed == true) {
                   try {
-                    final groupProvider = context.read<GroupProvider>();
                     final groupId = groupProvider.hasGroup
                         ? groupProvider.currentGroup!.id
                         : null;
-                    final tastingProvider = context.read<TastingProvider>();
-                    final recordId = widget.tastingRecord!.id;
 
                     await tastingProvider.deleteTastingRecord(
                       recordId,
@@ -383,14 +389,14 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
                       );
                     });
 
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('削除しました')));
-                    Navigator.pop(context);
+                    if (!mounted) return;
+                    messenger.showSnackBar(SnackBar(content: Text('削除しました')));
+                    navigator.pop();
                   } catch (e) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('削除に失敗しました')));
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('削除に失敗しました')),
+                    );
                   }
                 }
               },
@@ -473,7 +479,7 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
                         Container(
                           padding: EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: Colors.orange.withValues(alpha: 0.1),
                             border: Border.all(color: Colors.orange),
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -510,8 +516,8 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
                                 '既存の記録数:  ${_existingTastings.length}件',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: themeSettings.fontColor1.withOpacity(
-                                    0.7,
+                                  color: themeSettings.fontColor1.withValues(
+                                    alpha: 0.7,
                                   ),
                                 ),
                               ),

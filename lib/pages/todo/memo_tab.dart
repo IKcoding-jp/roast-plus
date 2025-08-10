@@ -58,7 +58,7 @@ class _MemoTabState extends State<MemoTab> {
         }
       }
     } catch (e) {
-      print('メモ編集権限チェックエラー: $e');
+      debugPrint('メモ編集権限チェックエラー: $e');
     }
   }
 
@@ -82,10 +82,10 @@ class _MemoTabState extends State<MemoTab> {
       );
 
       // 常に個人のメモを保存
-      print('メモ保存: 個人に保存中...');
-      print('メモ保存: メモ内容:  ${memo.toJson()}');
+      debugPrint('メモ保存: 個人に保存中...');
+      debugPrint('メモ保存: メモ内容:  ${memo.toJson()}');
       await MemoFirestoreService.saveMemo(memo);
-      print('メモ保存: 個人に保存完了');
+      debugPrint('メモ保存: 個人に保存完了');
 
       _titleController.clear();
       _contentController.clear();
@@ -103,7 +103,7 @@ class _MemoTabState extends State<MemoTab> {
         );
       }
     } catch (e) {
-      print('メモ保存エラー: $e');
+      debugPrint('メモ保存エラー: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('メモの保存に失敗しました'), backgroundColor: Colors.red),

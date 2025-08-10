@@ -8,8 +8,7 @@ class RoastScheduleMemoDialog extends StatefulWidget {
   final RoastScheduleMemo? memo;
   final Function(RoastScheduleMemo) onSave;
 
-  const RoastScheduleMemoDialog({Key? key, this.memo, required this.onSave})
-    : super(key: key);
+  const RoastScheduleMemoDialog({super.key, this.memo, required this.onSave});
 
   @override
   State<RoastScheduleMemoDialog> createState() =>
@@ -368,12 +367,12 @@ class _RoastScheduleMemoDialogState extends State<RoastScheduleMemoDialog> {
                           padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: (_isAfterPurge ? Colors.blue : Colors.orange)
-                                .withOpacity(0.1),
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color:
                                   (_isAfterPurge ? Colors.blue : Colors.orange)
-                                      .withOpacity(0.3),
+                                      .withValues(alpha: 0.3),
                             ),
                           ),
                           child: Row(

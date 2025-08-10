@@ -51,7 +51,7 @@ class _SchedulePageState extends State<SchedulePage>
         });
       }
     } catch (e) {
-      print('SchedulePage: 休憩時間読み込みエラー: $e');
+      debugPrint('SchedulePage: 休憩時間読み込みエラー: $e');
     }
   }
 
@@ -194,8 +194,8 @@ class _SchedulePageState extends State<SchedulePage>
                     ),
                   ],
                   labelColor: themeSettings.fontColor1,
-                  unselectedLabelColor: themeSettings.fontColor1.withOpacity(
-                    0.7,
+                  unselectedLabelColor: themeSettings.fontColor1.withValues(
+                    alpha: 0.7,
                   ),
                   indicatorColor: themeSettings.buttonColor,
                   indicatorWeight: 3,

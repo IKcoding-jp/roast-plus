@@ -1,10 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:developer' as developer;
 import '../models/memo_models.dart';
 
 class MemoFirestoreService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
+  static const String _logName = 'MemoFirestoreService';
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   static String? get _uid {
     final uid = _auth.currentUser?.uid;
@@ -33,8 +45,8 @@ class MemoFirestoreService {
         return b.updatedAt.compareTo(a.updatedAt);
       });
       return memos;
-    } catch (e) {
-      print('メモ取得エラー: $e');
+    } catch (e, st) {
+      _logError('メモ取得エラー', e, st);
       return [];
     }
   }
@@ -50,8 +62,8 @@ class MemoFirestoreService {
           .collection('memos')
           .doc(memo.id)
           .set(memo.toJson());
-    } catch (e) {
-      print('メモ保存エラー: $e');
+    } catch (e, st) {
+      _logError('メモ保存エラー', e, st);
       rethrow;
     }
   }
@@ -68,8 +80,8 @@ class MemoFirestoreService {
           .collection('memos')
           .doc(memo.id)
           .update(updatedMemo.toJson());
-    } catch (e) {
-      print('メモ更新エラー: $e');
+    } catch (e, st) {
+      _logError('メモ更新エラー', e, st);
       rethrow;
     }
   }
@@ -85,8 +97,8 @@ class MemoFirestoreService {
           .collection('memos')
           .doc(memoId)
           .delete();
-    } catch (e) {
-      print('メモ削除エラー: $e');
+    } catch (e, st) {
+      _logError('メモ削除エラー', e, st);
       rethrow;
     }
   }
@@ -105,8 +117,8 @@ class MemoFirestoreService {
             'isPinned': isPinned,
             'updatedAt': DateTime.now().toIso8601String(),
           });
-    } catch (e) {
-      print('メモピン留めエラー: $e');
+    } catch (e, st) {
+      _logError('メモピン留めエラー', e, st);
       rethrow;
     }
   }
@@ -123,7 +135,9 @@ class MemoFirestoreService {
           .orderBy('updatedAt', descending: true)
           .get();
 
-      final memos = snapshot.docs.map((doc) => MemoItem.fromJson(doc.data())).toList();
+      final memos = snapshot.docs
+          .map((doc) => MemoItem.fromJson(doc.data()))
+          .toList();
       // ピン留めされたメモを先頭に並べる
       memos.sort((a, b) {
         if (a.isPinned && !b.isPinned) return -1;
@@ -131,8 +145,8 @@ class MemoFirestoreService {
         return b.updatedAt.compareTo(a.updatedAt);
       });
       return memos;
-    } catch (e) {
-      print('グループメモ取得エラー: $e');
+    } catch (e, st) {
+      _logError('グループメモ取得エラー', e, st);
       return [];
     }
   }
@@ -148,8 +162,8 @@ class MemoFirestoreService {
           .collection('memos')
           .doc(memo.id)
           .set(memo.toJson());
-    } catch (e) {
-      print('グループメモ保存エラー: $e');
+    } catch (e, st) {
+      _logError('グループメモ保存エラー', e, st);
       rethrow;
     }
   }
@@ -166,8 +180,8 @@ class MemoFirestoreService {
           .collection('memos')
           .doc(memo.id)
           .update(updatedMemo.toJson());
-    } catch (e) {
-      print('グループメモ更新エラー: $e');
+    } catch (e, st) {
+      _logError('グループメモ更新エラー', e, st);
       rethrow;
     }
   }
@@ -183,8 +197,8 @@ class MemoFirestoreService {
           .collection('memos')
           .doc(memoId)
           .delete();
-    } catch (e) {
-      print('グループメモ削除エラー: $e');
+    } catch (e, st) {
+      _logError('グループメモ削除エラー', e, st);
       rethrow;
     }
   }

@@ -39,7 +39,9 @@ class CreatorMessagePage extends StatelessWidget {
                             Container(
                               padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Color(0xFFFF8225).withOpacity(0.12),
+                                color: Color(
+                                  0xFFFF8225,
+                                ).withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -88,10 +90,10 @@ class CreatorMessagePage extends StatelessWidget {
                         Container(
                           padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Color(0xFFFF8225).withOpacity(0.1),
+                            color: Color(0xFFFF8225).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Color(0xFFFF8225).withOpacity(0.3),
+                              color: Color(0xFFFF8225).withValues(alpha: 0.3),
                             ),
                           ),
                           child: Row(

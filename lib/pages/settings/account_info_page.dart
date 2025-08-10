@@ -194,25 +194,24 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
             'photoUrl': account.photoUrl,
             'lastLogin': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
-      if (mounted) {
-        if (!mounted) return;
-        setState(() {
-          _userName = account.displayName ?? account.email;
-          _userEmail = account.email;
-          _loginProvider = 'Google';
-          _userPhotoUrl = account.photoUrl;
-          _loading = false;
-        });
-        // サインイン直後にFirestore同期
-        await syncAllFirestoreData(context);
+      if (!mounted) return;
+      setState(() {
+        _userName = account.displayName ?? account.email;
+        _userEmail = account.email;
+        _loginProvider = 'Google';
+        _userPhotoUrl = account.photoUrl;
+        _loading = false;
+      });
+      // サインイン直後にFirestore同期
+      await syncAllFirestoreData(context);
+      if (!mounted) return;
+      setState(() {});
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         setState(() {});
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          setState(() {});
-        });
-      }
+      });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Googleログイン失敗: $e')));
@@ -432,6 +431,12 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                     onPressed: _loading
                                         ? null
                                         : () async {
+                                            // 非同期ギャップ後にBuildContextを使わないよう、先に取得
+                                            final navigator = Navigator.of(
+                                              context,
+                                            );
+                                            final scaffoldMessenger =
+                                                ScaffoldMessenger.of(context);
                                             setState(() => _loading = true);
                                             try {
                                               // GroupProviderの情報をクリア
@@ -466,20 +471,21 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                                 _userPhotoUrl = null;
                                               });
                                               // 設定画面を閉じてホームに戻る（AuthGateが即座にログイン画面を表示）
-                                              Navigator.of(context).popUntil(
+                                              navigator.popUntil(
                                                 (route) => route.isFirst,
                                               );
                                             } catch (e) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
+                                              scaffoldMessenger.showSnackBar(
                                                 SnackBar(
                                                   content: Text('ログアウト失敗: $e'),
                                                 ),
                                               );
                                             } finally {
-                                              if (!mounted) return;
-                                              setState(() => _loading = false);
+                                              if (mounted) {
+                                                setState(
+                                                  () => _loading = false,
+                                                );
+                                              }
                                             }
                                           },
                                   ),
@@ -508,6 +514,26 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                     onPressed: _loading
                                         ? null
                                         : () async {
+                                            // 非同期ギャップ後にBuildContextを使わないよう、先に取得
+                                            final navigator = Navigator.of(
+                                              context,
+                                            );
+                                            final scaffoldMessenger =
+                                                ScaffoldMessenger.of(context);
+                                            // 非同期前に利用するProviderも先に取得
+                                            final groupProvider =
+                                                Provider.of<GroupProvider>(
+                                                  context,
+                                                  listen: false,
+                                                );
+                                            final gamificationProvider =
+                                                Provider.of<
+                                                  GamificationProvider
+                                                >(context, listen: false);
+                                            final dashboardStatsProvider =
+                                                Provider.of<
+                                                  DashboardStatsProvider
+                                                >(context, listen: false);
                                             final confirm = await showDialog<bool>(
                                               context: context,
                                               builder: (context) => AlertDialog(
@@ -545,25 +571,11 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                             if (confirm != true) return;
                                             setState(() => _loading = true);
                                             try {
-                                              // GroupProviderの情報をクリア
-                                              final groupProvider =
-                                                  Provider.of<GroupProvider>(
-                                                    context,
-                                                    listen: false,
-                                                  );
                                               groupProvider.clearOnLogout();
 
-                                              final gamificationProvider =
-                                                  Provider.of<
-                                                    GamificationProvider
-                                                  >(context, listen: false);
                                               gamificationProvider
                                                   .clearOnLogout();
 
-                                              final dashboardStatsProvider =
-                                                  Provider.of<
-                                                    DashboardStatsProvider
-                                                  >(context, listen: false);
                                               dashboardStatsProvider
                                                   .clearOnLogout();
 
@@ -585,12 +597,10 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                                 _loginProvider = null;
                                                 _userPhotoUrl = null;
                                               });
-                                              Navigator.of(context).popUntil(
+                                              navigator.popUntil(
                                                 (route) => route.isFirst,
                                               );
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
+                                              scaffoldMessenger.showSnackBar(
                                                 SnackBar(
                                                   content: Text(
                                                     'アカウントデータを削除しました',
@@ -599,9 +609,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                                 ),
                                               );
                                             } catch (e) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
+                                              scaffoldMessenger.showSnackBar(
                                                 SnackBar(
                                                   content: Text(
                                                     '削除に失敗しました: $e',
@@ -610,8 +618,11 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                                 ),
                                               );
                                             } finally {
-                                              if (!mounted) return;
-                                              setState(() => _loading = false);
+                                              if (mounted) {
+                                                setState(
+                                                  () => _loading = false,
+                                                );
+                                              }
                                             }
                                           },
                                   ),

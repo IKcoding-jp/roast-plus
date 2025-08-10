@@ -256,7 +256,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
         await _currentPlayer!.stop();
         await _currentPlayer!.dispose();
       } catch (e) {
-        print('音声停止エラー: $e');
+        debugPrint('音声停止エラー: $e');
       } finally {
         _currentPlayer = null;
         _isPlaying = false;
@@ -270,9 +270,11 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
       return;
     }
 
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       _isPlaying = true;
-      print('再生開始: $soundFile');
+      debugPrint('再生開始: $soundFile');
 
       // 既に再生中の音声があれば停止
       await _stopCurrentSound();
@@ -283,30 +285,31 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
       // エラーハンドリングを追加
       _currentPlayer!.onPlayerStateChanged.listen((state) {
         if (state == PlayerState.completed) {
-          print('再生完了: $soundFile');
+          debugPrint('再生完了: $soundFile');
           _isPlaying = false;
         } else if (state == PlayerState.stopped) {
-          print('再生停止: $soundFile');
+          debugPrint('再生停止: $soundFile');
           _isPlaying = false;
         }
       });
 
       // 再生開始（パスを修正）
       await _currentPlayer!.play(AssetSource(soundFile));
-      print('再生成功: $soundFile');
+      debugPrint('再生成功: $soundFile');
 
       // 3秒後に自動停止
       Future.delayed(const Duration(milliseconds: 3000), () async {
         if (_isPlaying && _currentPlayer != null) {
           await _stopCurrentSound();
-          print('自動停止: $soundFile');
+          debugPrint('自動停止: $soundFile');
         }
       });
     } catch (e) {
       // エラー時のフィードバック
-      print('再生エラー: $soundFile - $e');
+      debugPrint('再生エラー: $soundFile - $e');
       _isPlaying = false;
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      messenger.showSnackBar(
         SnackBar(
           content: Text('音声の再生に失敗しました: $e'),
           backgroundColor: Colors.red,
@@ -415,7 +418,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       color: _selectedTimerSound == sound
-                          ? themeSettings.buttonColor.withOpacity(0.1)
+                          ? themeSettings.buttonColor.withValues(alpha: 0.1)
                           : themeSettings.cardBackgroundColor,
                       child: ListTile(
                         leading: Icon(
@@ -522,7 +525,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       color: _selectedNotificationSound == sound
-                          ? themeSettings.buttonColor.withOpacity(0.1)
+                          ? themeSettings.buttonColor.withValues(alpha: 0.1)
                           : themeSettings.cardBackgroundColor,
                       child: ListTile(
                         leading: Icon(
@@ -605,7 +608,9 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
                       max: 1.0,
                       divisions: 10,
                       activeColor: themeSettings.buttonColor,
-                      inactiveColor: themeSettings.iconColor.withOpacity(0.3),
+                      inactiveColor: themeSettings.iconColor.withValues(
+                        alpha: 0.3,
+                      ),
                       onChanged: _saveTimerVolume,
                     ),
                   ),
@@ -643,7 +648,9 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
                       max: 1.0,
                       divisions: 10,
                       activeColor: themeSettings.buttonColor,
-                      inactiveColor: themeSettings.iconColor.withOpacity(0.3),
+                      inactiveColor: themeSettings.iconColor.withValues(
+                        alpha: 0.3,
+                      ),
                       onChanged: _saveNotificationVolume,
                     ),
                   ),

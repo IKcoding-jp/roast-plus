@@ -20,9 +20,9 @@ class ThemeCloudService {
 
     final userId = currentUserId!;
 
-    // Colorオブジェクトをint値に変換
+    // Colorオブジェクトをint値に変換（toARGB32 を使用）
     final themeDataMap = themeData.map(
-      (key, value) => MapEntry(key, value.value),
+      (key, color) => MapEntry(key, color.toARGB32()),
     );
 
     try {
@@ -124,11 +124,11 @@ class ThemeCloudService {
 
     final userId = currentUserId!;
 
-    // Colorオブジェクトをint値に変換
+    // Colorオブジェクトをint値に変換（toARGB32 を使用）
     final customThemesMap = customThemes.map(
       (themeName, themeData) => MapEntry(
         themeName,
-        themeData.map((key, value) => MapEntry(key, value.value)),
+        themeData.map((key, color) => MapEntry(key, color.toARGB32())),
       ),
     );
 
@@ -226,6 +226,4 @@ class ThemeCloudService {
       return false;
     }
   }
-
-  
 }

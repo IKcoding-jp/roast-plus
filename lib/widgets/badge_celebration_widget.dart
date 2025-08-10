@@ -128,7 +128,7 @@ class _BadgeCelebrationWidgetState extends State<BadgeCelebrationWidget> {
         border: Border.all(color: themeSettings.borderColor),
         boxShadow: [
           BoxShadow(
-            color: badge.color.withOpacity(0.2),
+            color: badge.color.withValues(alpha: 0.2),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
@@ -147,7 +147,7 @@ class _BadgeCelebrationWidgetState extends State<BadgeCelebrationWidget> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: badge.color.withOpacity(0.3),
+                    color: badge.color.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: Offset(0, 2),
                   ),

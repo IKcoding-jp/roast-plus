@@ -2,38 +2,53 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_models.dart';
 import '../services/group_firestore_service.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
 
 class PermissionUtils {
+  static const String _logName = 'PermissionUtils';
+  static void _logInfo(String message) =>
+      developer.log(message, name: _logName);
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
+
   /// ユーザーのロールを取得
   static Future<GroupRole?> getCurrentUserRole(String groupId) async {
     try {
-      print('PermissionUtils: ユーザーロール取得開始 - グループID: $groupId');
+      _logInfo('ユーザーロール取得開始 - グループID: $groupId');
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print('PermissionUtils: ユーザーが認証されていません');
+        _logInfo('ユーザーが認証されていません');
         return null;
       }
 
-      print('PermissionUtils: 現在のユーザーID: ${user.uid}');
+      _logInfo('現在のユーザーID: ${user.uid}');
 
       final group = await GroupFirestoreService.getGroup(groupId);
       if (group == null) {
-        print('PermissionUtils: グループが見つかりません - グループID: $groupId');
+        _logInfo('グループが見つかりません - グループID: $groupId');
         return null;
       }
 
-      print('PermissionUtils: グループメンバー数: ${group.members.length}');
-      print(
-        'PermissionUtils: グループメンバー: ${group.members.map((m) => '${m.uid}:${m.role.name}').toList()}',
+      _logInfo('グループメンバー数: ${group.members.length}');
+      _logInfo(
+        'グループメンバー: ${group.members.map((m) => '${m.uid}:${m.role.name}').toList()}',
       );
 
       final role = group.getMemberRole(user.uid);
-      print('PermissionUtils: 取得したロール: $role');
+      _logInfo('取得したロール: $role');
 
       return role;
-    } catch (e) {
-      print('PermissionUtils: ユーザーロール取得エラー: $e');
+    } catch (e, st) {
+      _logError('ユーザーロール取得エラー', e, st);
       return null;
     }
   }
@@ -44,32 +59,30 @@ class PermissionUtils {
     required String dataType,
   }) async {
     try {
-      print(
-        'PermissionUtils: 編集権限チェック開始 - グループID: $groupId, データタイプ: $dataType',
-      );
+      _logInfo('編集権限チェック開始 - グループID: $groupId, データタイプ: $dataType');
 
       final userRole = await getCurrentUserRole(groupId);
-      print('PermissionUtils: ユーザーロール: $userRole');
+      _logInfo('ユーザーロール: $userRole');
 
       if (userRole == null) {
-        print('PermissionUtils: ユーザーロールが取得できませんでした');
+        _logInfo('ユーザーロールが取得できませんでした');
         return false;
       }
 
       final settings = await GroupFirestoreService.getGroupSettings(groupId);
-      print('PermissionUtils: グループ設定: ${settings?.dataPermissions}');
+      _logInfo('グループ設定: ${settings?.dataPermissions}');
 
       if (settings == null) {
-        print('PermissionUtils: グループ設定が取得できませんでした');
+        _logInfo('グループ設定が取得できませんでした');
         return false;
       }
 
       final canEdit = settings.canEditDataType(dataType, userRole);
-      print('PermissionUtils: 編集権限結果: $canEdit');
+      _logInfo('編集権限結果: $canEdit');
 
       return canEdit;
-    } catch (e) {
-      print('PermissionUtils: 編集権限チェックエラー: $e');
+    } catch (e, st) {
+      _logError('編集権限チェックエラー', e, st);
       return false;
     }
   }

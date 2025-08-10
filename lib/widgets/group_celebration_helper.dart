@@ -11,7 +11,7 @@ class GroupCelebrationHelper {
     showDialog(
       context: context,
       barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.3),
+      barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (_) => _CelebrationDialog(
         lottieAsset: 'assets/animations/Drip Coffee.json',
         message: 'グループが $xp XP を獲得！',
@@ -33,7 +33,7 @@ class GroupCelebrationHelper {
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (_) => _CelebrationDialog(
         lottieAsset: 'assets/animations/Coffie Cap.json',
         message: '🎉 グループレベルが $newLevel になりました！',
@@ -69,11 +69,13 @@ class GroupCelebrationHelper {
     // XP獲得演出
     if (xpGained != null && xpGained > 0) {
       await showXpGain(context, xpGained);
+      if (!context.mounted) return;
     }
 
     // レベルアップ演出
     if (newLevel != null) {
       await showLevelUp(context, newLevel);
+      if (!context.mounted) return;
     }
 
     // バッジ獲得演出（新しい順次アニメーション演出）
@@ -103,7 +105,7 @@ class GroupCelebrationHelper {
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (_) => _SequentialBadgeCelebrationDialog(badges: badges),
     );
 
@@ -175,7 +177,7 @@ class _CelebrationDialogState extends State<_CelebrationDialog>
       animation: _fadeAnimation,
       builder: (context, child) {
         return Container(
-          color: Colors.black.withOpacity(0.7 * _fadeAnimation.value),
+          color: Colors.black.withValues(alpha: 0.7 * _fadeAnimation.value),
           child: Center(
             child: Material(
               color: Colors.transparent,
@@ -192,7 +194,7 @@ class _CelebrationDialogState extends State<_CelebrationDialog>
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 20,
                             offset: Offset(0, 10),
                           ),
@@ -295,7 +297,7 @@ class _UnifiedBadgeCelebrationDialogState
       animation: _fadeAnimation,
       builder: (context, child) {
         return Container(
-          color: Colors.black.withOpacity(0.7 * _fadeAnimation.value),
+          color: Colors.black.withValues(alpha: 0.7 * _fadeAnimation.value),
           child: Center(
             child: Material(
               color: Colors.transparent,
@@ -312,7 +314,7 @@ class _UnifiedBadgeCelebrationDialogState
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 20,
                             offset: Offset(0, 10),
                           ),
@@ -446,10 +448,10 @@ class _SequentialBadgeCelebrationDialogState
     if (_currentBadgeIndex >= widget.badges.length) {
       // すべてのバッジを表示完了
       await Future.delayed(Duration(seconds: 1));
-      if (mounted) {
-        await _fadeController.reverse();
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+      if (!mounted) return;
+      await _fadeController.reverse();
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
       return;
     }
 
@@ -494,7 +496,7 @@ class _SequentialBadgeCelebrationDialogState
       animation: _fadeAnimation,
       builder: (context, child) {
         return Container(
-          color: Colors.black.withOpacity(0.8 * _fadeAnimation.value),
+          color: Colors.black.withValues(alpha: 0.8 * _fadeAnimation.value),
           child: Center(
             child: Material(
               color: Colors.transparent,
@@ -506,7 +508,7 @@ class _SequentialBadgeCelebrationDialogState
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: Offset(0, 10),
                     ),
@@ -582,13 +584,13 @@ class _SequentialBadgeCelebrationDialogState
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: [badge.color.withOpacity(0.8), badge.color],
+                      colors: [badge.color.withValues(alpha: 0.8), badge.color],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: badge.color.withOpacity(0.4),
+                        color: badge.color.withValues(alpha: 0.4),
                         blurRadius: 30,
                         spreadRadius: 10,
                       ),

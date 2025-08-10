@@ -30,8 +30,8 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
     // 空のラベルを削除
     _labels.removeWhere((label) => label.isEmpty || label.trim().isEmpty);
 
-    print('ScheduleTimeLabelEditPage: initState - 初期ラベル: $_labels');
-    print('ScheduleTimeLabelEditPage: onLabelsChangedコールバック存在: true');
+    debugPrint('ScheduleTimeLabelEditPage: initState - 初期ラベル: $_labels');
+    debugPrint('ScheduleTimeLabelEditPage: onLabelsChangedコールバック存在: true');
   }
 
   @override
@@ -100,15 +100,15 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
     final label =
         '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 
-    print(
+    debugPrint(
       'ScheduleTimeLabelEditPage: 時間ラベル追加試行 - 入力: ${_hourController.text}:${_minuteController.text}',
     );
-    print('ScheduleTimeLabelEditPage: 生成されたラベル: $label');
-    print('ScheduleTimeLabelEditPage: 現在のラベル数: ${_labels.length}');
-    print('ScheduleTimeLabelEditPage: 既存のラベル: $_labels');
+    debugPrint('ScheduleTimeLabelEditPage: 生成されたラベル: $label');
+    debugPrint('ScheduleTimeLabelEditPage: 現在のラベル数: ${_labels.length}');
+    debugPrint('ScheduleTimeLabelEditPage: 既存のラベル: $_labels');
 
     if (_labels.contains(label)) {
-      print('ScheduleTimeLabelEditPage: ラベルが既に存在するため追加をスキップ');
+      debugPrint('ScheduleTimeLabelEditPage: ラベルが既に存在するため追加をスキップ');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('同じ時間のラベルが既に存在します'),
@@ -125,8 +125,10 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
       _minuteController.clear();
     });
 
-    print('ScheduleTimeLabelEditPage: ラベル追加完了 - 新しいラベル数: ${_labels.length}');
-    print('ScheduleTimeLabelEditPage: 更新後のラベル: $_labels');
+    debugPrint(
+      'ScheduleTimeLabelEditPage: ラベル追加完了 - 新しいラベル数: ${_labels.length}',
+    );
+    debugPrint('ScheduleTimeLabelEditPage: 更新後のラベル: $_labels');
 
     // 自動保存
     await _autoSave();
@@ -265,6 +267,7 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
 
               // 自動保存
               await _autoSave();
+              if (!mounted) return;
               Navigator.pop(context);
             },
             child: Text(
@@ -292,11 +295,11 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
   // 自動保存メソッド
   Future<void> _autoSave() async {
     try {
-      print('ScheduleTimeLabelEditPage: 自動保存開始 - ラベル数: ${_labels.length}');
+      debugPrint('ScheduleTimeLabelEditPage: 自動保存開始 - ラベル数: ${_labels.length}');
       await widget.onLabelsChanged(_labels);
-      print('ScheduleTimeLabelEditPage: 自動保存完了');
+      debugPrint('ScheduleTimeLabelEditPage: 自動保存完了');
     } catch (e) {
-      print('ScheduleTimeLabelEditPage: 自動保存エラー: $e');
+      debugPrint('ScheduleTimeLabelEditPage: 自動保存エラー: $e');
     }
   }
 
@@ -542,7 +545,9 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
+                  color: Provider.of<ThemeSettings>(
+                    context,
+                  ).cardBackgroundColor,
                   margin: EdgeInsets.only(bottom: 14),
                   child: ListTile(
                     leading: Container(
@@ -550,7 +555,7 @@ class _ScheduleTimeLabelEditPageState extends State<ScheduleTimeLabelEditPage> {
                       decoration: BoxDecoration(
                         color: Provider.of<ThemeSettings>(
                           context,
-                        ).iconColor.withOpacity(0.12),
+                        ).iconColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(

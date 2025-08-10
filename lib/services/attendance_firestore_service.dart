@@ -1,10 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/attendance_models.dart';
+import 'dart:developer' as developer;
 
 class AttendanceFirestoreService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static const String _logName = 'AttendanceFirestoreService';
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   // 今日の日付キーを取得
   static String _getTodayDateKey() {
@@ -39,8 +51,8 @@ class AttendanceFirestoreService {
         }
       }
       return [];
-    } catch (e) {
-      print('AttendanceFirestoreService: 今日の出勤退勤記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('今日の出勤退勤記録取得エラー', e, st);
       return [];
     }
   }
@@ -69,8 +81,8 @@ class AttendanceFirestoreService {
         }
       }
       return [];
-    } catch (e) {
-      print('AttendanceFirestoreService: 指定日の出勤退勤記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('指定日の出勤退勤記録取得エラー', e, st);
       return [];
     }
   }
@@ -115,8 +127,8 @@ class AttendanceFirestoreService {
 
       // グループ同期
       await _syncToGroup(dateKey, updatedRecords);
-    } catch (e) {
-      print('AttendanceFirestoreService: 出勤退勤記録保存エラー: $e');
+    } catch (e, st) {
+      _logError('出勤退勤記録保存エラー', e, st);
     }
   }
 
@@ -136,8 +148,8 @@ class AttendanceFirestoreService {
       );
 
       await saveAttendanceRecord(record);
-    } catch (e) {
-      print('AttendanceFirestoreService: メンバー出勤退勤状態更新エラー: $e');
+    } catch (e, st) {
+      _logError('メンバー出勤退勤状態更新エラー', e, st);
     }
   }
 
@@ -150,8 +162,8 @@ class AttendanceFirestoreService {
       // GroupDataSyncServiceを使用してグループに同期
       // グループ同期サービスに追加する必要があります
       // await GroupDataSyncService.syncAttendanceData(groupId, attendanceData);
-    } catch (e) {
-      print('AttendanceFirestoreService: グループ同期エラー: $e');
+    } catch (e, st) {
+      _logError('グループ同期エラー', e, st);
     }
   }
 
@@ -161,8 +173,8 @@ class AttendanceFirestoreService {
       final records = await getAttendanceByDate(date);
       final dateKey = _getDateKey(date);
       return AttendanceSummary(dateKey: dateKey, records: records);
-    } catch (e) {
-      print('AttendanceFirestoreService: 出勤退勤統計取得エラー: $e');
+    } catch (e, st) {
+      _logError('出勤退勤統計取得エラー', e, st);
       return AttendanceSummary(dateKey: _getDateKey(date), records: []);
     }
   }
@@ -184,8 +196,8 @@ class AttendanceFirestoreService {
       }
 
       return summaries;
-    } catch (e) {
-      print('AttendanceFirestoreService: 期間の出勤退勤記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('期間の出勤退勤記録取得エラー', e, st);
       return [];
     }
   }

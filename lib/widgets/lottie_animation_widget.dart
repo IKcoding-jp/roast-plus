@@ -79,7 +79,7 @@ class _ExperienceGainAnimationState extends State<ExperienceGainAnimation>
       animation: _fadeAnimation,
       builder: (context, child) {
         return Container(
-          color: Colors.black.withOpacity(0.7 * _fadeAnimation.value),
+          color: Colors.black.withValues(alpha: 0.7 * _fadeAnimation.value),
           child: Center(
             child: Material(
               color: Colors.transparent,
@@ -91,7 +91,7 @@ class _ExperienceGainAnimationState extends State<ExperienceGainAnimation>
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: Offset(0, 10),
                     ),

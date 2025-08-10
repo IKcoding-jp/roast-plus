@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +14,22 @@ class TodoNotificationService {
       TodoNotificationService._internal();
   factory TodoNotificationService() => _instance;
   TodoNotificationService._internal();
+
+  static const String _logName = 'TodoNotificationService';
+  static void _logInfo(String message) =>
+      developer.log(message, name: _logName);
+  static void _logWarn(String message) =>
+      developer.log(message, name: _logName);
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   Timer? _checkTimer;
   AudioPlayer? _audioPlayer;
@@ -84,7 +101,7 @@ class TodoNotificationService {
         }
       }
     } catch (e) {
-      print('FirebaseからTODO取得エラー: $e');
+      _logError('FirebaseからTODO取得エラー', e);
     }
     return [];
   }
@@ -96,15 +113,15 @@ class TodoNotificationService {
           await UserSettingsFirestoreService.getSetting('todo_list') ?? [];
       return saved;
     } catch (e) {
-      print('FirebaseからTODO取得エラー: $e');
+      _logError('FirebaseからTODO取得エラー', e);
       return [];
     }
   }
 
   /// 通知サービスを開始
   void startNotificationService() {
-    print('TodoNotificationService: startNotificationService() が呼ばれました');
-    print('TodoNotificationService: 通知サービス開始');
+    _logInfo('startNotificationService() が呼ばれました');
+    _logInfo('通知サービス開始');
 
     // AudioPlayerを遅延初期化
     _audioPlayer = AudioPlayer();
@@ -123,21 +140,21 @@ class TodoNotificationService {
 
     scheduleNextMinuteCheck();
 
-    print('TodoNotificationService: 通知サービス開始完了');
+    _logInfo('通知サービス開始完了');
   }
 
   /// 通知サービスを停止
   void stopNotificationService() {
-    debugPrint('TodoNotificationService: 通知サービス停止開始');
+    _logInfo('通知サービス停止開始');
     _checkTimer?.cancel();
     _checkTimer = null;
     _audioPlayer?.dispose();
     _audioPlayer = null;
     _navigatorKey = null;
-    debugPrint('TodoNotificationService: 通知サービス停止完了');
+    _logInfo('通知サービス停止完了');
   }
 
-  /// TODO通知をチェック
+  /// タスク通知をチェック
   Future<void> _checkTodoNotifications() async {
     try {
       // FirestoreとFirebaseの両方からTODOを取得
@@ -145,9 +162,9 @@ class TodoNotificationService {
       final firebaseTodos = await _getTodosFromFirebase();
 
       final now = DateTime.now();
-      print('TODO通知チェック: 現在時刻 ${now.hour}:${now.minute}:${now.second}');
-      print('TODO通知チェック: Firestore TODO数 ${firestoreTodos.length}');
-      print('TODO通知チェック: Firebase TODO数 ${firebaseTodos.length}');
+      _logInfo('TODO通知チェック: 現在時刻 ${now.hour}:${now.minute}:${now.second}');
+      _logInfo('TODO通知チェック: Firestore TODO数 ${firestoreTodos.length}');
+      _logInfo('TODO通知チェック: Firebase TODO数 ${firebaseTodos.length}');
 
       // FirestoreのTODOをチェック
       for (final todo in firestoreTodos) {
@@ -171,7 +188,7 @@ class TodoNotificationService {
               now.minute == todoDateTime.minute &&
               now.second == 0) {
             // 現在時刻が00秒で、TODO時刻と一致
-            print('TODO通知: $title の時刻になりました！（時刻一致）');
+            _logInfo('TODO通知: $title の時刻になりました！（時刻一致）');
             await _playNotificationSound();
             await _showTodoNotificationDialog(title, time);
             _notifiedTodos.add(notifiedKey);
@@ -215,7 +232,7 @@ class TodoNotificationService {
                 now.minute == todoDateTime.minute &&
                 now.second == 0) {
               // 現在時刻が00秒で、TODO時刻と一致
-              print('TODO通知: $title の時刻になりました！（時刻一致）');
+              _logInfo('TODO通知: $title の時刻になりました！（時刻一致）');
               await _playNotificationSound();
               await _showTodoNotificationDialog(title, time);
               _notifiedTodos.add(notifiedKey);
@@ -225,18 +242,18 @@ class TodoNotificationService {
         }
       }
     } catch (e) {
-      print('TODO通知チェックエラー: $e');
+      _logError('TODO通知チェックエラー', e);
     }
   }
 
-  /// TODO通知を表示
+  /// タスク通知を表示
   Future<void> _showTodoNotificationDialog(
     String title,
     String time, {
     int retry = 0,
   }) async {
     if (_navigatorKey?.currentContext == null) {
-      print('ナビゲーションキーが設定されていないため、通知を表示できません（リトライ$retry）');
+      _logWarn('ナビゲーションキーが設定されていないため、通知を表示できません（リトライ$retry）');
       if (retry < 5) {
         await Future.delayed(Duration(milliseconds: 500));
         return _showTodoNotificationDialog(title, time, retry: retry + 1);
@@ -320,14 +337,14 @@ class TodoNotificationService {
         ),
       );
     } catch (e) {
-      print('TODO通知表示エラー: $e');
+      _logError('TODO通知表示エラー', e);
     }
   }
 
   /// 通知音を再生
   Future<void> _playNotificationSound() async {
     try {
-      print('通知音再生開始');
+      _logInfo('通知音再生開始');
 
       // 既に再生中の場合は停止
       if (_isPlaying) {
@@ -337,32 +354,32 @@ class TodoNotificationService {
 
       // 通知音設定を確認
       final isSoundEnabled = await SoundUtils.isNotificationSoundEnabled();
-      print('通知音有効: $isSoundEnabled');
+      _logInfo('通知音有効: $isSoundEnabled');
       if (!isSoundEnabled) {
-        print('通知音が無効のため再生しません');
+        _logInfo('通知音が無効のため再生しません');
         return;
       }
 
       final selectedSound = await SoundUtils.getSelectedNotificationSound();
       final volume = await SoundUtils.getNotificationVolume();
-      print('選択された通知音: $selectedSound, 音量: $volume');
+      _logInfo('選択された通知音: $selectedSound, 音量: $volume');
 
       _isPlaying = true;
       await _audioPlayer?.setVolume(volume);
       // 修正: selectedSoundが既にフルパスの場合はそのまま渡す
       await _audioPlayer?.play(AssetSource(selectedSound));
-      print('通知音再生中...');
+      _logInfo('通知音再生中...');
 
       // 3秒後に停止
       Timer(const Duration(seconds: 3), () async {
         if (_isPlaying) {
           await _audioPlayer?.stop();
           _isPlaying = false;
-          print('通知音停止');
+          _logInfo('通知音停止');
         }
       });
     } catch (e) {
-      print('通知音再生エラー: $e');
+      _logError('通知音再生エラー', e);
       _isPlaying = false;
     }
   }
@@ -380,7 +397,7 @@ class TodoNotificationService {
         _notifiedTodos.toList(),
       );
     } catch (e) {
-      print('通知履歴保存エラー: $e');
+      _logError('通知履歴保存エラー', e);
     }
   }
 

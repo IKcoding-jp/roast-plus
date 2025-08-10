@@ -155,7 +155,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
         setState(() {});
       }
     } catch (e) {
-      print('おすすめ焙煎条件の読み込みエラー: $e');
+      debugPrint('おすすめ焙煎条件の読み込みエラー: $e');
     }
   }
 
@@ -220,7 +220,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       _coolingMinutes =
           await UserSettingsFirestoreService.getSetting('coolingMinutes') ?? 10;
     } catch (e) {
-      print('設定読み込みエラー: $e');
+      debugPrint('設定読み込みエラー: $e');
       // エラー時はデフォルト値を使用
       _usePreheat = true;
       _preheatMinutes = 30;
@@ -237,10 +237,10 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       final notificationGranted =
           await RoastTimerNotificationService.requestPermissions();
       if (!notificationGranted) {
-        print('通知権限が拒否されました');
+        debugPrint('通知権限が拒否されました');
       }
     } catch (e) {
-      print('権限初期化エラー: $e');
+      debugPrint('権限初期化エラー: $e');
     }
   }
 
@@ -279,11 +279,12 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
         'roast_timer_completed_at',
       );
 
-      print('アプリ復帰時にタイマー完了を検出');
+      debugPrint('アプリ復帰時にタイマー完了を検出');
 
       // 画面が本当にRoastTimerPageのままか確認
+      if (!mounted) return;
       if (ModalRoute.of(context)?.isCurrent != true) {
-        print('RoastTimerPageが最前面でないため、完了ダイアログを表示しません');
+        debugPrint('RoastTimerPageが最前面でないため、完了ダイアログを表示しません');
         return;
       }
       // 完了ダイアログを表示
@@ -436,7 +437,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
           try {
             await RoastTimerNotificationService.cancelAllRoastTimerNotifications();
           } catch (e) {
-            print('通知キャンセルエラー: $e');
+            debugPrint('通知キャンセルエラー: $e');
           }
 
           // サウンド設定を確認
@@ -451,7 +452,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
               await _audioPlayer.play(AssetSource(selectedSound));
             }
           } catch (e) {
-            print('サウンド再生エラー: $e');
+            debugPrint('サウンド再生エラー: $e');
           }
 
           // mountedチェックを再度追加
@@ -517,6 +518,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
           TextButton(
             onPressed: () async {
               await _audioPlayer.stop();
+              if (!mounted) return;
+              if (!mounted) return;
               Navigator.pop(context);
               if (_mode == RoastMode.preheating) {
                 // 予熱タイマーのみオンの場合はidleに戻す
@@ -598,6 +601,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
             actions: [
               TextButton(
                 onPressed: () async {
+                  if (!mounted) return;
                   Navigator.pop(context);
                   setState(() {
                     _mode = RoastMode.inputManualTime;
@@ -612,6 +616,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
               ),
               TextButton(
                 onPressed: () async {
+                  if (!mounted) return;
                   Navigator.pop(context);
                   final useCooling =
                       await UserSettingsFirestoreService.getSetting(
@@ -661,6 +666,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
         actions: [
           TextButton(
             onPressed: () {
+              if (!mounted) return;
               Navigator.pop(context, true);
               _loadInterstitialAdAndShow(() {
                 setState(() {
@@ -677,6 +683,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
           ),
           TextButton(
             onPressed: () {
+              if (!mounted) return;
               Navigator.pop(context, false);
               _loadInterstitialAdAndShow(() async {
                 final usePreheat =
@@ -717,6 +724,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     );
 
     if (result == true) {
+      if (!mounted) return;
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => RoastRecordPage()),
@@ -812,7 +821,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                             hintStyle: TextStyle(
                               color: Provider.of<ThemeSettings>(
                                 context,
-                              ).inputTextColor.withOpacity(0.6),
+                              ).inputTextColor.withValues(alpha: 0.6),
                             ),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
@@ -998,7 +1007,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           border: Border.all(
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).appButtonColor.withOpacity(0.3),
+                            ).appButtonColor.withValues(alpha: 0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -1042,7 +1051,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           border: Border.all(
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).appButtonColor.withOpacity(0.3),
+                            ).appButtonColor.withValues(alpha: 0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -1087,7 +1096,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                           border: Border.all(
                             color: Provider.of<ThemeSettings>(
                               context,
-                            ).appButtonColor.withOpacity(0.3),
+                            ).appButtonColor.withValues(alpha: 0.3),
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -1173,6 +1182,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                             if (setSeconds < 60) setSeconds = 60;
                             String format(int sec) =>
                                 '${(sec ~/ 60).toString().padLeft(2, '0')}:${(sec % 60).toString().padLeft(2, '0')}';
+                            if (!context.mounted) return;
                             final confirmed = await showDialog<bool>(
                               context: context,
                               builder: (_) => AlertDialog(
@@ -1415,7 +1425,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 ).timerCircleColor,
                                 backgroundColor: Provider.of<ThemeSettings>(
                                   context,
-                                ).timerCircleColor.withOpacity(0.18),
+                                ).timerCircleColor.withValues(alpha: 0.18),
                               ),
                             ),
                             Text(

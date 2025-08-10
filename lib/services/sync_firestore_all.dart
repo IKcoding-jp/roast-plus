@@ -14,8 +14,19 @@ import 'package:roastplus/pages/roast/roast_timer_settings_page.dart';
 import '../models/tasting_models.dart';
 import '../models/work_progress_models.dart';
 import '../models/gamification_provider.dart';
+import 'dart:developer' as developer;
 
 import '../services/user_settings_firestore_service.dart';
+
+const String _logNameSyncAll = 'SyncFirestoreAll';
+void _logInfo(String message) => developer.log(message, name: _logNameSyncAll);
+void _logError(String message, [Object? error, StackTrace? stackTrace]) =>
+    developer.log(
+      message,
+      name: _logNameSyncAll,
+      error: error,
+      stackTrace: stackTrace,
+    );
 
 // TodoPage用のグローバルKeyを用意
 final GlobalKey<TodoPageState> todoListPageKey = GlobalKey<TodoPageState>();
@@ -34,7 +45,17 @@ Future<void> syncAllFirestoreData(
   BuildContext context, {
   bool isLightSync = false,
 }) async {
-  // 1. TODOリスト（軽量同期の場合はスキップ）
+  // Providerは非同期ギャップ前に取得しておく
+  final tastingProvider = Provider.of<TastingProvider>(context, listen: false);
+  final workProgressProvider = Provider.of<WorkProgressProvider>(
+    context,
+    listen: false,
+  );
+  final gamificationProvider = Provider.of<GamificationProvider>(
+    context,
+    listen: false,
+  );
+
   if (!isLightSync) {
     try {
       final todos = await ScheduleFirestoreService.loadTodayTodoList();
@@ -47,7 +68,7 @@ Future<void> syncAllFirestoreData(
         todos?.map((e) => TodoItem.fromMap(e).toStorageString()).toList() ?? [],
       );
     } catch (e) {
-      print('同期エラー: $e');
+      _logError('同期エラー', e as Object?);
     }
   }
 
@@ -63,7 +84,7 @@ Future<void> syncAllFirestoreData(
         });
       }
     } catch (e) {
-      print('同期エラー: $e');
+      _logError('同期エラー', e as Object?);
     }
   }
 
@@ -77,7 +98,7 @@ Future<void> syncAllFirestoreData(
       );
     }
   } catch (e) {
-    print('同期エラー: $e');
+    _logError('同期エラー', e as Object?);
   }
 
   // 4. ドリップパック記録
@@ -92,7 +113,7 @@ Future<void> syncAllFirestoreData(
       dripRecords,
     );
   } catch (e) {
-    print('同期エラー: $e');
+    _logError('同期エラー', e as Object?);
   }
 
   // 5. 担当表メンバー・ラベル
@@ -127,10 +148,10 @@ Future<void> syncAllFirestoreData(
 
       await UserSettingsFirestoreService.saveMultipleSettings(settingsToSave);
 
-      print('担当表データの同期完了');
+      _logInfo('担当表データの同期完了');
     }
   } catch (e) {
-    print('担当表データの同期エラー: $e');
+    _logError('担当表データの同期エラー', e as Object?);
   }
 
   // 6. 担当履歴（本日分のみ例示）
@@ -151,7 +172,7 @@ Future<void> syncAllFirestoreData(
       );
     }
   } catch (e) {
-    print('同期エラー: $e');
+    _logError('同期エラー', e as Object?);
   }
 
   // 7. 焙煎タイマー設定
@@ -166,16 +187,12 @@ Future<void> syncAllFirestoreData(
       // 必要に応じて他の設定も反映可能
     }
   } catch (e) {
-    print('同期エラー: $e');
+    _logError('同期エラー', e as Object?);
   }
 
   // 8. テイスティング記録
   try {
     final tastingRecords = await TastingFirestoreService.getTastingRecords();
-    final tastingProvider = Provider.of<TastingProvider>(
-      context,
-      listen: false,
-    );
     // 一括セット用メソッドに修正
     tastingProvider.replaceAll(tastingRecords);
     // ローカルにも保存
@@ -184,17 +201,13 @@ Future<void> syncAllFirestoreData(
       tastingRecords.map((e) => e.toMap()).toList(),
     );
   } catch (e) {
-    print('同期エラー: $e');
+    _logError('同期エラー', e as Object?);
   }
 
   // 9. 作業進捗記録
   try {
     final workProgressRecords =
         await WorkProgressFirestoreService.getWorkProgressRecords();
-    final workProgressProvider = Provider.of<WorkProgressProvider>(
-      context,
-      listen: false,
-    );
     // 一括セット用メソッドに修正
     workProgressProvider.replaceAll(workProgressRecords);
     // ローカルにも保存
@@ -203,21 +216,17 @@ Future<void> syncAllFirestoreData(
       workProgressRecords.map((e) => e.toMap()).toList(),
     );
   } catch (e) {
-    print('同期エラー: $e');
+    _logError('同期エラー', e as Object?);
   }
 
   // 10. ゲーミフィケーションデータ
   try {
-    final gamificationProvider = Provider.of<GamificationProvider>(
-      context,
-      listen: false,
-    );
     // Firestoreからデータを読み込んでローカルと同期
     // 個人レベルシステムは削除されたため、グループゲーミフィケーションのみを使用
     // プロバイダーを初期化（最新データで更新）
     await gamificationProvider.initialize();
-    print('ゲーミフィケーションデータの同期完了');
+    _logInfo('ゲーミフィケーションデータの同期完了');
   } catch (e) {
-    print('ゲーミフィケーション同期エラー: $e');
+    _logError('ゲーミフィケーション同期エラー', e as Object?);
   }
 }

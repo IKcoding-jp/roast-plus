@@ -28,7 +28,6 @@ class TodoPageState extends State<TodoPage>
       setState(() {});
     });
 
-    // TODO通知サービスを開始
     TodoNotificationService().startNotificationService();
   }
 
@@ -50,8 +49,8 @@ class TodoPageState extends State<TodoPage>
     final themeSettings = Provider.of<ThemeSettings>(context);
 
     // デバッグ用：現在のtodoColorの値をログ出力
-    print('TodoPage: 現在のtodoColor: ${themeSettings.todoColor}');
-    print('TodoPage: 現在のiconColor: ${themeSettings.iconColor}');
+    debugPrint('TodoPage: 現在のtodoColor: ${themeSettings.todoColor}');
+    debugPrint('TodoPage: 現在のiconColor: ${themeSettings.iconColor}');
 
     return Scaffold(
       appBar: AppBar(
@@ -126,7 +125,9 @@ class TodoPageState extends State<TodoPage>
                 ),
               ],
               labelColor: themeSettings.fontColor1,
-              unselectedLabelColor: themeSettings.fontColor1.withOpacity(0.7),
+              unselectedLabelColor: themeSettings.fontColor1.withValues(
+                alpha: 0.7,
+              ),
               indicatorColor: themeSettings.todoColor,
               indicatorWeight: 3,
             ),
@@ -136,9 +137,7 @@ class TodoPageState extends State<TodoPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // メモ帳タブ
           MemoTab(),
-          // TODOリストタブ
           TodoListTab(key: _todoListTabKey),
         ],
       ),

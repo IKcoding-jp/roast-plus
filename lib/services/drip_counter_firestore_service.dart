@@ -1,9 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:developer' as developer;
 
 class DripCounterFirestoreService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
+  static const String _logName = 'DripCounterFirestoreService';
+  static void _logInfo(String message) =>
+      developer.log(message, name: _logName);
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   static String? get _uid => _auth.currentUser?.uid;
 
@@ -119,8 +133,8 @@ class DripCounterFirestoreService {
       });
 
       return allRecords;
-    } catch (e) {
-      print('全ドリップパック記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('全ドリップパック記録取得エラー', e, st);
       return [];
     }
   }
@@ -142,9 +156,7 @@ class DripCounterFirestoreService {
     if (_uid == null) throw Exception('未ログイン');
 
     try {
-      print(
-        'DripCounterFirestoreService: グループドリップパック統計の再計算を開始 - groupId: $groupId',
-      );
+      _logInfo('グループドリップパック統計の再計算を開始 - groupId: $groupId');
 
       // グループの共有データからドリップパック記録を取得
       final sharedDataDoc = await _firestore
@@ -195,13 +207,11 @@ class DripCounterFirestoreService {
         'recalculatedAt': DateTime.now().toIso8601String(),
       };
 
-      print(
-        'DripCounterFirestoreService: 再計算完了 - 累積数: $totalCount, 記録数: ${allRecords.length}',
-      );
+      _logInfo('再計算完了 - 累積数: $totalCount, 記録数: ${allRecords.length}');
 
       return stats;
-    } catch (e) {
-      print('DripCounterFirestoreService: グループドリップパック統計再計算エラー: $e');
+    } catch (e, st) {
+      _logError('グループドリップパック統計再計算エラー', e, st);
       rethrow;
     }
   }

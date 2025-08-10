@@ -418,6 +418,8 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
           ElevatedButton(
             onPressed: () async {
               final themeName = nameController.text.trim();
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
               if (themeName.isNotEmpty) {
                 // プリセットテーマと同じかチェック
                 final currentThemeData = {
@@ -497,8 +499,8 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
                         themeSettings.customBottomNavigationUnselectedColor!,
                 };
                 await ThemeSettings.saveCustomTheme(themeName, themeData);
-                Navigator.pop(context, true);
-                ScaffoldMessenger.of(context).showSnackBar(
+                navigator.pop(true);
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text('$themeName として保存しました'),
                     backgroundColor: Colors.green,
@@ -625,19 +627,33 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                           color: widget.initialColor,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: themeSettings.fontColor1.withOpacity(0.3),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.3,
+                            ),
                             width: 1,
                           ),
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '#${widget.initialColor.value.toRadixString(16).toUpperCase().substring(2)}',
-                        style: TextStyle(
-                          color: themeSettings.fontColor1,
-                          fontSize: 10,
-                          fontFamily: 'monospace',
-                        ),
+                      Builder(
+                        builder: (_) {
+                          final int r =
+                              ((widget.initialColor.r * 255.0).round() & 0xff);
+                          final int g =
+                              ((widget.initialColor.g * 255.0).round() & 0xff);
+                          final int b =
+                              ((widget.initialColor.b * 255.0).round() & 0xff);
+                          final hex =
+                              '#${r.toRadixString(16).padLeft(2, '0').toUpperCase()}${g.toRadixString(16).padLeft(2, '0').toUpperCase()}${b.toRadixString(16).padLeft(2, '0').toUpperCase()}';
+                          return Text(
+                            hex,
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize: 10,
+                              fontFamily: 'monospace',
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -661,19 +677,30 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
                           color: _color,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: themeSettings.fontColor1.withOpacity(0.3),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.3,
+                            ),
                             width: 1,
                           ),
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '#${_color.value.toRadixString(16).toUpperCase().substring(2)}',
-                        style: TextStyle(
-                          color: themeSettings.fontColor1,
-                          fontSize: 10,
-                          fontFamily: 'monospace',
-                        ),
+                      Builder(
+                        builder: (_) {
+                          final int r = ((_color.r * 255.0).round() & 0xff);
+                          final int g = ((_color.g * 255.0).round() & 0xff);
+                          final int b = ((_color.b * 255.0).round() & 0xff);
+                          final hex =
+                              '#${r.toRadixString(16).padLeft(2, '0').toUpperCase()}${g.toRadixString(16).padLeft(2, '0').toUpperCase()}${b.toRadixString(16).padLeft(2, '0').toUpperCase()}';
+                          return Text(
+                            hex,
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize: 10,
+                              fontFamily: 'monospace',
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

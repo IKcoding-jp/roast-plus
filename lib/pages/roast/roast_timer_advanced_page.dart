@@ -142,6 +142,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
             await _audioPlayer.play(AssetSource(selectedSound));
           }
 
+          if (!mounted) return;
           _showCompletionDialog();
         }
       }
@@ -309,6 +310,7 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
       _totalSeconds = 0;
     });
 
+    if (!mounted) return;
     if (result == true) {
       Navigator.push(
         context,

@@ -45,7 +45,7 @@ class PermissionDeniedPage extends StatelessWidget {
               Icon(
                 customIcon ?? Icons.lock,
                 size: 80,
-                color: themeSettings.fontColor1.withOpacity(0.5),
+                color: themeSettings.fontColor1.withValues(alpha: 0.5),
               ),
               SizedBox(height: 24),
               Text(
@@ -61,7 +61,7 @@ class PermissionDeniedPage extends StatelessWidget {
               Text(
                 message,
                 style: TextStyle(
-                  color: themeSettings.fontColor1.withOpacity(0.7),
+                  color: themeSettings.fontColor1.withValues(alpha: 0.7),
                   fontSize: 14 * themeSettings.fontSizeScale,
                   fontFamily: themeSettings.fontFamily,
                 ),
@@ -72,7 +72,7 @@ class PermissionDeniedPage extends StatelessWidget {
                 Text(
                   additionalInfo!,
                   style: TextStyle(
-                    color: themeSettings.fontColor1.withOpacity(0.5),
+                    color: themeSettings.fontColor1.withValues(alpha: 0.5),
                     fontSize: 12 * themeSettings.fontSizeScale,
                     fontFamily: themeSettings.fontFamily,
                   ),

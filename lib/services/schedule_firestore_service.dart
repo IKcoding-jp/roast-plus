@@ -90,7 +90,6 @@ class ScheduleFirestoreService {
     return List<String>.from(data['labels']);
   }
 
-  /// TODOリストのタスクを保存
   static Future<void> saveTodayTodoList({
     required List<Map<String, dynamic>> todos,
   }) async {
@@ -108,7 +107,6 @@ class ScheduleFirestoreService {
     await AutoSyncService.triggerAutoSyncForDataType('todo_list');
   }
 
-  /// TODOリストのタスクを取得
   static Future<List<Map<String, dynamic>>?> loadTodayTodoList() async {
     if (_uid == null) throw Exception('未ログイン');
     final today = DateTime.now();

@@ -64,40 +64,46 @@ ${_messageController.text.trim()}
         queryParameters: {'subject': subject, 'body': body},
       );
 
-      print('メールURI起動を試行中: $emailUri');
+      debugPrint('メールURI起動を試行中: $emailUri');
+
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
 
       if (await canLaunchUrl(emailUri)) {
-        print('URL起動可能、起動を試行中...');
+        debugPrint('URL起動可能、起動を試行中...');
         final result = await launchUrl(
           emailUri,
           mode: LaunchMode.externalApplication,
         );
-        print('起動結果: $result');
+        debugPrint('起動結果: $result');
 
         if (result) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('メールアプリが開きました')));
-          Navigator.pop(context);
+          if (!mounted) return;
+          messenger.showSnackBar(SnackBar(content: Text('メールアプリが開きました')));
+          navigator.pop();
         } else {
           throw Exception('メールアプリの起動に失敗しました');
         }
       } else {
-        print('URL起動不可: $emailUri');
+        debugPrint('URL起動不可: $emailUri');
         throw Exception('メールアプリを開けませんでした。デバイスにメールアプリがインストールされているか確認してください。');
       }
     } catch (e) {
-      print('フィードバック送信エラー: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('エラーが発生しました: $e'),
-          duration: Duration(seconds: 5),
-        ),
-      );
+      debugPrint('フィードバック送信エラー: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('エラーが発生しました: $e'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -214,7 +220,9 @@ ${_messageController.text.trim()}
                           filled: true,
                           fillColor: themeSettings.inputBackgroundColor,
                           hintStyle: TextStyle(
-                            color: themeSettings.fontColor1.withOpacity(0.6),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                         style: TextStyle(color: themeSettings.fontColor1),
@@ -240,7 +248,9 @@ ${_messageController.text.trim()}
                           filled: true,
                           fillColor: themeSettings.inputBackgroundColor,
                           hintStyle: TextStyle(
-                            color: themeSettings.fontColor1.withOpacity(0.6),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                         style: TextStyle(color: themeSettings.fontColor1),

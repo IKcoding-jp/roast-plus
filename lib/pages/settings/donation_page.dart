@@ -28,6 +28,7 @@ class _DonationPageState extends State<DonationPage> {
     const String testProductId = 'android.test.purchased';
     final bool available = await InAppPurchase.instance.isAvailable();
     if (!available) {
+      if (!mounted) return;
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -46,6 +47,7 @@ class _DonationPageState extends State<DonationPage> {
     final ProductDetailsResponse response = await InAppPurchase.instance
         .queryProductDetails({testProductId});
     if (response.notFoundIDs.isNotEmpty || response.productDetails.isEmpty) {
+      if (!mounted) return;
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -82,6 +84,7 @@ class _DonationPageState extends State<DonationPage> {
                   .doc('donation')
                   .set({'isDonor': true}, SetOptions(merge: true));
             }
+            if (!mounted) return;
             showDialog(
               context: context,
               builder: (context) => AlertDialog(
@@ -100,6 +103,7 @@ class _DonationPageState extends State<DonationPage> {
             );
             subscription.cancel();
           } else if (purchase.status == PurchaseStatus.error) {
+            if (!mounted) return;
             showDialog(
               context: context,
               builder: (context) => AlertDialog(

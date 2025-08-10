@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/group_data_sync_service.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
-import '../../services/schedule_firestore_service.dart' as ScheduleService;
+import '../../services/schedule_firestore_service.dart' as schedule_service;
 import '../../services/user_settings_firestore_service.dart';
 import '../../services/auto_sync_service.dart';
 import '../schedule/schedule_time_label_edit_page.dart';
@@ -494,6 +494,7 @@ class _TodayScheduleState extends State<TodaySchedule>
         'todaySchedule_contents': _scheduleContents,
       });
 
+      if (!mounted) return;
       final groupProvider = context.read<GroupProvider>();
       final isNoGroup = groupProvider.groups.isEmpty;
 
@@ -501,7 +502,7 @@ class _TodayScheduleState extends State<TodaySchedule>
       if (_canEditTodaySchedule || isNoGroup) {
         try {
           debugPrint('TodaySchedule: Firestoreに保存開始（リーダーまたはグループ未参加）');
-          await ScheduleService.ScheduleFirestoreService.saveTodayTodoSchedule(
+          await schedule_service.ScheduleFirestoreService.saveTodayTodoSchedule(
             labels: _scheduleLabels,
             contents: _scheduleContents,
           );
@@ -589,6 +590,7 @@ class _TodayScheduleState extends State<TodaySchedule>
       );
       debugPrint('TodaySchedule: ローカル保存完了');
 
+      if (!mounted) return;
       final groupProvider = context.read<GroupProvider>();
       final isNoGroup = groupProvider.groups.isEmpty;
 
@@ -597,7 +599,7 @@ class _TodayScheduleState extends State<TodaySchedule>
         try {
           debugPrint('TodaySchedule: 時間ラベルFirestore保存開始（today_scheduleデータタイプ）');
           // 古いtime_labelsの代わりにtoday_scheduleデータタイプを使用
-          await ScheduleService.ScheduleFirestoreService.saveTodayTodoSchedule(
+          await schedule_service.ScheduleFirestoreService.saveTodayTodoSchedule(
             labels: labels,
             contents: _scheduleContents,
           );
@@ -1236,6 +1238,7 @@ class _TodayScheduleState extends State<TodaySchedule>
       }
 
       // グループの古いtime_labelsデータも削除
+      if (!mounted) return;
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.groups.isNotEmpty) {
         final group = groupProvider.groups.first;
@@ -1306,7 +1309,7 @@ class _TodayScheduleState extends State<TodaySchedule>
                                   fontSize: 16,
                                   color: Provider.of<ThemeSettings>(
                                     context,
-                                  ).fontColor1.withOpacity(0.7),
+                                  ).fontColor1.withValues(alpha: 0.7),
                                 ),
                               ),
                             ],
@@ -1327,7 +1330,7 @@ class _TodayScheduleState extends State<TodaySchedule>
                                 size: 48,
                                 color: Provider.of<ThemeSettings>(
                                   context,
-                                ).iconColor.withOpacity(0.5),
+                                ).iconColor.withValues(alpha: 0.5),
                               ),
                               SizedBox(height: 16),
                               Text(
@@ -1336,7 +1339,7 @@ class _TodayScheduleState extends State<TodaySchedule>
                                   fontSize: 16,
                                   color: Provider.of<ThemeSettings>(
                                     context,
-                                  ).fontColor1.withOpacity(0.7),
+                                  ).fontColor1.withValues(alpha: 0.7),
                                 ),
                               ),
                             ],
@@ -1394,7 +1397,7 @@ class _TodayScheduleState extends State<TodaySchedule>
         timelineIcon = Container(
           width: 2,
           height: 24,
-          color: themeButtonColor.withOpacity(0.7),
+          color: themeButtonColor.withValues(alpha: 0.7),
         ); // │
       } else {
         timelineIcon = SizedBox(width: 18, height: 24); // 空白
@@ -1406,7 +1409,7 @@ class _TodayScheduleState extends State<TodaySchedule>
             color: (isRangeStart || isRangeEnd || isBetweenRange)
                 ? Provider.of<ThemeSettings>(
                     context,
-                  ).buttonColor.withOpacity(0.07)
+                  ).buttonColor.withValues(alpha: 0.07)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
@@ -1430,7 +1433,7 @@ class _TodayScheduleState extends State<TodaySchedule>
                     color: (_tempStartIndex == i || isRangeStart || isRangeEnd)
                         ? Provider.of<ThemeSettings>(
                             context,
-                          ).buttonColor.withOpacity(0.18)
+                          ).buttonColor.withValues(alpha: 0.18)
                         : inAnyRange
                         ? Colors.transparent
                         : Colors.transparent,

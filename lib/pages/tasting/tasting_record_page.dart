@@ -127,7 +127,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
             label,
             style: TextStyle(
               fontSize: 12,
-              color: themeSettings.fontColor1.withOpacity(0.7),
+              color: themeSettings.fontColor1.withValues(alpha: 0.7),
             ),
           ),
           Row(
@@ -145,7 +145,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                 width: 60,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: themeSettings.fontColor1.withOpacity(0.1),
+                  color: themeSettings.fontColor1.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: FractionallySizedBox(
@@ -233,7 +233,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                   Icon(
                     Icons.coffee,
                     size: 64,
-                    color: themeSettings.tastingColor.withOpacity(0.5),
+                    color: themeSettings.tastingColor.withValues(alpha: 0.5),
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -248,7 +248,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                     '右下のボタンから新しい記録を作成してください',
                     style: TextStyle(
                       fontSize: 14,
-                      color: themeSettings.fontColor1.withOpacity(0.7),
+                      color: themeSettings.fontColor1.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -310,7 +310,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: themeSettings.fontColor1
-                                          .withOpacity(0.7),
+                                          .withValues(alpha: 0.7),
                                     ),
                                   ),
                                 ],
@@ -359,6 +359,13 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                                     ),
                                   );
                                 } else if (value == 'delete') {
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  final groupProvider = context
+                                      .read<GroupProvider>();
+                                  final tastingProvider = context
+                                      .read<TastingProvider>();
                                   final confirmed = await showDialog<bool>(
                                     context: context,
                                     builder: (context) => AlertDialog(
@@ -381,8 +388,6 @@ class _TastingRecordPageState extends State<TastingRecordPage>
 
                                   if (confirmed == true) {
                                     try {
-                                      final groupProvider = context
-                                          .read<GroupProvider>();
                                       final groupId = groupProvider.hasGroup
                                           ? groupProvider.currentGroup!.id
                                           : null;
@@ -390,15 +395,13 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                                         latestRecord.id,
                                         groupId: groupId,
                                       );
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
+                                      if (!mounted) return;
+                                      messenger.showSnackBar(
                                         SnackBar(content: Text('削除しました')),
                                       );
                                     } catch (e) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
+                                      if (!mounted) return;
+                                      messenger.showSnackBar(
                                         SnackBar(content: Text('削除に失敗しました')),
                                       );
                                     }
@@ -448,15 +451,17 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                             Icon(
                               Icons.calendar_today,
                               size: 16,
-                              color: themeSettings.fontColor1.withOpacity(0.6),
+                              color: themeSettings.fontColor1.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                             SizedBox(width: 4),
                             Text(
                               '最新試飲日: ${DateFormat('yyyy/MM/dd').format(latestRecord.tastingDate)}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: themeSettings.fontColor1.withOpacity(
-                                  0.7,
+                                color: themeSettings.fontColor1.withValues(
+                                  alpha: 0.7,
                                 ),
                               ),
                             ),
@@ -489,8 +494,8 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                               '(${tastingGroup.averageRating.toStringAsFixed(1)})',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: themeSettings.fontColor1.withOpacity(
-                                  0.7,
+                                color: themeSettings.fontColor1.withValues(
+                                  alpha: 0.7,
                                 ),
                               ),
                             ),
@@ -502,7 +507,9 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                         Container(
                           padding: EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: themeSettings.fontColor1.withOpacity(0.05),
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.05,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
@@ -513,8 +520,8 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: themeSettings.fontColor1.withOpacity(
-                                    0.8,
+                                  color: themeSettings.fontColor1.withValues(
+                                    alpha: 0.8,
                                   ),
                                 ),
                               ),
@@ -549,7 +556,9 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                           Container(
                             padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: themeSettings.fontColor1.withOpacity(0.05),
+                              color: themeSettings.fontColor1.withValues(
+                                alpha: 0.05,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -558,8 +567,8 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                                 Icon(
                                   Icons.rate_review,
                                   size: 16,
-                                  color: themeSettings.fontColor1.withOpacity(
-                                    0.6,
+                                  color: themeSettings.fontColor1.withValues(
+                                    alpha: 0.6,
                                   ),
                                 ),
                                 SizedBox(width: 8),
@@ -574,7 +583,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                           color: themeSettings.fontColor1
-                                              .withOpacity(0.8),
+                                              .withValues(alpha: 0.8),
                                         ),
                                       ),
                                       SizedBox(height: 4),
@@ -585,7 +594,7 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                                         style: TextStyle(
                                           fontSize: 13,
                                           color: themeSettings.fontColor1
-                                              .withOpacity(0.8),
+                                              .withValues(alpha: 0.8),
                                         ),
                                         softWrap: true,
                                         maxLines: null,

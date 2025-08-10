@@ -746,7 +746,6 @@ class GroupDataSyncService {
     await syncRoastRecords(groupId, {'records': roastRecords});
     developer.log('GroupDataSyncService: 焙煎記録の同期完了');
 
-    // TODOリストを同期
     final today = DateTime.now();
     final todoDocId =
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
@@ -988,7 +987,6 @@ class GroupDataSyncService {
         appSettings['passcode'] = passcodeDoc.data();
       }
 
-      // TODO通知設定
       final todoNotificationDoc = await _firestore
           .collection('users')
           .doc(_uid)
@@ -1000,8 +998,12 @@ class GroupDataSyncService {
       }
 
       return appSettings;
-    } catch (e) {
-      print('アプリ設定取得エラー: $e');
+    } catch (e, st) {
+      developer.log(
+        'GroupDataSyncService: アプリ設定取得エラー',
+        error: e,
+        stackTrace: st,
+      );
       return {};
     }
   }
@@ -1080,7 +1082,6 @@ class GroupDataSyncService {
         }
       }
 
-      // TODOリストを適用
       if (groupData['todo_list'] != null) {
         final today = DateTime.now();
         final todoDocId =
@@ -1281,7 +1282,6 @@ class GroupDataSyncService {
               .set(appSettings['passcode'], SetOptions(merge: true));
         }
 
-        // TODO通知設定
         if (appSettings['todo_notifications'] != null) {
           await _firestore
               .collection('users')

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import '../models/attendance_models.dart';
 import '../services/roast_record_firestore_service.dart';
 import '../services/attendance_firestore_service.dart';
@@ -14,6 +15,20 @@ class DashboardStatsService {
   DashboardStatsService._internal();
 
   static DashboardStatsService get instance => _instance;
+
+  static const String _logName = 'DashboardStatsService';
+  static void _logInfo(String message) =>
+      developer.log(message, name: _logName);
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   // キャッシュ
   static Map<String, dynamic>? _cachedStats;
@@ -32,7 +47,7 @@ class DashboardStatsService {
                   .difference(_lastCacheTime!)
                   .compareTo(_cacheValidDuration) <
               0) {
-        print('DashboardStatsService: キャッシュからデータを返します');
+        _logInfo('キャッシュからデータを返します');
         return _cachedStats!;
       }
 
@@ -41,7 +56,7 @@ class DashboardStatsService {
         return _getDefaultStats();
       }
 
-      print('DashboardStatsService: 統計データを並列取得開始');
+      _logInfo('統計データを並列取得開始');
       final startTime = DateTime.now();
 
       // 軽量化された並列処理で統計データを取得
@@ -67,11 +82,11 @@ class DashboardStatsService {
 
       final endTime = DateTime.now();
       final processingTime = endTime.difference(startTime).inMilliseconds;
-      print('DashboardStatsService: 統計データ取得完了 (${processingTime}ms)');
+      _logInfo('統計データ取得完了 (${processingTime}ms)');
 
       return stats;
-    } catch (e) {
-      print('統計データ取得エラー: $e');
+    } catch (e, st) {
+      _logError('統計データ取得エラー', e, st);
       return _getDefaultStats();
     }
   }
@@ -105,7 +120,7 @@ class DashboardStatsService {
         final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
         if (cacheAge < Duration(hours: 1).inMilliseconds) {
           // 1時間キャッシュ
-          print('DashboardStatsService: 焙煎時間をキャッシュから取得: $cachedTime分');
+          _logInfo('焙煎時間をキャッシュから取得: $cachedTime分');
           return cachedTime;
         }
       }
@@ -131,16 +146,16 @@ class DashboardStatsService {
               DateTime.now().millisecondsSinceEpoch,
         });
 
-        print('DashboardStatsService: 焙煎時間を計算: $totalMinutes分');
-      } catch (e) {
-        print('Firestore焙煎記録取得エラー: $e');
+        _logInfo('焙煎時間を計算: $totalMinutes分');
+      } catch (e, st) {
+        _logError('Firestore焙煎記録取得エラー', e, st);
         // フォールバック: ローカルデータから取得
         totalMinutes = await _getRoastingTimeFromLocal();
       }
 
       return totalMinutes;
-    } catch (e) {
-      print('総焙煎時間計算エラー: $e');
+    } catch (e, st) {
+      _logError('総焙煎時間計算エラー', e, st);
       return 0;
     }
   }
@@ -160,7 +175,7 @@ class DashboardStatsService {
         final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
         if (cacheAge < Duration(hours: 6).inMilliseconds) {
           // 6時間キャッシュ
-          print('DashboardStatsService: 出勤日数をキャッシュから取得: $cachedDays日');
+          _logInfo('出勤日数をキャッシュから取得: $cachedDays日');
           return cachedDays;
         }
       }
@@ -199,14 +214,14 @@ class DashboardStatsService {
           'attendance_cache_timestamp': DateTime.now().millisecondsSinceEpoch,
         });
 
-        print('DashboardStatsService: 出勤日数を計算: $result日');
+        _logInfo('出勤日数を計算: $result日');
         return result;
-      } catch (e) {
-        print('Firestore出勤記録取得エラー: $e');
+      } catch (e, st) {
+        _logError('Firestore出勤記録取得エラー', e, st);
         return await _getAttendanceDaysFromLocal();
       }
-    } catch (e) {
-      print('出勤日数計算エラー: $e');
+    } catch (e, st) {
+      _logError('出勤日数計算エラー', e, st);
       return 0;
     }
   }
@@ -226,7 +241,7 @@ class DashboardStatsService {
         final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTimestamp;
         if (cacheAge < Duration(hours: 1).inMilliseconds) {
           // 1時間キャッシュ
-          print('DashboardStatsService: ドリップパック数をキャッシュから取得: $cachedCount袋');
+          _logInfo('ドリップパック数をキャッシュから取得: $cachedCount袋');
           return cachedCount;
         }
       }
@@ -268,15 +283,15 @@ class DashboardStatsService {
           'drip_pack_cache_timestamp': DateTime.now().millisecondsSinceEpoch,
         });
 
-        print('DashboardStatsService: ドリップパック数を計算: $totalCount袋');
-      } catch (e) {
-        print('Firestoreドリップパック記録取得エラー: $e');
+        _logInfo('ドリップパック数を計算: $totalCount袋');
+      } catch (e, st) {
+        _logError('Firestoreドリップパック記録取得エラー', e, st);
         totalCount = await _getDripPackCountFromLocal();
       }
 
       return totalCount;
-    } catch (e) {
-      print('ドリップパック数計算エラー: $e');
+    } catch (e, st) {
+      _logError('ドリップパック数計算エラー', e, st);
       return 0;
     }
   }
@@ -300,8 +315,8 @@ class DashboardStatsService {
       }
 
       return completedCount;
-    } catch (e) {
-      print('完了タスク数計算エラー: $e');
+    } catch (e, st) {
+      _logError('完了タスク数計算エラー', e, st);
       return 0;
     }
   }
@@ -400,7 +415,7 @@ class DashboardStatsService {
 
   /// 統計データをリアルタイムで更新
   Future<void> refreshStats() async {
-    print('DashboardStatsService: 強制リフレッシュ開始');
+    _logInfo('強制リフレッシュ開始');
 
     // キャッシュをクリア
     _cachedStats = null;
@@ -426,25 +441,25 @@ class DashboardStatsService {
       await UserSettingsFirestoreService.deleteSetting(
         'drip_pack_cache_timestamp',
       );
-    } catch (e) {
-      print('ローカルキャッシュクリアエラー: $e');
+    } catch (e, st) {
+      _logError('ローカルキャッシュクリアエラー', e, st);
     }
 
     // Firestoreキャッシュをクリア
     try {
       await FirebaseFirestore.instance.clearPersistence();
-    } catch (e) {
-      print('Firestoreキャッシュクリアエラー: $e');
+    } catch (e, st) {
+      _logError('Firestoreキャッシュクリアエラー', e, st);
     }
 
-    print('DashboardStatsService: リフレッシュ完了');
+    _logInfo('リフレッシュ完了');
   }
 
   /// キャッシュを手動でクリア
   static void clearCache() {
     _cachedStats = null;
     _lastCacheTime = null;
-    print('DashboardStatsService: メモリキャッシュをクリアしました');
+    _logInfo('メモリキャッシュをクリアしました');
   }
 
   /// 焙煎時間の表示用フォーマット

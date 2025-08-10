@@ -63,7 +63,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
         _preheatController.text = _preheatMinutes.toString();
       });
     } catch (e) {
-      print('予熱時間読み込みエラー: $e');
+      debugPrint('予熱時間読み込みエラー: $e');
       setState(() {
         _preheatMinutes = 30;
         _preheatController.text = '30';
@@ -80,7 +80,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
         _coolingController.text = _coolingMinutes.toString();
       });
     } catch (e) {
-      print('豆冷まし時間読み込みエラー: $e');
+      debugPrint('豆冷まし時間読み込みエラー: $e');
       setState(() {
         _coolingMinutes = 10;
         _coolingController.text = '10';
@@ -101,7 +101,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
         _useRoast = settings['useRoast'] ?? true;
       });
     } catch (e) {
-      print('スイッチ設定読み込みエラー: $e');
+      debugPrint('スイッチ設定読み込みエラー: $e');
       setState(() {
         _usePreheat = true;
         _useCooling = false; // デフォルトをオフに変更
@@ -123,7 +123,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
             .toString();
       });
     } catch (e) {
-      print('おすすめ焙煎設定読み込みエラー: $e');
+      debugPrint('おすすめ焙煎設定読み込みエラー: $e');
       setState(() {
         _recommendedOffsetSeconds = 60;
         _recommendedOffsetController.text = '60';
@@ -159,7 +159,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       setState(() {});
       await _saveAllToFirestore();
     } catch (e) {
-      print('予熱設定保存エラー: $e');
+      debugPrint('予熱設定保存エラー: $e');
     }
   }
 
@@ -176,7 +176,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       setState(() {});
       await _saveAllToFirestore();
     } catch (e) {
-      print('豆冷まし設定保存エラー: $e');
+      debugPrint('豆冷まし設定保存エラー: $e');
     }
   }
 
@@ -193,7 +193,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       setState(() {});
       await _saveAllToFirestore();
     } catch (e) {
-      print('焙煎設定保存エラー: $e');
+      debugPrint('焙煎設定保存エラー: $e');
     }
   }
 
@@ -204,6 +204,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       _preheatMinutes = value; // 先に値を更新
       setState(() {});
       await _saveAllToFirestore();
+      if (!mounted) return;
       final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -212,7 +213,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
         ),
       );
     } catch (e) {
-      print('予熱時間保存エラー: $e');
+      debugPrint('予熱時間保存エラー: $e');
     }
   }
 
@@ -223,6 +224,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       _coolingMinutes = value; // 先に値を更新
       setState(() {});
       await _saveAllToFirestore();
+      if (!mounted) return;
       final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -231,7 +233,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
         ),
       );
     } catch (e) {
-      print('豆冷まし時間保存エラー: $e');
+      debugPrint('豆冷まし時間保存エラー: $e');
     }
   }
 
@@ -244,6 +246,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
       );
       _recommendedOffsetSeconds = value;
       setState(() {});
+      if (!mounted) return;
       final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -252,7 +255,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
         ),
       );
     } catch (e) {
-      print('おすすめ焙煎設定保存エラー: $e');
+      debugPrint('おすすめ焙煎設定保存エラー: $e');
     }
   }
 
@@ -630,7 +633,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                           Container(
                             padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.08),
+                              color: Colors.orange.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(

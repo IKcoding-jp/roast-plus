@@ -2,10 +2,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/tasting_models.dart';
 import 'auto_sync_service.dart';
+import 'dart:developer' as developer;
 
 class TastingFirestoreService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
+
+  static const String _logName = 'TastingFirestoreService';
+  static void _logError(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => developer.log(
+    message,
+    name: _logName,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   static String? get _uid => _auth.currentUser?.uid;
 
@@ -28,8 +41,8 @@ class TastingFirestoreService {
       }).toList();
 
       return records;
-    } catch (e) {
-      print('テイスティング記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('テイスティング記録取得エラー', e, st);
       return [];
     }
   }
@@ -52,8 +65,8 @@ class TastingFirestoreService {
               return TastingRecord.fromMap(data);
             }).toList();
           });
-    } catch (e) {
-      print('テイスティング記録ストリームエラー: $e');
+    } catch (e, st) {
+      _logError('テイスティング記録ストリームエラー', e, st);
       return Stream.value([]);
     }
   }
@@ -76,8 +89,8 @@ class TastingFirestoreService {
 
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('tasting_records');
-    } catch (e) {
-      print('テイスティング記録保存エラー: $e');
+    } catch (e, st) {
+      _logError('テイスティング記録保存エラー', e, st);
       rethrow;
     }
   }
@@ -99,8 +112,8 @@ class TastingFirestoreService {
 
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('tasting_records');
-    } catch (e) {
-      print('テイスティング記録更新エラー: $e');
+    } catch (e, st) {
+      _logError('テイスティング記録更新エラー', e, st);
       rethrow;
     }
   }
@@ -119,8 +132,8 @@ class TastingFirestoreService {
 
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('tasting_records');
-    } catch (e) {
-      print('テイスティング記録削除エラー: $e');
+    } catch (e, st) {
+      _logError('テイスティング記録削除エラー', e, st);
       rethrow;
     }
   }
@@ -146,8 +159,8 @@ class TastingFirestoreService {
       }).toList();
 
       return records;
-    } catch (e) {
-      print('グループテイスティング記録取得エラー: $e');
+    } catch (e, st) {
+      _logError('グループテイスティング記録取得エラー', e, st);
       return [];
     }
   }
@@ -170,8 +183,8 @@ class TastingFirestoreService {
           .collection('tasting_records')
           .doc(record.id)
           .set(recordData);
-    } catch (e) {
-      print('グループテイスティング記録保存エラー: $e');
+    } catch (e, st) {
+      _logError('グループテイスティング記録保存エラー', e, st);
       rethrow;
     }
   }
@@ -193,8 +206,8 @@ class TastingFirestoreService {
           .collection('tasting_records')
           .doc(record.id)
           .update(recordData);
-    } catch (e) {
-      print('グループテイスティング記録更新エラー: $e');
+    } catch (e, st) {
+      _logError('グループテイスティング記録更新エラー', e, st);
       rethrow;
     }
   }
@@ -213,8 +226,8 @@ class TastingFirestoreService {
           .collection('tasting_records')
           .doc(recordId)
           .delete();
-    } catch (e) {
-      print('グループテイスティング記録削除エラー: $e');
+    } catch (e, st) {
+      _logError('グループテイスティング記録削除エラー', e, st);
       rethrow;
     }
   }
@@ -237,8 +250,8 @@ class TastingFirestoreService {
               return TastingRecord.fromMap(data);
             }).toList();
           });
-    } catch (e) {
-      print('グループテイスティング記録ストリームエラー: $e');
+    } catch (e, st) {
+      _logError('グループテイスティング記録ストリームエラー', e, st);
       return Stream.value([]);
     }
   }

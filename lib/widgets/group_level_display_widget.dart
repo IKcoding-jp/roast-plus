@@ -34,12 +34,12 @@ class GroupLevelDisplayWidget extends StatelessWidget {
         color: themeSettings.cardBackgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: colorScheme.outline.withOpacity(0.2),
+          color: colorScheme.outline.withValues(alpha: 0.2),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -73,7 +73,7 @@ class GroupLevelDisplayWidget extends StatelessWidget {
           Text(
             profile.displayTitle,
             style: theme.textTheme.titleMedium?.copyWith(
-              color: themeSettings.fontColor1.withOpacity(0.8),
+              color: themeSettings.fontColor1.withValues(alpha: 0.8),
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -93,14 +93,14 @@ class GroupLevelDisplayWidget extends StatelessWidget {
               Text(
                 '現在XP: ${profile.experiencePoints}',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: themeSettings.fontColor1.withOpacity(0.7),
+                  color: themeSettings.fontColor1.withValues(alpha: 0.7),
                 ),
               ),
               if (showNextLevelInfo && profile.level < 9999)
                 Text(
                   '次レベルまで: ${profile.experienceToNextLevel}',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: themeSettings.fontColor1.withOpacity(0.7),
+                    color: themeSettings.fontColor1.withValues(alpha: 0.7),
                   ),
                 ),
             ],
@@ -112,7 +112,7 @@ class GroupLevelDisplayWidget extends StatelessWidget {
             Text(
               '累積必要XP: ${_calculateTotalRequiredXP(profile.level)}',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: themeSettings.fontColor1.withOpacity(0.6),
+                color: themeSettings.fontColor1.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -136,13 +136,13 @@ class GroupLevelDisplayWidget extends StatelessWidget {
             Text(
               '経験値',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: themeSettings.fontColor1.withOpacity(0.7),
+                color: themeSettings.fontColor1.withValues(alpha: 0.7),
               ),
             ),
             Text(
               '${(profile.levelProgress * 100).toStringAsFixed(1)}%',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: themeSettings.fontColor1.withOpacity(0.7),
+                color: themeSettings.fontColor1.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -151,7 +151,7 @@ class GroupLevelDisplayWidget extends StatelessWidget {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: profile.levelProgress,
-          backgroundColor: colorScheme.outline.withOpacity(0.2),
+          backgroundColor: colorScheme.outline.withValues(alpha: 0.2),
           valueColor: AlwaysStoppedAnimation<Color>(profile.levelColor),
           minHeight: 8,
         ),
@@ -201,7 +201,7 @@ class GroupLevelBadgeWidget extends StatelessWidget {
           color: themeSettings.cardBackgroundColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: colorScheme.outline.withOpacity(0.2),
+            color: colorScheme.outline.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -210,13 +210,13 @@ class GroupLevelBadgeWidget extends StatelessWidget {
             Icon(
               Icons.emoji_events_outlined,
               size: 48,
-              color: themeSettings.fontColor1.withOpacity(0.3),
+              color: themeSettings.fontColor1.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 8),
             Text(
               'まだレベルバッジを獲得していません',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: themeSettings.fontColor1.withOpacity(0.6),
+                color: themeSettings.fontColor1.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -231,7 +231,7 @@ class GroupLevelBadgeWidget extends StatelessWidget {
         color: themeSettings.cardBackgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: colorScheme.outline.withOpacity(0.2),
+          color: colorScheme.outline.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -277,9 +277,12 @@ class GroupLevelBadgeWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: badge.color.withOpacity(0.1),
+          color: badge.color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: badge.color.withOpacity(0.3), width: 1),
+          border: Border.all(
+            color: badge.color.withValues(alpha: 0.3),
+            width: 1,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

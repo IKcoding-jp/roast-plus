@@ -39,12 +39,17 @@ class QRCodeService {
     Color? backgroundColor,
     Color? foregroundColor,
   }) {
+    final fg = foregroundColor ?? Colors.black;
     return QrImageView(
       data: data,
       version: QrVersions.auto,
       size: size,
       backgroundColor: backgroundColor ?? Colors.white,
-      foregroundColor: foregroundColor ?? Colors.black,
+      eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: fg),
+      dataModuleStyle: QrDataModuleStyle(
+        dataModuleShape: QrDataModuleShape.square,
+        color: fg,
+      ),
       errorCorrectionLevel: QrErrorCorrectLevel.M,
     );
   }
