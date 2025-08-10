@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import 'dart:convert';
@@ -502,151 +503,166 @@ class LabelEditPageState extends State<LabelEditPage> {
       ),
       body: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
-        child: ListView(
-          padding: EdgeInsets.all(16),
-          children: [
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: kIsWeb ? 800 : double.infinity,
+            ),
+            child: ListView(
+              padding: EdgeInsets.all(kIsWeb ? 24 : 16),
+              children: [
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  color: Provider.of<ThemeSettings>(
+                    context,
+                  ).cardBackgroundColor,
+                  child: Padding(
+                    padding: EdgeInsets.all(kIsWeb ? 28 : 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.label,
-                          color: Provider.of<ThemeSettings>(context).iconColor,
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.label,
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).iconColor,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              '担当ラベル一覧',
+                              style: TextStyle(
+                                fontSize: kIsWeb ? 20 : 18,
+                                fontWeight: FontWeight.bold,
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 8),
-                        Text(
-                          '担当ラベル一覧',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Provider.of<ThemeSettings>(
-                              context,
-                            ).fontColor1,
+                        SizedBox(height: kIsWeb ? 16 : 12),
+                        ...List.generate(leftLabels.length, (i) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: kIsWeb ? 6 : 4,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _leftLabelControllers[i],
+                                    style: TextStyle(
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText: '左ラベル',
+                                      labelStyle: TextStyle(
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).fontColor1,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.label_outline,
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).iconColor,
+                                      ),
+                                      filled: true,
+                                      fillColor: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).inputBackgroundColor,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: kIsWeb ? 12 : 8),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _rightLabelControllers[i],
+                                    style: TextStyle(
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText: '右ラベル',
+                                      labelStyle: TextStyle(
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).fontColor1,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.label_outline,
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).iconColor,
+                                      ),
+                                      filled: true,
+                                      fillColor: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).inputBackgroundColor,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: kIsWeb ? 12 : 8),
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => _deleteLabel(i),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        SizedBox(height: kIsWeb ? 12 : 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: Icon(Icons.add),
+                            label: Text('ラベルを追加'),
+                            onPressed: _addLabel,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context)
+                                      .elevatedButtonTheme
+                                      .style
+                                      ?.backgroundColor
+                                      ?.resolve({}) ??
+                                  Theme.of(context).colorScheme.primary,
+                              foregroundColor:
+                                  Theme.of(context)
+                                      .elevatedButtonTheme
+                                      .style
+                                      ?.foregroundColor
+                                      ?.resolve({}) ??
+                                  Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                vertical: kIsWeb ? 16 : 14,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 12),
-                    ...List.generate(leftLabels.length, (i) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _leftLabelControllers[i],
-                                style: TextStyle(
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).fontColor1,
-                                ),
-                                decoration: InputDecoration(
-                                  labelText: '左ラベル',
-                                  labelStyle: TextStyle(
-                                    color: Provider.of<ThemeSettings>(
-                                      context,
-                                    ).fontColor1,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.label_outline,
-                                    color: Provider.of<ThemeSettings>(
-                                      context,
-                                    ).iconColor,
-                                  ),
-                                  filled: true,
-                                  fillColor: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).inputBackgroundColor,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _rightLabelControllers[i],
-                                style: TextStyle(
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).fontColor1,
-                                ),
-                                decoration: InputDecoration(
-                                  labelText: '右ラベル',
-                                  labelStyle: TextStyle(
-                                    color: Provider.of<ThemeSettings>(
-                                      context,
-                                    ).fontColor1,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.label_outline,
-                                    color: Provider.of<ThemeSettings>(
-                                      context,
-                                    ).iconColor,
-                                  ),
-                                  filled: true,
-                                  fillColor: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).inputBackgroundColor,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteLabel(i),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                    SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: Icon(Icons.add),
-                        label: Text('ラベルを追加'),
-                        onPressed: _addLabel,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(context)
-                                  .elevatedButtonTheme
-                                  .style
-                                  ?.backgroundColor
-                                  ?.resolve({}) ??
-                              Theme.of(context).colorScheme.primary,
-                          foregroundColor:
-                              Theme.of(context)
-                                  .elevatedButtonTheme
-                                  .style
-                                  ?.foregroundColor
-                                  ?.resolve({}) ??
-                              Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

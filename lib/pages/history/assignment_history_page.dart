@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 import 'dart:async';
@@ -757,25 +758,25 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                     children: [
                       Icon(
                         Icons.history,
-                        size: 64,
+                        size: kIsWeb ? 80 : 64,
                         color: Provider.of<ThemeSettings>(
                           context,
                         ).iconColor.withValues(alpha: 0.5),
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: kIsWeb ? 20 : 16),
                       Text(
                         '担当履歴がありません',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: kIsWeb ? 22 : 18,
                           fontWeight: FontWeight.bold,
                           color: Provider.of<ThemeSettings>(context).fontColor1,
                         ),
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: kIsWeb ? 12 : 8),
                       Text(
                         '担当表で記録した履歴がここに表示されます',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: kIsWeb ? 16 : 14,
                           color: Provider.of<ThemeSettings>(
                             context,
                           ).fontColor1.withValues(alpha: 0.7),
@@ -787,7 +788,17 @@ class _AssignmentHistoryPageState extends State<AssignmentHistoryPage> {
                 )
               : Container(
                   color: Theme.of(context).scaffoldBackgroundColor,
-                  child: ListView(padding: EdgeInsets.all(16), children: items),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: kIsWeb ? 800 : double.infinity,
+                      ),
+                      child: ListView(
+                        padding: EdgeInsets.all(kIsWeb ? 24 : 16),
+                        children: items,
+                      ),
+                    ),
+                  ),
                 ),
         );
       },

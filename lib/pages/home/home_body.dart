@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../models/theme_settings.dart';
-import '../../models/group_provider.dart';
 import '../../services/attendance_firestore_service.dart';
 import '../../models/attendance_models.dart';
 import '../../utils/web_ui_utils.dart';

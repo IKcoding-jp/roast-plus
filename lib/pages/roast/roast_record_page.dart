@@ -670,41 +670,80 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                     Expanded(
                       child: SingleChildScrollView(
                         padding: EdgeInsets.all(kIsWeb ? 24.0 : 16.0),
-                        child: Column(
-                          children: [
-                            // A台の記録
-                            _buildRoastForm(
-                              title: 'A台の記録',
-                              beanController: _beanAController,
-                              weightController: _weightAController,
-                              minController: _minuteAController,
-                              secController: _secondAController,
-                              roastLevel: _roastLevelA,
-                              onRoastLevelChanged: (val) {
-                                if (val != null)
-                                  setState(() => _roastLevelA = val);
-                              },
-                            ),
-                            SizedBox(height: kIsWeb ? 24.0 : 20.0),
+                        child: kIsWeb
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // A台の記録（左側）
+                                  Expanded(
+                                    child: _buildRoastForm(
+                                      title: 'A台の記録',
+                                      beanController: _beanAController,
+                                      weightController: _weightAController,
+                                      minController: _minuteAController,
+                                      secController: _secondAController,
+                                      roastLevel: _roastLevelA,
+                                      onRoastLevelChanged: (val) {
+                                        if (val != null) {
+                                          setState(() => _roastLevelA = val);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  SizedBox(width: 24.0), // A台とB台の間隔
+                                  // B台の記録（右側）
+                                  Expanded(
+                                    child: _buildRoastForm(
+                                      title: 'B台の記録',
+                                      beanController: _beanBController,
+                                      weightController: _weightBController,
+                                      minController: _minuteBController,
+                                      secController: _secondBController,
+                                      roastLevel: _roastLevelB,
+                                      onRoastLevelChanged: (val) {
+                                        if (val != null) {
+                                          setState(() => _roastLevelB = val);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  // A台の記録
+                                  _buildRoastForm(
+                                    title: 'A台の記録',
+                                    beanController: _beanAController,
+                                    weightController: _weightAController,
+                                    minController: _minuteAController,
+                                    secController: _secondAController,
+                                    roastLevel: _roastLevelA,
+                                    onRoastLevelChanged: (val) {
+                                      if (val != null) {
+                                        setState(() => _roastLevelA = val);
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(height: 20.0),
 
-                            // B台の記録
-                            _buildRoastForm(
-                              title: 'B台の記録',
-                              beanController: _beanBController,
-                              weightController: _weightBController,
-                              minController: _minuteBController,
-                              secController: _secondBController,
-                              roastLevel: _roastLevelB,
-                              onRoastLevelChanged: (val) {
-                                if (val != null)
-                                  setState(() => _roastLevelB = val);
-                              },
-                            ),
-                            SizedBox(
-                              height: kIsWeb ? 24.0 : 20.0,
-                            ), // 保存ボタンとの間隔を調整
-                          ],
-                        ),
+                                  // B台の記録
+                                  _buildRoastForm(
+                                    title: 'B台の記録',
+                                    beanController: _beanBController,
+                                    weightController: _weightBController,
+                                    minController: _minuteBController,
+                                    secController: _secondBController,
+                                    roastLevel: _roastLevelB,
+                                    onRoastLevelChanged: (val) {
+                                      if (val != null) {
+                                        setState(() => _roastLevelB = val);
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(height: 20.0), // 保存ボタンとの間隔を調整
+                                ],
+                              ),
                       ),
                     ),
 

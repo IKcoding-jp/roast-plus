@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -89,7 +90,7 @@ class _SchedulePageState extends State<SchedulePage>
                   'スケジュール管理',
                   style: TextStyle(
                     color: themeSettings.appBarTextColor,
-                    fontSize: 20 * themeSettings.fontSizeScale,
+                    fontSize: kIsWeb ? 22 : 20 * themeSettings.fontSizeScale,
                     fontWeight: FontWeight.bold,
                     fontFamily: themeSettings.fontFamily,
                   ),
@@ -124,98 +125,234 @@ class _SchedulePageState extends State<SchedulePage>
             backgroundColor: themeSettings.appBarColor,
             iconTheme: IconThemeData(color: themeSettings.iconColor),
             actions: [
-              // 時間ラベル編集ボタンをAppBarに追加
-              IconButton(
-                icon: Icon(Icons.label, color: themeSettings.iconColor),
-                onPressed: _openTimeLabelEdit,
-                tooltip: '時間ラベルを編集',
-              ),
-            ],
-            bottom: PreferredSize(
-              preferredSize: Size.fromHeight(kToolbarHeight),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: themeSettings.cardBackgroundColor,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-                  ),
+              // 時間ラベル編集ボタンをAppBarに追加（Web版では非表示）
+              if (!kIsWeb)
+                IconButton(
+                  icon: Icon(Icons.label, color: themeSettings.iconColor),
+                  onPressed: _openTimeLabelEdit,
+                  tooltip: '時間ラベルを編集',
                 ),
-                child: TabBar(
+            ],
+            bottom: kIsWeb
+                ? null // Web版ではTabBarを非表示
+                : PreferredSize(
+                    preferredSize: Size.fromHeight(kToolbarHeight),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: themeSettings.cardBackgroundColor,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        isScrollable: false,
+                        labelPadding: EdgeInsets.symmetric(
+                          horizontal: (12 * themeSettings.fontSizeScale).clamp(
+                            4.0,
+                            12.0,
+                          ),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: (12 * themeSettings.fontSizeScale).clamp(
+                            4.0,
+                            12.0,
+                          ),
+                        ),
+                        indicatorPadding: EdgeInsets.symmetric(
+                          horizontal: (6 * themeSettings.fontSizeScale).clamp(
+                            2.0,
+                            8.0,
+                          ),
+                        ),
+                        tabs: [
+                          Tab(
+                            child: Text(
+                              '本日のスケジュール',
+                              style: TextStyle(
+                                fontSize: (16 * themeSettings.fontSizeScale)
+                                    .clamp(10.0, 16.0),
+                                fontWeight: FontWeight.w600,
+                                fontFamily: themeSettings.fontFamily,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                          Tab(
+                            child: Text(
+                              'ローストスケジュール',
+                              style: TextStyle(
+                                fontSize: (16 * themeSettings.fontSizeScale)
+                                    .clamp(10.0, 16.0),
+                                fontWeight: FontWeight.w600,
+                                fontFamily: themeSettings.fontFamily,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                        ],
+                        labelColor: themeSettings.fontColor1,
+                        unselectedLabelColor: themeSettings.fontColor1
+                            .withValues(alpha: 0.7),
+                        indicatorColor: themeSettings.buttonColor,
+                        indicatorWeight: 3,
+                      ),
+                    ),
+                  ),
+          ),
+          body: kIsWeb
+              ? Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: 1400, // Web版ではより広い最大幅
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 本日のスケジュール（左側）
+                          Expanded(
+                            child: Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              color: themeSettings.cardBackgroundColor,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // セクションヘッダー
+                                  Container(
+                                    padding: EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: themeSettings.buttonColor
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(16),
+                                        topRight: Radius.circular(16),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.today,
+                                          color: themeSettings.buttonColor,
+                                          size: 24,
+                                        ),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          '本日のスケジュール',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: themeSettings.fontColor1,
+                                          ),
+                                        ),
+                                        Spacer(),
+                                        // Web版での時間ラベル編集ボタン
+                                        if (kIsWeb)
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.label,
+                                              color: themeSettings.iconColor,
+                                              size: 20,
+                                            ),
+                                            onPressed: _openTimeLabelEdit,
+                                            tooltip: '時間ラベルを編集',
+                                            padding: EdgeInsets.zero,
+                                            constraints: BoxConstraints(),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  // 本日のスケジュールコンテンツ
+                                  Expanded(
+                                    child: TodaySchedule(
+                                      onEditTimeLabels: (callback) {
+                                        _openTimeLabelEditCallback = callback;
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 24), // 左右の間隔
+                          // ローストスケジュール（右側）
+                          Expanded(
+                            child: Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              color: themeSettings.cardBackgroundColor,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // セクションヘッダー
+                                  Container(
+                                    padding: EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: themeSettings.buttonColor
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(16),
+                                        topRight: Radius.circular(16),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.schedule,
+                                          color: themeSettings.buttonColor,
+                                          size: 24,
+                                        ),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          'ローストスケジュール',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: themeSettings.fontColor1,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // ローストスケジュールコンテンツ
+                                  Expanded(
+                                    child: RoastSchedulerTab(
+                                      breakTimes: _roastBreakTimes,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              : TabBarView(
                   controller: _tabController,
-                  isScrollable: false,
-                  labelPadding: EdgeInsets.symmetric(
-                    horizontal: (12 * themeSettings.fontSizeScale).clamp(
-                      4.0,
-                      12.0,
+                  children: [
+                    // --- 本日のスケジュールタブ ---
+                    TodaySchedule(
+                      onEditTimeLabels: (callback) {
+                        _openTimeLabelEditCallback = callback;
+                      },
                     ),
-                  ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: (12 * themeSettings.fontSizeScale).clamp(
-                      4.0,
-                      12.0,
-                    ),
-                  ),
-                  indicatorPadding: EdgeInsets.symmetric(
-                    horizontal: (6 * themeSettings.fontSizeScale).clamp(
-                      2.0,
-                      8.0,
-                    ),
-                  ),
-                  tabs: [
-                    Tab(
-                      child: Text(
-                        '本日のスケジュール',
-                        style: TextStyle(
-                          fontSize: (16 * themeSettings.fontSizeScale).clamp(
-                            10.0,
-                            16.0,
-                          ),
-                          fontWeight: FontWeight.w600,
-                          fontFamily: themeSettings.fontFamily,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
-                    Tab(
-                      child: Text(
-                        'ローストスケジュール',
-                        style: TextStyle(
-                          fontSize: (16 * themeSettings.fontSizeScale).clamp(
-                            10.0,
-                            16.0,
-                          ),
-                          fontWeight: FontWeight.w600,
-                          fontFamily: themeSettings.fontFamily,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
+                    // --- ローストスケジュールタブ ---
+                    RoastSchedulerTab(breakTimes: _roastBreakTimes),
                   ],
-                  labelColor: themeSettings.fontColor1,
-                  unselectedLabelColor: themeSettings.fontColor1.withValues(
-                    alpha: 0.7,
-                  ),
-                  indicatorColor: themeSettings.buttonColor,
-                  indicatorWeight: 3,
                 ),
-              ),
-            ),
-          ),
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              // --- 本日のスケジュールタブ ---
-              TodaySchedule(
-                onEditTimeLabels: (callback) {
-                  _openTimeLabelEditCallback = callback;
-                },
-              ),
-              // --- ローストスケジュールタブ ---
-              RoastSchedulerTab(breakTimes: _roastBreakTimes),
-            ],
-          ),
         );
       },
     );

@@ -91,7 +91,7 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
             );
           },
           navigatorKey: _navigatorKey,
-          title: 'BYSN業務アプリ',
+          title: 'ローストプラス',
           theme: ThemeData(
             fontFamily: themeSettings.fontFamily,
             scaffoldBackgroundColor: themeSettings.backgroundColor,

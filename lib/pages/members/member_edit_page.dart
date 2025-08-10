@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -557,49 +558,61 @@ class _MemberEditPageState extends State<MemberEditPage> {
       ),
       body: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
-        child: ListView(
-          padding: EdgeInsets.all(16),
-          children: [
-            // 班一覧
-            ...List.generate(teams.length, (index) {
-              return Column(
-                children: [
-                  _buildTeamCard(teams[index], index),
-                  if (index < teams.length - 1) SizedBox(height: 16),
-                ],
-              );
-            }),
-            SizedBox(height: 16),
-            // 班追加ボタン（一番下に配置）
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: Icon(Icons.add_business),
-                    label: Text('新しい班を追加'),
-                    onPressed: _addTeam,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Provider.of<ThemeSettings>(
-                        context,
-                      ).buttonColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: kIsWeb ? 800 : double.infinity,
+            ),
+            child: ListView(
+              padding: EdgeInsets.all(kIsWeb ? 24 : 16),
+              children: [
+                // 班一覧
+                ...List.generate(teams.length, (index) {
+                  return Column(
+                    children: [
+                      _buildTeamCard(teams[index], index),
+                      if (index < teams.length - 1)
+                        SizedBox(height: kIsWeb ? 20 : 16),
+                    ],
+                  );
+                }),
+                SizedBox(height: kIsWeb ? 20 : 16),
+                // 班追加ボタン（一番下に配置）
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  color: Provider.of<ThemeSettings>(
+                    context,
+                  ).cardBackgroundColor,
+                  child: Padding(
+                    padding: EdgeInsets.all(kIsWeb ? 24 : 20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.add_business),
+                        label: Text('新しい班を追加'),
+                        onPressed: _addTeam,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Provider.of<ThemeSettings>(
+                            context,
+                          ).buttonColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            vertical: kIsWeb ? 16 : 14,
+                          ),
+                        ),
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

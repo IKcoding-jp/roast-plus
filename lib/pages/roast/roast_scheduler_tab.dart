@@ -172,6 +172,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
       margin: EdgeInsets.only(bottom: 8),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      color: themeSettings.cardBackgroundColor,
       child: InkWell(
         onTap: () => _editMemo(memo),
         borderRadius: BorderRadius.circular(8),
@@ -286,22 +287,25 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                                 memo.quantity != null) ...[
                               Expanded(
                                 flex: 2,
-                                child: Text(
-                                  [
-                                    if (memo.weight != null) '${memo.weight}g',
-                                    if (memo.weight != null &&
-                                        memo.quantity != null)
-                                      '×',
-                                    if (memo.quantity != null)
-                                      '${memo.quantity}袋',
-                                  ].join(' '),
-                                  style: TextStyle(
-                                    color: Colors.green[700],
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                                child: Center(
+                                  child: Text(
+                                    [
+                                      if (memo.weight != null)
+                                        '${memo.weight}g',
+                                      if (memo.weight != null &&
+                                          memo.quantity != null)
+                                        '×',
+                                      if (memo.quantity != null)
+                                        '${memo.quantity}袋',
+                                    ].join(' '),
+                                    style: TextStyle(
+                                      color: Colors.green[700],
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
                                 ),
                               ),
                               SizedBox(width: 12),
@@ -411,8 +415,8 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton(
         onPressed: _addMemo,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: themeSettings.appButtonColor,
+        foregroundColor: themeSettings.fontColor2,
         elevation: 6,
         child: Icon(Icons.add),
       ),
@@ -421,20 +425,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
           // ヘッダー
           Container(
             padding: EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(Icons.schedule, color: themeSettings.iconColor, size: 24),
-                SizedBox(width: 8),
-                Text(
-                  'ローストスケジュールメモ',
-                  style: TextStyle(
-                    color: themeSettings.fontColor1,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
+            child: Row(children: []),
           ),
 
           // メモリスト
