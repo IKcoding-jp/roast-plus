@@ -18,7 +18,39 @@ class RoastScheduleMemoService {
     stackTrace: stackTrace,
   );
 
-  // ユーザーのローストスケジュールメモを取得
+  // ユーザーのローストスケジュールメモを取得（日付別）
+  static Future<List<RoastScheduleMemo>> getUserMemosForDate(
+    DateTime date,
+  ) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return [];
+
+      final dateString =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+      final doc = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('roast_schedule_memos')
+          .doc(dateString)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final memosList = data['memos'] as List<dynamic>? ?? [];
+        return memosList
+            .map((memo) => RoastScheduleMemo.fromJson(memo))
+            .toList();
+      }
+      return [];
+    } catch (e, st) {
+      _logError('ローストスケジュールメモ取得エラー', e, st);
+      return [];
+    }
+  }
+
+  // ユーザーのローストスケジュールメモを取得（後方互換性のため）
   static Future<List<RoastScheduleMemo>> getUserMemos() async {
     try {
       final user = _auth.currentUser;
@@ -45,7 +77,32 @@ class RoastScheduleMemoService {
     }
   }
 
-  // ローストスケジュールメモを保存
+  // ローストスケジュールメモを保存（日付別）
+  static Future<void> saveUserMemosForDate(
+    DateTime date,
+    List<RoastScheduleMemo> memos,
+  ) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final dateString =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final memosData = memos.map((memo) => memo.toJson()).toList();
+
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('roast_schedule_memos')
+          .doc(dateString)
+          .set({'memos': memosData, 'updatedAt': FieldValue.serverTimestamp()});
+    } catch (e, st) {
+      _logError('ローストスケジュールメモ保存エラー', e, st);
+      rethrow;
+    }
+  }
+
+  // ローストスケジュールメモを保存（後方互換性のため）
   static Future<void> saveUserMemos(List<RoastScheduleMemo> memos) async {
     try {
       final user = _auth.currentUser;
@@ -65,7 +122,37 @@ class RoastScheduleMemoService {
     }
   }
 
-  // グループのローストスケジュールメモを取得
+  // グループのローストスケジュールメモを取得（日付別）
+  static Future<List<RoastScheduleMemo>> getGroupMemosForDate(
+    String groupId,
+    DateTime date,
+  ) async {
+    try {
+      final dateString =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+      final doc = await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('roast_schedule_memos')
+          .doc(dateString)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final memosList = data['memos'] as List<dynamic>? ?? [];
+        return memosList
+            .map((memo) => RoastScheduleMemo.fromJson(memo))
+            .toList();
+      }
+      return [];
+    } catch (e, st) {
+      _logError('グループローストスケジュールメモ取得エラー', e, st);
+      return [];
+    }
+  }
+
+  // グループのローストスケジュールメモを取得（後方互換性のため）
   static Future<List<RoastScheduleMemo>> getGroupMemos(String groupId) async {
     try {
       final doc = await _firestore
@@ -89,7 +176,30 @@ class RoastScheduleMemoService {
     }
   }
 
-  // グループのローストスケジュールメモを保存
+  // グループのローストスケジュールメモを保存（日付別）
+  static Future<void> saveGroupMemosForDate(
+    String groupId,
+    DateTime date,
+    List<RoastScheduleMemo> memos,
+  ) async {
+    try {
+      final dateString =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final memosData = memos.map((memo) => memo.toJson()).toList();
+
+      await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('roast_schedule_memos')
+          .doc(dateString)
+          .set({'memos': memosData, 'updatedAt': FieldValue.serverTimestamp()});
+    } catch (e, st) {
+      _logError('グループローストスケジュールメモ保存エラー', e, st);
+      rethrow;
+    }
+  }
+
+  // グループのローストスケジュールメモを保存（後方互換性のため）
   static Future<void> saveGroupMemos(
     String groupId,
     List<RoastScheduleMemo> memos,
@@ -115,17 +225,17 @@ class RoastScheduleMemoService {
       List<RoastScheduleMemo> memos;
 
       if (groupId != null) {
-        memos = await getGroupMemos(groupId);
+        memos = await getGroupMemosForDate(groupId, memo.date);
       } else {
-        memos = await getUserMemos();
+        memos = await getUserMemosForDate(memo.date);
       }
 
       memos.add(memo);
 
       if (groupId != null) {
-        await saveGroupMemos(groupId, memos);
+        await saveGroupMemosForDate(groupId, memo.date, memos);
       } else {
-        await saveUserMemos(memos);
+        await saveUserMemosForDate(memo.date, memos);
       }
     } catch (e, st) {
       _logError('メモ追加エラー', e, st);
@@ -142,9 +252,9 @@ class RoastScheduleMemoService {
       List<RoastScheduleMemo> memos;
 
       if (groupId != null) {
-        memos = await getGroupMemos(groupId);
+        memos = await getGroupMemosForDate(groupId, memo.date);
       } else {
-        memos = await getUserMemos();
+        memos = await getUserMemosForDate(memo.date);
       }
 
       final index = memos.indexWhere((m) => m.id == memo.id);
@@ -152,9 +262,9 @@ class RoastScheduleMemoService {
         memos[index] = memo;
 
         if (groupId != null) {
-          await saveGroupMemos(groupId, memos);
+          await saveGroupMemosForDate(groupId, memo.date, memos);
         } else {
-          await saveUserMemos(memos);
+          await saveUserMemosForDate(memo.date, memos);
         }
       }
     } catch (e, st) {
@@ -164,22 +274,27 @@ class RoastScheduleMemoService {
   }
 
   // メモを削除
-  static Future<void> deleteMemo(String memoId, {String? groupId}) async {
+  static Future<void> deleteMemo(
+    String memoId, {
+    String? groupId,
+    DateTime? date,
+  }) async {
     try {
       List<RoastScheduleMemo> memos;
+      final targetDate = date ?? DateTime.now();
 
       if (groupId != null) {
-        memos = await getGroupMemos(groupId);
+        memos = await getGroupMemosForDate(groupId, targetDate);
       } else {
-        memos = await getUserMemos();
+        memos = await getUserMemosForDate(targetDate);
       }
 
       memos.removeWhere((m) => m.id == memoId);
 
       if (groupId != null) {
-        await saveGroupMemos(groupId, memos);
+        await saveGroupMemosForDate(groupId, targetDate, memos);
       } else {
-        await saveUserMemos(memos);
+        await saveUserMemosForDate(targetDate, memos);
       }
     } catch (e, st) {
       _logError('メモ削除エラー', e, st);

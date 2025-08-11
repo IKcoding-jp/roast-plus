@@ -47,13 +47,20 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.groups.isNotEmpty) {
         _groupId = groupProvider.groups.first.id;
-        final memos = await RoastScheduleMemoService.getGroupMemos(_groupId!);
+        // 今日の日付のメモを取得
+        final today = DateTime.now();
+        final memos = await RoastScheduleMemoService.getGroupMemosForDate(
+          _groupId!,
+          today,
+        );
         if (mounted) {
           _memoProvider.setMemos(memos);
         }
       } else {
         _groupId = null;
-        final memos = await RoastScheduleMemoService.getUserMemos();
+        // 今日の日付のメモを取得
+        final today = DateTime.now();
+        final memos = await RoastScheduleMemoService.getUserMemosForDate(today);
         if (mounted) {
           _memoProvider.setMemos(memos);
         }

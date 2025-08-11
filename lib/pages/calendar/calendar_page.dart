@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +10,9 @@ import '../../models/work_progress_models.dart';
 import '../../services/assignment_firestore_service.dart';
 import '../../services/drip_counter_firestore_service.dart';
 import '../../services/work_progress_firestore_service.dart';
+import '../../services/roast_schedule_memo_service.dart';
+import '../../models/roast_schedule_models.dart';
+import '../../models/group_provider.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 import '../../widgets/lottie_animation_widget.dart';
 
@@ -27,7 +31,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
   // データ状態
   Map<String, dynamic>? _todaySchedule;
-  Map<String, dynamic>? _roastSchedule;
+  List<RoastScheduleMemo> _roastScheduleMemos = [];
   Map<String, dynamic>? _assignmentHistoryWithLabels;
   List<Map<String, dynamic>> _dripPackRecords = [];
   List<WorkProgress> _workProgressRecords = [];
@@ -62,7 +66,7 @@ class _CalendarPageState extends State<CalendarPage> {
       await _loadTodaySchedule(dateKey);
       if (!mounted) return;
 
-      await _loadRoastSchedule(dateKey);
+      await _loadRoastScheduleMemos(_selectedDate);
       if (!mounted) return;
 
       await _loadAssignmentHistory(dateKey);
@@ -99,19 +103,95 @@ class _CalendarPageState extends State<CalendarPage> {
     }
   }
 
-  Future<void> _loadRoastSchedule(String dateKey) async {
+  Future<void> _loadRoastScheduleMemos(DateTime date) async {
     if (!mounted) return;
 
     try {
-      // 指定した日付のローストスケジュールを取得するためのカスタム関数を作成
-      final schedule = await _loadRoastScheduleForDate(dateKey);
+      // グループプロバイダーを取得
+      final groupProvider = context.read<GroupProvider>();
+      List<RoastScheduleMemo> allMemos = [];
+
+      // 指定した日付のローストスケジュールメモを取得
+      if (groupProvider.groups.isNotEmpty) {
+        allMemos = await RoastScheduleMemoService.getGroupMemosForDate(
+          groupProvider.groups.first.id,
+          date,
+        );
+      } else {
+        allMemos = await RoastScheduleMemoService.getUserMemosForDate(date);
+      }
+
+      final filteredMemos = allMemos;
+
+      // 記録順（作成順）でソート - ローストスケジュールで設定した順番を保持
+      filteredMemos.sort((a, b) {
+        return a.createdAt.compareTo(b.createdAt);
+      });
+
       if (mounted) {
         setState(() {
-          _roastSchedule = schedule;
+          _roastScheduleMemos = filteredMemos;
         });
+        debugPrint(
+          'ローストスケジュールメモ: 全${allMemos.length}件中、${filteredMemos.length}件を表示',
+        );
+
+        // デバッグ用：各メモの詳細をログ出力
+        for (int i = 0; i < filteredMemos.length; i++) {
+          final memo = filteredMemos[i];
+          debugPrint(
+            'メモ${i + 1}: ${memo.time} - ${memo.beanName ?? 'null'} (焙煎機オン: ${memo.isRoasterOn}, アフターパージ: ${memo.isAfterPurge}, 作成日: ${memo.createdAt})',
+          );
+        }
       }
     } catch (e) {
-      debugPrint('ローストスケジュール読み込みエラー: $e');
+      debugPrint('ローストスケジュールメモ読み込みエラー: $e');
+    }
+  }
+
+  // 時間文字列を分に変換するヘルパーメソッド
+  int _parseTime(String time) {
+    final parts = time.split(':');
+    if (parts.length == 2) {
+      final hour = int.tryParse(parts[0]) ?? 0;
+      final minute = int.tryParse(parts[1]) ?? 0;
+      return hour * 60 + minute;
+    }
+    return 0;
+  }
+
+  // タスクの説明を取得するヘルパーメソッド
+  String _getTaskDescription(RoastScheduleMemo memo) {
+    if (memo.isRoasterOn) {
+      return '焙煎機オン';
+    } else if (memo.isAfterPurge) {
+      return 'アフターパージ';
+    } else if (memo.beanName != null && memo.beanName!.isNotEmpty) {
+      return memo.beanName!;
+    } else {
+      return '未設定';
+    }
+  }
+
+  // タスクのアイコンを取得するヘルパーメソッド
+  IconData _getTaskIcon(RoastScheduleMemo memo) {
+    if (memo.isRoasterOn) {
+      return Icons.local_fire_department;
+    } else if (memo.isAfterPurge) {
+      return Icons.ac_unit;
+    } else {
+      return Icons.coffee;
+    }
+  }
+
+  // タスクの色を取得するヘルパーメソッド
+  Color _getTaskColor(RoastScheduleMemo memo, ThemeSettings themeSettings) {
+    if (memo.isRoasterOn) {
+      return Colors.orange;
+    } else if (memo.isAfterPurge) {
+      return Colors.blue;
+    } else {
+      return themeSettings.iconColor;
     }
   }
 
@@ -184,29 +264,6 @@ class _CalendarPageState extends State<CalendarPage> {
       return doc.exists ? doc.data() : null;
     } catch (e) {
       debugPrint('指定日付のスケジュール読み込みエラー: $e');
-      return null;
-    }
-  }
-
-  // 指定した日付のローストスケジュールを取得
-  Future<Map<String, dynamic>?> _loadRoastScheduleForDate(
-    String dateKey,
-  ) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return null;
-
-      final doc = await firestore
-          .collection('users')
-          .doc(user.uid)
-          .collection('schedules')
-          .doc(dateKey)
-          .get();
-
-      return doc.exists ? doc.data() : null;
-    } catch (e) {
-      debugPrint('指定日付のローストスケジュール読み込みエラー: $e');
       return null;
     }
   }
@@ -373,133 +430,304 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // 日付選択部分
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              children: [
-                // 選択された日付の表示
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      color: themeSettings.iconColor,
-                      size: 20,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      dateFormatter.format(_selectedDate),
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: themeSettings.fontColor1,
+      body: kIsWeb
+          ? _buildWebLayout(themeSettings)
+          : _buildMobileLayout(themeSettings),
+    );
+  }
+
+  Widget _buildWebLayout(ThemeSettings themeSettings) {
+    final dateFormatter = DateFormat('yyyy年M月d日 (E)', 'ja_JP');
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 1200),
+          child: Column(
+            children: [
+              // 日付選択部分（中央配置）
+              _buildWebDateSelector(themeSettings, dateFormatter),
+              SizedBox(height: 32),
+
+              // データ表示部分（3列レイアウト）
+              _isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const LoadingAnimationWidget(),
+                          SizedBox(height: 16),
+                          Text(
+                            'Loading...',
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    )
+                  : _todaySchedule == null &&
+                        _assignmentHistoryWithLabels == null &&
+                        _dripPackRecords.isEmpty &&
+                        _workProgressRecords.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy,
+                            size: 64,
+                            color: themeSettings.iconColor.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'この日のデータはありません',
+                            style: TextStyle(
+                              color: themeSettings.fontColor1.withValues(
+                                alpha: 0.6,
+                              ),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _buildWebDataLayout(themeSettings),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebDateSelector(
+    ThemeSettings themeSettings,
+    DateFormat dateFormatter,
+  ) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: themeSettings.cardBackgroundColor,
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // 選択された日付の表示
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  color: themeSettings.iconColor,
+                  size: 24,
                 ),
-                SizedBox(height: 12),
-                // 日付選択ボタン
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildDateButton(context, -3, '3日前', themeSettings),
-                    _buildDateButton(context, -2, '2日前', themeSettings),
-                    _buildDateButton(context, -1, '昨日', themeSettings),
-                    _buildDateButton(context, 0, '今日', themeSettings),
-                    _buildDateButton(context, 1, '明日', themeSettings),
-                    _buildDateButton(context, 2, '2日後', themeSettings),
-                    _buildDateButton(context, 3, '3日後', themeSettings),
-                  ],
+                SizedBox(width: 12),
+                Text(
+                  dateFormatter.format(_selectedDate),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: themeSettings.fontColor1,
+                  ),
                 ),
               ],
             ),
-          ),
+            SizedBox(height: 24),
+            // 日付選択ボタン（中央配置）
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildDateButton(context, -3, '3日前', themeSettings),
+                SizedBox(width: 12),
+                _buildDateButton(context, -2, '2日前', themeSettings),
+                SizedBox(width: 12),
+                _buildDateButton(context, -1, '昨日', themeSettings),
+                SizedBox(width: 12),
+                _buildDateButton(context, 0, '今日', themeSettings),
+                SizedBox(width: 12),
+                _buildDateButton(context, 1, '明日', themeSettings),
+                SizedBox(width: 12),
+                _buildDateButton(context, 2, '2日後', themeSettings),
+                SizedBox(width: 12),
+                _buildDateButton(context, 3, '3日後', themeSettings),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-          // データ表示部分
-          Expanded(
-            child: _isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const LoadingAnimationWidget(),
-                        SizedBox(height: 16),
-                        Text(
-                          'Loading...',
-                          style: TextStyle(
-                            color: themeSettings.fontColor1,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : _todaySchedule == null &&
-                      _roastSchedule == null &&
-                      _assignmentHistoryWithLabels == null &&
-                      _dripPackRecords.isEmpty &&
-                      _workProgressRecords.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.event_busy,
-                          size: 64,
-                          color: themeSettings.iconColor.withValues(alpha: 0.5),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'この日のデータはありません',
-                          style: TextStyle(
-                            color: themeSettings.fontColor1.withValues(
-                              alpha: 0.6,
-                            ),
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : SingleChildScrollView(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (_todaySchedule != null)
-                          _buildTodayScheduleSection(themeSettings),
-                        if (_todaySchedule != null) SizedBox(height: 16),
-                        if (_roastSchedule != null)
-                          _buildRoastScheduleSection(themeSettings),
-                        if (_roastSchedule != null) SizedBox(height: 16),
-                        if (_assignmentHistoryWithLabels != null &&
-                            _assignmentHistoryWithLabels!['assignments'] !=
-                                null &&
-                            (_assignmentHistoryWithLabels!['assignments']
-                                    as List)
-                                .isNotEmpty)
-                          _buildAssignmentSection(themeSettings),
-                        if (_assignmentHistoryWithLabels != null &&
-                            _assignmentHistoryWithLabels!['assignments'] !=
-                                null &&
-                            (_assignmentHistoryWithLabels!['assignments']
-                                    as List)
-                                .isNotEmpty)
-                          SizedBox(height: 16),
-                        if (_dripPackRecords.isNotEmpty)
-                          _buildDripPackSection(themeSettings),
-                        if (_dripPackRecords.isNotEmpty) SizedBox(height: 16),
-                        if (_workProgressRecords.isNotEmpty)
-                          _buildWorkProgressSection(themeSettings),
-                      ],
+  Widget _buildWebDataLayout(ThemeSettings themeSettings) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 本日のスケジュール
+        Expanded(
+          child: Column(
+            children: [
+              if (_todaySchedule != null)
+                _buildTodayScheduleSection(themeSettings),
+              if (_todaySchedule != null) SizedBox(height: 16),
+              if (_dripPackRecords.isNotEmpty)
+                _buildDripPackSection(themeSettings),
+              if (_dripPackRecords.isNotEmpty) SizedBox(height: 16),
+              if (_workProgressRecords.isNotEmpty)
+                _buildWorkProgressSection(themeSettings),
+            ],
+          ),
+        ),
+        SizedBox(width: 16),
+        // ローストスケジュール
+        Expanded(
+          child: Column(children: [_buildRoastScheduleSection(themeSettings)]),
+        ),
+        SizedBox(width: 16),
+        // 担当
+        Expanded(
+          child: Column(
+            children: [
+              if (_assignmentHistoryWithLabels != null &&
+                  _assignmentHistoryWithLabels!['assignments'] != null &&
+                  (_assignmentHistoryWithLabels!['assignments'] as List)
+                      .isNotEmpty)
+                _buildAssignmentSection(themeSettings),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(ThemeSettings themeSettings) {
+    final dateFormatter = DateFormat('yyyy年M月d日 (E)', 'ja_JP');
+
+    return Column(
+      children: [
+        // 日付選択部分
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            children: [
+              // 選択された日付の表示
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    color: themeSettings.iconColor,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    dateFormatter.format(_selectedDate),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: themeSettings.fontColor1,
                     ),
                   ),
+                ],
+              ),
+              SizedBox(height: 12),
+              // 日付選択ボタン
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildDateButton(context, -3, '3日前', themeSettings),
+                  _buildDateButton(context, -2, '2日前', themeSettings),
+                  _buildDateButton(context, -1, '昨日', themeSettings),
+                  _buildDateButton(context, 0, '今日', themeSettings),
+                  _buildDateButton(context, 1, '明日', themeSettings),
+                  _buildDateButton(context, 2, '2日後', themeSettings),
+                  _buildDateButton(context, 3, '3日後', themeSettings),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+
+        // データ表示部分
+        Expanded(
+          child: _isLoading
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const LoadingAnimationWidget(),
+                      SizedBox(height: 16),
+                      Text(
+                        'Loading...',
+                        style: TextStyle(
+                          color: themeSettings.fontColor1,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : _todaySchedule == null &&
+                    _assignmentHistoryWithLabels == null &&
+                    _dripPackRecords.isEmpty &&
+                    _workProgressRecords.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.event_busy,
+                        size: 64,
+                        color: themeSettings.iconColor.withValues(alpha: 0.5),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'この日のデータはありません',
+                        style: TextStyle(
+                          color: themeSettings.fontColor1.withValues(
+                            alpha: 0.6,
+                          ),
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_todaySchedule != null)
+                        _buildTodayScheduleSection(themeSettings),
+                      if (_todaySchedule != null) SizedBox(height: 16),
+                      _buildRoastScheduleSection(themeSettings),
+                      SizedBox(height: 16),
+                      if (_assignmentHistoryWithLabels != null &&
+                          _assignmentHistoryWithLabels!['assignments'] !=
+                              null &&
+                          (_assignmentHistoryWithLabels!['assignments'] as List)
+                              .isNotEmpty)
+                        _buildAssignmentSection(themeSettings),
+                      if (_assignmentHistoryWithLabels != null &&
+                          _assignmentHistoryWithLabels!['assignments'] !=
+                              null &&
+                          (_assignmentHistoryWithLabels!['assignments'] as List)
+                              .isNotEmpty)
+                        SizedBox(height: 16),
+                      if (_dripPackRecords.isNotEmpty)
+                        _buildDripPackSection(themeSettings),
+                      if (_dripPackRecords.isNotEmpty) SizedBox(height: 16),
+                      if (_workProgressRecords.isNotEmpty)
+                        _buildWorkProgressSection(themeSettings),
+                    ],
+                  ),
+                ),
+        ),
+      ],
     );
   }
 
@@ -537,7 +765,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             child: Text(
                               label,
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: themeSettings.buttonColor,
                               ),
@@ -550,6 +778,7 @@ class _CalendarPageState extends State<CalendarPage> {
                               style: TextStyle(
                                 color: themeSettings.fontColor1,
                                 fontSize: 14,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
@@ -567,6 +796,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     'スケジュールがありません',
                     style: TextStyle(
                       color: themeSettings.fontColor1.withValues(alpha: 0.6),
+                      fontSize: 14,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -576,6 +806,7 @@ class _CalendarPageState extends State<CalendarPage> {
               'スケジュールがありません',
               style: TextStyle(
                 color: themeSettings.fontColor1.withValues(alpha: 0.6),
+                fontSize: 14,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -587,74 +818,68 @@ class _CalendarPageState extends State<CalendarPage> {
       title: 'ローストスケジュール',
       icon: Icons.local_fire_department,
       themeSettings: themeSettings,
-      child: _roastSchedule != null
+      child: _roastScheduleMemos.isNotEmpty
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_roastSchedule!['amResult'] != null)
-                  ...(_roastSchedule!['amResult'] as List).map((result) {
-                    if (result['task'] != null) {
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 4),
-                        child: Row(
+              children: _roastScheduleMemos.map((memo) {
+                return Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        _getTaskIcon(memo),
+                        size: 16,
+                        color: _getTaskColor(memo, themeSettings),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: themeSettings.iconColor,
-                            ),
-                            SizedBox(width: 4),
                             Text(
-                              '${result['time'] ?? ''} - ${result['task']['type']} (${result['task']['roastLevel']})',
+                              memo.isAfterPurge
+                                  ? _getTaskDescription(memo)
+                                  : '${memo.time} - ${_getTaskDescription(memo)}',
                               style: TextStyle(
                                 color: themeSettings.fontColor1,
                                 fontSize: 14,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    }
-                    return SizedBox.shrink();
-                  }),
-                if (_roastSchedule!['pmResult'] != null)
-                  ...(_roastSchedule!['pmResult'] as List).map((result) {
-                    if (result['task'] != null) {
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: themeSettings.iconColor,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              '${result['time'] ?? ''} - ${result['task']['type']} (${result['task']['roastLevel']})',
-                              style: TextStyle(
-                                color: themeSettings.fontColor1,
-                                fontSize: 14,
+                            if (!memo.isRoasterOn &&
+                                !memo.isAfterPurge &&
+                                memo.weight != null &&
+                                memo.quantity != null)
+                              Text(
+                                '${memo.weight}g × ${memo.quantity}袋',
+                                style: TextStyle(
+                                  color: themeSettings.fontColor1.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                  fontSize: 12,
+                                ),
                               ),
-                            ),
+                            if (!memo.isRoasterOn &&
+                                !memo.isAfterPurge &&
+                                memo.roastLevel != null &&
+                                memo.roastLevel!.isNotEmpty)
+                              Text(
+                                '煎り度: ${memo.roastLevel}',
+                                style: TextStyle(
+                                  color: themeSettings.fontColor1.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                  fontSize: 12,
+                                ),
+                              ),
                           ],
                         ),
-                      );
-                    }
-                    return SizedBox.shrink();
-                  }),
-                if ((_roastSchedule!['amResult'] == null ||
-                        (_roastSchedule!['amResult'] as List).isEmpty) &&
-                    (_roastSchedule!['pmResult'] == null ||
-                        (_roastSchedule!['pmResult'] as List).isEmpty))
-                  Text(
-                    'ローストスケジュールがありません',
-                    style: TextStyle(
-                      color: themeSettings.fontColor1.withValues(alpha: 0.6),
-                      fontStyle: FontStyle.italic,
-                    ),
+                      ),
+                    ],
                   ),
-              ],
+                );
+              }).toList(),
             )
           : Text(
               'ローストスケジュールがありません',

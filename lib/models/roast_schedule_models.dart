@@ -10,6 +10,7 @@ class RoastScheduleMemo {
   final String? roastLevel;
   final bool isAfterPurge;
   final bool isRoasterOn;
+  final DateTime date; // 日付フィールドを追加
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -22,6 +23,7 @@ class RoastScheduleMemo {
     this.roastLevel,
     this.isAfterPurge = false,
     this.isRoasterOn = false,
+    required this.date,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -35,6 +37,7 @@ class RoastScheduleMemo {
     'roastLevel': roastLevel,
     'isAfterPurge': isAfterPurge,
     'isRoasterOn': isRoasterOn,
+    'date': date.toIso8601String(),
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -49,6 +52,9 @@ class RoastScheduleMemo {
       roastLevel: json['roastLevel'],
       isAfterPurge: json['isAfterPurge'] ?? false,
       isRoasterOn: json['isRoasterOn'] ?? false,
+      date: DateTime.parse(
+        json['date'] ?? json['createdAt'],
+      ), // 後方互換性のためcreatedAtをフォールバック
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
     );
@@ -63,6 +69,7 @@ class RoastScheduleMemo {
     String? roastLevel,
     bool? isAfterPurge,
     bool? isRoasterOn,
+    DateTime? date,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -75,6 +82,7 @@ class RoastScheduleMemo {
       roastLevel: roastLevel ?? this.roastLevel,
       isAfterPurge: isAfterPurge ?? this.isAfterPurge,
       isRoasterOn: isRoasterOn ?? this.isRoasterOn,
+      date: date ?? this.date,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
