@@ -574,6 +574,9 @@ class TodoListTabState extends State<TodoListTab> {
                               color: Provider.of<ThemeSettings>(
                                 context,
                               ).fontColor1,
+                              fontFamily: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontFamily,
                             ),
                           ),
                         ],
@@ -674,6 +677,9 @@ class TodoListTabState extends State<TodoListTab> {
                                     context,
                                   ).fontColor1,
                                   fontWeight: FontWeight.w600,
+                                  fontFamily: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontFamily,
                                 ),
                               ),
                             ],
@@ -724,6 +730,9 @@ class TodoListTabState extends State<TodoListTab> {
                                       color: Provider.of<ThemeSettings>(
                                         context,
                                       ).fontColor1,
+                                      fontFamily: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontFamily,
                                     ),
                                   ),
                                   SizedBox(height: 8),
@@ -733,6 +742,9 @@ class TodoListTabState extends State<TodoListTab> {
                                       color: Provider.of<ThemeSettings>(
                                         context,
                                       ).fontColor1.withValues(alpha: 0.7),
+                                      fontFamily: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontFamily,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -800,6 +812,9 @@ class TodoListTabState extends State<TodoListTab> {
                                   color: Provider.of<ThemeSettings>(
                                     context,
                                   ).fontColor1,
+                                  fontFamily: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).fontFamily,
                                   decoration: item.isDone
                                       ? TextDecoration.lineThrough
                                       : TextDecoration.none,
@@ -832,6 +847,10 @@ class TodoListTabState extends State<TodoListTab> {
                                                   ).fontColor1.withValues(
                                                     alpha: 0.7,
                                                   ),
+                                              fontFamily:
+                                                  Provider.of<ThemeSettings>(
+                                                    context,
+                                                  ).fontFamily,
                                             ),
                                           ),
                                         ],

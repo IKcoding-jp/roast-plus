@@ -6,6 +6,7 @@ import '../../models/memo_models.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../services/memo_firestore_service.dart';
+import '../../utils/web_ui_utils.dart';
 
 class MemoListPage extends StatefulWidget {
   const MemoListPage({super.key});
@@ -188,142 +189,154 @@ class _MemoListPageState extends State<MemoListPage> {
         actions: [IconButton(icon: Icon(Icons.refresh), onPressed: _loadMemos)],
       ),
       backgroundColor: themeSettings.backgroundColor,
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(color: themeSettings.iconColor),
-            )
-          : _memos.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.note_outlined,
-                    size: 64,
-                    color: themeSettings.todoColor,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'メモがありません',
-                    style: TextStyle(
-                      fontSize: 18 * themeSettings.fontSizeScale,
-                      fontWeight: FontWeight.bold,
-                      color: themeSettings.fontColor1,
-                    ),
-                  ),
+      body: WebUIUtils.isWeb
+          ? _buildWebLayout(themeSettings)
+          : _buildMobileLayout(themeSettings),
+    );
+  }
+
+  Widget _buildWebLayout(ThemeSettings themeSettings) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 800),
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: _buildMemoContent(themeSettings),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(ThemeSettings themeSettings) {
+    return _buildMemoContent(themeSettings);
+  }
+
+  Widget _buildMemoContent(ThemeSettings themeSettings) {
+    if (_isLoading) {
+      return Center(
+        child: CircularProgressIndicator(color: themeSettings.iconColor),
+      );
+    }
+
+    if (_memos.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.note_outlined, size: 64, color: themeSettings.todoColor),
+            SizedBox(height: 16),
+            Text(
+              'メモがありません',
+              style: TextStyle(
+                fontSize: 18 * themeSettings.fontSizeScale,
+                fontWeight: FontWeight.bold,
+                color: themeSettings.fontColor1,
+                fontFamily: themeSettings.fontFamily,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '新しいメモを作成してください',
+              style: TextStyle(
+                color: themeSettings.fontColor1.withValues(alpha: 0.7),
+                fontFamily: themeSettings.fontFamily,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.all(16),
+      itemCount: _memos.length,
+      itemBuilder: (context, index) {
+        final memo = _memos[index];
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          color: themeSettings.cardBackgroundColor,
+          margin: EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            contentPadding: EdgeInsets.all(16),
+            leading: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: memo.isPinned
+                    ? Colors.orange.withValues(alpha: 0.2)
+                    : themeSettings.iconColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                memo.isPinned ? Icons.push_pin : Icons.note,
+                color: memo.isPinned ? Colors.orange : themeSettings.todoColor,
+                size: 24,
+              ),
+            ),
+            title: Text(
+              memo.title,
+              style: TextStyle(
+                fontSize: (16 * themeSettings.fontSizeScale).clamp(12.0, 24.0),
+                fontWeight: FontWeight.bold,
+                color: themeSettings.fontColor1,
+                fontFamily: themeSettings.fontFamily,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (memo.content.isNotEmpty) ...[
                   SizedBox(height: 8),
                   Text(
-                    '新しいメモを作成してください',
+                    memo.content,
                     style: TextStyle(
-                      color: themeSettings.fontColor1.withValues(alpha: 0.7),
+                      fontSize: 14 * themeSettings.fontSizeScale,
+                      color: themeSettings.fontColor1.withValues(alpha: 0.8),
+                      fontFamily: themeSettings.fontFamily,
                     ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
-            )
-          : ListView.builder(
-              padding: EdgeInsets.all(16),
-              itemCount: _memos.length,
-              itemBuilder: (context, index) {
-                final memo = _memos[index];
-                return Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                SizedBox(height: 8),
+                Text(
+                  '更新: ${_formatDate(memo.updatedAt)}',
+                  style: TextStyle(
+                    fontSize: 12 * themeSettings.fontSizeScale,
+                    color: themeSettings.fontColor1.withValues(alpha: 0.6),
+                    fontFamily: themeSettings.fontFamily,
                   ),
-                  color: themeSettings.cardBackgroundColor,
-                  margin: EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.all(16),
-                    leading: Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: memo.isPinned
-                            ? Colors.orange.withValues(alpha: 0.2)
-                            : themeSettings.iconColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        memo.isPinned ? Icons.push_pin : Icons.note,
-                        color: memo.isPinned
-                            ? Colors.orange
-                            : themeSettings.todoColor,
-                        size: 24,
-                      ),
-                    ),
-                    title: Text(
-                      memo.title,
-                      style: TextStyle(
-                        fontSize: (16 * themeSettings.fontSizeScale).clamp(
-                          12.0,
-                          24.0,
-                        ),
-                        fontWeight: FontWeight.bold,
-                        color: themeSettings.fontColor1,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (memo.content.isNotEmpty) ...[
-                          SizedBox(height: 8),
-                          Text(
-                            memo.content,
-                            style: TextStyle(
-                              fontSize: 14 * themeSettings.fontSizeScale,
-                              color: themeSettings.fontColor1.withValues(
-                                alpha: 0.8,
-                              ),
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        SizedBox(height: 8),
-                        Text(
-                          '更新: ${_formatDate(memo.updatedAt)}',
-                          style: TextStyle(
-                            fontSize: 12 * themeSettings.fontSizeScale,
-                            color: themeSettings.fontColor1.withValues(
-                              alpha: 0.6,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            memo.isPinned
-                                ? Icons.push_pin
-                                : Icons.push_pin_outlined,
-                            color: memo.isPinned
-                                ? Colors.orange
-                                : themeSettings.todoColor,
-                          ),
-                          onPressed: _canEditMemos
-                              ? () => _togglePinMemo(memo)
-                              : null,
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete, color: Colors.red),
-                          onPressed: _canEditMemos
-                              ? () => _deleteMemo(memo)
-                              : null,
-                        ),
-                      ],
-                    ),
-                    onTap: _canEditMemos
-                        ? () => _editMemo(memo, memo.title, memo.content)
-                        : null,
-                  ),
-                );
-              },
+                ),
+              ],
             ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    memo.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                    color: memo.isPinned
+                        ? Colors.orange
+                        : themeSettings.todoColor,
+                  ),
+                  onPressed: _canEditMemos ? () => _togglePinMemo(memo) : null,
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.red),
+                  onPressed: _canEditMemos ? () => _deleteMemo(memo) : null,
+                ),
+              ],
+            ),
+            onTap: _canEditMemos
+                ? () => _editMemo(memo, memo.title, memo.content)
+                : null,
+          ),
+        );
+      },
     );
   }
 

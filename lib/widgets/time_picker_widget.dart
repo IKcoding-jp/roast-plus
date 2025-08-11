@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/web_ui_utils.dart';
 
 class TimePickerWidget extends StatefulWidget {
   final TimeOfDay initialTime;
@@ -40,6 +41,83 @@ class _TimePickerWidgetState extends State<TimePickerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    return WebUIUtils.isWeb ? _buildWebLayout() : _buildMobileLayout();
+  }
+
+  Widget _buildWebLayout() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      child: Row(
+        children: [
+          // 時間選択
+          Expanded(
+            child: DropdownButtonFormField<int>(
+              value: _selectedHour,
+              decoration: InputDecoration(
+                labelText: '時',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              items: List.generate(24, (index) {
+                return DropdownMenuItem<int>(
+                  value: index,
+                  child: Text(
+                    index.toString().padLeft(2, '0'),
+                    style: TextStyle(fontSize: 16),
+                  ),
+                );
+              }),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedHour = value;
+                  });
+                  widget.onTimeChanged(
+                    TimeOfDay(hour: _selectedHour, minute: _selectedMinute),
+                  );
+                }
+              },
+            ),
+          ),
+          SizedBox(width: 16),
+          // 分選択
+          Expanded(
+            child: DropdownButtonFormField<int>(
+              value: _selectedMinute,
+              decoration: InputDecoration(
+                labelText: '分',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              items: List.generate(60, (index) {
+                return DropdownMenuItem<int>(
+                  value: index,
+                  child: Text(
+                    index.toString().padLeft(2, '0'),
+                    style: TextStyle(fontSize: 16),
+                  ),
+                );
+              }),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedMinute = value;
+                  });
+                  widget.onTimeChanged(
+                    TimeOfDay(hour: _selectedHour, minute: _selectedMinute),
+                  );
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
     return Container(
       height: 200,
       decoration: BoxDecoration(

@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:developer' as developer;
+import '../services/encrypted_local_storage_service.dart';
 
 class ThemeSettings extends ChangeNotifier {
   Color appBarColor; // アプリバーの背景色
@@ -1405,9 +1406,11 @@ class ThemeSettings extends ChangeNotifier {
   // ローカル保存のみのメソッド（Firestore保存をスキップ）
   void _saveToLocalOnly() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble('fontSizeScale', fontSizeScale);
-      await prefs.setString('fontFamily', fontFamily);
+      await EncryptedLocalStorageService.setDouble(
+        'fontSizeScale',
+        fontSizeScale,
+      );
+      await EncryptedLocalStorageService.setString('fontFamily', fontFamily);
     } catch (e, st) {
       developer.log(
         'ローカル保存エラー',
@@ -1421,8 +1424,7 @@ class ThemeSettings extends ChangeNotifier {
   // ローカルからフォントサイズを読み込み
   static Future<double?> _loadFontSizeScaleFromLocal() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getDouble('fontSizeScale');
+      return await EncryptedLocalStorageService.getDouble('fontSizeScale');
     } catch (e, st) {
       developer.log(
         'ローカルフォントサイズ読み込みエラー',
@@ -1437,8 +1439,7 @@ class ThemeSettings extends ChangeNotifier {
   // ローカルからフォントファミリーを読み込み
   static Future<String?> _loadFontFamilyFromLocal() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString('fontFamily');
+      return await EncryptedLocalStorageService.getString('fontFamily');
     } catch (e, st) {
       developer.log(
         'ローカルフォントファミリー読み込みエラー',

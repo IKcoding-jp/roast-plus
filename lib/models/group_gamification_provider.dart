@@ -452,7 +452,10 @@ class GroupGamificationProvider extends ChangeNotifier {
           name: 'GroupGamificationProvider',
         );
         _profile = profile;
-        notifyListeners();
+        // ビルド中でないことを確認してからnotifyListenersを呼び出す
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
       } else {
         _profile = profile;
       }

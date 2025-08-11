@@ -104,13 +104,19 @@ class _WorkProgressPageState extends State<WorkProgressPage>
       _groupWorkProgressSubscription = _groupWorkProgressStream!.listen((
         snapshot,
       ) {
+        if (!mounted) return;
         final docs = (snapshot as QuerySnapshot).docs;
         final records = docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           data['id'] = doc.id;
           return WorkProgress.fromMap(data);
         }).toList();
-        workProgressProvider.replaceAll(records);
+        // ビルド中でないことを確認してから更新
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            workProgressProvider.replaceAll(records);
+          }
+        });
       });
       workProgressProvider.loadWorkProgress(groupId: newGroupId);
     } else {
@@ -149,13 +155,19 @@ class _WorkProgressPageState extends State<WorkProgressPage>
         _groupWorkProgressSubscription = _groupWorkProgressStream!.listen((
           snapshot,
         ) {
+          if (!mounted) return;
           final docs = (snapshot as QuerySnapshot).docs;
           final records = docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             data['id'] = doc.id;
             return WorkProgress.fromMap(data);
           }).toList();
-          workProgressProvider.replaceAll(records);
+          // ビルド中でないことを確認してから更新
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              workProgressProvider.replaceAll(records);
+            }
+          });
         });
         workProgressProvider.loadWorkProgress(
           groupId: groupProvider.currentGroup!.id,

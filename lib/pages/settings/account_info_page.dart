@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/sync_firestore_all.dart';
 import '../../services/data_sync_service.dart';
+import '../../services/secure_auth_service.dart';
+import '../../services/encrypted_local_storage_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../utils/app_performance_config.dart';
@@ -169,52 +171,44 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   Future<void> _signInWithGoogle() async {
     if (mounted) setState(() => _loading = true);
     try {
-      final googleSignIn = GoogleSignIn();
-      final account = await googleSignIn.signIn();
-      if (account == null) {
+      // セキュア認証サービスを使用
+      final userCredential = await SecureAuthService.signInWithGoogle();
+      if (userCredential == null) {
         // キャンセル時
         if (!mounted) return;
         setState(() => _loading = false);
         return;
       }
-      final googleAuth = await account.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(
-        credential,
-      );
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user?.uid)
-          .set({
-            'displayName': account.displayName,
-            'email': account.email,
-            'photoUrl': account.photoUrl,
-            'lastLogin': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-      if (!mounted) return;
-      setState(() {
-        _userName = account.displayName ?? account.email;
-        _userEmail = account.email;
-        _loginProvider = 'Google';
-        _userPhotoUrl = account.photoUrl;
-        _loading = false;
-      });
-      // サインイン直後にFirestore同期
-      await syncAllFirestoreData(context);
-      if (!mounted) return;
-      setState(() {});
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+
+      final user = userCredential.user;
+      if (user != null) {
+        // ユーザー情報を更新
+        if (!mounted) return;
+        setState(() {
+          _userName = user.displayName ?? user.email;
+          _userEmail = user.email;
+          _loginProvider = 'Google';
+          _userPhotoUrl = user.photoURL;
+          _loading = false;
+        });
+
+        // サインイン直後にFirestore同期
+        await syncAllFirestoreData(context);
         if (!mounted) return;
         setState(() {});
-      });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {});
+        });
+
+        // セキュリティイベントを記録
+        await SecureAuthService.logSecurityEvent('account_info_login_success');
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Googleログイン失敗: $e')));
+      ).showSnackBar(SnackBar(content: Text('セキュアなGoogleログイン失敗: $e')));
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -583,10 +577,8 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                               await DataSyncService.deleteAllUserData();
                                               // ローカルデータ削除
                                               // 注: UserSettingsFirestoreServiceにはclearAllSettingsメソッドがないため、
-                                              // 個別に削除するか、SharedPreferencesを直接使用
-                                              final prefs =
-                                                  await SharedPreferences.getInstance();
-                                              await prefs.clear();
+                                              // 個別に削除するか、暗号化されたローカルストレージを使用
+                                              await EncryptedLocalStorageService.clear();
                                               // サインアウト
                                               await GoogleSignIn().signOut();
                                               await FirebaseAuth.instance

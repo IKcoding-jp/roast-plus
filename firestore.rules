@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ユーザー認証チェック関数
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // ユーザーが自分のデータにアクセスしているかチェック
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // グループメンバーかどうかチェック
+    function isGroupMember(groupId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+    }
+    
+    // グループ管理者かどうかチェック
+    function isGroupAdmin(groupId) {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ユーザーコレクションのルール
+    match /users/{userId} {
+      // ユーザードキュメント自体へのアクセス
+      allow read, write: if isOwner(userId);
+      
+      // ユーザーのサブコレクションへのアクセス
+      match /{collection}/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // グループコレクションのルール
+    match /groups/{groupId} {
+      // グループドキュメントへのアクセス
+      allow read: if isGroupMember(groupId) || 
+        (isAuthenticated() && 
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+      allow create: if isAuthenticated();
+      allow update, delete: if isGroupAdmin(groupId);
+      
+      // グループのサブコレクションへのアクセス
+      match /{collection}/{document=**} {
+        allow read: if isGroupMember(groupId) || 
+          (isAuthenticated() && 
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+        allow write: if isGroupMember(groupId) || 
+          (isAuthenticated() && 
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+      }
+      
+      // グループメンバーコレクションの特別ルール
+      match /members/{memberId} {
+        allow read: if isGroupMember(groupId);
+        allow write: if isGroupAdmin(groupId) || request.auth.uid == memberId;
+      }
+      
+      // グループ招待コレクションの特別ルール
+      match /invitations/{invitationId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupAdmin(groupId);
+        allow update, delete: if isGroupAdmin(groupId) || 
+          (isAuthenticated() && resource.data.invitedUserId == request.auth.uid);
+      }
+      
+      // 共有データコレクションの特別ルール
+      match /sharedData/{document=**} {
+        allow read, write: if isGroupMember(groupId) || 
+          (isAuthenticated() && 
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+      }
+      
+      // 設定コレクションの特別ルール
+      match /settings/{document=**} {
+        allow read, write: if isGroupMember(groupId) || 
+          (isAuthenticated() && 
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+      }
+    }
+
+    // システム設定コレクション（必要に応じて）
+    match /system/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if false; // システム設定は読み取り専用
+    }
+
+    // その他のコレクションはデフォルトで拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

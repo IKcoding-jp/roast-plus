@@ -42,6 +42,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // ネットワークセキュリティ設定ファイルを指定
+        manifestPlaceholders["networkSecurityConfig"] = "@xml/network_security_config"
     }
 
     buildTypes {
@@ -49,6 +52,14 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // リリースビルドでのSSL/TLS設定
+            manifestPlaceholders["usesCleartextTraffic"] = "false"
+        }
+        
+        debug {
+            // デバッグビルドでのSSL/TLS設定
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
         }
     }
 }
@@ -64,4 +75,11 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
     
     implementation("com.google.firebase:firebase-analytics")
+    
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    implementation("com.google.android.gms:play-services-base:18.3.0")
+    
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-identity:18.0.1")
 }

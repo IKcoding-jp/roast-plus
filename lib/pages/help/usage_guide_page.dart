@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../utils/web_ui_utils.dart';
 
 class UsageGuidePage extends StatefulWidget {
   const UsageGuidePage({super.key});
@@ -98,31 +99,171 @@ class _UsageGuidePageState extends State<UsageGuidePage>
         title: Text('使い方ガイド'),
         backgroundColor: themeSettings.appBarColor,
         foregroundColor: themeSettings.appBarTextColor,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: themeSettings.buttonColor,
-          labelColor: themeSettings.appBarTextColor,
-          unselectedLabelColor: themeSettings.appBarTextColor.withValues(
-            alpha: 0.7,
+        bottom: WebUIUtils.isWeb
+            ? null
+            : TabBar(
+                controller: _tabController,
+                indicatorColor: themeSettings.buttonColor,
+                labelColor: themeSettings.appBarTextColor,
+                unselectedLabelColor: themeSettings.appBarTextColor.withValues(
+                  alpha: 0.7,
+                ),
+                tabs: [
+                  Tab(text: '基本'),
+                  Tab(text: '焙煎'),
+                  Tab(text: '管理'),
+                  Tab(text: 'グループ'),
+                  Tab(text: '設定'),
+                ],
+              ),
+      ),
+      body: WebUIUtils.isWeb
+          ? _buildWebLayout(themeSettings)
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildBasicTab(themeSettings),
+                _buildRoastingTab(themeSettings),
+                _buildManagementTab(themeSettings),
+                _buildGroupTab(themeSettings),
+                _buildSettingsTab(themeSettings),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildWebLayout(ThemeSettings themeSettings) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 1400),
+        child: Container(
+          color: themeSettings.backgroundColor,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 左側のカテゴリナビゲーション
+              Container(
+                width: 250,
+                decoration: BoxDecoration(
+                  color: themeSettings.cardBackgroundColor,
+                  border: Border(
+                    right: BorderSide(color: Colors.grey.shade300, width: 1),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // カテゴリヘッダー
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'カテゴリ',
+                        style: TextStyle(
+                          fontSize: 18 * themeSettings.fontSizeScale,
+                          fontWeight: FontWeight.bold,
+                          color: themeSettings.fontColor1,
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                      ),
+                    ),
+                    // カテゴリリスト
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          _buildWebCategoryItem(
+                            themeSettings,
+                            '基本',
+                            Icons.play_arrow,
+                            0,
+                          ),
+                          _buildWebCategoryItem(
+                            themeSettings,
+                            '焙煎',
+                            Icons.timer,
+                            1,
+                          ),
+                          _buildWebCategoryItem(
+                            themeSettings,
+                            '管理',
+                            Icons.schedule,
+                            2,
+                          ),
+                          _buildWebCategoryItem(
+                            themeSettings,
+                            'グループ',
+                            Icons.group,
+                            3,
+                          ),
+                          _buildWebCategoryItem(
+                            themeSettings,
+                            '設定',
+                            Icons.settings,
+                            4,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 右側のコンテンツエリア
+              Expanded(
+                child: Container(
+                  height: MediaQuery.of(context).size.height - 120,
+                  child: IndexedStack(
+                    index: _tabController.index,
+                    children: [
+                      _buildBasicTab(themeSettings),
+                      _buildRoastingTab(themeSettings),
+                      _buildManagementTab(themeSettings),
+                      _buildGroupTab(themeSettings),
+                      _buildSettingsTab(themeSettings),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          tabs: [
-            Tab(text: '基本'),
-            Tab(text: '焙煎'),
-            Tab(text: '管理'),
-            Tab(text: 'グループ'),
-            Tab(text: '設定'),
-          ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildBasicTab(themeSettings),
-          _buildRoastingTab(themeSettings),
-          _buildManagementTab(themeSettings),
-          _buildGroupTab(themeSettings),
-          _buildSettingsTab(themeSettings),
-        ],
+    );
+  }
+
+  Widget _buildWebCategoryItem(
+    ThemeSettings themeSettings,
+    String title,
+    IconData icon,
+    int index,
+  ) {
+    final isSelected = _tabController.index == index;
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Card(
+        elevation: isSelected ? 4 : 1,
+        color: isSelected
+            ? themeSettings.buttonColor
+            : themeSettings.cardBackgroundColor,
+        child: ListTile(
+          leading: Icon(
+            icon,
+            color: isSelected ? Colors.white : themeSettings.iconColor,
+            size: 24,
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16 * themeSettings.fontSizeScale,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? Colors.white : themeSettings.fontColor1,
+              fontFamily: themeSettings.fontFamily,
+            ),
+          ),
+          onTap: () {
+            setState(() {
+              _tabController.animateTo(index);
+            });
+          },
+        ),
       ),
     );
   }
@@ -130,31 +271,104 @@ class _UsageGuidePageState extends State<UsageGuidePage>
   Widget _buildBasicTab(ThemeSettings themeSettings) {
     return Container(
       color: themeSettings.backgroundColor,
-      child: ListView(
-        padding: EdgeInsets.all(16),
+      child: WebUIUtils.isWeb
+          ? _buildWebTabContent(
+              themeSettings,
+              [
+                _buildListItem(
+                  themeSettings,
+                  'アプリの起動と基本操作',
+                  'アプリの基本的な使い方を説明',
+                  Icons.play_arrow,
+                  () => _showBasicOperationDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'ドロワーメニューの使い方',
+                  'メニューの開き方と項目の説明',
+                  Icons.menu,
+                  () => _showDrawerMenuDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'データの保存と同期',
+                  'データの自動保存とクラウド同期',
+                  Icons.sync,
+                  () => _showDataSyncDetail(context, themeSettings),
+                ),
+              ],
+              '基本',
+              'アプリの基本的な使い方について説明します',
+            )
+          : ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                _buildListItem(
+                  themeSettings,
+                  'アプリの起動と基本操作',
+                  'アプリの基本的な使い方を説明',
+                  Icons.play_arrow,
+                  () => _showBasicOperationDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'ドロワーメニューの使い方',
+                  'メニューの開き方と項目の説明',
+                  Icons.menu,
+                  () => _showDrawerMenuDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'データの保存と同期',
+                  'データの自動保存とクラウド同期',
+                  Icons.sync,
+                  () => _showDataSyncDetail(context, themeSettings),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildWebTabContent(
+    ThemeSettings themeSettings,
+    List<Widget> items, [
+    String title = '基本',
+    String description = 'アプリの基本的な使い方について説明します',
+  ]) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildListItem(
-            themeSettings,
-            'アプリの起動と基本操作',
-            'アプリの基本的な使い方を説明',
-            Icons.play_arrow,
-            () => _showBasicOperationDetail(context, themeSettings),
+          // タブタイトル
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 24 * themeSettings.fontSizeScale,
+              fontWeight: FontWeight.bold,
+              color: themeSettings.fontColor1,
+              fontFamily: themeSettings.fontFamily,
+            ),
           ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            'ドロワーメニューの使い方',
-            'メニューの開き方と項目の説明',
-            Icons.menu,
-            () => _showDrawerMenuDetail(context, themeSettings),
+          SizedBox(height: 8),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 16 * themeSettings.fontSizeScale,
+              color: themeSettings.fontColor2,
+              fontFamily: themeSettings.fontFamily,
+            ),
           ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            'データの保存と同期',
-            'データの自動保存とクラウド同期',
-            Icons.sync,
-            () => _showDataSyncDetail(context, themeSettings),
+          SizedBox(height: 24),
+          // アイテムグリッド
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: items
+                .map((item) => Container(width: 350, child: item))
+                .toList(),
           ),
         ],
       ),
@@ -164,26 +378,48 @@ class _UsageGuidePageState extends State<UsageGuidePage>
   Widget _buildRoastingTab(ThemeSettings themeSettings) {
     return Container(
       color: themeSettings.backgroundColor,
-      child: ListView(
-        padding: EdgeInsets.all(16),
-        children: [
-          _buildListItem(
-            themeSettings,
-            '焙煎タイマーって何？',
-            '焙煎作業の時間管理をサポート',
-            Icons.timer,
-            () => _showRoastingTimerDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            '焙煎記録の作成',
-            '焙煎作業の詳細を記録',
-            Icons.note_add,
-            () => _showRoastingRecordDetail(context, themeSettings),
-          ),
-        ],
-      ),
+      child: WebUIUtils.isWeb
+          ? _buildWebTabContent(
+              themeSettings,
+              [
+                _buildListItem(
+                  themeSettings,
+                  '焙煎タイマーって何？',
+                  '焙煎作業の時間管理をサポート',
+                  Icons.timer,
+                  () => _showRoastingTimerDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  '焙煎記録の作成',
+                  '焙煎作業の詳細を記録',
+                  Icons.note_add,
+                  () => _showRoastingRecordDetail(context, themeSettings),
+                ),
+              ],
+              '焙煎',
+              '焙煎作業に関する機能の使い方を説明します',
+            )
+          : ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                _buildListItem(
+                  themeSettings,
+                  '焙煎タイマーって何？',
+                  '焙煎作業の時間管理をサポート',
+                  Icons.timer,
+                  () => _showRoastingTimerDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  '焙煎記録の作成',
+                  '焙煎作業の詳細を記録',
+                  Icons.note_add,
+                  () => _showRoastingRecordDetail(context, themeSettings),
+                ),
+              ],
+            ),
     );
   }
 

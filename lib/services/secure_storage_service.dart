@@ -1,0 +1,251 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:developer' as developer;
+import '../utils/security_config.dart';
+
+/// セキュアストレージサービス
+/// 機密情報を安全に保存・取得するためのサービス
+class SecureStorageService {
+  static const _storage = FlutterSecureStorage();
+  static const String _logName = 'SecureStorageService';
+
+  // キー定数
+  static const String _keyAccessToken = 'access_token';
+  static const String _keyIdToken = 'id_token';
+  static const String _keyRefreshToken = 'refresh_token';
+  static const String _keyPasscode = 'app_passcode';
+  static const String _keyEncryptionKey = 'encryption_key';
+  static const String _keyUserCredentials = 'user_credentials';
+  static const String _keyBiometricEnabled = 'biometric_enabled';
+
+  /// アクセストークンを安全に保存
+  static Future<void> saveAccessToken(String token) async {
+    try {
+      final encryptedToken = SecurityConfig.encryptToken(token);
+      await _storage.write(key: _keyAccessToken, value: encryptedToken);
+      developer.log('アクセストークンを安全に保存しました', name: _logName);
+    } catch (e) {
+      developer.log('アクセストークンの保存に失敗しました: $e', name: _logName);
+      rethrow;
+    }
+  }
+
+  /// アクセストークンを安全に取得
+  static Future<String?> getAccessToken() async {
+    try {
+      final encryptedToken = await _storage.read(key: _keyAccessToken);
+      if (encryptedToken == null) return null;
+
+      return SecurityConfig.decryptToken(encryptedToken);
+    } catch (e) {
+      developer.log('アクセストークンの取得に失敗しました: $e', name: _logName);
+      return null;
+    }
+  }
+
+  /// IDトークンを安全に保存
+  static Future<void> saveIdToken(String token) async {
+    try {
+      final encryptedToken = SecurityConfig.encryptToken(token);
+      await _storage.write(key: _keyIdToken, value: encryptedToken);
+      developer.log('IDトークンを安全に保存しました', name: _logName);
+    } catch (e) {
+      developer.log('IDトークンの保存に失敗しました: $e', name: _logName);
+      rethrow;
+    }
+  }
+
+  /// IDトークンを安全に取得
+  static Future<String?> getIdToken() async {
+    try {
+      final encryptedToken = await _storage.read(key: _keyIdToken);
+      if (encryptedToken == null) return null;
+
+      return SecurityConfig.decryptToken(encryptedToken);
+    } catch (e) {
+      developer.log('IDトークンの取得に失敗しました: $e', name: _logName);
+      return null;
+    }
+  }
+
+  /// リフレッシュトークンを安全に保存
+  static Future<void> saveRefreshToken(String token) async {
+    try {
+      final encryptedToken = SecurityConfig.encryptToken(token);
+      await _storage.write(key: _keyRefreshToken, value: encryptedToken);
+      developer.log('リフレッシュトークンを安全に保存しました', name: _logName);
+    } catch (e) {
+      developer.log('リフレッシュトークンの保存に失敗しました: $e', name: _logName);
+      rethrow;
+    }
+  }
+
+  /// リフレッシュトークンを安全に取得
+  static Future<String?> getRefreshToken() async {
+    try {
+      final encryptedToken = await _storage.read(key: _keyRefreshToken);
+      if (encryptedToken == null) return null;
+
+      return SecurityConfig.decryptToken(encryptedToken);
+    } catch (e) {
+      developer.log('リフレッシュトークンの取得に失敗しました: $e', name: _logName);
+      return null;
+    }
+  }
+
+  /// パスコードを安全に保存
+  static Future<void> savePasscode(String passcode) async {
+    try {
+      final hashedPasscode = SecurityConfig.hashPassword(passcode);
+      await _storage.write(key: _keyPasscode, value: hashedPasscode);
+      developer.log('パスコードを安全に保存しました', name: _logName);
+    } catch (e) {
+      developer.log('パスコードの保存に失敗しました: $e', name: _logName);
+      rethrow;
+    }
+  }
+
+  /// パスコードを検証
+  static Future<bool> verifyPasscode(String passcode) async {
+    try {
+      final storedHash = await _storage.read(key: _keyPasscode);
+      if (storedHash == null) return false;
+
+      return SecurityConfig.verifyPassword(passcode, storedHash);
+    } catch (e) {
+      developer.log('パスコードの検証に失敗しました: $e', name: _logName);
+      return false;
+    }
+  }
+
+  /// 暗号化キーを安全に保存
+  static Future<void> saveEncryptionKey(String key) async {
+    try {
+      await _storage.write(key: _keyEncryptionKey, value: key);
+      developer.log('暗号化キーを安全に保存しました', name: _logName);
+    } catch (e) {
+      developer.log('暗号化キーの保存に失敗しました: $e', name: _logName);
+      rethrow;
+    }
+  }
+
+  /// 暗号化キーを安全に取得
+  static Future<String?> getEncryptionKey() async {
+    try {
+      return await _storage.read(key: _keyEncryptionKey);
+    } catch (e) {
+      developer.log('暗号化キーの取得に失敗しました: $e', name: _logName);
+      return null;
+    }
+  }
+
+  /// ユーザー認証情報を安全に保存
+  static Future<void> saveUserCredentials({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final hashedPassword = SecurityConfig.hashPassword(password);
+      final credentials = {
+        'email': email,
+        'password': hashedPassword,
+        'savedAt': DateTime.now().toIso8601String(),
+      };
+
+      await _storage.write(
+        key: _keyUserCredentials,
+        value: credentials.toString(),
+      );
+      developer.log('ユーザー認証情報を安全に保存しました', name: _logName);
+    } catch (e) {
+      developer.log('ユーザー認証情報の保存に失敗しました: $e', name: _logName);
+      rethrow;
+    }
+  }
+
+  /// ユーザー認証情報を安全に取得
+  static Future<Map<String, dynamic>?> getUserCredentials() async {
+    try {
+      final credentials = await _storage.read(key: _keyUserCredentials);
+      if (credentials == null) return null;
+
+      // 文字列からMapに変換（実際の実装ではJSONを使用）
+      return {'credentials': credentials};
+    } catch (e) {
+      developer.log('ユーザー認証情報の取得に失敗しました: $e', name: _logName);
+      return null;
+    }
+  }
+
+  /// すべての機密情報を削除
+  static Future<void> clearAllSecureData() async {
+    try {
+      await _storage.deleteAll();
+      developer.log('すべての機密情報を削除しました', name: _logName);
+    } catch (e) {
+      developer.log('機密情報の削除に失敗しました: $e', name: _logName);
+      rethrow;
+    }
+  }
+
+  /// 特定のキーの機密情報を削除
+  static Future<void> deleteSecureData(String key) async {
+    try {
+      await _storage.delete(key: key);
+      developer.log('機密情報を削除しました: $key', name: _logName);
+    } catch (e) {
+      developer.log('機密情報の削除に失敗しました: $e', name: _logName);
+      rethrow;
+    }
+  }
+
+  /// セキュアストレージが利用可能かチェック
+  static Future<bool> isSecureStorageAvailable() async {
+    try {
+      const testKey = 'test_availability';
+      const testValue = 'test_value';
+
+      await _storage.write(key: testKey, value: testValue);
+      final readValue = await _storage.read(key: testKey);
+      await _storage.delete(key: testKey);
+
+      return readValue == testValue;
+    } catch (e) {
+      developer.log('セキュアストレージが利用できません: $e', name: _logName);
+      return false;
+    }
+  }
+
+  /// 生体認証の有効状態を保存
+  static Future<void> saveBiometricEnabled(bool enabled) async {
+    try {
+      await _storage.write(key: _keyBiometricEnabled, value: enabled.toString());
+      developer.log('生体認証の有効状態を保存しました: $enabled', name: _logName);
+    } catch (e) {
+      developer.log('生体認証の有効状態の保存に失敗しました: $e', name: _logName);
+      rethrow;
+    }
+  }
+
+  /// 生体認証の有効状態を取得
+  static Future<bool?> getBiometricEnabled() async {
+    try {
+      final value = await _storage.read(key: _keyBiometricEnabled);
+      if (value == null) return null;
+      return value == 'true';
+    } catch (e) {
+      developer.log('生体認証の有効状態の取得に失敗しました: $e', name: _logName);
+      return null;
+    }
+  }
+
+  /// パスコードが設定されているかチェック
+  static Future<bool> hasPasscode() async {
+    try {
+      final passcode = await _storage.read(key: _keyPasscode);
+      return passcode != null;
+    } catch (e) {
+      developer.log('パスコード存在確認に失敗しました: $e', name: _logName);
+      return false;
+    }
+  }
+}

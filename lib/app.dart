@@ -9,6 +9,8 @@ import 'pages/home/home_page.dart';
 import 'pages/gamification/badge_list_page.dart';
 import 'services/sync_firestore_all.dart';
 import 'services/todo_notification_service.dart';
+import 'services/secure_auth_service.dart';
+import 'services/biometric_auth_service.dart';
 import 'package:provider/provider.dart';
 import 'models/theme_settings.dart';
 import 'models/group_provider.dart';
@@ -368,26 +370,29 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
           return;
         }
       } else {
-        // モバイル版では従来の方法を使用
-        final GoogleSignIn googleSignIn = GoogleSignIn();
-        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        // モバイル版ではセキュア認証サービスを使用
+        try {
+          final userCredential = await SecureAuthService.signInWithGoogle();
+          if (userCredential == null) {
+            if (!mounted) return;
+            setState(() {
+              _loading = false;
+              _error = 'Googleアカウントの選択がキャンセルされました';
+            });
+            return;
+          }
 
-        if (googleUser == null) {
+          // セキュリティイベントを記録
+          await SecureAuthService.logSecurityEvent('secure_login_success');
+        } catch (e) {
           if (!mounted) return;
           setState(() {
             _loading = false;
-            _error = 'Googleアカウントの選択がキャンセルされました';
+            _error = 'セキュアなGoogleログインに失敗しました: $e';
           });
+          debugPrint('セキュアGoogle Sign-In error: $e');
           return;
         }
-
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-        final credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-        await FirebaseAuth.instance.signInWithCredential(credential);
       }
       // 追加: ログイン成功後にクラウド設定をダウンロード
       try {
@@ -536,13 +541,24 @@ class _PasscodeGateState extends State<PasscodeGate>
   }
 
   Future<void> _checkPasscodeOnResume() async {
+    final code = await UserSettingsFirestoreService.getSetting('app_passcode');
     final isLockEnabled =
         await UserSettingsFirestoreService.getSetting(
           'passcode_lock_enabled',
         ) ??
         false;
 
-    if (isLockEnabled && _passcode != null && _unlocked) {
+    // 生体認証またはパスコードが設定されているかチェック
+    bool needsAuth = false;
+    if (code != null && isLockEnabled) {
+      needsAuth = true;
+    } else {
+      // 生体認証が有効かチェック
+      final biometricEnabled = await BiometricAuthService.isBiometricEnabled();
+      needsAuth = biometricEnabled;
+    }
+
+    if (needsAuth && _unlocked) {
       if (mounted) {
         setState(() {
           _unlocked = false;
@@ -558,12 +574,22 @@ class _PasscodeGateState extends State<PasscodeGate>
           'passcode_lock_enabled',
         ) ??
         false;
+
+    // 生体認証またはパスコードが設定されているかチェック
+    bool needsAuth = false;
+    if (code != null && isLockEnabled) {
+      needsAuth = true;
+    } else {
+      // 生体認証が有効かチェック
+      final biometricEnabled = await BiometricAuthService.isBiometricEnabled();
+      needsAuth = biometricEnabled;
+    }
+
     if (mounted) {
       setState(() {
         _passcode = code;
         _loading = false;
-        // パスコードが設定されていて、ロックが有効な場合のみロックをかける
-        _unlocked = code == null || !isLockEnabled;
+        _unlocked = !needsAuth;
       });
     }
   }
@@ -581,13 +607,183 @@ class _PasscodeGateState extends State<PasscodeGate>
     if (_loading) {
       return const LoadingScreen(title: 'Loading...');
     }
-    if (!_unlocked && _passcode != null) {
-      return PasscodeInputScreen(
+    if (!_unlocked) {
+      // 生体認証またはパスコード認証画面を表示
+      return BiometricOrPasscodeScreen(
         onUnlock: _onUnlock,
-        correctPasscode: _passcode!,
+        correctPasscode: _passcode,
       );
     }
     return widget.child;
+  }
+}
+
+class BiometricOrPasscodeScreen extends StatefulWidget {
+  final VoidCallback onUnlock;
+  final String? correctPasscode;
+
+  const BiometricOrPasscodeScreen({
+    required this.onUnlock,
+    this.correctPasscode,
+    super.key,
+  });
+
+  @override
+  State<BiometricOrPasscodeScreen> createState() =>
+      _BiometricOrPasscodeScreenState();
+}
+
+class _BiometricOrPasscodeScreenState extends State<BiometricOrPasscodeScreen> {
+  bool _isLoading = true;
+  bool _biometricEnabled = false;
+  bool _hasPasscode = false;
+  bool _showPasscodeInput = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthMethods();
+  }
+
+  Future<void> _checkAuthMethods() async {
+    try {
+      // 生体認証が有効かチェック
+      final biometricEnabled = await BiometricAuthService.isBiometricEnabled();
+      final hasPasscode = widget.correctPasscode != null;
+
+      if (mounted) {
+        setState(() {
+          _biometricEnabled = biometricEnabled;
+          _hasPasscode = hasPasscode;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _authenticateWithBiometric() async {
+    try {
+      final success = await BiometricAuthService.authenticateWithBiometrics(
+        reason: 'アプリにアクセスするために認証してください',
+        fallbackTitle: 'パスコードを使用',
+      );
+
+      if (success) {
+        widget.onUnlock();
+      } else if (_hasPasscode) {
+        // 生体認証が失敗した場合、パスコード入力を表示
+        if (mounted) {
+          setState(() {
+            _showPasscodeInput = true;
+          });
+        }
+      }
+    } catch (e) {
+      if (_hasPasscode) {
+        if (mounted) {
+          setState(() {
+            _showPasscodeInput = true;
+          });
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const LoadingScreen(title: '認証方法を確認中...');
+    }
+
+    if (_showPasscodeInput && widget.correctPasscode != null) {
+      return PasscodeInputScreen(
+        onUnlock: widget.onUnlock,
+        correctPasscode: widget.correctPasscode!,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _biometricEnabled ? Icons.fingerprint : Icons.lock,
+                  size: 80,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  _biometricEnabled ? '生体認証' : '認証が必要です',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _biometricEnabled
+                      ? '指紋または顔認証でアプリにアクセスしてください'
+                      : 'パスコードまたは生体認証を設定してください',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 32),
+                if (_biometricEnabled) ...[
+                  ElevatedButton.icon(
+                    onPressed: _authenticateWithBiometric,
+                    icon: const Icon(Icons.fingerprint),
+                    label: const Text('生体認証でロック解除'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                    ),
+                  ),
+                  if (_hasPasscode) ...[
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _showPasscodeInput = true;
+                        });
+                      },
+                      child: const Text('パスコードを使用'),
+                    ),
+                  ],
+                ] else if (_hasPasscode) ...[
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showPasscodeInput = true;
+                      });
+                    },
+                    icon: const Icon(Icons.lock),
+                    label: const Text('パスコードでロック解除'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

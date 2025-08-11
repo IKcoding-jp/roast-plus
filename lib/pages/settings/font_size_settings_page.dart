@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/theme_settings.dart';
 import '../../utils/app_performance_config.dart';
+import '../../services/encrypted_local_storage_service.dart';
 import 'donation_page.dart';
 
 class FontSizeSettingsPage extends StatefulWidget {
@@ -58,8 +59,7 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
 
   void _saveFontSizeScaleLocally(double value) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble('fontSizeScale', value);
+      await EncryptedLocalStorageService.setDouble('fontSizeScale', value);
     } catch (e) {
       debugPrint('ローカル保存エラー: $e');
     }
@@ -88,8 +88,7 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
 
   void _saveFontFamilyLocally(String value) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('fontFamily', value);
+      await EncryptedLocalStorageService.setString('fontFamily', value);
     } catch (e) {
       debugPrint('ローカル保存エラー: $e');
     }

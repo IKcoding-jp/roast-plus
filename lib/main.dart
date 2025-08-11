@@ -5,8 +5,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'models/roast_schedule_form_provider.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+
+import 'services/encrypted_firebase_config_service.dart';
 import 'models/theme_settings.dart';
 import 'models/group_provider.dart';
 import 'models/work_progress_models.dart';
@@ -18,6 +18,11 @@ import 'models/dashboard_stats_provider.dart';
 import 'services/todo_notification_service.dart';
 import 'services/auto_sync_service.dart';
 import 'services/roast_timer_notification_service.dart';
+import 'services/security_monitor_service.dart';
+import 'services/biometric_auth_service.dart';
+import 'services/encrypted_local_storage_service.dart'; // Added
+import 'services/network_security_service.dart';
+import 'services/session_management_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:developer' as developer;
 
@@ -82,9 +87,8 @@ void main() async {
 
   try {
     developer.log('Firebase初期化開始', name: 'Main');
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    // 暗号化されたFirebase設定で初期化
+    await EncryptedFirebaseConfigService.initializeFirebase();
     developer.log('Firebase初期化完了', name: 'Main');
   } catch (e) {
     developer.log('Firebase初期化エラー: $e', name: 'Main');
@@ -146,6 +150,51 @@ void main() async {
     developer.log('AutoSyncService初期化エラー: $e', name: 'Main');
   }
 
+  try {
+    developer.log('セキュリティ監視サービス初期化開始', name: 'Main');
+    // セキュリティ監視を開始
+    await SecurityMonitorService.startMonitoring();
+    developer.log('セキュリティ監視サービス初期化完了', name: 'Main');
+  } catch (e) {
+    developer.log('セキュリティ監視サービス初期化エラー: $e', name: 'Main');
+  }
+
+  try {
+    developer.log('生体認証サービス初期化開始', name: 'Main');
+    // 生体認証サービスを初期化
+    await BiometricAuthService.initialize();
+    developer.log('生体認証サービス初期化完了', name: 'Main');
+  } catch (e) {
+    developer.log('生体認証サービス初期化エラー: $e', name: 'Main');
+  }
+
+  try {
+    developer.log('暗号化ローカルストレージサービス初期化開始', name: 'Main');
+    // 暗号化ローカルストレージサービスを初期化
+    await EncryptedLocalStorageService.initialize();
+    developer.log('暗号化ローカルストレージサービス初期化完了', name: 'Main');
+  } catch (e) {
+    developer.log('暗号化ローカルストレージサービス初期化エラー: $e', name: 'Main');
+  }
+
+  try {
+    developer.log('ネットワークセキュリティサービス初期化開始', name: 'Main');
+    // ネットワークセキュリティサービスを初期化
+    await NetworkSecurityService.initialize();
+    developer.log('ネットワークセキュリティサービス初期化完了', name: 'Main');
+  } catch (e) {
+    developer.log('ネットワークセキュリティサービス初期化エラー: $e', name: 'Main');
+  }
+
+  try {
+    developer.log('セッション管理サービス初期化開始', name: 'Main');
+    // セッション管理サービスを初期化
+    await SessionManagementService.initialize();
+    developer.log('セッション管理サービス初期化完了', name: 'Main');
+  } catch (e) {
+    developer.log('セッション管理サービス初期化エラー: $e', name: 'Main');
+  }
+
   // アプリ終了時のクリーンアップを設定
   WidgetsBinding.instance.addObserver(
     LifecycleEventHandler(
@@ -155,6 +204,8 @@ void main() async {
           TodoNotificationService().stopNotificationService();
         }
         AutoSyncService.dispose();
+        SecurityMonitorService.stopMonitoring();
+        SessionManagementService.stopMonitoring();
       },
     ),
   );

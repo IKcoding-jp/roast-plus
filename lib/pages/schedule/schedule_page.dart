@@ -6,6 +6,7 @@ import 'dart:convert';
 import '../../models/theme_settings.dart';
 import '../../models/roast_break_time.dart';
 import '../../models/group_provider.dart';
+import '../../services/encrypted_local_storage_service.dart';
 import 'today_schedule.dart';
 import '../roast/roast_scheduler_tab.dart';
 import 'schedule_time_label_edit_page.dart';
@@ -41,8 +42,9 @@ class _SchedulePageState extends State<SchedulePage>
 
   Future<void> _loadRoastBreakTimes() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('roastBreakTimes');
+      final jsonStr = await EncryptedLocalStorageService.getString(
+        'roastBreakTimes',
+      );
       if (jsonStr != null) {
         final list = (json.decode(jsonStr) as List)
             .map((e) => RoastBreakTime.fromJson(e))

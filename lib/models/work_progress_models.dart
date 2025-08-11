@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import '../services/work_progress_firestore_service.dart';
 import '../services/user_settings_firestore_service.dart';
 import 'dart:developer' as developer;
@@ -110,7 +111,10 @@ class WorkProgressProvider extends ChangeNotifier {
   // --- 追加: Firestore同期用の一括セットメソッド ---
   void replaceAll(List<WorkProgress> records) {
     _workProgressList = records;
-    notifyListeners();
+    // ビルド中でないことを確認してからnotifyListenersを呼び出す
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
   // --- ここまで追加 ---
 
