@@ -2,7 +2,7 @@ name: roastplus
 description: "ローストプラス"
 publish_to: 'none'
 
-version: 0.6.5
+version: 0.6.6
 
 environment:
   sdk: ^3.8.1
@@ -39,6 +39,7 @@ dependencies:
   mobile_scanner: ^3.5.6
   uuid: ^4.3.3
   logger: ^2.0.2+1
+  flutter_layout_grid: ^2.0.0
 
 dev_dependencies:
   flutter_test:
