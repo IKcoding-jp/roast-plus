@@ -203,7 +203,7 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
             ),
           ),
           routes: {
-            '/roast': (context) => RoastTimerPage(),
+            '/roast': (context) => RoastTimerPage(showBackButton: true),
             '/roast_record': (context) => RoastRecordPage(),
             '/roast_record_list': (context) => RoastRecordListPage(),
             '/roast_analysis': (context) => RoastAnalysisPage(), // 焙煎分析ページ
@@ -341,7 +341,9 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
           // 少し待ってからサインインを試行
           await Future.delayed(Duration(seconds: 1));
 
-          // 直接サインインを試行（サイレントサインインは制限があるため）
+          // 現在のユーザーをクリアしてからサインインを試行（アカウント選択を強制）
+          await googleSignIn.disconnect();
+          await Future.delayed(Duration(milliseconds: 500));
           final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
           if (googleUser == null) {
@@ -975,20 +977,11 @@ class MainScaffoldState extends State<MainScaffold> {
 
   // ページを遅延読み込みするためのリスト
   final List<Widget> _pages = [
-    RoastTimerPage(), // 焙煎タイマー
+    RoastTimerPage(showBackButton: false), // 焙煎タイマー
     DripCounterPage(key: dripCounterPageKey), // カウンター
     HomePage(), // ホーム（中央）
     SchedulePage(), // スケジュール
     AssignmentBoard(key: assignmentBoardKey), // 担当表
-  ];
-
-  // ナビゲーションアイテムの定義
-  final List<NavigationItem> _navigationItems = [
-    NavigationItem(title: '焙煎タイマー', icon: Icons.local_fire_department),
-    NavigationItem(title: 'カウンター', icon: Icons.local_cafe),
-    NavigationItem(title: 'ホーム', icon: Icons.home),
-    NavigationItem(title: 'スケジュール', icon: Icons.pending_actions),
-    NavigationItem(title: '担当表', icon: Icons.group),
   ];
 
   @override
@@ -1132,7 +1125,7 @@ class MainScaffoldState extends State<MainScaffold> {
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: themeSettings.appBarColor.withOpacity(0.1),
+                color: themeSettings.appBarColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(

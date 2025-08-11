@@ -1571,7 +1571,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                     Text(
                                       '今日の出勤状況',
                                       style: TextStyle(
-                                        fontSize: 18,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.bold,
                                         color: Provider.of<ThemeSettings>(
                                           context,
@@ -1735,63 +1735,68 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                   ),
                                 )
                               else
-                                // 柔軟な行数で表示（ラベル数分のみ）
-                                ...List.generate(leftLabels.length, (i) {
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8.0,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: kIsWeb
-                                          ? MainAxisAlignment.center
-                                          : MainAxisAlignment.spaceBetween,
-                                      children: kIsWeb
-                                          ? [
-                                              SizedBox(
-                                                width: 80,
-                                                child: Text(
-                                                  i < leftLabels.length
-                                                      ? leftLabels[i]
-                                                      : '',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:
-                                                        18 *
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontSizeScale,
-                                                    color:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontColor1,
+                                // 柔軟な行数で表示（ラベル数または最大メンバー数分）
+                                ...List.generate(
+                                  leftLabels.isNotEmpty
+                                      ? leftLabels.length
+                                      : teams.fold<int>(
+                                          0,
+                                          (max, team) =>
+                                              team.members.length > max
+                                              ? team.members.length
+                                              : max,
+                                        ),
+                                  (i) {
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: kIsWeb
+                                            ? MainAxisAlignment.center
+                                            : MainAxisAlignment.spaceBetween,
+                                        children: kIsWeb
+                                            ? [
+                                                SizedBox(
+                                                  width: 80,
+                                                  child: Text(
+                                                    leftLabels.isNotEmpty &&
+                                                            i <
+                                                                leftLabels
+                                                                    .length
+                                                        ? leftLabels[i]
+                                                        : '',
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize:
+                                                          14 *
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontSizeScale,
+                                                      color:
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontColor1,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              ...teams
-                                                  .asMap()
-                                                  .entries
-                                                  .map((entry) {
-                                                    final teamIndex = entry.key;
-                                                    final team = entry.value;
-                                                    return [
-                                                      SizedBox(
-                                                        width: 120,
-                                                        child: Center(
-                                                          child: MemberCard(
-                                                            name:
-                                                                i <
-                                                                        team
-                                                                            .members
-                                                                            .length &&
-                                                                    team
-                                                                        .members[i]
-                                                                        .isNotEmpty
-                                                                ? team.members[i]
-                                                                : '未設定',
-                                                            attendanceStatus: _getMemberAttendanceStatus(
-                                                              i <
+                                                ...teams
+                                                    .asMap()
+                                                    .entries
+                                                    .map((entry) {
+                                                      final teamIndex =
+                                                          entry.key;
+                                                      final team = entry.value;
+                                                      return [
+                                                        SizedBox(
+                                                          width: 120,
+                                                          child: Center(
+                                                            child: MemberCard(
+                                                              name:
+                                                                  i <
                                                                           team
                                                                               .members
                                                                               .length &&
@@ -1800,92 +1805,100 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                                                           .isNotEmpty
                                                                   ? team.members[i]
                                                                   : '未設定',
+                                                              attendanceStatus: _getMemberAttendanceStatus(
+                                                                i <
+                                                                            team.members.length &&
+                                                                        team
+                                                                            .members[i]
+                                                                            .isNotEmpty
+                                                                    ? team.members[i]
+                                                                    : '未設定',
+                                                              ),
+                                                              onTap: () {
+                                                                if (i <
+                                                                        team
+                                                                            .members
+                                                                            .length &&
+                                                                    team
+                                                                        .members[i]
+                                                                        .isNotEmpty) {
+                                                                  _showAttendanceDialog(
+                                                                    team.members[i],
+                                                                  );
+                                                                }
+                                                              },
                                                             ),
-                                                            onTap: () {
-                                                              if (i <
-                                                                      team
-                                                                          .members
-                                                                          .length &&
-                                                                  team
-                                                                      .members[i]
-                                                                      .isNotEmpty) {
-                                                                _showAttendanceDialog(
-                                                                  team.members[i],
-                                                                );
-                                                              }
-                                                            },
                                                           ),
                                                         ),
-                                                      ),
-                                                      if (teamIndex <
-                                                          teams.length - 1)
-                                                        SizedBox(width: 8),
-                                                    ];
-                                                  })
-                                                  .expand((widgets) => widgets),
-                                              SizedBox(
-                                                width: 80,
-                                                child: Text(
-                                                  i < rightLabels.length
-                                                      ? rightLabels[i]
-                                                      : '',
-                                                  textAlign: TextAlign.right,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:
-                                                        18 *
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontSizeScale,
-                                                    color:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontColor1,
+                                                        if (teamIndex <
+                                                            teams.length - 1)
+                                                          SizedBox(width: 8),
+                                                      ];
+                                                    })
+                                                    .expand(
+                                                      (widgets) => widgets,
+                                                    ),
+                                                SizedBox(
+                                                  width: 80,
+                                                  child: Text(
+                                                    rightLabels.isNotEmpty &&
+                                                            i <
+                                                                rightLabels
+                                                                    .length
+                                                        ? rightLabels[i]
+                                                        : '',
+                                                    textAlign: TextAlign.right,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize:
+                                                          14 *
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontSizeScale,
+                                                      color:
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontColor1,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ]
-                                          : [
-                                              SizedBox(
-                                                width: 80,
-                                                child: Text(
-                                                  i < leftLabels.length
-                                                      ? leftLabels[i]
-                                                      : '',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:
-                                                        18 *
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontSizeScale,
-                                                    color:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontColor1,
+                                              ]
+                                            : [
+                                                SizedBox(
+                                                  width: 80,
+                                                  child: Text(
+                                                    leftLabels.isNotEmpty &&
+                                                            i <
+                                                                leftLabels
+                                                                    .length
+                                                        ? leftLabels[i]
+                                                        : '',
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize:
+                                                          14 *
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontSizeScale,
+                                                      color:
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontColor1,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              ...teams.map(
-                                                (team) => Expanded(
-                                                  child: Center(
-                                                    child: MemberCard(
-                                                      name:
-                                                          i <
-                                                                  team
-                                                                      .members
-                                                                      .length &&
-                                                              team
-                                                                  .members[i]
-                                                                  .isNotEmpty
-                                                          ? team.members[i]
-                                                          : '未設定',
-                                                      attendanceStatus: _getMemberAttendanceStatus(
-                                                        i <
+                                                ...teams.map(
+                                                  (team) => Expanded(
+                                                    child: Center(
+                                                      child: MemberCard(
+                                                        name:
+                                                            i <
                                                                     team
                                                                         .members
                                                                         .length &&
@@ -1894,51 +1907,66 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                                                     .isNotEmpty
                                                             ? team.members[i]
                                                             : '未設定',
+                                                        attendanceStatus: _getMemberAttendanceStatus(
+                                                          i <
+                                                                      team
+                                                                          .members
+                                                                          .length &&
+                                                                  team
+                                                                      .members[i]
+                                                                      .isNotEmpty
+                                                              ? team.members[i]
+                                                              : '未設定',
+                                                        ),
+                                                        onTap: () {
+                                                          if (i <
+                                                                  team
+                                                                      .members
+                                                                      .length &&
+                                                              team
+                                                                  .members[i]
+                                                                  .isNotEmpty) {
+                                                            _showAttendanceDialog(
+                                                              team.members[i],
+                                                            );
+                                                          }
+                                                        },
                                                       ),
-                                                      onTap: () {
-                                                        if (i <
-                                                                team
-                                                                    .members
-                                                                    .length &&
-                                                            team
-                                                                .members[i]
-                                                                .isNotEmpty) {
-                                                          _showAttendanceDialog(
-                                                            team.members[i],
-                                                          );
-                                                        }
-                                                      },
                                                     ),
                                                   ),
                                                 ),
-                                              ),
-                                              SizedBox(
-                                                width: 80,
-                                                child: Text(
-                                                  i < rightLabels.length
-                                                      ? rightLabels[i]
-                                                      : '',
-                                                  textAlign: TextAlign.right,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:
-                                                        18 *
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontSizeScale,
-                                                    color:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontColor1,
+                                                SizedBox(
+                                                  width: 80,
+                                                  child: Text(
+                                                    rightLabels.isNotEmpty &&
+                                                            i <
+                                                                rightLabels
+                                                                    .length
+                                                        ? rightLabels[i]
+                                                        : '',
+                                                    textAlign: TextAlign.right,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize:
+                                                          14 *
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontSizeScale,
+                                                      color:
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontColor1,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ],
-                                    ),
-                                  );
-                                }),
+                                              ],
+                                      ),
+                                    );
+                                  },
+                                ),
                             ],
                           ),
                         ),
@@ -2081,7 +2109,7 @@ class MemberCard extends StatelessWidget {
               displayName,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),

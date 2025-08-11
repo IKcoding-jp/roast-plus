@@ -4,7 +4,6 @@ import '../services/theme_cloud_service.dart';
 import '../services/user_settings_firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:developer' as developer;
 import '../services/encrypted_local_storage_service.dart';

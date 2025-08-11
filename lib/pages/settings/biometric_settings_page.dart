@@ -4,7 +4,6 @@ import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../services/biometric_auth_service.dart';
-import '../../services/secure_storage_service.dart';
 
 class BiometricSettingsPage extends StatefulWidget {
   const BiometricSettingsPage({super.key});
@@ -17,7 +16,6 @@ class _BiometricSettingsPageState extends State<BiometricSettingsPage> {
   bool _isLoading = true;
   bool _biometricEnabled = false;
   List<BiometricType> _availableBiometrics = [];
-  Map<String, dynamic> _biometricStatus = {};
   bool _isDeviceSupported = false;
   bool _canCheckBiometrics = false;
 
@@ -45,7 +43,6 @@ class _BiometricSettingsPageState extends State<BiometricSettingsPage> {
         setState(() {
           _biometricEnabled = biometricEnabled;
           _availableBiometrics = availableBiometrics;
-          _biometricStatus = biometricStatus;
           _isDeviceSupported = biometricStatus['is_device_supported'] ?? false;
           _canCheckBiometrics =
               biometricStatus['can_check_biometrics'] ?? false;

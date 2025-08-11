@@ -99,7 +99,6 @@ class WebAdaptiveCard extends StatelessWidget {
 
     // WEB版ではより大きなカードとパディング
     final isDesktop = WebUIUtils.isDesktop(context);
-    final isTablet = WebUIUtils.isTablet(context);
 
     return Card(
       margin: margin ?? EdgeInsets.all(isDesktop ? 16 : 8),
@@ -160,7 +159,6 @@ class WebAdaptiveButton extends StatelessWidget {
 
     // WEB版ではより大きなボタン
     final isDesktop = WebUIUtils.isDesktop(context);
-    final isTablet = WebUIUtils.isTablet(context);
 
     return ElevatedButton.icon(
       onPressed: onPressed,

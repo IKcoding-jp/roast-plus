@@ -149,17 +149,6 @@ class _CalendarPageState extends State<CalendarPage> {
     }
   }
 
-  // 時間文字列を分に変換するヘルパーメソッド
-  int _parseTime(String time) {
-    final parts = time.split(':');
-    if (parts.length == 2) {
-      final hour = int.tryParse(parts[0]) ?? 0;
-      final minute = int.tryParse(parts[1]) ?? 0;
-      return hour * 60 + minute;
-    }
-    return 0;
-  }
-
   // タスクの説明を取得するヘルパーメソッド
   String _getTaskDescription(RoastScheduleMemo memo) {
     if (memo.isRoasterOn) {
@@ -414,7 +403,6 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
-    final dateFormatter = DateFormat('yyyy年M月d日 (E)', 'ja_JP');
 
     return Scaffold(
       appBar: AppBar(

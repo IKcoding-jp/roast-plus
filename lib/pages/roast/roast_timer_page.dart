@@ -28,7 +28,12 @@ enum RoastMode {
 
 class RoastTimerPage extends StatefulWidget {
   final Duration? initialDuration;
-  const RoastTimerPage({super.key, this.initialDuration});
+  final bool showBackButton;
+  const RoastTimerPage({
+    super.key,
+    this.initialDuration,
+    this.showBackButton = true,
+  });
   @override
   State<RoastTimerPage> createState() => _RoastTimerPageState();
 }
@@ -757,15 +762,17 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       return Scaffold(
         appBar: AppBar(
           title: Text('焙煎時間入力'),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back),
-            onPressed: () {
-              setState(() {
-                _mode = RoastMode.idle;
-              });
-            },
-            tooltip: '戻る',
-          ),
+          leading: widget.showBackButton
+              ? IconButton(
+                  icon: Icon(Icons.arrow_back),
+                  onPressed: () {
+                    setState(() {
+                      _mode = RoastMode.idle;
+                    });
+                  },
+                  tooltip: '戻る',
+                )
+              : null,
         ),
         body: Container(
           color: Theme.of(context).scaffoldBackgroundColor,
@@ -998,15 +1005,17 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       return Scaffold(
         appBar: AppBar(
           title: Text('おすすめ焙煎入力'),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back),
-            onPressed: () {
-              setState(() {
-                _mode = RoastMode.idle;
-              });
-            },
-            tooltip: '戻る',
-          ),
+          leading: widget.showBackButton
+              ? IconButton(
+                  icon: Icon(Icons.arrow_back),
+                  onPressed: () {
+                    setState(() {
+                      _mode = RoastMode.idle;
+                    });
+                  },
+                  tooltip: '戻る',
+                )
+              : null,
           actions: [
             IconButton(
               icon: Icon(Icons.refresh),
@@ -1380,11 +1389,13 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('焙煎タイマー'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-          tooltip: '戻る',
-        ),
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: '戻る',
+              )
+            : null,
         actions: [
           IconButton(
             icon: Icon(Icons.settings),

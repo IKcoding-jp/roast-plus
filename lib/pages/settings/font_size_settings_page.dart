@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/theme_settings.dart';
 import '../../utils/app_performance_config.dart';
 import '../../services/encrypted_local_storage_service.dart';

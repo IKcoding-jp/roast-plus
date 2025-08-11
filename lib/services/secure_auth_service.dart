@@ -17,7 +17,9 @@ class SecureAuthService {
     try {
       developer.log('セキュアなGoogleサインインを開始', name: _logName);
 
-      // Googleサインインを実行
+      // 現在のユーザーをクリアしてからサインインを実行（アカウント選択を強制）
+      await _googleSignIn.disconnect();
+      await Future.delayed(Duration(milliseconds: 500));
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         developer.log('Googleサインインがキャンセルされました', name: _logName);

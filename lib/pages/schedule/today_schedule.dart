@@ -1444,7 +1444,7 @@ class _TodayScheduleState extends State<TodaySchedule>
                     child: Text(
                       _scheduleLabels[i],
                       style: TextStyle(
-                        fontSize: 20, // 18から20に拡大
+                        fontSize: kIsWeb ? 16 : 12, // WEB版は16、モバイル版は12
                         fontWeight: FontWeight.bold,
                         color: inAnyRange
                             ? Colors.grey.shade700
@@ -1504,10 +1504,10 @@ class _TodayScheduleState extends State<TodaySchedule>
                             maxLines: 1,
                             style: TextStyle(
                               fontSize:
-                                  18 *
+                                  (kIsWeb ? 18 : 14) *
                                   Provider.of<ThemeSettings>(
                                     context,
-                                  ).fontSizeScale, // 20から18に縮小
+                                  ).fontSizeScale, // WEB版は18、モバイル版は14
                               fontWeight: FontWeight.bold,
                             ),
                             decoration: InputDecoration(
@@ -1555,10 +1555,10 @@ class _TodayScheduleState extends State<TodaySchedule>
                               _scheduleContents[_scheduleLabels[i]] ?? '',
                               style: TextStyle(
                                 fontSize:
-                                    16 *
+                                    (kIsWeb ? 17 : 13) *
                                     Provider.of<ThemeSettings>(
                                       context,
-                                    ).fontSizeScale, // 20から18に縮小
+                                    ).fontSizeScale, // WEB版は17、モバイル版は13
                                 fontWeight: FontWeight.bold,
                                 color: Provider.of<ThemeSettings>(
                                   context,

@@ -32,7 +32,6 @@ class HomeFeatureCard extends StatelessWidget {
 
     // WEB版とモバイル版で異なるスタイルを適用
     final isWeb = kIsWeb;
-    final isDesktop = isWeb && MediaQuery.of(context).size.width > 1024;
 
     return Card(
       elevation: isImportant ? 6 : 3,
@@ -53,8 +52,8 @@ class HomeFeatureCard extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      cardColor.withOpacity(0.1),
-                      cardColor.withOpacity(0.05),
+                      cardColor.withValues(alpha: 0.1),
+                      cardColor.withValues(alpha: 0.05),
                     ],
                   )
                 : null,
@@ -78,7 +77,7 @@ class HomeFeatureCard extends StatelessWidget {
                       boxShadow: isWeb
                           ? [
                               BoxShadow(
-                                color: cardColor.withOpacity(0.3),
+                                color: cardColor.withValues(alpha: 0.3),
                                 blurRadius: 6,
                                 offset: Offset(0, 3),
                               ),

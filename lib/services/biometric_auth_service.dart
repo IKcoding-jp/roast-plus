@@ -1,8 +1,6 @@
 import 'dart:developer' as developer;
-import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'secure_storage_service.dart';
 import 'secure_auth_service.dart';
 

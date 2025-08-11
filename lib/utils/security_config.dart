@@ -29,13 +29,6 @@ class SecurityConfig {
     }
   }
 
-  /// APIキーを暗号化
-  static String _encryptApiKey(String apiKey) {
-    final bytes = utf8.encode(apiKey + _encryptionKey);
-    final digest = sha256.convert(bytes);
-    return base64.encode(utf8.encode(apiKey));
-  }
-
   /// APIキーを復号化
   static String _decryptApiKey(String encryptedApiKey) {
     try {
@@ -43,11 +36,6 @@ class SecurityConfig {
     } catch (e) {
       throw Exception('APIキーの復号化に失敗しました');
     }
-  }
-
-  /// アプリIDを暗号化
-  static String _encryptAppId(String appId) {
-    return base64.encode(utf8.encode(appId));
   }
 
   /// アプリIDを復号化
@@ -59,11 +47,6 @@ class SecurityConfig {
     }
   }
 
-  /// プロジェクトIDを暗号化
-  static String _encryptProjectId(String projectId) {
-    return base64.encode(utf8.encode(projectId));
-  }
-
   /// プロジェクトIDを復号化
   static String _decryptProjectId(String encryptedProjectId) {
     try {
@@ -71,11 +54,6 @@ class SecurityConfig {
     } catch (e) {
       throw Exception('プロジェクトIDの復号化に失敗しました');
     }
-  }
-
-  /// 送信者IDを暗号化
-  static String _encryptSenderId(String senderId) {
-    return base64.encode(utf8.encode(senderId));
   }
 
   /// 送信者IDを復号化
@@ -178,7 +156,7 @@ class SecurityConfig {
   /// セキュアなトークン保存
   static String encryptToken(String token) {
     final bytes = utf8.encode(token + _encryptionKey);
-    final digest = sha256.convert(bytes);
+    sha256.convert(bytes);
     return base64.encode(utf8.encode(token));
   }
 

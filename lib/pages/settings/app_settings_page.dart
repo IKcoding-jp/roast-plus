@@ -62,443 +62,224 @@ class AppSettingsPage extends StatelessWidget {
 
   List<Widget> _buildSettingsItems(BuildContext context) {
     return [
-      Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(
-          '設定',
-          style: TextStyle(
-            fontSize: 16 * Provider.of<ThemeSettings>(context).fontSizeScale,
-            fontWeight: FontWeight.bold,
-            color: Provider.of<ThemeSettings>(context).fontColor1,
-          ),
-        ),
+      // アカウント・セキュリティセクション
+      _buildSectionHeader(context, 'アカウント・セキュリティ'),
+      _buildSettingsCard(
+        context,
+        icon: Icons.person_outline,
+        title: 'アカウント情報',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AccountInfoPage()),
+          );
+        },
       ),
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.person_outline,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            'アカウント情報',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AccountInfoPage()),
-            );
-          },
-        ),
+      _buildSettingsCard(
+        context,
+        icon: Icons.lock_outline,
+        title: 'パスコードロック設定',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PasscodeLockSettingsPage()),
+          );
+        },
       ),
-      // パスコードロック設定
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.lock_outline,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            'パスコードロック設定',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const PasscodeLockSettingsPage(),
-              ),
-            );
-          },
-        ),
+      _buildSettingsCard(
+        context,
+        icon: Icons.fingerprint,
+        title: '生体認証設定',
+        subtitle: '指紋・顔認証でアプリにアクセス',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const BiometricSettingsPage()),
+          );
+        },
       ),
-      // 生体認証設定
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.fingerprint,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            '生体認証設定',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          subtitle: Text(
-            '指紋・顔認証でアプリにアクセス',
-            style: TextStyle(
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const BiometricSettingsPage()),
-            );
-          },
-        ),
+      const SizedBox(height: 24),
+
+      // カスタマイズセクション
+      _buildSectionHeader(context, 'カスタマイズ'),
+      _buildSettingsCard(
+        context,
+        icon: Icons.color_lens_outlined,
+        title: 'テーマを変更する',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ThemeSettingsPage()),
+          );
+        },
       ),
-      // 暗号化ストレージ設定は一般ユーザーには不要なため削除
-      // ネットワークセキュリティ設定は一般ユーザーには不要なため削除
-      // Firebaseセキュリティ設定は一般ユーザーには不要なため削除
-      // 寄付セクション
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.volunteer_activism,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            '寄付で応援する',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          subtitle: Text(
-            '300円から任意の金額で寄付できます。寄付者は広告非表示＆カスタマイズ解放',
-            style: TextStyle(
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const DonationPage()),
-            );
-          },
-        ),
+      _buildSettingsCard(
+        context,
+        icon: Icons.text_fields,
+        title: 'フォント設定',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FontSizeSettingsPage()),
+          );
+        },
       ),
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.color_lens_outlined,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            'テーマを変更する',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ThemeSettingsPage()),
-            );
-          },
-        ),
+      _buildSettingsCard(
+        context,
+        icon: Icons.volume_up,
+        title: 'サウンド設定',
+        subtitle: 'タイマー音・通知音の設定',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SoundSettingsPage()),
+          );
+        },
       ),
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.text_fields,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            'フォント設定',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FontSizeSettingsPage()),
-            );
-          },
-        ),
+      _buildSettingsCard(
+        context,
+        icon: Icons.label,
+        title: '豆のシール設定',
+        subtitle: '豆の種類ごとの色シール設定',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const BeanStickerSettingsPage()),
+          );
+        },
       ),
-      // 豆のシール設定
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.label,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            '豆のシール設定',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          subtitle: Text(
-            '豆の種類ごとの色シール設定',
-            style: TextStyle(
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const BeanStickerSettingsPage(),
-              ),
-            );
-          },
-        ),
+      const SizedBox(height: 24),
+
+      // サポート・情報セクション
+      _buildSectionHeader(context, 'サポート・情報'),
+      _buildSettingsCard(
+        context,
+        icon: Icons.volunteer_activism,
+        title: '寄付で応援する',
+        subtitle: '300円から任意の金額で寄付できます。寄付者は広告非表示＆カスタマイズ解放',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const DonationPage()),
+          );
+        },
       ),
-      // サウンド設定
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.volume_up,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            'サウンド設定',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          subtitle: Text(
-            'タイマー音・通知音の設定',
-            style: TextStyle(
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SoundSettingsPage()),
-            );
-          },
-        ),
+      _buildSettingsCard(
+        context,
+        icon: Icons.feedback,
+        title: 'フィードバック',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FeedbackPage()),
+          );
+        },
       ),
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.feedback,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            'フィードバック',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FeedbackPage()),
-            );
-          },
-        ),
+      _buildSettingsCard(
+        context,
+        icon: Icons.message,
+        title: '制作者からのメッセージ',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CreatorMessagePage()),
+          );
+        },
       ),
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.message,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            '制作者からのメッセージ',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CreatorMessagePage()),
-            );
-          },
-        ),
+      _buildSettingsCard(
+        context,
+        icon: Icons.update,
+        title: '今後アップデートで追加予定の機能',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const UpcomingFeaturesPage()),
+          );
+        },
       ),
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.update,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            '今後アップデートで追加予定の機能',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const UpcomingFeaturesPage()),
-            );
-          },
-        ),
-      ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 24),
+
       // 法的情報セクション
-      Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(
-          '法的情報',
-          style: TextStyle(
-            fontSize: 16 * Provider.of<ThemeSettings>(context).fontSizeScale,
-            fontWeight: FontWeight.bold,
-            color: Provider.of<ThemeSettings>(context).fontColor1,
-          ),
-        ),
+      _buildSectionHeader(context, '法的情報'),
+      _buildSettingsCard(
+        context,
+        icon: Icons.description,
+        title: '利用規約',
+        subtitle: 'アプリの利用に関する規約',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
+          );
+        },
       ),
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.description,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            '利用規約',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          subtitle: Text(
-            'アプリの利用に関する規約',
-            style: TextStyle(
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
-            );
-          },
-        ),
-      ),
-      Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
-        child: ListTile(
-          leading: Icon(
-            Icons.privacy_tip,
-            color: Provider.of<ThemeSettings>(context).settingsColor,
-          ),
-          title: Text(
-            'プライバシーポリシー',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          subtitle: Text(
-            '個人情報の取り扱いについて',
-            style: TextStyle(
-              color: Provider.of<ThemeSettings>(context).fontColor1,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: Provider.of<ThemeSettings>(context).iconColor,
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
-            );
-          },
-        ),
+      _buildSettingsCard(
+        context,
+        icon: Icons.privacy_tip,
+        title: 'プライバシーポリシー',
+        subtitle: '個人情報の取り扱いについて',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+          );
+        },
       ),
       const SizedBox(height: 32),
     ];
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16 * Provider.of<ThemeSettings>(context).fontSizeScale,
+          fontWeight: FontWeight.bold,
+          color: Provider.of<ThemeSettings>(context).fontColor1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: Provider.of<ThemeSettings>(context).settingsColor,
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Provider.of<ThemeSettings>(context).fontColor1,
+          ),
+        ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: TextStyle(
+                  color: Provider.of<ThemeSettings>(context).fontColor1,
+                ),
+              )
+            : null,
+        trailing: Icon(
+          Icons.chevron_right,
+          color: Provider.of<ThemeSettings>(context).iconColor,
+        ),
+        onTap: onTap,
+      ),
+    );
   }
 }

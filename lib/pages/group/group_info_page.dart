@@ -2452,6 +2452,25 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                     ],
                   ),
                 SizedBox(height: 16),
+                // 脱退させるボタン（管理者のみ表示、自分以外のメンバーに対して）
+                if (isCurrentUserAdmin && member.uid != user.uid)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: _roleActionButton(
+                          icon: Icons.person_remove,
+                          label: '脱退させる',
+                          color: Colors.red,
+                          onPressed: () async {
+                            Navigator.of(context).pop();
+                            await _removeMember(member, group);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                SizedBox(height: 16),
                 // 注意書き
                 if (isCurrentUserAdmin && !isTargetAdmin)
                   Text(
@@ -2587,6 +2606,55 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         return 'リーダー';
       case GroupRole.member:
         return 'メンバー';
+    }
+  }
+
+  Future<void> _removeMember(GroupMember member, Group group) async {
+    // 確認ダイアログを表示
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('メンバーを脱退させますか？'),
+        content: Text(
+          '${member.displayName}さんをグループから脱退させます。\nこの操作は取り消すことができません。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('脱退させる'),
+          ),
+        ],
+      ),
+    );
+
+    // キャンセルされた場合は処理を中断
+    if (confirmed != true) return;
+
+    final provider = context.read<GroupProvider>();
+    try {
+      await provider.removeMember(groupId: group.id, memberUid: member.uid);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${member.displayName}さんをグループから脱退させました'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('メンバーの脱退処理に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

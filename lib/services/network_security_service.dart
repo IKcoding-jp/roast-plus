@@ -84,17 +84,6 @@ class NetworkSecurityService {
     developer.log('iOS HTTPS強制設定完了', name: _logName);
   }
 
-  /// 証明書ピニングの設定（一時的に無効化）
-  static Future<void> _configureCertificatePinning() async {
-    try {
-      // 証明書ピニングの実装（一時的に無効化）
-      // 実際の実装では、各HTTPSリクエストで証明書のハッシュを検証
-      developer.log('証明書ピニング設定完了（無効化中）', name: _logName);
-    } catch (e) {
-      developer.log('証明書ピニング設定エラー: $e', name: _logName);
-    }
-  }
-
   /// 証明書の検証（一時的に無効化）
   static bool verifyCertificate(String host, String certificateHash) {
     try {
