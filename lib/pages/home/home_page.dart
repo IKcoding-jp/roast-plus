@@ -6,6 +6,7 @@ import '../../models/group_provider.dart';
 import '../../models/group_gamification_provider.dart';
 import '../group/group_deleted_page.dart';
 import '../../widgets/lottie_animation_widget.dart';
+import '../../utils/web_ui_utils.dart';
 import 'home_body.dart';
 
 /// ホーム画面
@@ -74,11 +75,13 @@ class _HomePageState extends State<HomePage> {
           // 一時的にローディング状態を表示
           return Scaffold(
             backgroundColor: themeSettings.backgroundColor,
-            appBar: AppBar(
-              title: Text('ホーム'),
-              backgroundColor: themeSettings.appBarColor,
-              foregroundColor: themeSettings.appBarTextColor,
-            ),
+            appBar: WebUIUtils.isWeb
+                ? null
+                : AppBar(
+                    title: Text('ホーム'),
+                    backgroundColor: themeSettings.appBarColor,
+                    foregroundColor: themeSettings.appBarTextColor,
+                  ),
             body: const LoadingAnimationWidget(),
           );
         }
@@ -87,11 +90,13 @@ class _HomePageState extends State<HomePage> {
         if (groupProvider.loading) {
           return Scaffold(
             backgroundColor: themeSettings.backgroundColor,
-            appBar: AppBar(
-              title: Text('ホーム'),
-              backgroundColor: themeSettings.appBarColor,
-              foregroundColor: themeSettings.appBarTextColor,
-            ),
+            appBar: WebUIUtils.isWeb
+                ? null
+                : AppBar(
+                    title: Text('ホーム'),
+                    backgroundColor: themeSettings.appBarColor,
+                    foregroundColor: themeSettings.appBarTextColor,
+                  ),
             body: const LoadingAnimationWidget(),
           );
         }
@@ -99,11 +104,13 @@ class _HomePageState extends State<HomePage> {
         // グループに参加していない場合
         if (!groupProvider.hasGroup) {
           return Scaffold(
-            appBar: AppBar(
-              title: Text('ホーム'),
-              backgroundColor: themeSettings.appBarColor,
-              foregroundColor: themeSettings.appBarTextColor,
-            ),
+            appBar: WebUIUtils.isWeb
+                ? null
+                : AppBar(
+                    title: Text('ホーム'),
+                    backgroundColor: themeSettings.appBarColor,
+                    foregroundColor: themeSettings.appBarTextColor,
+                  ),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -134,17 +141,21 @@ class _HomePageState extends State<HomePage> {
 
         return Scaffold(
           backgroundColor: themeSettings.backgroundColor,
-          appBar: AppBar(
-            title: Text(
-              'ホーム',
-              style: TextStyle(
-                color: themeSettings.appBarTextColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            backgroundColor: themeSettings.appBarColor,
-            iconTheme: IconThemeData(color: themeSettings.appBarTextColor),
-          ),
+          appBar: WebUIUtils.isWeb
+              ? null
+              : AppBar(
+                  title: Text(
+                    'ホーム',
+                    style: TextStyle(
+                      color: themeSettings.appBarTextColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  backgroundColor: themeSettings.appBarColor,
+                  iconTheme: IconThemeData(
+                    color: themeSettings.appBarTextColor,
+                  ),
+                ),
           body: _isLoading
               ? const LoadingAnimationWidget()
               : Padding(

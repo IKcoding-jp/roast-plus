@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../services/theme_cloud_service.dart';
 import '../services/user_settings_firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -1392,6 +1393,13 @@ class ThemeSettings extends ChangeNotifier {
     notifyListeners();
     // フォントファミリーはローカル保存のみ（Firestore保存をスキップ）
     _saveToLocalOnly();
+
+    // WEB版でのフォント適用を確実にするため、少し遅延を入れる
+    if (kIsWeb) {
+      Future.delayed(Duration(milliseconds: 100), () {
+        notifyListeners();
+      });
+    }
   }
 
   // ローカル保存のみのメソッド（Firestore保存をスキップ）
@@ -1769,6 +1777,7 @@ class ThemeSettings extends ChangeNotifier {
   // 利用可能なフォントかチェックして、なければデフォルトを返す
   static String _getValidFontFamily(String fontFamily) {
     if (availableFonts.contains(fontFamily)) {
+      // WEB版ではフォント名をそのまま使用
       return fontFamily;
     }
     return 'Noto Sans JP'; // デフォルトフォント

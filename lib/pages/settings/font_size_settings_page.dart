@@ -79,6 +79,11 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
     });
     // ローカル保存のみで、notifyListeners()を呼ばない
     _saveFontFamilyLocally(newValue);
+    // ThemeSettingsを即座に更新
+    Provider.of<ThemeSettings>(
+      context,
+      listen: false,
+    ).updateFontFamily(newValue);
   }
 
   void _saveFontFamilyLocally(String value) async {

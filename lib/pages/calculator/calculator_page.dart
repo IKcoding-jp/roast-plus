@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../utils/web_ui_utils.dart';
 import 'dart:developer' as developer;
 
 class CalculatorPage extends StatefulWidget {
@@ -211,205 +212,427 @@ class _CalculatorPageState extends State<CalculatorPage> {
         foregroundColor: themeSettings.calculatorColor,
         iconTheme: IconThemeData(color: themeSettings.calculatorColor),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 表示エリア
-            Expanded(
-              flex: 2,
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(20),
-                margin: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: themeSettings.backgroundColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: themeSettings.calculatorColor.withValues(alpha: 0.3),
-                    width: 2,
+      body: WebUIUtils.isWeb
+          ? _buildWebLayout(themeSettings)
+          : _buildMobileLayout(themeSettings),
+    );
+  }
+
+  Widget _buildWebLayout(ThemeSettings themeSettings) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 500, maxHeight: 800),
+        child: Card(
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 表示エリア
+                Container(
+                  width: double.infinity,
+                  height: 180,
+                  padding: EdgeInsets.all(24),
+                  margin: EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    color: themeSettings.backgroundColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: themeSettings.calculatorColor.withValues(
+                        alpha: 0.3,
+                      ),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (_operator.isNotEmpty && _operand1.isNotEmpty) ...[
+                        Text(
+                          '$_operand1 $_operator',
+                          style: TextStyle(
+                            fontSize: 24 * themeSettings.fontSizeScale,
+                            color: themeSettings.fontColor1.withValues(
+                              alpha: 0.6,
+                            ),
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                      ],
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _displayText,
+                            style: TextStyle(
+                              fontSize: 64 * themeSettings.fontSizeScale,
+                              fontWeight: FontWeight.bold,
+                              color: themeSettings.fontColor1,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (_operator.isNotEmpty && _operand1.isNotEmpty) ...[
-                      Text(
-                        '$_operand1 $_operator',
-                        style: TextStyle(
-                          fontSize: 18 * themeSettings.fontSizeScale,
-                          color: themeSettings.fontColor1.withValues(
-                            alpha: 0.6,
-                          ),
-                          fontFamily: themeSettings.fontFamily,
+
+                // ボタンエリア
+                Container(
+                  width: double.infinity,
+                  child: Column(
+                    children: [
+                      // 1行目: C, ⌫, ÷
+                      SizedBox(
+                        height: 80,
+                        child: Row(
+                          children: [
+                            _buildButton(
+                              text: 'C',
+                              onPressed: () => _onButtonPressed('C'),
+                              backgroundColor: Colors.red.withValues(
+                                alpha: 0.8,
+                              ),
+                              textColor: Colors.white,
+                            ),
+                            _buildButton(
+                              text: '⌫',
+                              onPressed: () => _onButtonPressed('⌫'),
+                              backgroundColor: Colors.orange.withValues(
+                                alpha: 0.8,
+                              ),
+                              textColor: Colors.white,
+                            ),
+                            _buildButton(
+                              text: '÷',
+                              onPressed: () => _onButtonPressed('÷'),
+                              backgroundColor: themeSettings.calculatorColor
+                                  .withValues(alpha: 0.8),
+                              textColor: Colors.white,
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 8),
+
+                      // 2行目: 7, 8, 9, ×
+                      SizedBox(
+                        height: 80,
+                        child: Row(
+                          children: [
+                            _buildButton(
+                              text: '7',
+                              onPressed: () => _onButtonPressed('7'),
+                            ),
+                            _buildButton(
+                              text: '8',
+                              onPressed: () => _onButtonPressed('8'),
+                            ),
+                            _buildButton(
+                              text: '9',
+                              onPressed: () => _onButtonPressed('9'),
+                            ),
+                            _buildButton(
+                              text: '×',
+                              onPressed: () => _onButtonPressed('×'),
+                              backgroundColor: themeSettings.calculatorColor
+                                  .withValues(alpha: 0.8),
+                              textColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // 3行目: 4, 5, 6, -
+                      SizedBox(
+                        height: 80,
+                        child: Row(
+                          children: [
+                            _buildButton(
+                              text: '4',
+                              onPressed: () => _onButtonPressed('4'),
+                            ),
+                            _buildButton(
+                              text: '5',
+                              onPressed: () => _onButtonPressed('5'),
+                            ),
+                            _buildButton(
+                              text: '6',
+                              onPressed: () => _onButtonPressed('6'),
+                            ),
+                            _buildButton(
+                              text: '-',
+                              onPressed: () => _onButtonPressed('-'),
+                              backgroundColor: themeSettings.calculatorColor
+                                  .withValues(alpha: 0.8),
+                              textColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // 4行目: 1, 2, 3, +
+                      SizedBox(
+                        height: 80,
+                        child: Row(
+                          children: [
+                            _buildButton(
+                              text: '1',
+                              onPressed: () => _onButtonPressed('1'),
+                            ),
+                            _buildButton(
+                              text: '2',
+                              onPressed: () => _onButtonPressed('2'),
+                            ),
+                            _buildButton(
+                              text: '3',
+                              onPressed: () => _onButtonPressed('3'),
+                            ),
+                            _buildButton(
+                              text: '+',
+                              onPressed: () => _onButtonPressed('+'),
+                              backgroundColor: themeSettings.calculatorColor
+                                  .withValues(alpha: 0.8),
+                              textColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // 5行目: 0, ., =
+                      SizedBox(
+                        height: 80,
+                        child: Row(
+                          children: [
+                            _buildButton(
+                              text: '0',
+                              onPressed: () => _onButtonPressed('0'),
+                              flex: 2,
+                            ),
+                            _buildButton(
+                              text: '.',
+                              onPressed: () => _onButtonPressed('.'),
+                            ),
+                            _buildButton(
+                              text: '=',
+                              onPressed: () => _onButtonPressed('='),
+                              backgroundColor: Colors.green.withValues(
+                                alpha: 0.8,
+                              ),
+                              textColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        _displayText,
-                        style: TextStyle(
-                          fontSize: 48 * themeSettings.fontSizeScale,
-                          fontWeight: FontWeight.bold,
-                          color: themeSettings.fontColor1,
-                          fontFamily: themeSettings.fontFamily,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-
-            // ボタンエリア
-            Expanded(
-              flex: 5,
-              child: Container(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    // 1行目: C, ⌫, ÷
-                    Expanded(
-                      child: Row(
-                        children: [
-                          _buildButton(
-                            text: 'C',
-                            onPressed: () => _onButtonPressed('C'),
-                            backgroundColor: Colors.red.withValues(alpha: 0.8),
-                            textColor: Colors.white,
-                          ),
-                          _buildButton(
-                            text: '⌫',
-                            onPressed: () => _onButtonPressed('⌫'),
-                            backgroundColor: Colors.orange.withValues(
-                              alpha: 0.8,
-                            ),
-                            textColor: Colors.white,
-                          ),
-                          _buildButton(
-                            text: '÷',
-                            onPressed: () => _onButtonPressed('÷'),
-                            backgroundColor: themeSettings.calculatorColor
-                                .withValues(alpha: 0.8),
-                            textColor: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // 2行目: 7, 8, 9, ×
-                    Expanded(
-                      child: Row(
-                        children: [
-                          _buildButton(
-                            text: '7',
-                            onPressed: () => _onButtonPressed('7'),
-                          ),
-                          _buildButton(
-                            text: '8',
-                            onPressed: () => _onButtonPressed('8'),
-                          ),
-                          _buildButton(
-                            text: '9',
-                            onPressed: () => _onButtonPressed('9'),
-                          ),
-                          _buildButton(
-                            text: '×',
-                            onPressed: () => _onButtonPressed('×'),
-                            backgroundColor: themeSettings.calculatorColor
-                                .withValues(alpha: 0.8),
-                            textColor: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // 3行目: 4, 5, 6, -
-                    Expanded(
-                      child: Row(
-                        children: [
-                          _buildButton(
-                            text: '4',
-                            onPressed: () => _onButtonPressed('4'),
-                          ),
-                          _buildButton(
-                            text: '5',
-                            onPressed: () => _onButtonPressed('5'),
-                          ),
-                          _buildButton(
-                            text: '6',
-                            onPressed: () => _onButtonPressed('6'),
-                          ),
-                          _buildButton(
-                            text: '-',
-                            onPressed: () => _onButtonPressed('-'),
-                            backgroundColor: themeSettings.calculatorColor
-                                .withValues(alpha: 0.8),
-                            textColor: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // 4行目: 1, 2, 3, +
-                    Expanded(
-                      child: Row(
-                        children: [
-                          _buildButton(
-                            text: '1',
-                            onPressed: () => _onButtonPressed('1'),
-                          ),
-                          _buildButton(
-                            text: '2',
-                            onPressed: () => _onButtonPressed('2'),
-                          ),
-                          _buildButton(
-                            text: '3',
-                            onPressed: () => _onButtonPressed('3'),
-                          ),
-                          _buildButton(
-                            text: '+',
-                            onPressed: () => _onButtonPressed('+'),
-                            backgroundColor: themeSettings.calculatorColor
-                                .withValues(alpha: 0.8),
-                            textColor: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // 5行目: 0, ., =
-                    Expanded(
-                      child: Row(
-                        children: [
-                          _buildButton(
-                            text: '0',
-                            onPressed: () => _onButtonPressed('0'),
-                            flex: 2,
-                          ),
-                          _buildButton(
-                            text: '.',
-                            onPressed: () => _onButtonPressed('.'),
-                          ),
-                          _buildButton(
-                            text: '=',
-                            onPressed: () => _onButtonPressed('='),
-                            backgroundColor: Colors.green.withValues(
-                              alpha: 0.8,
-                            ),
-                            textColor: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(ThemeSettings themeSettings) {
+    return SafeArea(
+      child: Column(
+        children: [
+          // 表示エリア
+          Expanded(
+            flex: 2,
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(20),
+              margin: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: themeSettings.backgroundColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: themeSettings.calculatorColor.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (_operator.isNotEmpty && _operand1.isNotEmpty) ...[
+                    Text(
+                      '$_operand1 $_operator',
+                      style: TextStyle(
+                        fontSize: 18 * themeSettings.fontSizeScale,
+                        color: themeSettings.fontColor1.withValues(alpha: 0.6),
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                  ],
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _displayText,
+                      style: TextStyle(
+                        fontSize: 48 * themeSettings.fontSizeScale,
+                        fontWeight: FontWeight.bold,
+                        color: themeSettings.fontColor1,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ボタンエリア
+          Expanded(
+            flex: 5,
+            child: Container(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // 1行目: C, ⌫, ÷
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildButton(
+                          text: 'C',
+                          onPressed: () => _onButtonPressed('C'),
+                          backgroundColor: Colors.red.withValues(alpha: 0.8),
+                          textColor: Colors.white,
+                        ),
+                        _buildButton(
+                          text: '⌫',
+                          onPressed: () => _onButtonPressed('⌫'),
+                          backgroundColor: Colors.orange.withValues(alpha: 0.8),
+                          textColor: Colors.white,
+                        ),
+                        _buildButton(
+                          text: '÷',
+                          onPressed: () => _onButtonPressed('÷'),
+                          backgroundColor: themeSettings.calculatorColor
+                              .withValues(alpha: 0.8),
+                          textColor: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 2行目: 7, 8, 9, ×
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildButton(
+                          text: '7',
+                          onPressed: () => _onButtonPressed('7'),
+                        ),
+                        _buildButton(
+                          text: '8',
+                          onPressed: () => _onButtonPressed('8'),
+                        ),
+                        _buildButton(
+                          text: '9',
+                          onPressed: () => _onButtonPressed('9'),
+                        ),
+                        _buildButton(
+                          text: '×',
+                          onPressed: () => _onButtonPressed('×'),
+                          backgroundColor: themeSettings.calculatorColor
+                              .withValues(alpha: 0.8),
+                          textColor: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 3行目: 4, 5, 6, -
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildButton(
+                          text: '4',
+                          onPressed: () => _onButtonPressed('4'),
+                        ),
+                        _buildButton(
+                          text: '5',
+                          onPressed: () => _onButtonPressed('5'),
+                        ),
+                        _buildButton(
+                          text: '6',
+                          onPressed: () => _onButtonPressed('6'),
+                        ),
+                        _buildButton(
+                          text: '-',
+                          onPressed: () => _onButtonPressed('-'),
+                          backgroundColor: themeSettings.calculatorColor
+                              .withValues(alpha: 0.8),
+                          textColor: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 4行目: 1, 2, 3, +
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildButton(
+                          text: '1',
+                          onPressed: () => _onButtonPressed('1'),
+                        ),
+                        _buildButton(
+                          text: '2',
+                          onPressed: () => _onButtonPressed('2'),
+                        ),
+                        _buildButton(
+                          text: '3',
+                          onPressed: () => _onButtonPressed('3'),
+                        ),
+                        _buildButton(
+                          text: '+',
+                          onPressed: () => _onButtonPressed('+'),
+                          backgroundColor: themeSettings.calculatorColor
+                              .withValues(alpha: 0.8),
+                          textColor: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 5行目: 0, ., =
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildButton(
+                          text: '0',
+                          onPressed: () => _onButtonPressed('0'),
+                          flex: 2,
+                        ),
+                        _buildButton(
+                          text: '.',
+                          onPressed: () => _onButtonPressed('.'),
+                        ),
+                        _buildButton(
+                          text: '=',
+                          onPressed: () => _onButtonPressed('='),
+                          backgroundColor: Colors.green.withValues(alpha: 0.8),
+                          textColor: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -70,7 +70,7 @@ class _HomeBodyState extends State<HomeBody> {
                   Expanded(
                     child: _buildWebSection(
                       title: '記録',
-                      subtitle: 'ドリップ、テイスティング、計算機、TODO',
+                      subtitle: '作業記録',
                       icon: Icons.assignment,
                       accentColor: Colors.blue.shade700,
                       children: _buildRecordFeatures(),
@@ -120,7 +120,7 @@ class _HomeBodyState extends State<HomeBody> {
 
                   _buildWebSection(
                     title: '記録',
-                    subtitle: 'ドリップ、テイスティング、計算機、TODO',
+                    subtitle: '作業記録',
                     icon: Icons.assignment,
                     accentColor: Colors.blue.shade700,
                     children: _buildRecordFeatures(),
@@ -315,21 +315,21 @@ class _HomeBodyState extends State<HomeBody> {
         icon: Icons.edit_note,
         onTap: () => Navigator.pushNamed(context, '/roast_record'),
         isImportant: true, // 重要機能
-        customColor: Color(0xFF8D6E63), // ブラウン（コーヒー豆）
+        customColor: Color(0xFFE65100), // オレンジ（火・熱を表現）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
         title: '焙煎分析',
         icon: Icons.insights,
         onTap: () => Navigator.pushNamed(context, '/roast_analysis'),
-        customColor: Color(0xFF6A4C93), // パープル（分析・データ）
+        customColor: Color(0xFFE65100), // オレンジ（火・熱を表現）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
         title: '焙煎記録一覧',
         icon: Icons.analytics,
         onTap: () => Navigator.pushNamed(context, '/roast_record_list'),
-        customColor: Color(0xFF795548), // ダークブラウン（記録）
+        customColor: Color(0xFFE65100), // オレンジ（火・熱を表現）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
@@ -361,17 +361,17 @@ class _HomeBodyState extends State<HomeBody> {
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
         title: 'ドリップカウンター',
-        icon: Icons.local_cafe,
+        icon: Icons.add_circle_outline,
         onTap: () => Navigator.pushNamed(context, '/drip'),
         isImportant: true, // 重要機能
         customColor: Color(0xFF6F4E37), // コーヒー色（ドリップ）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
-        title: 'テイスティング記録',
-        icon: Icons.restaurant_menu,
+        title: '試飲感想記録',
+        icon: Icons.coffee,
         onTap: () => Navigator.pushNamed(context, '/tasting'),
-        customColor: Color(0xFFD81B60), // ピンク（味覚・感覚）
+        customColor: Color(0xFF8B4513), // サドルブラウン（コーヒー色）
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
@@ -396,7 +396,7 @@ class _HomeBodyState extends State<HomeBody> {
       ),
       HomeFeatureCard(
         themeSettings: widget.themeSettings,
-        title: 'TODO',
+        title: 'メモ・TODO',
         icon: Icons.checklist,
         onTap: () => Navigator.pushNamed(context, '/todo'),
         customColor: Color(0xFF1565C0), // インディゴ（タスク管理）

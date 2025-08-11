@@ -57,8 +57,49 @@
     const analytics = getAnalytics(app);
   </script>
 
+  <!-- カスタムフォント読み込み -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  
   <!-- Flutter Web 最適化 -->
   <style>
+    /* カスタムフォントの定義 */
+    @font-face {
+      font-family: 'ZenMaruGothic';
+      src: url('fonts/ZenMaruGothic-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'utsukushiFONT';
+      src: url('fonts/UtsukushiFONT.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'KiwiMaru';
+      src: url('fonts/KiwiMaru-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'HannariMincho';
+      src: url('fonts/HannariMincho-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'Harenosora';
+      src: url('fonts/Harenosora.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
     /* レスポンシブデザインのためのスタイル */
     body {
       margin: 0;
