@@ -4,6 +4,7 @@ import '../../models/group_provider.dart';
 import '../../models/theme_settings.dart';
 import '../../services/qr_code_service.dart';
 import '../../services/group_firestore_service.dart';
+import '../../services/group_invitation_service.dart';
 import '../../models/group_models.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -86,16 +87,37 @@ class _GroupQRGeneratePageState extends State<GroupQRGeneratePage> {
     final group = groupProvider.currentGroup;
 
     if (group != null) {
-      final qrData = QRCodeService.generateGroupJoinData(
-        groupId: group.id,
-        groupName: group.name,
-        inviteCode: group.inviteCode,
-      );
+      try {
+        // GroupInvitationServiceを使用して招待コードを作成または取得
+        final invitationCode =
+            await GroupInvitationService.createGroupInvitationCode(
+              group.id,
+              expiresIn: Duration(days: 30), // 30日間有効
+            );
 
-      setState(() {
-        _qrData = qrData;
-        _isGenerating = false;
-      });
+        final qrData = QRCodeService.generateGroupJoinData(
+          groupId: group.id,
+          groupName: group.name,
+          inviteCode: invitationCode,
+        );
+
+        setState(() {
+          _qrData = qrData;
+          _isGenerating = false;
+        });
+      } catch (e) {
+        setState(() {
+          _isGenerating = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('QRコードの生成に失敗しました: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } else {
       setState(() {
         _isGenerating = false;

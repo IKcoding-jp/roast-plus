@@ -211,7 +211,7 @@ class GroupInvitationService {
         'email': _auth.currentUser?.email ?? '',
         'displayName': _userDisplayName,
         'role': 'member', // 招待で参加した場合は通常メンバー
-        'joinedAt': FieldValue.serverTimestamp(),
+        'joinedAt': DateTime.now().toIso8601String(),
         'isActive': true,
       };
 
@@ -231,7 +231,7 @@ class GroupInvitationService {
             'groupId': groupId,
             'groupName': groupData['name'] ?? '',
             'role': 'member',
-            'joinedAt': FieldValue.serverTimestamp(),
+            'joinedAt': DateTime.now().toIso8601String(),
             'isActive': true,
           });
 

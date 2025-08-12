@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../models/group_provider.dart';
 import '../../models/theme_settings.dart';
 import '../../services/qr_code_service.dart';
+import '../../services/group_invitation_service.dart';
 
 class GroupQRScannerPage extends StatefulWidget {
   const GroupQRScannerPage({super.key});
@@ -114,22 +115,32 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
       _isJoining = true;
     });
 
-    final groupProvider = context.read<GroupProvider>();
-    final success = await groupProvider.joinGroupByInviteCode(inviteCode);
-
-    if (success && mounted) {
-      // 成功メッセージを表示
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('グループに参加しました'), backgroundColor: Colors.green),
+    try {
+      // GroupInvitationServiceを使用してグループに参加
+      final success = await GroupInvitationService.joinGroupWithInvitationCode(
+        inviteCode,
       );
 
-      // ホームページに自動遷移
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/',
-        (route) => false, // すべてのページをクリア
-      );
-    } else if (mounted) {
-      _showError(groupProvider.error ?? 'グループの参加に失敗しました');
+      if (success && mounted) {
+        // 成功メッセージを表示
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('グループに参加しました'), backgroundColor: Colors.green),
+        );
+
+        // グループプロバイダーを更新
+        final groupProvider = context.read<GroupProvider>();
+        await groupProvider.loadUserGroups();
+
+        // ホームページに自動遷移
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/',
+          (route) => false, // すべてのページをクリア
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('グループの参加に失敗しました: $e');
+      }
     }
 
     if (mounted) {

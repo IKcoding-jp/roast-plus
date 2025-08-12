@@ -39,9 +39,16 @@ service cloud.firestore {
       // グループドキュメントへのアクセス
       allow read: if isGroupMember(groupId) || 
         (isAuthenticated() && 
-         exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId))) ||
+        // 招待コードによるグループ参加のための読み取り権限
+        (isAuthenticated() && 
+         resource.data.inviteCode != null);
       allow create: if isAuthenticated();
-      allow update, delete: if isGroupAdmin(groupId);
+      allow update: if isGroupAdmin(groupId) || 
+        // 招待コードによるグループ参加のための更新権限
+        (isAuthenticated() && 
+         resource.data.inviteCode != null);
+      allow delete: if isGroupAdmin(groupId);
       
       // グループのサブコレクションへのアクセス
       match /{collection}/{document=**} {
@@ -80,6 +87,28 @@ service cloud.firestore {
           (isAuthenticated() && 
            exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
       }
+    }
+
+    // グループ招待コレクションのルール
+    match /group_invitations/{invitationCode} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+        (resource.data.createdBy == request.auth.uid || 
+         request.resource.data.usedBy[request.auth.uid] != null);
+      allow delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+    }
+
+    // 招待コレクションのルール
+    match /invitations/{invitationId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.invitedUserId == request.auth.uid || 
+         resource.data.invitedEmail == request.auth.token.email);
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+        (resource.data.invitedUserId == request.auth.uid || 
+         resource.data.invitedEmail == request.auth.token.email);
+      allow delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
     }
 
     // システム設定コレクション（必要に応じて）
