@@ -11,6 +11,7 @@ import 'services/sync_firestore_all.dart';
 import 'services/todo_notification_service.dart';
 import 'services/secure_auth_service.dart';
 import 'services/biometric_auth_service.dart';
+import 'services/session_management_service.dart';
 import 'package:provider/provider.dart';
 import 'models/theme_settings.dart';
 import 'models/group_provider.dart';
@@ -133,6 +134,8 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
                 // キーボードイベントのエラーを防ぐため、タップでキーボードを閉じる
                 onTap: () {
                   FocusScope.of(context).unfocus();
+                  // ユーザーアクティビティを記録
+                  SessionManagementService.recordUserActivity();
                 },
                 child: child!,
               ),
@@ -1208,6 +1211,8 @@ class MainScaffoldState extends State<MainScaffold> {
       duration: Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+    // ユーザーアクティビティを記録
+    SessionManagementService.recordUserActivity();
   }
 
   // 外部からタブ切り替えを可能にするpublicメソッド

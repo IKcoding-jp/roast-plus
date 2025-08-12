@@ -14,8 +14,12 @@ class SessionManagementService {
 
   // セッション設定
   static const Duration _sessionTimeout = Duration(hours: 24); // 24時間
-  static const Duration _inactivityTimeout = Duration(minutes: 30); // 30分間無操作
-  static const Duration _checkInterval = Duration(minutes: 5); // 5分間隔でチェック
+  static const Duration _inactivityTimeout = Duration(
+    hours: 8,
+  ); // 8時間に延長（無操作タイムアウトを実質的に無効化）
+  static const Duration _checkInterval = Duration(
+    minutes: 30,
+  ); // 30分間隔に変更（チェック頻度を下げる）
 
   static Timer? _sessionTimer;
   static Timer? _inactivityTimer;
@@ -47,17 +51,17 @@ class SessionManagementService {
     try {
       _isMonitoring = true;
 
-      // セッション有効期限チェック
+      // セッション有効期限チェックのみ実行（無操作タイムアウトは無効化）
       _sessionTimer = Timer.periodic(_checkInterval, (timer) {
         _checkSessionValidity();
       });
 
-      // 無操作タイムアウトチェック
-      _inactivityTimer = Timer.periodic(_checkInterval, (timer) {
-        _checkInactivityTimeout();
-      });
+      // 無操作タイムアウトチェックを無効化（勝手にログアウトする問題を修正）
+      // _inactivityTimer = Timer.periodic(_checkInterval, (timer) {
+      //   _checkInactivityTimeout();
+      // });
 
-      developer.log('セッション監視開始', name: _logName);
+      developer.log('セッション監視開始（無操作タイムアウト無効化）', name: _logName);
     } catch (e) {
       developer.log('セッション監視開始エラー: $e', name: _logName);
     }

@@ -190,6 +190,8 @@ void main() async {
     developer.log('セッション管理サービス初期化開始', name: 'Main');
     // セッション管理サービスを初期化
     await SessionManagementService.initialize();
+    // 初期化時にユーザーアクティビティを記録
+    await SessionManagementService.recordUserActivity();
     developer.log('セッション管理サービス初期化完了', name: 'Main');
   } catch (e) {
     developer.log('セッション管理サービス初期化エラー: $e', name: 'Main');

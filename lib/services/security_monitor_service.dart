@@ -22,18 +22,18 @@ class SecurityMonitorService {
       developer.log('セキュリティ監視を開始', name: _logName);
       _isMonitoring = true;
 
-      // 定期的なセキュリティチェック（5分間隔）
-      _monitoringTimer = Timer.periodic(Duration(minutes: 5), (timer) {
+      // 定期的なセキュリティチェック（30分間隔に変更）
+      _monitoringTimer = Timer.periodic(Duration(minutes: 30), (timer) {
         _performSecurityCheck();
       });
 
       // 初回チェック
       await _performSecurityCheck();
 
-      // 認証状態の変更を監視
-      _auth.authStateChanges().listen((User? user) {
-        _handleAuthStateChange(user);
-      });
+      // 認証状態の変更を監視（無効化）
+      // _auth.authStateChanges().listen((User? user) {
+      //   _handleAuthStateChange(user);
+      // });
     } catch (e) {
       developer.log('セキュリティ監視の開始に失敗: $e', name: _logName);
     }
@@ -80,8 +80,8 @@ class SecurityMonitorService {
         );
       }
 
-      // 4. セッションの有効期限チェック
-      await _checkSessionExpiration();
+      // 4. セッションの有効期限チェック（無効化）
+      // await _checkSessionExpiration();
 
       developer.log('セキュリティチェック完了', name: _logName);
     } catch (e) {
@@ -213,14 +213,15 @@ class SecurityMonitorService {
   static Future<void> _handleViolationResponse(String violationType) async {
     switch (violationType) {
       case 'invalid_tokens':
-        // 無効なトークンを削除
+        // 無効なトークンを削除（ログアウトは行わない）
         await SecureStorageService.deleteSecureData('access_token');
         await SecureStorageService.deleteSecureData('id_token');
         break;
 
       case 'authentication_mismatch':
-        // 認証状態をリセット
-        await _auth.signOut();
+        // 認証状態のリセットを無効化（勝手にログアウトする問題を修正）
+        // await _auth.signOut();
+        developer.log('認証状態の不整合を検出しましたが、ログアウトは行いません', name: _logName);
         break;
 
       case 'session_timeout':
