@@ -207,7 +207,7 @@ class _UsageGuidePageState extends State<UsageGuidePage>
               ),
               // 右側のコンテンツエリア
               Expanded(
-                child: Container(
+                child: SizedBox(
                   height: MediaQuery.of(context).size.height - 120,
                   child: IndexedStack(
                     index: _tabController.index,
@@ -367,7 +367,7 @@ class _UsageGuidePageState extends State<UsageGuidePage>
             spacing: 16,
             runSpacing: 16,
             children: items
-                .map((item) => Container(width: 350, child: item))
+                .map((item) => SizedBox(width: 350, child: item))
                 .toList(),
           ),
         ],

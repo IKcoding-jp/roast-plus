@@ -888,7 +888,7 @@ class DripCounterPageState extends State<DripCounterPage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // カウンター表示
-                  Container(
+                  SizedBox(
                     height: 200,
                     child: Stack(
                       children: [

@@ -284,7 +284,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 ),
 
                 // ボタンエリア
-                Container(
+                SizedBox(
                   width: double.infinity,
                   child: Column(
                     children: [

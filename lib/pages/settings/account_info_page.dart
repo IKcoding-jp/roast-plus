@@ -170,8 +170,8 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   Future<void> _signInWithGoogle() async {
     if (mounted) setState(() => _loading = true);
     try {
-      // セキュア認証サービスを使用
-      final userCredential = await SecureAuthService.signInWithGoogle();
+      // 安全なGoogleサインインを使用
+      final userCredential = await SecureAuthService.signInWithGoogleSafely();
       if (userCredential == null) {
         // キャンセル時
         if (!mounted) return;

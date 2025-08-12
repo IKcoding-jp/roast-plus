@@ -76,7 +76,7 @@ class ThemeSettings extends ChangeNotifier {
       todoColor = defaultTheme['iconColor']!;
       calculatorColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
       fontSizeScale = 1.0;
-      fontFamily = 'ZenMaruGothic';
+      fontFamily = 'Noto Sans JP';
       notifyListeners();
       return;
     }
@@ -116,7 +116,7 @@ class ThemeSettings extends ChangeNotifier {
       todoColor = defaultTheme['iconColor']!;
       calculatorColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
       fontSizeScale = 1.0;
-      fontFamily = 'ZenMaruGothic';
+      fontFamily = 'Noto Sans JP';
 
       // 設定を保存
       save();
@@ -990,6 +990,16 @@ class ThemeSettings extends ChangeNotifier {
     'Harenosora',
   ];
 
+  // フォントの優先順位リスト（フォールバック用）
+  static const List<String> fontFallbacks = [
+    'Noto Sans JP',
+    'ZenMaruGothic',
+    'KiwiMaru',
+    'HannariMincho',
+    'Harenosora',
+    'utsukushiFONT',
+  ];
+
   static Future<ThemeSettings> load() async {
     try {
       // Firebaseからテーマ設定を取得
@@ -1477,7 +1487,7 @@ class ThemeSettings extends ChangeNotifier {
     todoColor = defaultTheme['iconColor']!; // ToDo色もアイコンの色と同じ値に設定
     calculatorColor = defaultTheme['iconColor']!; // アイコンの色と同じ値に設定
     fontSizeScale = 1.0;
-    fontFamily = 'ZenMaruGothic';
+    fontFamily = 'Noto Sans JP';
     notifyListeners();
     save();
   }
@@ -1781,5 +1791,25 @@ class ThemeSettings extends ChangeNotifier {
       return fontFamily;
     }
     return 'Noto Sans JP'; // デフォルトフォント
+  }
+
+  // フォントファミリーを動的に設定する関数
+  static String getFontFamily(String fontFamily) {
+    switch (fontFamily) {
+      case 'Noto Sans JP':
+        return 'Noto Sans JP';
+      case 'ZenMaruGothic':
+        return 'ZenMaruGothic';
+      case 'utsukushiFONT':
+        return 'utsukushiFONT';
+      case 'KiwiMaru':
+        return 'KiwiMaru';
+      case 'HannariMincho':
+        return 'HannariMincho';
+      case 'Harenosora':
+        return 'Harenosora';
+      default:
+        return 'Noto Sans JP';
+    }
   }
 }

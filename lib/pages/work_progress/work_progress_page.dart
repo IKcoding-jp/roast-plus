@@ -557,7 +557,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
 
                           if (confirmed == true) {
                             final messenger = ScaffoldMessenger.of(
-                              this.context,
+                              context,
                             );
                             try {
                               await workProgressProvider.deleteWorkProgress(

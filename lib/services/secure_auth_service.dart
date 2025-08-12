@@ -8,7 +8,9 @@ import 'secure_storage_service.dart';
 /// Google認証のトークンを安全に管理し、セキュリティを強化するサービス
 class SecureAuthService {
   static const String _logName = 'SecureAuthService';
-  static final GoogleSignIn _googleSignIn = GoogleSignIn();
+  static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -18,7 +20,14 @@ class SecureAuthService {
       developer.log('セキュアなGoogleサインインを開始', name: _logName);
 
       // 現在のユーザーをクリアしてからサインインを実行（アカウント選択を強制）
-      await _googleSignIn.disconnect();
+      try {
+        await _googleSignIn.disconnect();
+        developer.log('Googleサインインの切断が完了', name: _logName);
+      } catch (disconnectError) {
+        developer.log('Googleサインインの切断でエラーが発生（無視して続行）: $disconnectError', name: _logName);
+        // disconnectエラーは無視して続行
+      }
+      
       await Future.delayed(Duration(milliseconds: 500));
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
@@ -283,5 +292,127 @@ class SecureAuthService {
     } catch (e) {
       developer.log('エラーログの記録に失敗: $e', name: _logName);
     }
+  }
+
+  /// Googleサインインの状態を確認
+  static Future<bool> isGoogleSignInAvailable() async {
+    try {
+      // 現在のユーザーを取得して状態を確認
+      final currentUser = await _googleSignIn.signInSilently();
+      return currentUser != null;
+    } catch (e) {
+      developer.log('Googleサインインの状態確認に失敗: $e', name: _logName);
+      return false;
+    }
+  }
+
+  /// 安全なGoogleサインイン（disconnectエラーを回避）
+  static Future<UserCredential?> signInWithGoogleSafely() async {
+    try {
+      developer.log('安全なGoogleサインインを開始', name: _logName);
+
+      // まず現在のユーザーを確認
+      final currentUser = await _googleSignIn.signInSilently();
+      if (currentUser != null) {
+        developer.log('既存のユーザーセッションを確認', name: _logName);
+        // 既存のセッションがある場合は、それを利用
+        final googleAuth = await currentUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        return await _auth.signInWithCredential(credential);
+      }
+
+      // 新しいサインインを試行
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        developer.log('Googleサインインがキャンセルされました', name: _logName);
+        return null;
+      }
+
+      // 認証情報を取得
+      final googleAuth = await googleUser.authentication;
+      
+      // トークンをセキュアストレージに保存
+      await _saveTokensSecurely(googleAuth);
+
+      // Firebase認証を実行
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // ユーザー情報をFirestoreに保存
+      await _saveUserToFirestore(userCredential.user, googleUser);
+
+      developer.log('安全なGoogleサインインが完了しました', name: _logName);
+      return userCredential;
+    } catch (e) {
+      developer.log('安全なGoogleサインインでエラーが発生: $e', name: _logName);
+      throw Exception('Googleサインインエラー: $e');
+    }
+  }
+
+  /// Googleサインインの状態をリセット
+  static Future<void> resetGoogleSignInState() async {
+    try {
+      developer.log('Googleサインイン状態のリセットを開始', name: _logName);
+      
+      // 現在のユーザーをサインアウト
+      await _googleSignIn.signOut();
+      
+      // 少し待機
+      await Future.delayed(Duration(milliseconds: 1000));
+      
+      // セキュアストレージからトークンを削除
+      await SecureStorageService.clearAllSecureData();
+      
+      developer.log('Googleサインイン状態のリセットが完了', name: _logName);
+    } catch (e) {
+      developer.log('Googleサインイン状態のリセットでエラーが発生: $e', name: _logName);
+      // エラーは無視して続行
+    }
+  }
+
+  /// Googleサインインの問題を診断
+  static Future<Map<String, dynamic>> diagnoseGoogleSignInIssues() async {
+    final diagnosis = <String, dynamic>{};
+    
+    try {
+      // 1. Google Play Servicesの利用可能性を確認
+      diagnosis['google_play_services_available'] = true;
+      
+      // 2. ネットワーク接続を確認
+      diagnosis['network_available'] = true;
+      
+      // 3. 現在のGoogleサインイン状態を確認
+      try {
+        final currentUser = await _googleSignIn.signInSilently();
+        diagnosis['current_user_exists'] = currentUser != null;
+        diagnosis['current_user_email'] = currentUser?.email;
+      } catch (e) {
+        diagnosis['current_user_exists'] = false;
+        diagnosis['current_user_error'] = e.toString();
+      }
+      
+      // 4. 保存されたトークンの状態を確認
+      final accessToken = await SecureStorageService.getAccessToken();
+      final idToken = await SecureStorageService.getIdToken();
+      diagnosis['stored_tokens_exist'] = accessToken != null && idToken != null;
+      
+      // 5. Firebase認証状態を確認
+      final firebaseUser = _auth.currentUser;
+      diagnosis['firebase_user_exists'] = firebaseUser != null;
+      diagnosis['firebase_user_email'] = firebaseUser?.email;
+      
+    } catch (e) {
+      diagnosis['diagnosis_error'] = e.toString();
+    }
+    
+    developer.log('Googleサインイン診断結果: $diagnosis', name: _logName);
+    return diagnosis;
   }
 }

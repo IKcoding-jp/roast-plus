@@ -19,6 +19,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'services/data_sync_service.dart';
 import 'services/assignment_firestore_service.dart';
 import 'services/user_settings_firestore_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'pages/group/group_required_page.dart';
 import 'pages/tasting/tasting_record_page.dart';
@@ -63,6 +64,51 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
     _handleNotificationLaunch();
   }
 
+  // フォントファミリーを動的に設定する関数
+  String _getFontFamily(String fontFamily) {
+    switch (fontFamily) {
+      case 'Noto Sans JP':
+        return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
+      case 'ZenMaruGothic':
+        return 'ZenMaruGothic';
+      case 'utsukushiFONT':
+        return 'utsukushiFONT';
+      case 'KiwiMaru':
+        return 'KiwiMaru';
+      case 'HannariMincho':
+        return 'HannariMincho';
+      case 'Harenosora':
+        return 'Harenosora';
+      default:
+        return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
+    }
+  }
+
+  // フォントファミリーを動的に設定する関数（フォールバック付き）
+  String _getFontFamilyWithFallback(String fontFamily) {
+    try {
+      switch (fontFamily) {
+        case 'Noto Sans JP':
+          return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
+        case 'ZenMaruGothic':
+          return 'ZenMaruGothic';
+        case 'utsukushiFONT':
+          return 'utsukushiFONT';
+        case 'KiwiMaru':
+          return 'KiwiMaru';
+        case 'HannariMincho':
+          return 'HannariMincho';
+        case 'Harenosora':
+          return 'Harenosora';
+        default:
+          return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
+      }
+    } catch (e) {
+      // エラーが発生した場合はデフォルトフォントを返す
+      return 'Noto Sans JP';
+    }
+  }
+
   /// 通知からアプリが起動された時の処理
   void _handleNotificationLaunch() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,7 +141,7 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
           navigatorKey: _navigatorKey,
           title: 'ローストプラス',
           theme: ThemeData(
-            fontFamily: themeSettings.fontFamily,
+            fontFamily: _getFontFamilyWithFallback(themeSettings.fontFamily),
             scaffoldBackgroundColor: themeSettings.backgroundColor,
             primaryColor: themeSettings.appBarColor,
             appBarTheme: AppBarTheme(
@@ -109,7 +155,9 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
                 color: themeSettings.appBarTextColor,
                 fontSize: (20 * themeSettings.fontSizeScale).clamp(16.0, 28.0),
                 fontWeight: FontWeight.bold,
-                fontFamily: themeSettings.fontFamily,
+                fontFamily: _getFontFamilyWithFallback(
+                  themeSettings.fontFamily,
+                ),
               ),
             ),
             bottomNavigationBarTheme: BottomNavigationBarThemeData(
@@ -127,11 +175,15 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
                   : Colors.white,
               selectedLabelStyle: TextStyle(
                 fontSize: (12 * themeSettings.fontSizeScale).clamp(8.0, 14.0),
-                fontFamily: themeSettings.fontFamily,
+                fontFamily: _getFontFamilyWithFallback(
+                  themeSettings.fontFamily,
+                ),
               ),
               unselectedLabelStyle: TextStyle(
                 fontSize: (12 * themeSettings.fontSizeScale).clamp(8.0, 14.0),
-                fontFamily: themeSettings.fontFamily,
+                fontFamily: _getFontFamilyWithFallback(
+                  themeSettings.fontFamily,
+                ),
               ),
               type: BottomNavigationBarType.fixed,
             ),
@@ -144,7 +196,9 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
                     14.0,
                     24.0,
                   ),
-                  fontFamily: themeSettings.fontFamily,
+                  fontFamily: _getFontFamilyWithFallback(
+                    themeSettings.fontFamily,
+                  ),
                   fontWeight: FontWeight.bold,
                   color: themeSettings.fontColor2,
                 ),
@@ -159,32 +213,44 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
               bodyMedium: TextStyle(
                 color: themeSettings.fontColor1,
                 fontSize: 14 * themeSettings.fontSizeScale,
-                fontFamily: themeSettings.fontFamily,
+                fontFamily: _getFontFamilyWithFallback(
+                  themeSettings.fontFamily,
+                ),
               ),
               bodyLarge: TextStyle(
                 color: themeSettings.fontColor1,
                 fontSize: 16 * themeSettings.fontSizeScale,
-                fontFamily: themeSettings.fontFamily,
+                fontFamily: _getFontFamilyWithFallback(
+                  themeSettings.fontFamily,
+                ),
               ),
               bodySmall: TextStyle(
                 color: themeSettings.fontColor1,
                 fontSize: 12 * themeSettings.fontSizeScale,
-                fontFamily: themeSettings.fontFamily,
+                fontFamily: _getFontFamilyWithFallback(
+                  themeSettings.fontFamily,
+                ),
               ),
               titleLarge: TextStyle(
                 color: themeSettings.fontColor1,
                 fontSize: 22 * themeSettings.fontSizeScale,
-                fontFamily: themeSettings.fontFamily,
+                fontFamily: _getFontFamilyWithFallback(
+                  themeSettings.fontFamily,
+                ),
               ),
               titleMedium: TextStyle(
                 color: themeSettings.fontColor1,
                 fontSize: 18 * themeSettings.fontSizeScale,
-                fontFamily: themeSettings.fontFamily,
+                fontFamily: _getFontFamilyWithFallback(
+                  themeSettings.fontFamily,
+                ),
               ),
               titleSmall: TextStyle(
                 color: themeSettings.fontColor1,
                 fontSize: 14 * themeSettings.fontSizeScale,
-                fontFamily: themeSettings.fontFamily,
+                fontFamily: _getFontFamilyWithFallback(
+                  themeSettings.fontFamily,
+                ),
               ),
             ),
             iconTheme: IconThemeData(color: themeSettings.iconColor, size: 24),
@@ -342,7 +408,13 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
           await Future.delayed(Duration(seconds: 1));
 
           // 現在のユーザーをクリアしてからサインインを試行（アカウント選択を強制）
-          await googleSignIn.disconnect();
+          try {
+            await googleSignIn.disconnect();
+            debugPrint('Web版Googleサインインの切断が完了');
+          } catch (disconnectError) {
+            debugPrint('Web版Googleサインインの切断でエラーが発生（無視して続行）: $disconnectError');
+            // disconnectエラーは無視して続行
+          }
           await Future.delayed(Duration(milliseconds: 500));
           final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
@@ -372,9 +444,10 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
           return;
         }
       } else {
-        // モバイル版ではセキュア認証サービスを使用
+        // モバイル版では安全なGoogleサインインを使用
         try {
-          final userCredential = await SecureAuthService.signInWithGoogle();
+          final userCredential =
+              await SecureAuthService.signInWithGoogleSafely();
           if (userCredential == null) {
             if (!mounted) return;
             setState(() {
@@ -390,9 +463,9 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
           if (!mounted) return;
           setState(() {
             _loading = false;
-            _error = 'セキュアなGoogleログインに失敗しました: $e';
+            _error = '安全なGoogleログインに失敗しました: $e';
           });
-          debugPrint('セキュアGoogle Sign-In error: $e');
+          debugPrint('安全なGoogle Sign-In error: $e');
           return;
         }
       }
@@ -996,6 +1069,51 @@ class MainScaffoldState extends State<MainScaffold> {
     }
   }
 
+  // フォントファミリーを動的に設定する関数
+  String _getFontFamily(String fontFamily) {
+    switch (fontFamily) {
+      case 'Noto Sans JP':
+        return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
+      case 'ZenMaruGothic':
+        return 'ZenMaruGothic';
+      case 'utsukushiFONT':
+        return 'utsukushiFONT';
+      case 'KiwiMaru':
+        return 'KiwiMaru';
+      case 'HannariMincho':
+        return 'HannariMincho';
+      case 'Harenosora':
+        return 'Harenosora';
+      default:
+        return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
+    }
+  }
+
+  // フォントファミリーを動的に設定する関数（フォールバック付き）
+  String _getFontFamilyWithFallback(String fontFamily) {
+    try {
+      switch (fontFamily) {
+        case 'Noto Sans JP':
+          return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
+        case 'ZenMaruGothic':
+          return 'ZenMaruGothic';
+        case 'utsukushiFONT':
+          return 'utsukushiFONT';
+        case 'KiwiMaru':
+          return 'KiwiMaru';
+        case 'HannariMincho':
+          return 'HannariMincho';
+        case 'Harenosora':
+          return 'Harenosora';
+        default:
+          return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
+      }
+    } catch (e) {
+      // エラーが発生した場合はデフォルトフォントを返す
+      return 'Noto Sans JP';
+    }
+  }
+
   void _loadInterstitialAd() async {
     if (await isDonorUser()) return; // 寄付者は広告を表示しない
     InterstitialAd.load(
@@ -1294,12 +1412,16 @@ class MainScaffoldState extends State<MainScaffold> {
                     themeSettings.bottomNavigationUnselectedColor,
                 selectedLabelStyle: TextStyle(
                   fontSize: adjustedFontSize,
-                  fontFamily: themeSettings.fontFamily,
+                  fontFamily: _getFontFamilyWithFallback(
+                    themeSettings.fontFamily,
+                  ),
                   fontWeight: FontWeight.w600,
                 ),
                 unselectedLabelStyle: TextStyle(
                   fontSize: adjustedFontSize,
-                  fontFamily: themeSettings.fontFamily,
+                  fontFamily: _getFontFamilyWithFallback(
+                    themeSettings.fontFamily,
+                  ),
                   fontWeight: FontWeight.w400,
                 ),
                 items: [

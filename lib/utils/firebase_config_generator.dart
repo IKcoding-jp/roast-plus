@@ -47,13 +47,13 @@ class FirebaseConfigGenerator {
     print('\n📋 生成された設定の概要:');
 
     final platforms = <String, int>{};
-    configs.keys.forEach((key) {
+    for (var key in configs.keys) {
       final parts = key.split('_');
       if (parts.isNotEmpty) {
         final platform = parts[0].toLowerCase();
         platforms[platform] = (platforms[platform] ?? 0) + 1;
       }
-    });
+    }
 
     platforms.forEach((platform, count) {
       print('  • $platform: $count個の設定');
@@ -190,17 +190,17 @@ void main() async {
     // 1. 環境変数ファイルを生成
     await FirebaseConfigGenerator.generateEnvFile();
 
-    print('\n' + '=' * 50);
+    print('\n${'=' * 50}');
 
     // 2. 設定を検証
     await FirebaseConfigGenerator.validateGeneratedConfig();
 
-    print('\n' + '=' * 50);
+    print('\n${'=' * 50}');
 
     // 3. セキュリティレポートを生成
     await FirebaseConfigGenerator.generateSecurityReport();
 
-    print('\n' + '=' * 50);
+    print('\n${'=' * 50}');
     print('✅ すべての処理が完了しました');
     print('\n📝 次のステップ:');
     print('  1. .envファイルが.gitignoreに含まれていることを確認');
