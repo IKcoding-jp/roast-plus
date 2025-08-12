@@ -281,7 +281,7 @@ class RoastAnalysisPage extends StatelessWidget {
                                       horizontal: 4,
                                     ),
                                     child: Text(
-                                      '${times.length}件',
+                                      '${entry.value.length}件',
                                       style: TextStyle(
                                         color: Provider.of<ThemeSettings>(
                                           context,

@@ -150,10 +150,7 @@ class GroupInvitationService {
         throw Exception('この招待コードは既に使用済みです');
       }
 
-      // グループに参加
-      await _addUserToGroup(groupId);
-
-      // 招待コードの使用履歴を更新
+      // 招待コードの使用履歴を先に更新
       await _firestore
           .collection('group_invitations')
           .doc(invitationCode)
@@ -164,6 +161,9 @@ class GroupInvitationService {
             'lastUsedBy': _uid,
             'lastUsedByName': _userDisplayName,
           });
+
+      // グループに参加
+      await _addUserToGroup(groupId);
 
       developer.log(
         '招待コード「$invitationCode」を使用してグループに参加しました',
@@ -202,7 +202,12 @@ class GroupInvitationService {
       // 既にメンバーかチェック
       final isAlreadyMember = members.any((member) => member['uid'] == _uid);
       if (isAlreadyMember) {
-        throw Exception('既にこのグループのメンバーです');
+        developer.log(
+          '既にグループのメンバーです - groupId: $groupId, uid: $_uid',
+          name: 'GroupInvitationService',
+        );
+        // 既にメンバーの場合は成功として扱う（エラーを投げない）
+        return;
       }
 
       // 新しいメンバーを追加
@@ -221,19 +226,28 @@ class GroupInvitationService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      // ユーザーの参加グループリストにも追加
-      await _firestore
+      // ユーザーの参加グループリストにも追加（既に存在しない場合のみ）
+      final userGroupDoc = await _firestore
           .collection('users')
           .doc(_uid)
           .collection('userGroups')
           .doc(groupId)
-          .set({
-            'groupId': groupId,
-            'groupName': groupData['name'] ?? '',
-            'role': 'member',
-            'joinedAt': DateTime.now().toIso8601String(),
-            'isActive': true,
-          });
+          .get();
+
+      if (!userGroupDoc.exists) {
+        await _firestore
+            .collection('users')
+            .doc(_uid)
+            .collection('userGroups')
+            .doc(groupId)
+            .set({
+              'groupId': groupId,
+              'groupName': groupData['name'] ?? '',
+              'role': 'member',
+              'joinedAt': DateTime.now().toIso8601String(),
+              'isActive': true,
+            });
+      }
 
       developer.log(
         'グループ $groupId にメンバーとして参加しました',

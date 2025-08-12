@@ -356,10 +356,12 @@ class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
 
         // グループに参加していない場合はグループ参加ページを表示
         if (!groupProvider.hasGroup) {
+          debugPrint('GroupRequiredWrapper: グループ未参加 - GroupRequiredPageを表示');
           return const GroupRequiredPage();
         }
 
         // グループに参加している場合はメイン画面を表示
+        debugPrint('GroupRequiredWrapper: グループ参加中 - メイン画面を表示');
         // データ同期は後で自動的に実行されるため、ここでは実行しない
         return widget.child;
       },

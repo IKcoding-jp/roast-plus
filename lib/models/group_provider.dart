@@ -53,7 +53,14 @@ class GroupProvider extends ChangeNotifier {
       _groupGamificationProfiles;
 
   // 単一グループ対応のための追加getter
-  bool get hasGroup => _currentGroup != null;
+  bool get hasGroup {
+    final hasGroup = _currentGroup != null;
+    debugPrint(
+      'GroupProvider: hasGroup called - currentGroup: ${_currentGroup?.id}, hasGroup: $hasGroup',
+    );
+    return hasGroup;
+  }
+
   Group? get singleGroup => _currentGroup;
 
   // グループ作成フラグのgetter
@@ -497,18 +504,43 @@ class GroupProvider extends ChangeNotifier {
     _setLoading(true);
     _clearError();
 
+    debugPrint('GroupProvider: グループ脱退開始 - groupId: $groupId');
+
     try {
       await GroupFirestoreService.leaveGroup(groupId);
 
+      debugPrint('GroupProvider: Firestore脱退処理完了');
+
       // ローカルのグループリストから削除
       _groups.removeWhere((g) => g.id == groupId);
+      debugPrint(
+        'GroupProvider: ローカルグループリストから削除完了 - 残りグループ数: ${_groups.length}',
+      );
 
       // 現在のグループが脱退した場合、nullに設定
       if (_currentGroup?.id == groupId) {
+        debugPrint(
+          'GroupProvider: 現在のグループを脱退中 - currentGroup: ${_currentGroup?.id}',
+        );
         _currentGroup = null;
+
+        // 監視を停止
+        unwatchGroup(groupId);
+        debugPrint('GroupProvider: グループ監視停止完了');
+
+        // ローカルデータをクリア
+        await _clearLocalData();
+        debugPrint('GroupProvider: ローカルデータクリア完了');
+
+        debugPrint(
+          'GroupProvider: グループ脱退処理完了 - groupId: $groupId, hasGroup: $hasGroup',
+        );
+      } else {
+        debugPrint('GroupProvider: 現在のグループではないため、currentGroupは変更なし');
       }
 
       _safeNotifyListeners();
+      debugPrint('GroupProvider: リスナー通知完了');
       return true;
     } catch (e) {
       if (e.toString().contains('未ログイン')) {
@@ -658,10 +690,18 @@ class GroupProvider extends ChangeNotifier {
             if (doc.exists) {
               final updated = Group.fromJson(doc.data()!);
               final idx = _groups.indexWhere((g) => g.id == groupId);
+              final currentUser = FirebaseAuth.instance.currentUser;
 
               debugPrint(
                 'GroupProvider: グループ更新検知 - ID: $groupId, メンバー数: ${updated.members.length}',
               );
+
+              // 現在のユーザーがメンバーから削除されたかチェック
+              if (currentUser != null && !updated.isMember(currentUser.uid)) {
+                debugPrint('GroupProvider: 現在のユーザーがメンバーから削除されました');
+                _handleMemberRemoval(groupId);
+                return;
+              }
 
               if (idx != -1) {
                 _groups[idx] = updated;
@@ -691,6 +731,65 @@ class GroupProvider extends ChangeNotifier {
 
     // グループ設定の監視も開始
     watchGroupSettings(groupId);
+
+    // メンバー脱退通知の監視も開始
+    _watchMemberRemovals(groupId);
+  }
+
+  /// メンバー脱退通知を監視
+  void _watchMemberRemovals(String groupId) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    final sub = FirebaseFirestore.instance
+        .collection('groups')
+        .doc(groupId)
+        .collection('memberRemovals')
+        .doc(currentUser.uid)
+        .snapshots()
+        .listen(
+          (doc) {
+            if (doc.exists) {
+              debugPrint('GroupProvider: メンバー脱退通知を検知 - groupId: $groupId');
+
+              // 脱退通知を削除
+              doc.reference.delete();
+
+              // グループから脱退処理
+              _handleMemberRemoval(groupId);
+            }
+          },
+          onError: (error) {
+            debugPrint('GroupProvider: メンバー脱退通知監視エラー: $error');
+          },
+        );
+
+    // 脱退通知の監視を保存（必要に応じて）
+    // _memberRemovalWatchers[groupId] = sub;
+  }
+
+  /// メンバー脱退処理
+  void _handleMemberRemoval(String groupId) {
+    debugPrint('GroupProvider: メンバー脱退処理開始 - groupId: $groupId');
+
+    // ローカルのグループリストから削除
+    _groups.removeWhere((g) => g.id == groupId);
+
+    // 現在のグループが脱退した場合、nullに設定
+    if (_currentGroup?.id == groupId) {
+      _currentGroup = null;
+    }
+
+    // 監視を停止
+    unwatchGroup(groupId);
+
+    // ローカルデータをクリア
+    _clearLocalData();
+
+    // 通知
+    notifyListeners();
+
+    debugPrint('GroupProvider: メンバー脱退処理完了 - groupId: $groupId');
   }
 
   /// グループが削除された場合の処理

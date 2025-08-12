@@ -717,27 +717,70 @@ class GroupFirestoreService {
       throw Exception('自分自身を削除することはできません');
     }
 
-    final updatedMembers = group.members
-        .where((m) => m.uid != memberUid)
-        .toList();
-    final updatedGroup = group.copyWith(
-      members: updatedMembers,
-      updatedAt: DateTime.now(),
+    developer.log(
+      'メンバー削除開始 - groupId: $groupId, memberUid: $memberUid',
+      name: 'GroupFirestoreService',
     );
 
-    // グループを更新
-    await _firestore
-        .collection('groups')
-        .doc(group.id)
-        .update(updatedGroup.toJson());
+    try {
+      final updatedMembers = group.members
+          .where((m) => m.uid != memberUid)
+          .toList();
+      final updatedGroup = group.copyWith(
+        members: updatedMembers,
+        updatedAt: DateTime.now(),
+      );
 
-    // メンバーの参加情報を削除
-    await _firestore
-        .collection('users')
-        .doc(memberUid)
-        .collection('userGroups')
-        .doc(groupId)
-        .delete();
+      // グループを更新
+      await _firestore
+          .collection('groups')
+          .doc(group.id)
+          .update(updatedGroup.toJson());
+
+      developer.log(
+        'グループ更新完了 - メンバー数: ${updatedMembers.length}',
+        name: 'GroupFirestoreService',
+      );
+
+      // メンバーの参加情報を削除
+      await _firestore
+          .collection('users')
+          .doc(memberUid)
+          .collection('userGroups')
+          .doc(groupId)
+          .delete();
+
+      developer.log(
+        'メンバーの参加情報削除完了 - memberUid: $memberUid',
+        name: 'GroupFirestoreService',
+      );
+
+      // 脱退させられたメンバーのローカルデータをクリアするための通知
+      // グループドキュメントに脱退通知を追加
+      await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('memberRemovals')
+          .doc(memberUid)
+          .set({
+            'removedAt': FieldValue.serverTimestamp(),
+            'removedBy': _uid,
+            'memberUid': memberUid,
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          });
+
+      developer.log(
+        'メンバー削除完了 - groupId: $groupId, memberUid: $memberUid',
+        name: 'GroupFirestoreService',
+      );
+    } catch (e) {
+      developer.log(
+        'メンバー削除エラー - groupId: $groupId, memberUid: $memberUid, error: $e',
+        name: 'GroupFirestoreService',
+        error: e,
+      );
+      rethrow;
+    }
   }
 
   /// メンバーの権限を変更

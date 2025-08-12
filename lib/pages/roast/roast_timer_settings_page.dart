@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../services/user_settings_firestore_service.dart';
 import '../../models/group_provider.dart';
+import '../../utils/text_input_utils.dart';
 
 class RoastTimerSettingsPage extends StatefulWidget {
   const RoastTimerSettingsPage({super.key});
@@ -416,6 +417,23 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                         vertical: kIsWeb ? 16 : 12,
                                       ),
                                     ),
+                                    onChanged: (value) {
+                                      // 全角数字を半角数字に変換
+                                      final convertedValue =
+                                          TextInputUtils.convertFullWidthToHalfWidth(
+                                            value,
+                                          );
+                                      if (convertedValue != value) {
+                                        _preheatController.text =
+                                            convertedValue;
+                                        _preheatController.selection =
+                                            TextSelection.fromPosition(
+                                              TextPosition(
+                                                offset: convertedValue.length,
+                                              ),
+                                            );
+                                      }
+                                    },
                                   ),
                                 ),
                                 SizedBox(width: 16),
@@ -512,6 +530,23 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                         vertical: kIsWeb ? 16 : 12,
                                       ),
                                     ),
+                                    onChanged: (value) {
+                                      // 全角数字を半角数字に変換
+                                      final convertedValue =
+                                          TextInputUtils.convertFullWidthToHalfWidth(
+                                            value,
+                                          );
+                                      if (convertedValue != value) {
+                                        _coolingController.text =
+                                            convertedValue;
+                                        _coolingController.selection =
+                                            TextSelection.fromPosition(
+                                              TextPosition(
+                                                offset: convertedValue.length,
+                                              ),
+                                            );
+                                      }
+                                    },
                                   ),
                                 ),
                                 SizedBox(width: 16),
@@ -617,6 +652,23 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                         vertical: kIsWeb ? 16 : 12,
                                       ),
                                     ),
+                                    onChanged: (value) {
+                                      // 全角数字を半角数字に変換
+                                      final convertedValue =
+                                          TextInputUtils.convertFullWidthToHalfWidth(
+                                            value,
+                                          );
+                                      if (convertedValue != value) {
+                                        _recommendedOffsetController.text =
+                                            convertedValue;
+                                        _recommendedOffsetController.selection =
+                                            TextSelection.fromPosition(
+                                              TextPosition(
+                                                offset: convertedValue.length,
+                                              ),
+                                            );
+                                      }
+                                    },
                                   ),
                                 ),
                                 SizedBox(width: 16),

@@ -885,6 +885,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                             ),
                           ],
                         ),
+                        SizedBox(height: 16),
+
+                        // 現在のユーザーのプロフィール情報
+                        _buildCurrentUserProfile(themeSettings, group),
                         SizedBox(height: 24),
 
                         // メンバーと権限
@@ -1313,6 +1317,39 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                             ],
                           ),
                         ),
+                        SizedBox(height: 24),
+
+                        // グループ脱退ボタン（リーダー以外のメンバーのみ表示）
+                        if (!_isUserLeader) ...[
+                          Container(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              icon: Icon(
+                                Icons.exit_to_app,
+                                color: Colors.white,
+                              ),
+                              label: Text(
+                                'グループから脱退',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16 * themeSettings.fontSizeScale,
+                                  fontFamily: themeSettings.fontFamily,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 3,
+                              ),
+                              onPressed: () => _leaveGroup(group),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                        ],
                         SizedBox(height: 40), // 最後に十分なスペースを追加
                       ],
                     ),
@@ -2229,6 +2266,16 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             roleIcon = Icons.person;
             roleText = 'メンバー';
           }
+
+          // プロフィール画像の取得（Googleアカウントの画像を優先）
+          String? profileImageUrl;
+          if (member.uid == user?.uid) {
+            // 現在のユーザーの場合はFirebase Authから取得
+            profileImageUrl = user?.photoURL;
+          }
+          // メンバーのphotoUrlが存在する場合はそれを使用
+          profileImageUrl ??= member.photoUrl;
+
           return GestureDetector(
             onTap: isCurrentUserAdmin && member.uid != user.uid
                 ? () => _showMemberRoleDialog(context, member, group)
@@ -2240,10 +2287,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: roleColor.withValues(alpha: 0.1),
-                    backgroundImage: member.photoUrl != null
-                        ? NetworkImage(member.photoUrl!)
+                    backgroundImage: profileImageUrl != null
+                        ? NetworkImage(profileImageUrl)
                         : null,
-                    child: member.photoUrl == null
+                    child: profileImageUrl == null
                         ? Text(
                             member.displayName.isNotEmpty
                                 ? member.displayName[0].toUpperCase()
@@ -2309,6 +2356,15 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         : isTargetLeader
         ? 'リーダー'
         : 'メンバー';
+
+    // プロフィール画像の取得（Googleアカウントの画像を優先）
+    String? profileImageUrl;
+    if (member.uid == user?.uid) {
+      // 現在のユーザーの場合はFirebase Authから取得
+      profileImageUrl = user?.photoURL;
+    }
+    // メンバーのphotoUrlが存在する場合はそれを使用
+    profileImageUrl ??= member.photoUrl;
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.3),
@@ -2329,10 +2385,10 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                 CircleAvatar(
                   radius: 32,
                   backgroundColor: roleColor.withValues(alpha: 0.12),
-                  backgroundImage: member.photoUrl != null
-                      ? NetworkImage(member.photoUrl!)
+                  backgroundImage: profileImageUrl != null
+                      ? NetworkImage(profileImageUrl)
                       : null,
-                  child: member.photoUrl == null
+                  child: profileImageUrl == null
                       ? Text(
                           member.displayName.isNotEmpty
                               ? member.displayName[0].toUpperCase()
@@ -2658,6 +2714,54 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     }
   }
 
+  /// グループから脱退
+  Future<void> _leaveGroup(Group group) async {
+    // 確認ダイアログを表示
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('グループから脱退しますか？'),
+        content: Text('このグループから脱退します。\nこの操作は取り消すことができません。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('脱退する'),
+          ),
+        ],
+      ),
+    );
+
+    // キャンセルされた場合は処理を中断
+    if (confirmed != true) return;
+
+    final provider = context.read<GroupProvider>();
+    try {
+      await provider.leaveGroup(group.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('グループから脱退しました'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('グループ脱退に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildGroupInfo(ThemeSettings themeSettings, Group group) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2684,6 +2788,116 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             overflow: TextOverflow.ellipsis,
           ),
       ],
+    );
+  }
+
+  /// 現在のユーザーのプロフィール情報を表示
+  Widget _buildCurrentUserProfile(ThemeSettings themeSettings, Group group) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return SizedBox.shrink();
+
+    // 現在のユーザーのメンバー情報を取得
+    final currentMember = group.members.firstWhere(
+      (member) => member.uid == user.uid,
+      orElse: () => GroupMember(
+        uid: user.uid,
+        email: user.email ?? '',
+        displayName: user.displayName ?? 'Unknown User',
+        photoUrl: user.photoURL,
+        role: GroupRole.member,
+        joinedAt: DateTime.now(),
+      ),
+    );
+
+    final role = group.getMemberRole(currentMember.uid);
+    Color roleColor;
+    IconData roleIcon;
+    String roleText;
+    if (role == GroupRole.admin) {
+      roleColor = Colors.red;
+      roleIcon = Icons.admin_panel_settings;
+      roleText = '管理者';
+    } else if (role == GroupRole.leader) {
+      roleColor = Colors.orange;
+      roleIcon = Icons.star;
+      roleText = 'リーダー';
+    } else {
+      roleColor = Colors.blue;
+      roleIcon = Icons.person;
+      roleText = 'メンバー';
+    }
+
+    // プロフィール画像の取得（Googleアカウントの画像を優先）
+    String? profileImageUrl = user.photoURL ?? currentMember.photoUrl;
+
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: themeSettings.cardBackgroundColor.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: themeSettings.iconColor.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // プロフィール画像
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: roleColor.withValues(alpha: 0.1),
+            backgroundImage: profileImageUrl != null
+                ? NetworkImage(profileImageUrl)
+                : null,
+            child: profileImageUrl == null
+                ? Text(
+                    currentMember.displayName.isNotEmpty
+                        ? currentMember.displayName[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: roleColor,
+                    ),
+                  )
+                : null,
+          ),
+          SizedBox(width: 12),
+          // ユーザー情報
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  currentMember.displayName,
+                  style: TextStyle(
+                    fontSize: 16 * themeSettings.fontSizeScale,
+                    fontWeight: FontWeight.bold,
+                    color: themeSettings.fontColor1,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(roleIcon, color: roleColor, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      roleText,
+                      style: TextStyle(
+                        fontSize: 12 * themeSettings.fontSizeScale,
+                        color: roleColor,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

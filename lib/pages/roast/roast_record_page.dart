@@ -8,6 +8,7 @@ import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
 import '../../services/roast_record_firestore_service.dart';
 import '../../utils/permission_utils.dart';
+import '../../utils/text_input_utils.dart';
 import '../../widgets/permission_denied_page.dart';
 import '../../models/gamification_provider.dart';
 
@@ -307,6 +308,20 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
               hintText: hint,
               hintStyle: TextStyle(color: accentColor.withValues(alpha: 0.6)),
             ),
+            onChanged: (value) {
+              // 数字入力フィールドの場合、全角数字を半角数字に変換
+              if (keyboardType == TextInputType.number ||
+                  keyboardType == TextInputType.numberWithOptions) {
+                final convertedValue =
+                    TextInputUtils.convertFullWidthToHalfWidth(value);
+                if (convertedValue != value) {
+                  controller.text = convertedValue;
+                  controller.selection = TextSelection.fromPosition(
+                    TextPosition(offset: convertedValue.length),
+                  );
+                }
+              }
+            },
           ),
         ),
       ],
@@ -340,6 +355,18 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
           hintText: label,
           hintStyle: TextStyle(color: Colors.grey[400]),
         ),
+        onChanged: (value) {
+          // 全角数字を半角数字に変換
+          final convertedValue = TextInputUtils.convertFullWidthToHalfWidth(
+            value,
+          );
+          if (convertedValue != value) {
+            controller.text = convertedValue;
+            controller.selection = TextSelection.fromPosition(
+              TextPosition(offset: convertedValue.length),
+            );
+          }
+        },
       ),
     );
   }
