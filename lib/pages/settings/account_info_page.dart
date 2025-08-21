@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/sync_firestore_all.dart';
@@ -33,45 +31,11 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   void initState() {
     super.initState();
     _loading = true;
-    if (kIsWeb) {
-      // Webでは google_sign_in を使わず、FirebaseAuth の状態から読み込む
-      _loadFromFirebaseUser();
-      return;
-    }
-    final googleSignIn = GoogleSignIn();
-    googleSignIn.onCurrentUserChanged.listen((account) async {
-      if (account != null) {
-        if (!mounted) return;
-        await _loadCustomDisplayName();
-        setState(() {
-          _userEmail = account.email;
-          _loginProvider = 'Google';
-          _userPhotoUrl = account.photoUrl;
-          _loading = false;
-        });
-      }
-    });
-    _checkCurrentUser();
+    // すべてのプラットフォームで FirebaseAuth から状態を読み込む
+    _loadFromFirebaseUser();
   }
 
-  Future<void> _checkCurrentUser() async {
-    final googleSignIn = GoogleSignIn();
-    final account =
-        googleSignIn.currentUser ?? await googleSignIn.signInSilently();
-    if (account != null) {
-      if (!mounted) return;
-      await _loadCustomDisplayName();
-      setState(() {
-        _userEmail = account.email;
-        _loginProvider = 'Google';
-        _userPhotoUrl = account.photoUrl;
-      });
-    }
-    if (!mounted) return;
-    setState(() {
-      _loading = false;
-    });
-  }
+  // GoogleSignIn 依存を排し、FirebaseAuth ベースで統一
 
   Future<void> _loadFromFirebaseUser() async {
     try {
@@ -483,9 +447,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                               dashboardStatsProvider
                                                   .clearOnLogout();
 
-                                              if (!kIsWeb) {
-                                                await GoogleSignIn().signOut();
-                                              }
+                                              // GoogleSignIn は使用しない（FirebaseAuth のみでサインアウト）
                                               await FirebaseAuth.instance
                                                   .signOut();
                                               if (!mounted) return;
@@ -609,10 +571,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                               // 注: UserSettingsFirestoreServiceにはclearAllSettingsメソッドがないため、
                                               // 個別に削除するか、暗号化されたローカルストレージを使用
                                               await EncryptedLocalStorageService.clear();
-                                              // サインアウト
-                                              if (!kIsWeb) {
-                                                await GoogleSignIn().signOut();
-                                              }
+                                              // サインアウト（FirebaseAuth のみ）
                                               await FirebaseAuth.instance
                                                   .signOut();
                                               if (!mounted) return;
