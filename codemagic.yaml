@@ -27,7 +27,7 @@ workflows:
           cd ios
           rm -rf Podfile.lock Pods
           pod repo update
-          pod install --repo-update
+          pod install --repo-update --verbose
           cd ..
       - name: Build iOS (debug)
         script: |
