@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -32,6 +33,11 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   void initState() {
     super.initState();
     _loading = true;
+    if (kIsWeb) {
+      // Webでは google_sign_in を使わず、FirebaseAuth の状態から読み込む
+      _loadFromFirebaseUser();
+      return;
+    }
     final googleSignIn = GoogleSignIn();
     googleSignIn.onCurrentUserChanged.listen((account) async {
       if (account != null) {
@@ -65,6 +71,29 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
     setState(() {
       _loading = false;
     });
+  }
+
+  Future<void> _loadFromFirebaseUser() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        if (!mounted) return;
+        await _loadCustomDisplayName();
+        setState(() {
+          _userEmail = user.email;
+          _loginProvider = (user.providerData.isNotEmpty)
+              ? user.providerData.first.providerId
+              : 'Firebase';
+          _userPhotoUrl = user.photoURL;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadCustomDisplayName() async {
@@ -170,8 +199,8 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   Future<void> _signInWithGoogle() async {
     if (mounted) setState(() => _loading = true);
     try {
-      // 安全なGoogleサインインを使用
-      final userCredential = await SecureAuthService.signInWithGoogleSafely();
+      final userCredential =
+          await SecureAuthService.signInWithGoogleForceAccountSelection();
       if (userCredential == null) {
         // キャンセル時
         if (!mounted) return;
@@ -454,7 +483,9 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                               dashboardStatsProvider
                                                   .clearOnLogout();
 
-                                              await GoogleSignIn().signOut();
+                                              if (!kIsWeb) {
+                                                await GoogleSignIn().signOut();
+                                              }
                                               await FirebaseAuth.instance
                                                   .signOut();
                                               if (!mounted) return;
@@ -579,7 +610,9 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                               // 個別に削除するか、暗号化されたローカルストレージを使用
                                               await EncryptedLocalStorageService.clear();
                                               // サインアウト
-                                              await GoogleSignIn().signOut();
+                                              if (!kIsWeb) {
+                                                await GoogleSignIn().signOut();
+                                              }
                                               await FirebaseAuth.instance
                                                   .signOut();
                                               if (!mounted) return;

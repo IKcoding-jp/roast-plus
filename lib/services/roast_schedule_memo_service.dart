@@ -7,6 +7,8 @@ class RoastScheduleMemoService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static const String _logName = 'RoastScheduleMemoService';
+  static void _logInfo(String message) =>
+      developer.log(message, name: _logName);
   static void _logError(
     String message, [
     Object? error,
@@ -48,6 +50,33 @@ class RoastScheduleMemoService {
       _logError('ローストスケジュールメモ取得エラー', e, st);
       return [];
     }
+  }
+
+  // ユーザーのローストスケジュールメモをリアルタイム購読（日付別）
+  static Stream<List<RoastScheduleMemo>> watchUserMemosForDate(DateTime date) {
+    final user = _auth.currentUser;
+    if (user == null) {
+      _logInfo('未ログインのためユーザーメモ購読を空ストリームで返却');
+      return Stream.value(<RoastScheduleMemo>[]);
+    }
+
+    final dateString =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    _logInfo('ユーザーメモ購読開始: uid=${user.uid}, date=$dateString');
+    return _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('roast_schedule_memos')
+        .doc(dateString)
+        .snapshots()
+        .map((doc) {
+          final memosList = (doc.data()?['memos'] as List<dynamic>?) ?? [];
+          final memos = memosList
+              .map((memo) => RoastScheduleMemo.fromJson(memo))
+              .toList();
+          return memos;
+        });
   }
 
   // ユーザーのローストスケジュールメモを取得（後方互換性のため）
@@ -95,7 +124,11 @@ class RoastScheduleMemoService {
           .doc(user.uid)
           .collection('roast_schedule_memos')
           .doc(dateString)
-          .set({'memos': memosData, 'updatedAt': FieldValue.serverTimestamp()});
+          .set({
+            'memos': memosData,
+            'updatedAt': FieldValue.serverTimestamp(),
+            'updatedBy': user.uid,
+          });
     } catch (e, st) {
       _logError('ローストスケジュールメモ保存エラー', e, st);
       rethrow;
@@ -115,7 +148,11 @@ class RoastScheduleMemoService {
           .doc(user.uid)
           .collection('roast_schedule_memos')
           .doc('memos')
-          .set({'memos': memosData, 'updatedAt': FieldValue.serverTimestamp()});
+          .set({
+            'memos': memosData,
+            'updatedAt': FieldValue.serverTimestamp(),
+            'updatedBy': user.uid,
+          });
     } catch (e, st) {
       _logError('ローストスケジュールメモ保存エラー', e, st);
       rethrow;
@@ -150,6 +187,36 @@ class RoastScheduleMemoService {
       _logError('グループローストスケジュールメモ取得エラー', e, st);
       return [];
     }
+  }
+
+  // グループのローストスケジュールメモをリアルタイム購読（日付別）
+  static Stream<List<RoastScheduleMemo>> watchGroupMemosForDate(
+    String groupId,
+    DateTime date,
+  ) {
+    final user = _auth.currentUser;
+    if (user == null) {
+      _logInfo('未ログインのためグループメモ購読を空ストリームで返却');
+      return Stream.value(<RoastScheduleMemo>[]);
+    }
+
+    final dateString =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    _logInfo('グループメモ購読開始: groupId=$groupId, uid=${user.uid}, date=$dateString');
+    return _firestore
+        .collection('groups')
+        .doc(groupId)
+        .collection('roast_schedule_memos')
+        .doc(dateString)
+        .snapshots()
+        .map((doc) {
+          final memosList = (doc.data()?['memos'] as List<dynamic>?) ?? [];
+          final memos = memosList
+              .map((memo) => RoastScheduleMemo.fromJson(memo))
+              .toList();
+          return memos;
+        });
   }
 
   // グループのローストスケジュールメモを取得（後方互換性のため）
@@ -192,7 +259,11 @@ class RoastScheduleMemoService {
           .doc(groupId)
           .collection('roast_schedule_memos')
           .doc(dateString)
-          .set({'memos': memosData, 'updatedAt': FieldValue.serverTimestamp()});
+          .set({
+            'memos': memosData,
+            'updatedAt': FieldValue.serverTimestamp(),
+            'updatedBy': _auth.currentUser?.uid,
+          });
     } catch (e, st) {
       _logError('グループローストスケジュールメモ保存エラー', e, st);
       rethrow;
@@ -212,7 +283,11 @@ class RoastScheduleMemoService {
           .doc(groupId)
           .collection('roast_schedule_memos')
           .doc('memos')
-          .set({'memos': memosData, 'updatedAt': FieldValue.serverTimestamp()});
+          .set({
+            'memos': memosData,
+            'updatedAt': FieldValue.serverTimestamp(),
+            'updatedBy': _auth.currentUser?.uid,
+          });
     } catch (e, st) {
       _logError('グループローストスケジュールメモ保存エラー', e, st);
       rethrow;

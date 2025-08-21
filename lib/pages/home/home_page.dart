@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
 import '../../models/group_gamification_provider.dart';
-import '../group/group_deleted_page.dart';
 import '../../widgets/lottie_animation_widget.dart';
 import '../../utils/web_ui_utils.dart';
 import 'home_body.dart';
@@ -62,15 +61,13 @@ class _HomePageState extends State<HomePage> {
 
     return Consumer2<GroupProvider, GroupGamificationProvider>(
       builder: (context, groupProvider, gamificationProvider, child) {
-        // グループ削除フラグをチェック
+        // グループ削除フラグをチェック（削除/脱退後は参加・招待画面へ遷移）
         if (groupProvider.showGroupDeletedPage) {
-          // フラグをリセットしてからページ遷移
           WidgetsBinding.instance.addPostFrameCallback((_) {
             groupProvider.resetGroupDeletedPageFlag();
-            Navigator.pushReplacement(
+            Navigator.of(
               context,
-              MaterialPageRoute(builder: (context) => const GroupDeletedPage()),
-            );
+            ).pushNamedAndRemoveUntil('/group_required', (route) => false);
           });
           // 一時的にローディング状態を表示
           return Scaffold(

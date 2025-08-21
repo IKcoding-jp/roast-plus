@@ -1350,6 +1350,9 @@ class _TodayScheduleState extends State<TodaySchedule>
                     else
                       Expanded(
                         child: SingleChildScrollView(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).padding.bottom + 16,
+                          ),
                           child: Column(children: _buildScheduleLabelWidgets()),
                         ),
                       ),

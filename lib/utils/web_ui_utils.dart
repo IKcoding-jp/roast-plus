@@ -199,7 +199,7 @@ class WebUIUtils {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: Offset(0, 2),
           ),
@@ -228,14 +228,14 @@ class WebUIUtils {
                       margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? Theme.of(context).primaryColor.withOpacity(0.1)
+                            ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: isSelected
                             ? Border.all(
                                 color: Theme.of(
                                   context,
-                                ).primaryColor.withOpacity(0.3),
+                                ).primaryColor.withValues(alpha: 0.3),
                                 width: 1,
                               )
                             : null,
@@ -250,7 +250,7 @@ class WebUIUtils {
                                 ? Theme.of(context).primaryColor
                                 : Theme.of(
                                     context,
-                                  ).iconTheme.color?.withOpacity(0.7),
+                                  ).iconTheme.color?.withValues(alpha: 0.7),
                           ),
                           SizedBox(width: 12),
                           Text(
@@ -259,7 +259,7 @@ class WebUIUtils {
                               color: isSelected
                                   ? Theme.of(context).primaryColor
                                   : Theme.of(context).textTheme.bodyLarge?.color
-                                        ?.withOpacity(0.8),
+                                        ?.withValues(alpha: 0.8),
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.w500,

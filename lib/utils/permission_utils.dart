@@ -164,6 +164,8 @@ class PermissionUtils {
         return '担当表';
       case 'todaySchedule':
         return '本日のスケジュール';
+      case 'roast_schedule':
+        return 'ローストスケジュール';
       case 'taskStatus':
         return '作業状況記録';
       case 'cuppingNotes':

@@ -22,6 +22,27 @@ class TastingFirestoreService {
 
   static String? get _uid => _auth.currentUser?.uid;
 
+  // --- グループ協調: コレクション参照 ---
+  static CollectionReference<Map<String, dynamic>> _groupSessionsCol(
+    String groupId,
+  ) => _firestore
+      .collection('groups')
+      .doc(groupId)
+      .collection('tasting_sessions');
+
+  static DocumentReference<Map<String, dynamic>> _sessionDoc(
+    String groupId,
+    String sessionId,
+  ) => _groupSessionsCol(groupId).doc(sessionId);
+
+  static CollectionReference<Map<String, dynamic>> _entriesCol(
+    String groupId,
+    String sessionId,
+  ) => _sessionDoc(groupId, sessionId).collection('entries');
+
+  // 補助: 1–5クランプ
+  static double _clamp(double v) => v < 1.0 ? 1.0 : (v > 5.0 ? 5.0 : v);
+
   /// テイスティング記録を取得
   static Future<List<TastingRecord>> getTastingRecords() async {
     if (_uid == null) throw Exception('未ログイン');
@@ -278,5 +299,255 @@ class TastingFirestoreService {
         .collection('tasting_records')
         .doc(id)
         .get();
+  }
+
+  // --- 追加: グループ協調API ---
+  /// sessionId = normalize(beanName) + "__" + roastKey(roastLevel)
+  static Future<TastingSession> createOrGetSession(
+    String groupId,
+    String beanName,
+    String roastLevel,
+  ) async {
+    if (_uid == null) throw Exception('未ログイン');
+    final sessionId = TastingSession.makeSessionId(beanName, roastLevel);
+    final nowIso = DateTime.now().toIso8601String();
+    final docRef = _sessionDoc(groupId, sessionId);
+    final snap = await docRef.get();
+    if (snap.exists) {
+      final data = snap.data()!..['id'] = sessionId;
+      return TastingSession.fromMap(data);
+    }
+    final session = TastingSession(
+      id: sessionId,
+      beanName: beanName,
+      roastLevel: roastLevel,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      createdBy: _uid!,
+      entriesCount: 0,
+      avgBitterness: 0,
+      avgAcidity: 0,
+      avgBody: 0,
+      avgSweetness: 0,
+      avgAroma: 0,
+      avgOverall: 0,
+    );
+    await docRef.set({
+      ...session.toMap(),
+      'createdAt': nowIso,
+      'updatedAt': nowIso,
+    });
+    return session;
+  }
+
+  static Stream<List<TastingSession>> getGroupTastingSessionsStream(
+    String groupId,
+  ) {
+    try {
+      return _groupSessionsCol(groupId)
+          .orderBy('updatedAt', descending: true)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs.map((d) {
+              final data = d.data();
+              data['id'] = d.id;
+              return TastingSession.fromMap(data);
+            }).toList(),
+          );
+    } catch (e, st) {
+      _logError('セッションストリームエラー', e, st);
+      return Stream.value([]);
+    }
+  }
+
+  static Stream<List<TastingEntry>> getSessionEntriesStream(
+    String groupId,
+    String sessionId,
+  ) {
+    try {
+      return _entriesCol(groupId, sessionId)
+          .orderBy('updatedAt', descending: true)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs.map((d) {
+              final data = d.data();
+              data['id'] = d.id;
+              return TastingEntry.fromMap(data);
+            }).toList(),
+          );
+    } catch (e, st) {
+      _logError('エントリストリームエラー', e, st);
+      return Stream.value([]);
+    }
+  }
+
+  /// エントリをupsertし、トランザクションで平均と件数を更新
+  static Future<void> upsertEntry(
+    String groupId,
+    String sessionId,
+    TastingEntry entry,
+  ) async {
+    if (_uid == null) throw Exception('未ログイン');
+    final uid = _uid!;
+    final entriesRef = _entriesCol(groupId, sessionId);
+    final sessionRef = _sessionDoc(groupId, sessionId);
+    final nowIso = DateTime.now().toIso8601String();
+
+    await _firestore.runTransaction((txn) async {
+      final entryRef = entriesRef.doc(uid);
+      final entrySnap = await txn.get(entryRef);
+      final sessionSnap = await txn.get(sessionRef);
+
+      // 現在の合計と件数を取得（存在しない場合は0）
+      int currentCount = (sessionSnap.data()?['entriesCount'] ?? 0);
+      double sumBit = ((sessionSnap.data()?['sumBitterness'] ?? 0) as num)
+          .toDouble();
+      double sumAci = ((sessionSnap.data()?['sumAcidity'] ?? 0) as num)
+          .toDouble();
+      double sumBody = ((sessionSnap.data()?['sumBody'] ?? 0) as num)
+          .toDouble();
+      double sumSw = ((sessionSnap.data()?['sumSweetness'] ?? 0) as num)
+          .toDouble();
+      double sumAroma = ((sessionSnap.data()?['sumAroma'] ?? 0) as num)
+          .toDouble();
+      double sumOv = ((sessionSnap.data()?['sumOverall'] ?? 0) as num)
+          .toDouble();
+
+      // 既存エントリとの差分
+      double oldBit = 0,
+          oldAci = 0,
+          oldBody = 0,
+          oldSw = 0,
+          oldAroma = 0,
+          oldOv = 0;
+      bool existed = entrySnap.exists;
+      if (existed) {
+        final m = entrySnap.data()!;
+        double d(dynamic v) => v is int ? v.toDouble() : (v as num).toDouble();
+        oldBit = _clamp(d(m['bitterness'] ?? 3));
+        oldAci = _clamp(d(m['acidity'] ?? 3));
+        oldBody = _clamp(d(m['body'] ?? 3));
+        oldSw = _clamp(d(m['sweetness'] ?? 3));
+        oldAroma = _clamp(d(m['aroma'] ?? 3));
+        oldOv = _clamp(d(m['overall'] ?? m['overallRating'] ?? 3));
+      }
+
+      final newBit = _clamp(entry.bitterness);
+      final newAci = _clamp(entry.acidity);
+      final newBody = _clamp(entry.body);
+      final newSw = _clamp(entry.sweetness);
+      final newAroma = _clamp(entry.aroma);
+      final newOv = _clamp(entry.overall);
+
+      // 件数更新
+      final nextCount = existed ? currentCount : currentCount + 1;
+
+      // 合計更新
+      sumBit = sumBit - oldBit + newBit;
+      sumAci = sumAci - oldAci + newAci;
+      sumBody = sumBody - oldBody + newBody;
+      sumSw = sumSw - oldSw + newSw;
+      sumAroma = sumAroma - oldAroma + newAroma;
+      sumOv = sumOv - oldOv + newOv;
+
+      // エントリ保存
+      final toSave = {
+        ...entry.copyWith(id: uid, userId: uid).toMap(),
+        'updatedAt': nowIso,
+        if (!existed) 'createdAt': nowIso,
+      };
+      txn.set(entryRef, toSave);
+
+      double avg(double s) =>
+          nextCount == 0 ? 0 : double.parse((s / nextCount).toStringAsFixed(2));
+      txn.set(sessionRef, {
+        'entriesCount': nextCount,
+        'sumBitterness': double.parse(sumBit.toStringAsFixed(2)),
+        'sumAcidity': double.parse(sumAci.toStringAsFixed(2)),
+        'sumBody': double.parse(sumBody.toStringAsFixed(2)),
+        'sumSweetness': double.parse(sumSw.toStringAsFixed(2)),
+        'sumAroma': double.parse(sumAroma.toStringAsFixed(2)),
+        'sumOverall': double.parse(sumOv.toStringAsFixed(2)),
+        'avgBitterness': avg(sumBit),
+        'avgAcidity': avg(sumAci),
+        'avgBody': avg(sumBody),
+        'avgSweetness': avg(sumSw),
+        'avgAroma': avg(sumAroma),
+        'avgOverall': avg(sumOv),
+        'updatedAt': nowIso,
+      }, SetOptions(merge: true));
+    });
+
+    await AutoSyncService.triggerAutoSyncForDataType('tasting_sessions');
+  }
+
+  static Future<void> deleteEntry(
+    String groupId,
+    String sessionId,
+    String userId,
+  ) async {
+    final entriesRef = _entriesCol(groupId, sessionId);
+    final sessionRef = _sessionDoc(groupId, sessionId);
+    final nowIso = DateTime.now().toIso8601String();
+    await _firestore.runTransaction((txn) async {
+      final entryRef = entriesRef.doc(userId);
+      final entrySnap = await txn.get(entryRef);
+      if (!entrySnap.exists) {
+        // 何もしない
+        return;
+      }
+      final sessionSnap = await txn.get(sessionRef);
+      int currentCount = (sessionSnap.data()?['entriesCount'] ?? 0);
+      double sumBit = ((sessionSnap.data()?['sumBitterness'] ?? 0) as num)
+          .toDouble();
+      double sumAci = ((sessionSnap.data()?['sumAcidity'] ?? 0) as num)
+          .toDouble();
+      double sumBody = ((sessionSnap.data()?['sumBody'] ?? 0) as num)
+          .toDouble();
+      double sumSw = ((sessionSnap.data()?['sumSweetness'] ?? 0) as num)
+          .toDouble();
+      double sumAroma = ((sessionSnap.data()?['sumAroma'] ?? 0) as num)
+          .toDouble();
+      double sumOv = ((sessionSnap.data()?['sumOverall'] ?? 0) as num)
+          .toDouble();
+
+      final m = entrySnap.data()!;
+      double d(dynamic v) => v is int ? v.toDouble() : (v as num).toDouble();
+      final oldBit = _clamp(d(m['bitterness'] ?? 3));
+      final oldAci = _clamp(d(m['acidity'] ?? 3));
+      final oldBody = _clamp(d(m['body'] ?? 3));
+      final oldSw = _clamp(d(m['sweetness'] ?? 3));
+      final oldAroma = _clamp(d(m['aroma'] ?? 3));
+      final oldOv = _clamp(d(m['overall'] ?? m['overallRating'] ?? 3));
+
+      final nextCount = (currentCount > 0) ? currentCount - 1 : 0;
+      sumBit -= oldBit;
+      sumAci -= oldAci;
+      sumBody -= oldBody;
+      sumSw -= oldSw;
+      sumAroma -= oldAroma;
+      sumOv -= oldOv;
+
+      txn.delete(entryRef);
+
+      double avg(double s) =>
+          nextCount == 0 ? 0 : double.parse((s / nextCount).toStringAsFixed(2));
+      txn.set(sessionRef, {
+        'entriesCount': nextCount,
+        'sumBitterness': double.parse(sumBit.toStringAsFixed(2)),
+        'sumAcidity': double.parse(sumAci.toStringAsFixed(2)),
+        'sumBody': double.parse(sumBody.toStringAsFixed(2)),
+        'sumSweetness': double.parse(sumSw.toStringAsFixed(2)),
+        'sumAroma': double.parse(sumAroma.toStringAsFixed(2)),
+        'sumOverall': double.parse(sumOv.toStringAsFixed(2)),
+        'avgBitterness': avg(sumBit),
+        'avgAcidity': avg(sumAci),
+        'avgBody': avg(sumBody),
+        'avgSweetness': avg(sumSw),
+        'avgAroma': avg(sumAroma),
+        'avgOverall': avg(sumOv),
+        'updatedAt': nowIso,
+      }, SetOptions(merge: true));
+    });
   }
 }

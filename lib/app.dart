@@ -16,7 +16,6 @@ import 'package:provider/provider.dart';
 import 'models/theme_settings.dart';
 import 'models/group_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'services/data_sync_service.dart';
 import 'services/assignment_firestore_service.dart';
 import 'services/user_settings_firestore_service.dart';
@@ -63,26 +62,6 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
 
     // 通知からアプリが起動された時の処理
     _handleNotificationLaunch();
-  }
-
-  // フォントファミリーを動的に設定する関数
-  String _getFontFamily(String fontFamily) {
-    switch (fontFamily) {
-      case 'Noto Sans JP':
-        return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
-      case 'ZenMaruGothic':
-        return 'ZenMaruGothic';
-      case 'utsukushiFONT':
-        return 'utsukushiFONT';
-      case 'KiwiMaru':
-        return 'KiwiMaru';
-      case 'HannariMincho':
-        return 'HannariMincho';
-      case 'Harenosora':
-        return 'Harenosora';
-      default:
-        return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
-    }
   }
 
   // フォントファミリーを動的に設定する関数（フォールバック付き）
@@ -390,90 +369,22 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
       _loading = true;
       _error = null;
     });
-
-    // Web版でのGoogle Sign-In初期化
-    if (kIsWeb) {
-      debugPrint('Web版でのGoogle Sign-Inを開始');
-    }
     try {
-      // Web版ではFirebase Consoleの設定を使用
-      if (kIsWeb) {
-        try {
-          // Web版ではGoogleSignInの初期化を明示的に行う
-          final GoogleSignIn googleSignIn = GoogleSignIn(
-            clientId:
-                '781258244482-jhjdntb4lp4c3trci52feguj5oj5s40e.apps.googleusercontent.com',
-            scopes: ['email', 'profile'],
-          );
-
-          // まずサインアウトしてからサインインを試行（自動再認証の制限を回避）
-          await googleSignIn.signOut();
-
-          // 少し待ってからサインインを試行
-          await Future.delayed(Duration(seconds: 1));
-
-          // 現在のユーザーをクリアしてからサインインを試行（アカウント選択を強制）
-          try {
-            await googleSignIn.disconnect();
-            debugPrint('Web版Googleサインインの切断が完了');
-          } catch (disconnectError) {
-            debugPrint('Web版Googleサインインの切断でエラーが発生（無視して続行）: $disconnectError');
-            // disconnectエラーは無視して続行
-          }
-          await Future.delayed(Duration(milliseconds: 500));
-          final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-
-          if (googleUser == null) {
-            if (!mounted) return;
-            setState(() {
-              _loading = false;
-              _error = 'Googleアカウントの選択がキャンセルされました';
-            });
-            return;
-          }
-
-          final GoogleSignInAuthentication googleAuth =
-              await googleUser.authentication;
-          final credential = GoogleAuthProvider.credential(
-            accessToken: googleAuth.accessToken,
-            idToken: googleAuth.idToken,
-          );
-          await FirebaseAuth.instance.signInWithCredential(credential);
-        } catch (e) {
-          if (!mounted) return;
-          setState(() {
-            _loading = false;
-            _error = 'Web版でのGoogleログインに失敗しました: $e';
-          });
-          debugPrint('Web版Google Sign-In error: $e');
-          return;
-        }
-      } else {
-        // モバイル版では安全なGoogleサインインを使用
-        try {
-          final userCredential =
-              await SecureAuthService.signInWithGoogleSafely();
-          if (userCredential == null) {
-            if (!mounted) return;
-            setState(() {
-              _loading = false;
-              _error = 'Googleアカウントの選択がキャンセルされました';
-            });
-            return;
-          }
-
-          // セキュリティイベントを記録
-          await SecureAuthService.logSecurityEvent('secure_login_success');
-        } catch (e) {
-          if (!mounted) return;
-          setState(() {
-            _loading = false;
-            _error = '安全なGoogleログインに失敗しました: $e';
-          });
-          debugPrint('安全なGoogle Sign-In error: $e');
-          return;
-        }
+      final userCredential =
+          await SecureAuthService.signInWithGoogleForceAccountSelection();
+      if (userCredential == null) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error = 'Googleアカウントの選択がキャンセルされました';
+        });
+        return;
       }
+
+      // セキュリティイベントを記録
+      await SecureAuthService.logSecurityEvent(
+        kIsWeb ? 'secure_login_success_web_popup' : 'secure_login_success',
+      );
       // 追加: ログイン成功後にクラウド設定をダウンロード
       try {
         await DataSyncService.downloadAllData();
@@ -1074,26 +985,6 @@ class MainScaffoldState extends State<MainScaffold> {
     }
   }
 
-  // フォントファミリーを動的に設定する関数
-  String _getFontFamily(String fontFamily) {
-    switch (fontFamily) {
-      case 'Noto Sans JP':
-        return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
-      case 'ZenMaruGothic':
-        return 'ZenMaruGothic';
-      case 'utsukushiFONT':
-        return 'utsukushiFONT';
-      case 'KiwiMaru':
-        return 'KiwiMaru';
-      case 'HannariMincho':
-        return 'HannariMincho';
-      case 'Harenosora':
-        return 'Harenosora';
-      default:
-        return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
-    }
-  }
-
   // フォントファミリーを動的に設定する関数（フォールバック付き）
   String _getFontFamilyWithFallback(String fontFamily) {
     try {
@@ -1312,11 +1203,19 @@ class MainScaffoldState extends State<MainScaffold> {
             FutureBuilder<bool>(
               future: kIsWeb ? Future.value(true) : isDonorUser(),
               builder: (context, snapshot) {
-                final isDonor = snapshot.data == true;
                 // Web版では広告のパディングを適用しない
-                final bottomPadding = kIsWeb || isDonor
+                // 寄付者や未判定の間は余計な余白を付けない
+                // バナー広告が実際に読み込まれている場合のみ余白を確保
+                final adPadding = kIsWeb
                     ? 0.0
-                    : (_isBannerAdLoaded ? _bannerHeight : 0.0);
+                    : (snapshot.connectionState == ConnectionState.done &&
+                              snapshot.data != true &&
+                              _isBannerAdLoaded
+                          ? _bannerHeight
+                          : 0.0);
+
+                // 下部広告分のみ余白を確保（ボトムナビ分はScaffoldが処理）
+                final bottomPadding = adPadding;
 
                 // 画面サイズに応じてパディングを調整
                 return Padding(

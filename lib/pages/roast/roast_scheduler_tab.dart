@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_null_comparison
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roastplus/models/roast_schedule_models.dart';
@@ -7,6 +8,7 @@ import 'package:roastplus/models/theme_settings.dart';
 import 'package:roastplus/models/group_provider.dart';
 import 'package:roastplus/services/roast_schedule_memo_service.dart';
 import 'package:roastplus/widgets/roast_schedule_memo_dialog.dart';
+import 'package:roastplus/utils/permission_utils.dart';
 import 'dart:developer' as developer;
 
 class RoastSchedulerTab extends StatefulWidget {
@@ -22,6 +24,10 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
   late RoastScheduleMemoProvider _memoProvider;
   bool _isLoading = true;
   String? _groupId;
+  bool _canEditRoastSchedule = true;
+  StreamSubscription<List<RoastScheduleMemo>>? _memoSubscription;
+  VoidCallback? _groupProviderListener;
+  GroupProvider? _cachedGroupProvider;
 
   @override
   void initState() {
@@ -32,6 +38,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadMemos();
+        _setupGroupChangeListener();
+        _checkEditPermission();
+        _subscribeMemosForToday();
       }
     });
   }
@@ -76,6 +85,112 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     }
   }
 
+  void _setupGroupChangeListener() {
+    final groupProvider = context.read<GroupProvider>();
+    _cachedGroupProvider = groupProvider;
+    _groupProviderListener?.call(); // 既存があれば一度呼んで解除
+    _groupProviderListener = () {
+      if (!mounted) return;
+      final newGroupId = groupProvider.groups.isNotEmpty
+          ? groupProvider.groups.first.id
+          : null;
+      if (_groupId != newGroupId) {
+        developer.log(
+          'RoastSchedulerTab: グループ変更検知 - 旧: $_groupId, 新: $newGroupId',
+          name: 'RoastSchedulerTab',
+        );
+        _groupId = newGroupId;
+        _checkEditPermission();
+        _subscribeMemosForToday();
+      }
+    };
+    groupProvider.addListener(_groupProviderListener!);
+  }
+
+  Future<void> _checkEditPermission() async {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isEmpty) {
+        // 個人メモは常に編集可
+        setState(() {
+          _canEditRoastSchedule = true;
+        });
+        return;
+      }
+      final groupId = groupProvider.groups.first.id;
+      final canEdit = await PermissionUtils.canEditDataType(
+        groupId: groupId,
+        dataType: 'roast_schedule',
+      );
+      if (!mounted) return;
+      setState(() {
+        _canEditRoastSchedule = canEdit;
+      });
+      developer.log(
+        'RoastSchedulerTab: 権限チェック - groupId=$groupId, canEdit=$canEdit',
+        name: 'RoastSchedulerTab',
+      );
+    } catch (e, st) {
+      developer.log(
+        'RoastSchedulerTab: 権限チェックエラー: $e',
+        name: 'RoastSchedulerTab',
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  void _subscribeMemosForToday() {
+    _memoSubscription?.cancel();
+    final today = DateTime.now();
+    try {
+      Stream<List<RoastScheduleMemo>> stream;
+      if (_groupId != null && _groupId!.isNotEmpty) {
+        stream = RoastScheduleMemoService.watchGroupMemosForDate(
+          _groupId!,
+          today,
+        );
+        developer.log(
+          'RoastSchedulerTab: グループ購読開始: groupId=$_groupId, date=${today.toIso8601String().split('T')[0]}',
+          name: 'RoastSchedulerTab',
+        );
+      } else {
+        stream = RoastScheduleMemoService.watchUserMemosForDate(today);
+        developer.log(
+          'RoastSchedulerTab: 個人購読開始: date=${today.toIso8601String().split('T')[0]}',
+          name: 'RoastSchedulerTab',
+        );
+      }
+
+      _memoSubscription = stream.listen(
+        (memos) {
+          if (!mounted) return;
+          _memoProvider.setMemos(memos);
+          if (_isLoading) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        },
+        onError: (e, st) {
+          developer.log(
+            'RoastSchedulerTab: メモ購読エラー: $e',
+            name: 'RoastSchedulerTab',
+            error: e,
+            stackTrace: st,
+          );
+        },
+      );
+    } catch (e, st) {
+      developer.log(
+        'RoastSchedulerTab: 購読開始エラー: $e',
+        name: 'RoastSchedulerTab',
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
   Future<void> _addMemo() async {
     if (!mounted) return;
 
@@ -85,9 +200,6 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
         onSave: (memo) async {
           try {
             await RoastScheduleMemoService.addMemo(memo, groupId: _groupId);
-            if (mounted) {
-              await _loadMemos();
-            }
           } catch (e) {
             developer.log('メモ追加エラー: $e', name: 'RoastSchedulerTab');
             if (mounted && dialogContext.mounted) {
@@ -114,9 +226,6 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
               updatedMemo,
               groupId: _groupId,
             );
-            if (mounted) {
-              await _loadMemos();
-            }
           } catch (e) {
             developer.log('メモ更新エラー: $e', name: 'RoastSchedulerTab');
             if (mounted && dialogContext.mounted) {
@@ -155,12 +264,11 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     if (confirmed == true && mounted) {
       try {
         await RoastScheduleMemoService.deleteMemo(memoId, groupId: _groupId);
-        if (!mounted) return;
-        await _loadMemos();
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('メモを削除しました')));
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('メモを削除しました')));
+        }
       } catch (e) {
         developer.log('メモ削除エラー: $e', name: 'RoastSchedulerTab');
         if (mounted) {
@@ -181,7 +289,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       color: themeSettings.cardBackgroundColor,
       child: InkWell(
-        onTap: () => _editMemo(memo),
+        onTap: _canEditRoastSchedule ? () => _editMemo(memo) : null,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -363,7 +471,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
 
               // 削除ボタン
               IconButton(
-                onPressed: () => _deleteMemo(memo.id),
+                onPressed: _canEditRoastSchedule
+                    ? () => _deleteMemo(memo.id)
+                    : null,
                 icon: Icon(
                   Icons.delete_outline,
                   color: Colors.red[400],
@@ -421,7 +531,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton(
-        onPressed: _addMemo,
+        onPressed: _canEditRoastSchedule ? _addMemo : null,
         backgroundColor: themeSettings.appButtonColor,
         foregroundColor: themeSettings.fontColor2,
         elevation: 6,
@@ -496,4 +606,15 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
 
   @override
   bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    _memoSubscription?.cancel();
+    if (_groupProviderListener != null && _cachedGroupProvider != null) {
+      try {
+        _cachedGroupProvider!.removeListener(_groupProviderListener!);
+      } catch (_) {}
+    }
+    super.dispose();
+  }
 }

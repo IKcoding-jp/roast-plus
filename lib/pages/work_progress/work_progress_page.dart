@@ -26,6 +26,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
   bool _canEdit = true;
   GroupProvider? _groupProvider;
   String? _currentGroupId;
+  bool _setupScheduled = false;
 
   @override
   void initState() {
@@ -36,9 +37,18 @@ class _WorkProgressPageState extends State<WorkProgressPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _groupProvider = context.read<GroupProvider>();
-    _groupProvider?.addListener(_onGroupProviderChanged);
-    _setupWorkProgressAndSettingsListener();
+    final provider = context.read<GroupProvider>();
+    if (_groupProvider != provider) {
+      _groupProvider?.removeListener(_onGroupProviderChanged);
+      _groupProvider = provider;
+      _groupProvider?.addListener(_onGroupProviderChanged);
+    }
+    // ビルド完了後に初期セットアップを実行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _setupWorkProgressAndSettingsListener();
+      }
+    });
   }
 
   void _setupWorkProgressAndSettingsListener() {
@@ -125,7 +135,14 @@ class _WorkProgressPageState extends State<WorkProgressPage>
 
   void _onGroupProviderChanged() {
     if (!mounted) return;
-    _setupWorkProgressAndSettingsListener();
+    if (_setupScheduled) return;
+    _setupScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupScheduled = false;
+      if (mounted) {
+        _setupWorkProgressAndSettingsListener();
+      }
+    });
   }
 
   @override
@@ -168,11 +185,19 @@ class _WorkProgressPageState extends State<WorkProgressPage>
             }
           });
         });
-        workProgressProvider.loadWorkProgress(
-          groupId: groupProvider.currentGroup!.id,
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            workProgressProvider.loadWorkProgress(
+              groupId: groupProvider.currentGroup!.id,
+            );
+          }
+        });
       } else {
-        workProgressProvider.loadWorkProgress();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            workProgressProvider.loadWorkProgress();
+          }
+        });
       }
     }
   }
@@ -556,9 +581,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                           if (!mounted) return;
 
                           if (confirmed == true) {
-                            final messenger = ScaffoldMessenger.of(
-                              context,
-                            );
+                            final messenger = ScaffoldMessenger.of(context);
                             try {
                               await workProgressProvider.deleteWorkProgress(
                                 workProgress.id,
@@ -1040,7 +1063,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
-    final workProgressProvider = context.read<WorkProgressProvider>();
+    final workProgressProvider = context.watch<WorkProgressProvider>();
     final groupProvider = context.watch<GroupProvider>();
 
     final canEdit = _canEdit;

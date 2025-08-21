@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../../models/work_progress_models.dart';
 import '../../models/theme_settings.dart';
@@ -197,187 +198,192 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
               key: _formKey,
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_permissionMessage != null)
-                      Container(
-                        margin: EdgeInsets.only(bottom: 16),
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.lock, color: Colors.red),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _permissionMessage!,
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: kIsWeb ? 720 : 600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_permissionMessage != null)
+                          Container(
+                            margin: EdgeInsets.only(bottom: 16),
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.lock, color: Colors.red),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _permissionMessage!,
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
+                              ],
+                            ),
+                          ),
+                        // 豆の名前
+                        TextFormField(
+                          controller: _beanNameController,
+                          decoration: InputDecoration(
+                            labelText: '豆の名前 *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: themeSettings.inputBackgroundColor,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return '豆の名前を入力してください';
+                            }
+                            return null;
+                          },
+                          enabled: _canEdit,
+                        ),
+                        SizedBox(height: 24),
+
+                        // 作業段階の選択
+                        Text(
+                          '現在の作業段階',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: themeSettings.fontColor1,
+                          ),
+                        ),
+                        SizedBox(height: 16),
+
+                        // 作業段階のドロップダウン
+                        DropdownButtonFormField<WorkStage>(
+                          value: _selectedStage,
+                          decoration: InputDecoration(
+                            labelText: '作業段階を選択',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: themeSettings.inputBackgroundColor,
+                          ),
+                          items: [
+                            DropdownMenuItem<WorkStage>(
+                              value: null,
+                              child: Text('作業段階を選択してください'),
+                            ),
+                            ...WorkStage.values.map((stage) {
+                              return DropdownMenuItem<WorkStage>(
+                                value: stage,
+                                child: Text(_getStageDisplayName(stage)),
+                              );
+                            }),
+                          ],
+                          onChanged: _canEdit
+                              ? (value) {
+                                  setState(() {
+                                    _selectedStage = value;
+                                    // 作業段階が変更されたら状況もリセット
+                                    if (value != _selectedStage) {
+                                      _selectedStatus = WorkStatus.before;
+                                    }
+                                  });
+                                }
+                              : null,
+                        ),
+                        SizedBox(height: 16),
+
+                        // 作業状況の選択（作業段階が選択されている場合のみ表示）
+                        if (_selectedStage != null) ...[
+                          Text(
+                            '作業状況',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: themeSettings.fontColor1,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          DropdownButtonFormField<WorkStatus>(
+                            value: _selectedStatus,
+                            decoration: InputDecoration(
+                              labelText: '作業状況を選択',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                              fillColor: themeSettings.inputBackgroundColor,
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: WorkStatus.before,
+                                child: Text('前'),
+                              ),
+                              DropdownMenuItem(
+                                value: WorkStatus.inProgress,
+                                child: Text('途中'),
+                              ),
+                              DropdownMenuItem(
+                                value: WorkStatus.after,
+                                child: Text('済'),
+                              ),
+                            ],
+                            onChanged: _canEdit
+                                ? (value) {
+                                    setState(() {
+                                      _selectedStatus = value;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          SizedBox(height: 24),
+                        ],
+
+                        SizedBox(height: 24),
+
+                        // メモ
+                        TextFormField(
+                          controller: _notesController,
+                          decoration: InputDecoration(
+                            labelText: 'メモ',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: themeSettings.inputBackgroundColor,
+                          ),
+                          maxLines: 3,
+                          enabled: _canEdit,
+                        ),
+                        SizedBox(height: 32),
+
+                        // 保存ボタン
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _canEdit ? _saveWorkProgress : null,
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                          ],
+                            child: Text(
+                              isEditing ? '更新' : '作成',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    // 豆の名前
-                    TextFormField(
-                      controller: _beanNameController,
-                      decoration: InputDecoration(
-                        labelText: '豆の名前 *',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: themeSettings.inputBackgroundColor,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return '豆の名前を入力してください';
-                        }
-                        return null;
-                      },
-                      enabled: _canEdit,
-                    ),
-                    SizedBox(height: 24),
-
-                    // 作業段階の選択
-                    Text(
-                      '現在の作業段階',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: themeSettings.fontColor1,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-
-                    // 作業段階のドロップダウン
-                    DropdownButtonFormField<WorkStage>(
-                      value: _selectedStage,
-                      decoration: InputDecoration(
-                        labelText: '作業段階を選択',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: themeSettings.inputBackgroundColor,
-                      ),
-                      items: [
-                        DropdownMenuItem<WorkStage>(
-                          value: null,
-                          child: Text('作業段階を選択してください'),
-                        ),
-                        ...WorkStage.values.map((stage) {
-                          return DropdownMenuItem<WorkStage>(
-                            value: stage,
-                            child: Text(_getStageDisplayName(stage)),
-                          );
-                        }),
                       ],
-                      onChanged: _canEdit
-                          ? (value) {
-                              setState(() {
-                                _selectedStage = value;
-                                // 作業段階が変更されたら状況もリセット
-                                if (value != _selectedStage) {
-                                  _selectedStatus = WorkStatus.before;
-                                }
-                              });
-                            }
-                          : null,
                     ),
-                    SizedBox(height: 16),
-
-                    // 作業状況の選択（作業段階が選択されている場合のみ表示）
-                    if (_selectedStage != null) ...[
-                      Text(
-                        '作業状況',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: themeSettings.fontColor1,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      DropdownButtonFormField<WorkStatus>(
-                        value: _selectedStatus,
-                        decoration: InputDecoration(
-                          labelText: '作業状況を選択',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: themeSettings.inputBackgroundColor,
-                        ),
-                        items: [
-                          DropdownMenuItem(
-                            value: WorkStatus.before,
-                            child: Text('前'),
-                          ),
-                          DropdownMenuItem(
-                            value: WorkStatus.inProgress,
-                            child: Text('途中'),
-                          ),
-                          DropdownMenuItem(
-                            value: WorkStatus.after,
-                            child: Text('済'),
-                          ),
-                        ],
-                        onChanged: _canEdit
-                            ? (value) {
-                                setState(() {
-                                  _selectedStatus = value;
-                                });
-                              }
-                            : null,
-                      ),
-                      SizedBox(height: 24),
-                    ],
-
-                    SizedBox(height: 24),
-
-                    // メモ
-                    TextFormField(
-                      controller: _notesController,
-                      decoration: InputDecoration(
-                        labelText: 'メモ',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: themeSettings.inputBackgroundColor,
-                      ),
-                      maxLines: 3,
-                      enabled: _canEdit,
-                    ),
-                    SizedBox(height: 32),
-
-                    // 保存ボタン
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _canEdit ? _saveWorkProgress : null,
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          isEditing ? '更新' : '作成',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

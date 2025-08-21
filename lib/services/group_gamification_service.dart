@@ -170,6 +170,12 @@ class GroupGamificationService {
             'recordedAt': FieldValue.serverTimestamp(),
           });
 
+      // 集計コレクション（groups/{groupId}/attendance/{dateKey}）を更新
+      await _aggregateDailyAttendanceToGroupAttendanceCollection(
+        groupId,
+        dateKey,
+      );
+
       // 経験値を追加してプロフィールを更新
       final reward = GroupActivityReward.attendance();
       return await _addExperienceAndUpdateProfile(groupId, reward);
@@ -183,6 +189,49 @@ class GroupGamificationService {
         experienceGained: 0,
         newLevel: 0,
       );
+    }
+  }
+
+  /// daily_activities の当日出勤を集計し、groups/{groupId}/attendance/{dateKey} に反映
+  static Future<void> _aggregateDailyAttendanceToGroupAttendanceCollection(
+    String groupId,
+    String dateKey,
+  ) async {
+    try {
+      final dailySnapshot = await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('daily_activities')
+          .doc('attendance')
+          .collection(dateKey)
+          .get();
+
+      final List<Map<String, dynamic>> records = [];
+      for (final doc in dailySnapshot.docs) {
+        final data = doc.data();
+        final userId = data['userId'] as String? ?? doc.id;
+        final userName = data['userName'] as String? ?? '';
+
+        records.add({
+          'memberId': userId,
+          'memberName': userName,
+          'status': 'present',
+          'dateKey': dateKey,
+          'recordedAt': data['recordedAt'] ?? FieldValue.serverTimestamp(),
+        });
+      }
+
+      await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('attendance')
+          .doc(dateKey)
+          .set({
+            'records': records,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      _logger.e('出勤集計更新エラー: $e');
     }
   }
 
@@ -448,21 +497,18 @@ class GroupGamificationService {
       // 全員出勤日をチェック
       final allMemberAttendanceDays = await _checkAllMemberAttendance(groupId);
 
-      // 統計情報を更新（ドリップパック数は常に最新の値を反映）
+      // 統計情報を最新値で更新（常に再計算結果を反映）
       final updatedStats = currentStats.copyWith(
-        totalAttendanceDays: currentStats.totalAttendanceDays > 0
-            ? currentStats.totalAttendanceDays
-            : (attendanceStats['totalDays'] ?? 0),
-        totalRoastTimeMinutes: currentStats.totalRoastTimeMinutes > 0
-            ? currentStats.totalRoastTimeMinutes
-            : (roastingStats['totalMinutes'] ?? 0.0),
-        totalRoastDays: currentStats.totalRoastDays > 0
-            ? currentStats.totalRoastDays
-            : (roastingStats['totalDays'] ?? 0),
-        totalDripPackCount: dripPackStats['totalCount'] ?? 0, // 常に最新の値を反映
-        totalTastingRecords: currentStats.totalTastingRecords > 0
-            ? currentStats.totalTastingRecords
-            : (tastingStats['totalRecords'] ?? 0),
+        totalAttendanceDays:
+            attendanceStats['totalDays'] ?? currentStats.totalAttendanceDays,
+        totalRoastTimeMinutes:
+            roastingStats['totalMinutes'] ?? currentStats.totalRoastTimeMinutes,
+        totalRoastDays:
+            roastingStats['totalDays'] ?? currentStats.totalRoastDays,
+        totalDripPackCount:
+            dripPackStats['totalCount'] ?? currentStats.totalDripPackCount,
+        totalTastingRecords:
+            tastingStats['totalRecords'] ?? currentStats.totalTastingRecords,
         allMemberAttendanceDays: allMemberAttendanceDays,
         lastActivityDate: DateTime.now(),
       );
@@ -639,20 +685,26 @@ class GroupGamificationService {
 
       if (memberCount == 0) return {};
 
-      // 各日の出勤者数をチェック
+      // 各日の出勤者数を groups/{groupId}/attendance/{dateKey} から算出
       final attendanceSnapshot = await _firestore
           .collection('groups')
           .doc(groupId)
-          .collection('daily_activities')
-          .doc('attendance')
           .collection('attendance')
           .get();
 
       final Map<String, int> dailyAttendanceCount = {};
       for (final doc in attendanceSnapshot.docs) {
         final dateKey = doc.id;
-        dailyAttendanceCount[dateKey] =
-            (dailyAttendanceCount[dateKey] ?? 0) + 1;
+        final data = doc.data();
+        final records = data['records'] as List<dynamic>?;
+        final presentCount =
+            records
+                ?.where(
+                  (r) => (r as Map<String, dynamic>)['status'] == 'present',
+                )
+                .length ??
+            0;
+        dailyAttendanceCount[dateKey] = presentCount;
       }
 
       // 全員出勤した日を特定

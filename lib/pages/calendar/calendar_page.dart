@@ -420,7 +420,7 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
       body: kIsWeb
           ? _buildWebLayout(themeSettings)
-          : _buildMobileLayout(themeSettings),
+          : SafeArea(child: _buildMobileLayout(themeSettings)),
     );
   }
 
@@ -685,7 +685,12 @@ class _CalendarPageState extends State<CalendarPage> {
                   ),
                 )
               : SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    16 + MediaQuery.of(context).padding.bottom,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

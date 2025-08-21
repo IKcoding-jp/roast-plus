@@ -4,6 +4,257 @@ import '../services/tasting_firestore_service.dart';
 import '../services/user_settings_firestore_service.dart';
 import 'dart:async';
 
+/// --- 新モデル: グループ協調用セッション/エントリ ---
+class TastingSession {
+  final String
+  id; // sessionId = normalize(beanName) + "__" + roastKey(roastLevel)
+  final String beanName;
+  final String roastLevel; // 表示用（例: 浅煎り/中煎り/中深煎り/深煎り）
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String createdBy;
+  final int entriesCount;
+  final double avgBitterness;
+  final double avgAcidity;
+  final double avgBody;
+  final double avgSweetness;
+  final double avgAroma;
+  final double avgOverall;
+
+  const TastingSession({
+    required this.id,
+    required this.beanName,
+    required this.roastLevel,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.createdBy,
+    required this.entriesCount,
+    required this.avgBitterness,
+    required this.avgAcidity,
+    required this.avgBody,
+    required this.avgSweetness,
+    required this.avgAroma,
+    required this.avgOverall,
+  });
+
+  TastingSession copyWith({
+    String? id,
+    String? beanName,
+    String? roastLevel,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? createdBy,
+    int? entriesCount,
+    double? avgBitterness,
+    double? avgAcidity,
+    double? avgBody,
+    double? avgSweetness,
+    double? avgAroma,
+    double? avgOverall,
+  }) {
+    return TastingSession(
+      id: id ?? this.id,
+      beanName: beanName ?? this.beanName,
+      roastLevel: roastLevel ?? this.roastLevel,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdBy: createdBy ?? this.createdBy,
+      entriesCount: entriesCount ?? this.entriesCount,
+      avgBitterness: avgBitterness ?? this.avgBitterness,
+      avgAcidity: avgAcidity ?? this.avgAcidity,
+      avgBody: avgBody ?? this.avgBody,
+      avgSweetness: avgSweetness ?? this.avgSweetness,
+      avgAroma: avgAroma ?? this.avgAroma,
+      avgOverall: avgOverall ?? this.avgOverall,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'beanName': beanName,
+      'roastLevel': roastLevel,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'createdBy': createdBy,
+      'entriesCount': entriesCount,
+      'avgBitterness': avgBitterness,
+      'avgAcidity': avgAcidity,
+      'avgBody': avgBody,
+      'avgSweetness': avgSweetness,
+      'avgAroma': avgAroma,
+      'avgOverall': avgOverall,
+    };
+  }
+
+  factory TastingSession.fromMap(Map<String, dynamic> map) {
+    double d(dynamic v, [double fallback = 0.0]) {
+      if (v == null) return fallback;
+      if (v is int) return v.toDouble();
+      if (v is double) return v;
+      return double.tryParse(v.toString()) ?? fallback;
+    }
+
+    return TastingSession(
+      id: map['id'] ?? '',
+      beanName: map['beanName'] ?? '',
+      roastLevel: map['roastLevel'] ?? '',
+      createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
+      createdBy: map['createdBy'] ?? '',
+      entriesCount: (map['entriesCount'] ?? 0) as int,
+      avgBitterness: d(map['avgBitterness']),
+      avgAcidity: d(map['avgAcidity']),
+      avgBody: d(map['avgBody']),
+      avgSweetness: d(map['avgSweetness']),
+      avgAroma: d(map['avgAroma']),
+      avgOverall: d(map['avgOverall']),
+    );
+  }
+
+  // 補助: セッションID生成
+  static String makeSessionId(String beanName, String roastLevel) {
+    return '${_normalize(beanName)}__${_roastKey(roastLevel)}';
+  }
+
+  // roastKey: 浅=light, 中=medium, 中深=med_dark, 深=dark
+  static String _roastKey(String roastLevel) {
+    final s = roastLevel.trim();
+    if (s.contains('浅')) return 'light';
+    if (s.contains('中深')) return 'med_dark';
+    if (s.contains('中')) return 'medium';
+    if (s.contains('深')) return 'dark';
+    switch (s.toLowerCase()) {
+      case 'light':
+        return 'light';
+      case 'medium':
+        return 'medium';
+      case 'med_dark':
+      case 'medium_dark':
+      case 'med-dark':
+        return 'med_dark';
+      case 'dark':
+        return 'dark';
+      default:
+        return 'medium';
+    }
+  }
+
+  // 正規化: toLowerCase + NFKC相当の簡易処理 + 空白/記号除去
+  static String _normalize(String input) {
+    // 簡易: 全角空白→半角、全空白削除、英数小文字化、記号削除（和文は保持）
+    final lower = input.toLowerCase();
+    final replacedSpace = lower.replaceAll('\u3000', ' ');
+    final noSpaces = replacedSpace.replaceAll(RegExp(r'\s+'), '');
+    // 許容: ASCII英数/かな/カナ/CJK/全角英数カナ
+    final buffer = StringBuffer();
+    final pattern = RegExp(
+      r'[a-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF10-\uFF19\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFF9F]',
+    );
+    for (final ch in noSpaces.split('')) {
+      if (pattern.hasMatch(ch)) buffer.write(ch);
+    }
+    return buffer.toString();
+  }
+}
+
+class TastingEntry {
+  final String id; // = userId と同一
+  final String userId;
+  final double bitterness;
+  final double acidity;
+  final double body;
+  final double sweetness;
+  final double aroma;
+  final double overall;
+  final String comment;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const TastingEntry({
+    required this.id,
+    required this.userId,
+    required this.bitterness,
+    required this.acidity,
+    required this.body,
+    required this.sweetness,
+    required this.aroma,
+    required this.overall,
+    required this.comment,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  TastingEntry copyWith({
+    String? id,
+    String? userId,
+    double? bitterness,
+    double? acidity,
+    double? body,
+    double? sweetness,
+    double? aroma,
+    double? overall,
+    String? comment,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return TastingEntry(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      bitterness: bitterness ?? this.bitterness,
+      acidity: acidity ?? this.acidity,
+      body: body ?? this.body,
+      sweetness: sweetness ?? this.sweetness,
+      aroma: aroma ?? this.aroma,
+      overall: overall ?? this.overall,
+      comment: comment ?? this.comment,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'userId': userId,
+      'bitterness': bitterness,
+      'acidity': acidity,
+      'body': body,
+      'sweetness': sweetness,
+      'aroma': aroma,
+      'overall': overall,
+      'comment': comment,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  factory TastingEntry.fromMap(Map<String, dynamic> map) {
+    double d(dynamic v, [double fallback = 3.0]) {
+      if (v == null) return fallback;
+      if (v is int) return v.toDouble();
+      if (v is double) return v;
+      return double.tryParse(v.toString()) ?? fallback;
+    }
+
+    double clamp(double v) => v < 1.0 ? 1.0 : (v > 5.0 ? 5.0 : v);
+
+    return TastingEntry(
+      id: map['id'] ?? map['userId'] ?? '',
+      userId: map['userId'] ?? '',
+      bitterness: clamp(d(map['bitterness'])),
+      acidity: clamp(d(map['acidity'])),
+      body: clamp(d(map['body'])),
+      sweetness: clamp(d(map['sweetness'])),
+      aroma: clamp(d(map['aroma'])),
+      overall: clamp(d(map['overall'] ?? map['overallRating'])),
+      comment: (map['comment'] ?? map['overallImpression'] ?? '').toString(),
+      createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
 class TastingRecord {
   final String id;
   final String beanName;
@@ -165,12 +416,18 @@ class TastingGroup {
 class TastingProvider extends ChangeNotifier {
   List<TastingRecord> _tastingRecords = [];
   bool _isLoading = false;
+  // --- 新: セッション主導 ---
+  List<TastingSession> _sessions = [];
+  final Map<String, List<TastingEntry>> _entriesBySession = {};
+  StreamSubscription<List<TastingSession>>? _sessionsSub;
+  final Map<String, StreamSubscription<List<TastingEntry>>> _entriesSubs = {};
   static const String _storageKey = 'tasting_records';
 
   StreamSubscription<List<TastingRecord>>? _tastingStreamSub;
 
   List<TastingRecord> get tastingRecords => _tastingRecords;
   bool get isLoading => _isLoading;
+  List<TastingSession> get sessions => _sessions;
 
   // --- 追加: Firestore同期用の一括セットメソッド ---
   void replaceAll(List<TastingRecord> records) {
@@ -209,8 +466,69 @@ class TastingProvider extends ChangeNotifier {
     );
   }
 
+  /// グループのテイスティングセッションを購読
+  void subscribeGroupTastingSessions(String groupId) {
+    _sessionsSub?.cancel();
+    _isLoading = true;
+    notifyListeners();
+    _sessionsSub =
+        TastingFirestoreService.getGroupTastingSessionsStream(groupId).listen(
+          (list) {
+            _sessions = List.from(list);
+            _isLoading = false;
+            notifyListeners();
+          },
+          onError: (e, st) {
+            developer.log(
+              'セッション購読エラー',
+              name: 'TastingProvider',
+              error: e,
+              stackTrace: st,
+            );
+            _isLoading = false;
+            notifyListeners();
+          },
+        );
+  }
+
+  /// セッションのエントリ一覧を購読（詳細画面入場時）
+  void loadEntries(String groupId, String sessionId) {
+    // 既存購読をクリア
+    _entriesSubs[sessionId]?.cancel();
+    _entriesSubs[sessionId] =
+        TastingFirestoreService.getSessionEntriesStream(
+          groupId,
+          sessionId,
+        ).listen(
+          (entries) {
+            _entriesBySession[sessionId] = entries;
+            notifyListeners();
+          },
+          onError: (e, st) {
+            developer.log(
+              'エントリ購読エラー',
+              name: 'TastingProvider',
+              error: e,
+              stackTrace: st,
+            );
+          },
+        );
+  }
+
+  List<TastingEntry> getEntriesOf(String sessionId) {
+    return _entriesBySession[sessionId] ?? const [];
+  }
+
+  bool hasMyEntry(String sessionId, String uid) {
+    return getEntriesOf(sessionId).any((e) => e.userId == uid);
+  }
+
   @override
   void dispose() {
+    _sessionsSub?.cancel();
+    for (final sub in _entriesSubs.values) {
+      sub.cancel();
+    }
     _tastingStreamSub?.cancel();
     super.dispose();
   }

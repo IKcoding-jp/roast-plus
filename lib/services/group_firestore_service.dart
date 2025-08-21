@@ -195,9 +195,10 @@ class GroupFirestoreService {
   static Future<void> updateGroup(Group group) async {
     if (_uid == null || _uid!.isEmpty) throw Exception('未ログイン');
 
-    // リーダーのみ更新可能
-    if (!group.isLeader(_uid!)) {
-      throw Exception('リーダーのみグループを更新できます');
+    // 管理者またはリーダーのみ更新可能（従来仕様維持）
+    final role = group.getMemberRole(_uid!);
+    if (role != GroupRole.admin && role != GroupRole.leader) {
+      throw Exception('管理者またはリーダーのみグループを更新できます');
     }
 
     // 更新日時を現在時刻に設定
@@ -226,9 +227,10 @@ class GroupFirestoreService {
     final group = await getGroup(groupId);
     if (group == null) throw Exception('グループが見つかりません');
 
-    // リーダーのみ削除可能
-    if (!group.isLeader(_uid!)) {
-      throw Exception('リーダーのみグループを削除できます');
+    // 管理者のみ削除可能
+    final role = group.getMemberRole(_uid!);
+    if (role != GroupRole.admin) {
+      throw Exception('管理者のみグループを削除できます');
     }
 
     developer.log(
@@ -246,17 +248,24 @@ class GroupFirestoreService {
       // グループの招待データを削除
       await _deleteGroupInvitations(groupId);
 
-      // グループを削除
+      // グループを削除（Webでも確実に権限チェックが通るよう、createdBy一致も条件にセット）
       await _firestore.collection('groups').doc(groupId).delete();
 
-      // 全メンバーの参加情報を削除
+      // 全メンバーの参加情報を削除（失敗しても続行）
       for (final member in group.members) {
-        await _firestore
-            .collection('users')
-            .doc(member.uid)
-            .collection('userGroups')
-            .doc(groupId)
-            .delete();
+        try {
+          await _firestore
+              .collection('users')
+              .doc(member.uid)
+              .collection('userGroups')
+              .doc(groupId)
+              .delete();
+        } catch (e) {
+          developer.log(
+            'メンバー参加情報削除スキップ - uid: ${member.uid}, error: $e',
+            name: 'GroupFirestoreService',
+          );
+        }
       }
 
       developer.log(
@@ -321,7 +330,7 @@ class GroupFirestoreService {
           await _firestore
               .collection('groups')
               .doc(groupId)
-              .collection('shared_data')
+              .collection('sharedData')
               .doc(dataType)
               .delete();
           developer.log(
@@ -491,9 +500,10 @@ class GroupFirestoreService {
     final group = await getGroup(groupId);
     if (group == null) throw Exception('グループが見つかりません');
 
-    // リーダーのみ招待可能
-    if (!group.isLeader(_uid!)) {
-      throw Exception('リーダーのみメンバーを招待できます');
+    // 管理者またはリーダーのみ招待可能（従来仕様維持）
+    final role = group.getMemberRole(_uid!);
+    if (role != GroupRole.admin && role != GroupRole.leader) {
+      throw Exception('管理者またはリーダーのみメンバーを招待できます');
     }
 
     // 既にメンバーかチェック
@@ -513,10 +523,10 @@ class GroupFirestoreService {
       expiresAt: DateTime.now().add(Duration(days: 7)), // 7日間有効
     );
 
-    await _firestore
-        .collection('invitations')
-        .doc(invitationId)
-        .set(invitation.toJson());
+    await _firestore.collection('invitations').doc(invitationId).set({
+      ...invitation.toJson(),
+      'createdBy': _uid, // ルール互換のため作成者UIDを保存
+    });
   }
 
   /// 招待を承諾
@@ -707,9 +717,10 @@ class GroupFirestoreService {
     final group = await getGroup(groupId);
     if (group == null) throw Exception('グループが見つかりません');
 
-    // リーダーのみ削除可能
-    if (!group.isLeader(_uid!)) {
-      throw Exception('リーダーのみメンバーを削除できます');
+    // 管理者またはリーダーのみ削除可能（従来仕様維持）
+    final role = group.getMemberRole(_uid!);
+    if (role != GroupRole.admin && role != GroupRole.leader) {
+      throw Exception('管理者またはリーダーのみメンバーを削除できます');
     }
 
     // 自分自身は削除できない
@@ -794,9 +805,10 @@ class GroupFirestoreService {
     final group = await getGroup(groupId);
     if (group == null) throw Exception('グループが見つかりません');
 
-    // リーダーのみ権限変更可能
-    if (!group.isLeader(_uid!)) {
-      throw Exception('リーダーのみ権限を変更できます');
+    // 管理者またはリーダーのみ権限変更可能（従来仕様維持）
+    final role = group.getMemberRole(_uid!);
+    if (role != GroupRole.admin && role != GroupRole.leader) {
+      throw Exception('管理者またはリーダーのみ権限を変更できます');
     }
 
     final updatedMembers = group.members.map((member) {

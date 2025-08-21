@@ -515,6 +515,16 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     return false;
   }
 
+  bool get _isUserAdmin {
+    final user = FirebaseAuth.instance.currentUser;
+    final groupProvider = context.read<GroupProvider>();
+    final group = groupProvider.currentGroup;
+
+    if (user == null || group == null) return false;
+    final memberRole = group.getMemberRole(user.uid);
+    return memberRole == GroupRole.admin;
+  }
+
   bool get _canShowQRCode {
     final user = FirebaseAuth.instance.currentUser;
     final groupProvider = context.read<GroupProvider>();
@@ -717,16 +727,17 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                         ],
                       ),
                     ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('グループ削除', style: TextStyle(color: Colors.red)),
-                        ],
+                    if (_isUserAdmin)
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 20, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('グループ削除', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
             ],
@@ -1321,7 +1332,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
                         // グループ脱退ボタン（リーダー以外のメンバーのみ表示）
                         if (!_isUserLeader) ...[
-                          Container(
+                          SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               icon: Icon(
@@ -2666,6 +2677,8 @@ class _GroupInfoPageState extends State<GroupInfoPage>
   }
 
   Future<void> _removeMember(GroupMember member, Group group) async {
+    final provider = context.read<GroupProvider>();
+    
     // 確認ダイアログを表示
     final confirmed = await showDialog<bool>(
       context: context,
@@ -2690,8 +2703,6 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
     // キャンセルされた場合は処理を中断
     if (confirmed != true) return;
-
-    final provider = context.read<GroupProvider>();
     try {
       await provider.removeMember(groupId: group.id, memberUid: member.uid);
       if (mounted) {
@@ -2716,6 +2727,8 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
   /// グループから脱退
   Future<void> _leaveGroup(Group group) async {
+    final provider = context.read<GroupProvider>();
+    
     // 確認ダイアログを表示
     final confirmed = await showDialog<bool>(
       context: context,
@@ -2738,8 +2751,6 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
     // キャンセルされた場合は処理を中断
     if (confirmed != true) return;
-
-    final provider = context.read<GroupProvider>();
     try {
       await provider.leaveGroup(group.id);
       if (mounted) {

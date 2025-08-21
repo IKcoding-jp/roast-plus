@@ -1,4 +1,5 @@
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:developer' as developer;
@@ -24,10 +25,13 @@ class SecureAuthService {
         await _googleSignIn.disconnect();
         developer.log('Googleサインインの切断が完了', name: _logName);
       } catch (disconnectError) {
-        developer.log('Googleサインインの切断でエラーが発生（無視して続行）: $disconnectError', name: _logName);
+        developer.log(
+          'Googleサインインの切断でエラーが発生（無視して続行）: $disconnectError',
+          name: _logName,
+        );
         // disconnectエラーは無視して続行
       }
-      
+
       await Future.delayed(Duration(milliseconds: 500));
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
@@ -171,8 +175,11 @@ class SecureAuthService {
       // Firebaseからサインアウト
       await _auth.signOut();
 
-      // Googleサインインからサインアウト
-      await _googleSignIn.signOut();
+      // Webでは google_sign_in を呼ばない（ポップアップや挙動不整合を回避）
+      if (!kIsWeb) {
+        // Googleサインインからサインアウト
+        await _googleSignIn.signOut();
+      }
 
       // セキュアストレージからトークンを削除
       await SecureStorageService.clearAllSecureData();
@@ -333,7 +340,7 @@ class SecureAuthService {
 
       // 認証情報を取得
       final googleAuth = await googleUser.authentication;
-      
+
       // トークンをセキュアストレージに保存
       await _saveTokensSecurely(googleAuth);
 
@@ -356,20 +363,95 @@ class SecureAuthService {
     }
   }
 
+  /// アカウント選択を強制してGoogleサインイン
+  /// Web: GoogleAuthProviderのカスタムパラメータで`prompt=select_account`を指定
+  /// Mobile: 既存セッションを明示的にクリアしてから`signIn()`を実行
+  static Future<UserCredential?> signInWithGoogleForceAccountSelection() async {
+    try {
+      developer.log('アカウント選択を強制したGoogleサインインを開始', name: _logName);
+
+      if (kIsWeb) {
+        final provider = GoogleAuthProvider();
+        provider.setCustomParameters({'prompt': 'select_account'});
+        final userCredential = await _auth.signInWithPopup(provider);
+
+        // WebではGoogleSignInAccountが無いのでFirebaseのユーザー情報で保存
+        final user = userCredential.user;
+        if (user != null) {
+          try {
+            await _firestore.collection('users').doc(user.uid).set({
+              'displayName': user.displayName,
+              'email': user.email,
+              'photoUrl': user.photoURL,
+              'lastLogin': FieldValue.serverTimestamp(),
+              'loginProvider': 'Google',
+              'lastSecureLogin': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+            developer.log('ユーザー情報(Web)をFirestoreに保存', name: _logName);
+          } catch (e) {
+            developer.log('Firestoreへの保存(Web)に失敗: $e', name: _logName);
+          }
+        }
+
+        developer.log('アカウント選択を強制したGoogleサインイン(Web)が完了', name: _logName);
+        return userCredential;
+      }
+
+      // Mobile: 既存セッションをクリア
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
+      try {
+        await _googleSignIn.disconnect();
+      } catch (_) {}
+
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        developer.log('Googleサインインがキャンセルされました', name: _logName);
+        return null;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      await _saveTokensSecurely(googleAuth);
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      await _saveUserToFirestore(userCredential.user, googleUser);
+
+      developer.log('アカウント選択を強制したGoogleサインイン(モバイル)が完了', name: _logName);
+      return userCredential;
+    } catch (e) {
+      developer.log('アカウント選択を強制したGoogleサインインでエラー: $e', name: _logName);
+      throw Exception('Googleサインインエラー: $e');
+    }
+  }
+
   /// Googleサインインの状態をリセット
   static Future<void> resetGoogleSignInState() async {
     try {
       developer.log('Googleサインイン状態のリセットを開始', name: _logName);
-      
-      // 現在のユーザーをサインアウト
-      await _googleSignIn.signOut();
-      
+
+      // Webでは google_sign_in を呼ばない
+      if (!kIsWeb) {
+        // 現在のユーザーをサインアウト
+        await _googleSignIn.signOut();
+      }
+
       // 少し待機
       await Future.delayed(Duration(milliseconds: 1000));
-      
+
       // セキュアストレージからトークンを削除
       await SecureStorageService.clearAllSecureData();
-      
+
       developer.log('Googleサインイン状態のリセットが完了', name: _logName);
     } catch (e) {
       developer.log('Googleサインイン状態のリセットでエラーが発生: $e', name: _logName);
@@ -380,14 +462,14 @@ class SecureAuthService {
   /// Googleサインインの問題を診断
   static Future<Map<String, dynamic>> diagnoseGoogleSignInIssues() async {
     final diagnosis = <String, dynamic>{};
-    
+
     try {
       // 1. Google Play Servicesの利用可能性を確認
       diagnosis['google_play_services_available'] = true;
-      
+
       // 2. ネットワーク接続を確認
       diagnosis['network_available'] = true;
-      
+
       // 3. 現在のGoogleサインイン状態を確認
       try {
         final currentUser = await _googleSignIn.signInSilently();
@@ -397,21 +479,20 @@ class SecureAuthService {
         diagnosis['current_user_exists'] = false;
         diagnosis['current_user_error'] = e.toString();
       }
-      
+
       // 4. 保存されたトークンの状態を確認
       final accessToken = await SecureStorageService.getAccessToken();
       final idToken = await SecureStorageService.getIdToken();
       diagnosis['stored_tokens_exist'] = accessToken != null && idToken != null;
-      
+
       // 5. Firebase認証状態を確認
       final firebaseUser = _auth.currentUser;
       diagnosis['firebase_user_exists'] = firebaseUser != null;
       diagnosis['firebase_user_email'] = firebaseUser?.email;
-      
     } catch (e) {
       diagnosis['diagnosis_error'] = e.toString();
     }
-    
+
     developer.log('Googleサインイン診断結果: $diagnosis', name: _logName);
     return diagnosis;
   }

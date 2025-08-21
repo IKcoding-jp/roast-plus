@@ -92,6 +92,7 @@ class GroupSettings {
         'taskStatus': AccessLevel.allMembers,
         'cuppingNotes': AccessLevel.allMembers,
         'circleStamps': AccessLevel.adminOnly,
+        'roast_schedule': AccessLevel.allMembers,
       },
       allowMemberInvite: false,
       allowMemberViewMembers: true,
@@ -140,6 +141,34 @@ class GroupSettings {
         name: 'GroupSettings',
       );
       return todaySchedulePermission;
+    }
+
+    // roast_scheduleの権限が存在しない場合はtoday_schedule / todaySchedule など近いキーを参照（後方互換）
+    if (dataType == 'roast_schedule') {
+      if (dataPermissions.containsKey('today_schedule')) {
+        final fallbackPermission = dataPermissions['today_schedule']!;
+        developer.log(
+          'GroupSettings: roast_schedule権限が存在しないため、today_schedule権限を参照: $fallbackPermission',
+          name: 'GroupSettings',
+        );
+        return fallbackPermission;
+      }
+      if (dataPermissions.containsKey('todaySchedule')) {
+        final fallbackPermission = dataPermissions['todaySchedule']!;
+        developer.log(
+          'GroupSettings: roast_schedule権限が存在しないため、todaySchedule権限を参照: $fallbackPermission',
+          name: 'GroupSettings',
+        );
+        return fallbackPermission;
+      }
+      if (dataPermissions.containsKey('schedule')) {
+        final fallbackPermission = dataPermissions['schedule']!;
+        developer.log(
+          'GroupSettings: roast_schedule権限が存在しないため、schedule権限を参照: $fallbackPermission',
+          name: 'GroupSettings',
+        );
+        return fallbackPermission;
+      }
     }
 
     final permission = dataPermissions[dataType] ?? AccessLevel.adminLeader;

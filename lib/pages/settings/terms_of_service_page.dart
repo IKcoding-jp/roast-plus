@@ -282,7 +282,7 @@ class TermsOfServicePage extends StatelessWidget {
                 color: themeSettings.backgroundColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: themeSettings.borderColor.withOpacity(0.3),
+                  color: themeSettings.borderColor.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),

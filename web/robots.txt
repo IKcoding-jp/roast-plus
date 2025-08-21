@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://bysnlogapp.web.app/sitemap.xml
+
+# 検索エンジンにインデックスを許可
+Disallow: /api/
+Disallow: /admin/

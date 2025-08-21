@@ -275,463 +275,444 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
           ? Center(
               child: CircularProgressIndicator(color: themeSettings.iconColor),
             )
-          : Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: kIsWeb ? 800 : double.infinity,
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(kIsWeb ? 16 : 20),
-                  child: SingleChildScrollView(
-                    child: Card(
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      color: themeSettings.cardBackgroundColor,
-                      child: Padding(
-                        padding: EdgeInsets.all(kIsWeb ? 32 : 24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // オンオフスイッチを上にまとめる
-                            Row(
-                              children: [
-                                Switch(
-                                  value: _usePreheat,
-                                  onChanged: (v) => _saveUsePreheat(v),
-                                  activeColor: themeSettings.appButtonColor,
+          : ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: kIsWeb ? 800 : double.infinity,
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(kIsWeb ? 16 : 20),
+                child: SingleChildScrollView(
+                  child: Card(
+                    elevation: 6,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: themeSettings.cardBackgroundColor,
+                    child: Padding(
+                      padding: EdgeInsets.all(kIsWeb ? 32 : 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // オンオフスイッチを上にまとめる
+                          Row(
+                            children: [
+                              Switch(
+                                value: _usePreheat,
+                                onChanged: (v) => _saveUsePreheat(v),
+                                activeColor: themeSettings.appButtonColor,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                '予熱タイマーを使う',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: kIsWeb ? 16 : 16,
+                                  color: themeSettings.fontColor1,
                                 ),
-                                SizedBox(width: 10),
-                                Text(
-                                  '予熱タイマーを使う',
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 16 : 10),
+                          Row(
+                            children: [
+                              Switch(
+                                value: _useRoast,
+                                onChanged: (v) => _saveUseRoast(v),
+                                activeColor: themeSettings.appButtonColor,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                '焙煎タイマーを使う',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: kIsWeb ? 16 : 16,
+                                  color: themeSettings.fontColor1,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 16 : 10),
+                          Row(
+                            children: [
+                              Switch(
+                                value: _useCooling,
+                                onChanged: (v) => _saveUseCooling(v),
+                                activeColor: themeSettings.appButtonColor,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                '豆冷ましタイマーを使う',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: kIsWeb ? 16 : 16,
+                                  color: themeSettings.fontColor1,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 40 : 32),
+                          // 時間設定欄を下にまとめる
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.timer,
+                                color: themeSettings.iconColor,
+                                size: kIsWeb ? 24 : 24,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                '予熱時間（分）',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: kIsWeb ? 18 : 18,
+                                  color: themeSettings.fontColor1,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 20 : 18),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: kIsWeb ? 120 : 100,
+                                child: TextField(
+                                  controller: _preheatController,
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: false,
+                                    signed: false,
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: kIsWeb ? 16 : 16,
+                                    color: themeSettings.inputTextColor,
+                                  ),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor:
+                                        themeSettings.inputBackgroundColor,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: themeSettings.borderColor,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: themeSettings.borderColor,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: themeSettings.appButtonColor,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: kIsWeb ? 16 : 14,
+                                      vertical: kIsWeb ? 16 : 12,
+                                    ),
+                                  ),
+                                  onChanged: (value) {
+                                    // 全角数字を半角数字に変換
+                                    final convertedValue =
+                                        TextInputUtils.convertFullWidthToHalfWidth(
+                                          value,
+                                        );
+                                    if (convertedValue != value) {
+                                      _preheatController.text = convertedValue;
+                                      _preheatController.selection =
+                                          TextSelection.fromPosition(
+                                            TextPosition(
+                                              offset: convertedValue.length,
+                                            ),
+                                          );
+                                    }
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              ElevatedButton.icon(
+                                onPressed: _savePreheat,
+                                icon: Icon(Icons.save, size: kIsWeb ? 20 : 20),
+                                label: Text(
+                                  '保存',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: kIsWeb ? 16 : 16,
-                                    color: themeSettings.fontColor1,
                                   ),
                                 ),
-                              ],
-                            ),
-                            SizedBox(height: kIsWeb ? 16 : 10),
-                            Row(
-                              children: [
-                                Switch(
-                                  value: _useRoast,
-                                  onChanged: (v) => _saveUseRoast(v),
-                                  activeColor: themeSettings.appButtonColor,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: themeSettings.appButtonColor,
+                                  foregroundColor: themeSettings.fontColor2,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: kIsWeb ? 24 : 24,
+                                    vertical: kIsWeb ? 16 : 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  elevation: 4,
                                 ),
-                                SizedBox(width: 10),
-                                Text(
-                                  '焙煎タイマーを使う',
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 40 : 32),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.ac_unit,
+                                color: themeSettings.iconColor,
+                                size: kIsWeb ? 24 : 24,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                '豆冷まし時間（分）',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: kIsWeb ? 18 : 18,
+                                  color: themeSettings.fontColor1,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 20 : 18),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: kIsWeb ? 120 : 100,
+                                child: TextField(
+                                  controller: _coolingController,
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: false,
+                                    signed: false,
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: kIsWeb ? 16 : 16,
+                                    color: themeSettings.inputTextColor,
+                                  ),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor:
+                                        themeSettings.inputBackgroundColor,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: themeSettings.borderColor,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: themeSettings.borderColor,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: themeSettings.appButtonColor,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: kIsWeb ? 16 : 14,
+                                      vertical: kIsWeb ? 16 : 12,
+                                    ),
+                                  ),
+                                  onChanged: (value) {
+                                    // 全角数字を半角数字に変換
+                                    final convertedValue =
+                                        TextInputUtils.convertFullWidthToHalfWidth(
+                                          value,
+                                        );
+                                    if (convertedValue != value) {
+                                      _coolingController.text = convertedValue;
+                                      _coolingController.selection =
+                                          TextSelection.fromPosition(
+                                            TextPosition(
+                                              offset: convertedValue.length,
+                                            ),
+                                          );
+                                    }
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              ElevatedButton.icon(
+                                onPressed: _saveCooling,
+                                icon: Icon(Icons.save, size: kIsWeb ? 20 : 20),
+                                label: Text(
+                                  '保存',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: kIsWeb ? 16 : 16,
-                                    color: themeSettings.fontColor1,
                                   ),
                                 ),
-                              ],
-                            ),
-                            SizedBox(height: kIsWeb ? 16 : 10),
-                            Row(
-                              children: [
-                                Switch(
-                                  value: _useCooling,
-                                  onChanged: (v) => _saveUseCooling(v),
-                                  activeColor: themeSettings.appButtonColor,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: themeSettings.appButtonColor,
+                                  foregroundColor: themeSettings.fontColor2,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: kIsWeb ? 24 : 24,
+                                    vertical: kIsWeb ? 16 : 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  elevation: 4,
                                 ),
-                                SizedBox(width: 10),
-                                Text(
-                                  '豆冷ましタイマーを使う',
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 40 : 32),
+                          // おすすめ焙煎の引き秒数設定欄
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.recommend,
+                                color: themeSettings.iconColor,
+                                size: kIsWeb ? 24 : 24,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                '焙煎室にいくまでの時間（秒）',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: kIsWeb ? 18 : 18,
+                                  color: themeSettings.fontColor1,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 12 : 8),
+                          Text(
+                            '焙煎室に移動するために必要な秒数を設定してください。おすすめタイマーは、この秒数分だけ短く提案されます。',
+                            style: TextStyle(
+                              fontSize: kIsWeb ? 14 : 14,
+                              color: themeSettings.fontColor1,
+                            ),
+                          ),
+                          SizedBox(height: kIsWeb ? 20 : 18),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: kIsWeb ? 120 : 100,
+                                child: TextField(
+                                  controller: _recommendedOffsetController,
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: false,
+                                    signed: false,
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: kIsWeb ? 16 : 16,
+                                    color: themeSettings.inputTextColor,
+                                  ),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor:
+                                        themeSettings.inputBackgroundColor,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: themeSettings.borderColor,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: themeSettings.borderColor,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: themeSettings.appButtonColor,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: kIsWeb ? 16 : 14,
+                                      vertical: kIsWeb ? 16 : 12,
+                                    ),
+                                  ),
+                                  onChanged: (value) {
+                                    // 全角数字を半角数字に変換
+                                    final convertedValue =
+                                        TextInputUtils.convertFullWidthToHalfWidth(
+                                          value,
+                                        );
+                                    if (convertedValue != value) {
+                                      _recommendedOffsetController.text =
+                                          convertedValue;
+                                      _recommendedOffsetController.selection =
+                                          TextSelection.fromPosition(
+                                            TextPosition(
+                                              offset: convertedValue.length,
+                                            ),
+                                          );
+                                    }
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              ElevatedButton.icon(
+                                onPressed: _saveRecommendedOffset,
+                                icon: Icon(Icons.save, size: kIsWeb ? 20 : 20),
+                                label: Text(
+                                  '保存',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: kIsWeb ? 16 : 16,
-                                    color: themeSettings.fontColor1,
                                   ),
                                 ),
-                              ],
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: themeSettings.appButtonColor,
+                                  foregroundColor: themeSettings.fontColor2,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: kIsWeb ? 24 : 24,
+                                    vertical: kIsWeb ? 16 : 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  elevation: 4,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: kIsWeb ? 24 : 16),
+                          Container(
+                            padding: EdgeInsets.all(kIsWeb ? 16 : 12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            SizedBox(height: kIsWeb ? 40 : 32),
-                            // 時間設定欄を下にまとめる
-                            Row(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(
-                                  Icons.timer,
-                                  color: themeSettings.iconColor,
-                                  size: kIsWeb ? 24 : 24,
+                                  Icons.info_outline,
+                                  color: Colors.orange,
+                                  size: kIsWeb ? 20 : 20,
                                 ),
-                                SizedBox(width: 10),
-                                Text(
-                                  '予熱時間（分）',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: kIsWeb ? 18 : 18,
-                                    color: themeSettings.fontColor1,
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '【おすすめ焙煎タイマーとは】\n過去の記録から平均焙煎時間を計算し、「焙煎室に行くまでの時間」を引いた値を自動でタイマーに設定します。',
+                                    style: TextStyle(
+                                      fontSize: kIsWeb ? 14 : 14,
+                                      color: themeSettings.fontColor1,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: kIsWeb ? 20 : 18),
-                            Row(
-                              children: [
-                                SizedBox(
-                                  width: kIsWeb ? 120 : 100,
-                                  child: TextField(
-                                    controller: _preheatController,
-                                    keyboardType:
-                                        TextInputType.numberWithOptions(
-                                          decimal: false,
-                                          signed: false,
-                                        ),
-                                    style: TextStyle(
-                                      fontSize: kIsWeb ? 16 : 16,
-                                      color: themeSettings.inputTextColor,
-                                    ),
-                                    decoration: InputDecoration(
-                                      filled: true,
-                                      fillColor:
-                                          themeSettings.inputBackgroundColor,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: themeSettings.borderColor,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: themeSettings.borderColor,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: themeSettings.appButtonColor,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: kIsWeb ? 16 : 14,
-                                        vertical: kIsWeb ? 16 : 12,
-                                      ),
-                                    ),
-                                    onChanged: (value) {
-                                      // 全角数字を半角数字に変換
-                                      final convertedValue =
-                                          TextInputUtils.convertFullWidthToHalfWidth(
-                                            value,
-                                          );
-                                      if (convertedValue != value) {
-                                        _preheatController.text =
-                                            convertedValue;
-                                        _preheatController.selection =
-                                            TextSelection.fromPosition(
-                                              TextPosition(
-                                                offset: convertedValue.length,
-                                              ),
-                                            );
-                                      }
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _savePreheat,
-                                  icon: Icon(
-                                    Icons.save,
-                                    size: kIsWeb ? 20 : 20,
-                                  ),
-                                  label: Text(
-                                    '保存',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: kIsWeb ? 16 : 16,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        themeSettings.appButtonColor,
-                                    foregroundColor: themeSettings.fontColor2,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: kIsWeb ? 24 : 24,
-                                      vertical: kIsWeb ? 16 : 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    elevation: 4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: kIsWeb ? 40 : 32),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.ac_unit,
-                                  color: themeSettings.iconColor,
-                                  size: kIsWeb ? 24 : 24,
-                                ),
-                                SizedBox(width: 10),
-                                Text(
-                                  '豆冷まし時間（分）',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: kIsWeb ? 18 : 18,
-                                    color: themeSettings.fontColor1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: kIsWeb ? 20 : 18),
-                            Row(
-                              children: [
-                                SizedBox(
-                                  width: kIsWeb ? 120 : 100,
-                                  child: TextField(
-                                    controller: _coolingController,
-                                    keyboardType:
-                                        TextInputType.numberWithOptions(
-                                          decimal: false,
-                                          signed: false,
-                                        ),
-                                    style: TextStyle(
-                                      fontSize: kIsWeb ? 16 : 16,
-                                      color: themeSettings.inputTextColor,
-                                    ),
-                                    decoration: InputDecoration(
-                                      filled: true,
-                                      fillColor:
-                                          themeSettings.inputBackgroundColor,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: themeSettings.borderColor,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: themeSettings.borderColor,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: themeSettings.appButtonColor,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: kIsWeb ? 16 : 14,
-                                        vertical: kIsWeb ? 16 : 12,
-                                      ),
-                                    ),
-                                    onChanged: (value) {
-                                      // 全角数字を半角数字に変換
-                                      final convertedValue =
-                                          TextInputUtils.convertFullWidthToHalfWidth(
-                                            value,
-                                          );
-                                      if (convertedValue != value) {
-                                        _coolingController.text =
-                                            convertedValue;
-                                        _coolingController.selection =
-                                            TextSelection.fromPosition(
-                                              TextPosition(
-                                                offset: convertedValue.length,
-                                              ),
-                                            );
-                                      }
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _saveCooling,
-                                  icon: Icon(
-                                    Icons.save,
-                                    size: kIsWeb ? 20 : 20,
-                                  ),
-                                  label: Text(
-                                    '保存',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: kIsWeb ? 16 : 16,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        themeSettings.appButtonColor,
-                                    foregroundColor: themeSettings.fontColor2,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: kIsWeb ? 24 : 24,
-                                      vertical: kIsWeb ? 16 : 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    elevation: 4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: kIsWeb ? 40 : 32),
-                            // おすすめ焙煎の引き秒数設定欄
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.recommend,
-                                  color: themeSettings.iconColor,
-                                  size: kIsWeb ? 24 : 24,
-                                ),
-                                SizedBox(width: 10),
-                                Text(
-                                  '焙煎室にいくまでの時間（秒）',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: kIsWeb ? 18 : 18,
-                                    color: themeSettings.fontColor1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: kIsWeb ? 12 : 8),
-                            Text(
-                              '焙煎室に移動するために必要な秒数を設定してください。おすすめタイマーは、この秒数分だけ短く提案されます。',
-                              style: TextStyle(
-                                fontSize: kIsWeb ? 14 : 14,
-                                color: themeSettings.fontColor1,
-                              ),
-                            ),
-                            SizedBox(height: kIsWeb ? 20 : 18),
-                            Row(
-                              children: [
-                                SizedBox(
-                                  width: kIsWeb ? 120 : 100,
-                                  child: TextField(
-                                    controller: _recommendedOffsetController,
-                                    keyboardType:
-                                        TextInputType.numberWithOptions(
-                                          decimal: false,
-                                          signed: false,
-                                        ),
-                                    style: TextStyle(
-                                      fontSize: kIsWeb ? 16 : 16,
-                                      color: themeSettings.inputTextColor,
-                                    ),
-                                    decoration: InputDecoration(
-                                      filled: true,
-                                      fillColor:
-                                          themeSettings.inputBackgroundColor,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: themeSettings.borderColor,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: themeSettings.borderColor,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide(
-                                          color: themeSettings.appButtonColor,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: kIsWeb ? 16 : 14,
-                                        vertical: kIsWeb ? 16 : 12,
-                                      ),
-                                    ),
-                                    onChanged: (value) {
-                                      // 全角数字を半角数字に変換
-                                      final convertedValue =
-                                          TextInputUtils.convertFullWidthToHalfWidth(
-                                            value,
-                                          );
-                                      if (convertedValue != value) {
-                                        _recommendedOffsetController.text =
-                                            convertedValue;
-                                        _recommendedOffsetController.selection =
-                                            TextSelection.fromPosition(
-                                              TextPosition(
-                                                offset: convertedValue.length,
-                                              ),
-                                            );
-                                      }
-                                    },
-                                  ),
-                                ),
-                                SizedBox(width: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _saveRecommendedOffset,
-                                  icon: Icon(
-                                    Icons.save,
-                                    size: kIsWeb ? 20 : 20,
-                                  ),
-                                  label: Text(
-                                    '保存',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: kIsWeb ? 16 : 16,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        themeSettings.appButtonColor,
-                                    foregroundColor: themeSettings.fontColor2,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: kIsWeb ? 24 : 24,
-                                      vertical: kIsWeb ? 16 : 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    elevation: 4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: kIsWeb ? 24 : 16),
-                            Container(
-                              padding: EdgeInsets.all(kIsWeb ? 16 : 12),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Colors.orange,
-                                    size: kIsWeb ? 20 : 20,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      '【おすすめ焙煎タイマーとは】\n過去の記録から平均焙煎時間を計算し、「焙煎室に行くまでの時間」を引いた値を自動でタイマーに設定します。',
-                                      style: TextStyle(
-                                        fontSize: kIsWeb ? 14 : 14,
-                                        color: themeSettings.fontColor1,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(height: kIsWeb ? 32 : 32),
-                          ],
-                        ),
+                          ),
+                          SizedBox(height: kIsWeb ? 32 : 32),
+                        ],
                       ),
                     ),
                   ),

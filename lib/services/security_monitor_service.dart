@@ -89,30 +89,30 @@ class SecurityMonitorService {
     }
   }
 
-  /// セッションの有効期限をチェック
-  static Future<void> _checkSessionExpiration() async {
-    try {
-      final user = _auth.currentUser;
-      if (user == null) return;
+  /// セッションの有効期限をチェック（未使用だが将来使用予定）
+  // static Future<void> _checkSessionExpiration() async {
+  //   try {
+  //     final user = _auth.currentUser;
+  //     if (user == null) return;
 
-      // 最後のアクティビティ時間を取得
-      final lastActivity = await _getLastActivityTime(user.uid);
-      if (lastActivity != null) {
-        final now = DateTime.now();
-        final timeDifference = now.difference(lastActivity);
-
-        // 30分以上アクティビティがない場合は警告
-        if (timeDifference.inMinutes > 30) {
-          await _handleSecurityViolation(
-            'session_timeout',
-            'セッションが長時間非アクティブです',
-          );
-        }
-      }
-    } catch (e) {
-      developer.log('セッション有効期限チェックでエラー: $e', name: _logName);
-    }
-  }
+  //     // 最後のアクティビティ時間を取得
+  //     final lastActivity = await _getLastActivityTime(user.uid);
+  //     if (lastActivity != null) {
+  //       final now = DateTime.now();
+  //       final timeDifference = now.difference(lastActivity);
+  // 
+  //       // 30分以上アクティビティがない場合は警告
+  //       if (timeDifference.inMinutes > 30) {
+  //         await _handleSecurityViolation(
+  //           'session_timeout',
+  //           'セッションが長時間非アクティブです',
+  //         );
+  //       }
+  //     }
+  //   } catch (e) {
+  //     developer.log('セッション有効期限チェックでエラー: $e', name: _logName);
+  //   }
+  // }
 
   /// 最後のアクティビティ時間を取得
   static Future<DateTime?> _getLastActivityTime(String userId) async {
@@ -137,29 +137,29 @@ class SecurityMonitorService {
     }
   }
 
-  /// 認証状態の変更を処理
-  static Future<void> _handleAuthStateChange(User? user) async {
-    try {
-      if (user != null) {
-        // ログイン
-        await SecureAuthService.logSecurityEvent(
-          'auth_state_login',
-          details: {'userId': user.uid, 'email': user.email},
-        );
+  /// 認証状態の変更を処理（未使用だが将来使用予定）
+  // static Future<void> _handleAuthStateChange(User? user) async {
+  //   try {
+  //     if (user != null) {
+  //       // ログイン
+  //       await SecureAuthService.logSecurityEvent(
+  //         'auth_state_login',
+  //         details: {'userId': user.uid, 'email': user.email},
+  //       );
 
-        // アクティビティ時間を更新
-        await _updateLastActivityTime(user.uid);
-      } else {
-        // ログアウト
-        await SecureAuthService.logSecurityEvent('auth_state_logout');
+  //       // アクティビティ時間を更新
+  //       await _updateLastActivityTime(user.uid);
+  //     } else {
+  //       // ログアウト
+  //       await SecureAuthService.logSecurityEvent('auth_state_logout');
 
-        // セキュアストレージをクリア
-        await SecureStorageService.clearAllSecureData();
-      }
-    } catch (e) {
-      developer.log('認証状態変更の処理に失敗: $e', name: _logName);
-    }
-  }
+  //       // セキュアストレージをクリア
+  //       await SecureStorageService.clearAllSecureData();
+  //     }
+  //   } catch (e) {
+  //     developer.log('認証状態変更の処理に失敗: $e', name: _logName);
+  //   }
+  // }
 
   /// アクティビティ時間を更新
   static Future<void> _updateLastActivityTime(String userId) async {

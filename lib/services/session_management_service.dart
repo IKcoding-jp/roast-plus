@@ -117,20 +117,20 @@ class SessionManagementService {
     }
   }
 
-  /// 無操作タイムアウトをチェック
-  static Future<void> _checkInactivityTimeout() async {
-    try {
-      if (_lastActivityTime == null) return;
+  /// 無操作タイムアウトをチェック（未使用だが将来使用予定）
+  // static Future<void> _checkInactivityTimeout() async {
+  //   try {
+  //     if (_lastActivityTime == null) return;
 
-      final inactivityDuration = DateTime.now().difference(_lastActivityTime!);
-      if (inactivityDuration > _inactivityTimeout) {
-        developer.log('無操作タイムアウト', name: _logName);
-        await _handleSessionExpiration('inactivity_timeout');
-      }
-    } catch (e) {
-      developer.log('無操作タイムアウトチェックエラー: $e', name: _logName);
-    }
-  }
+  //     final inactivityDuration = DateTime.now().difference(_lastActivityTime!);
+  //     if (inactivityDuration > _inactivityTimeout) {
+  //       developer.log('無操作タイムアウト', name: _logName);
+  //       await _handleSessionExpiration('inactivity_timeout');
+  //     }
+  //   } catch (e) {
+  //     developer.log('無操作タイムアウトチェックエラー: $e', name: _logName);
+  //   }
+  // }
 
   /// セッション期限切れの処理
   static Future<void> _handleSessionExpiration(String reason) async {

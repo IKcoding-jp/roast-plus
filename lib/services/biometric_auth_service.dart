@@ -69,17 +69,24 @@ class BiometricAuthService {
         return false;
       }
 
-      // 生体認証の利用可能性を確認
-      final availableBiometrics = await getAvailableBiometrics();
-      if (availableBiometrics.isEmpty) {
-        developer.log('利用可能な生体認証がありません', name: _logName);
+      // デバイスサポート/生体認証可否の確認（どちらか満たせば可とする）
+      await initialize();
+      final canCheck = await _localAuth.canCheckBiometrics;
+      final supported = await _localAuth.isDeviceSupported();
+      if (!canCheck && !supported) {
+        developer.log('デバイスが生体認証をサポートしていません', name: _logName);
         return false;
       }
 
-      // 生体認証をテスト
+      // 生体認証のみを使用（パスコードへはフォールバックしない）
+      final available = await getAvailableBiometrics();
+      if (available.isEmpty) {
+        developer.log('利用可能な生体認証がありません', name: _logName);
+        return false;
+      }
       final authenticated = await authenticateWithBiometrics(
         reason: '生体認証を有効にするために認証してください',
-        fallbackTitle: 'パスコードを使用',
+        fallbackTitle: '生体認証のみ',
       );
 
       if (authenticated) {
@@ -87,12 +94,11 @@ class BiometricAuthService {
         await SecureStorageService.saveBiometricEnabled(true);
 
         // セキュリティイベントを記録
+        final types = await getAvailableBiometrics();
         await SecureAuthService.logSecurityEvent(
           'biometric_enabled',
           details: {
-            'biometric_types': availableBiometrics
-                .map((e) => e.toString())
-                .toList(),
+            'biometric_types': types.map((e) => e.toString()).toList(),
             'user_id': user.uid,
           },
         );
@@ -121,9 +127,10 @@ class BiometricAuthService {
         return false;
       }
 
-      // パスコードまたは生体認証で認証
-      final authenticated = await authenticateUser(
+      // 生体認証のみで認証（パスコードにはフォールバックしない）
+      final authenticated = await authenticateWithBiometrics(
         reason: '生体認証を無効にするために認証してください',
+        fallbackTitle: '生体認証のみ',
       );
 
       if (authenticated) {
@@ -163,6 +170,8 @@ class BiometricAuthService {
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: true,
+          useErrorDialogs: true,
+          sensitiveTransaction: true,
         ),
       );
 
@@ -201,6 +210,8 @@ class BiometricAuthService {
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false,
+          useErrorDialogs: true,
+          sensitiveTransaction: true,
         ),
       );
 

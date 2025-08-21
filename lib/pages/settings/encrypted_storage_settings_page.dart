@@ -82,14 +82,18 @@ class _EncryptedStorageSettingsPageState
     if (confirmed == true) {
       try {
         await EncryptedLocalStorageService.clear();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('すべての暗号化データを削除しました')));
-        _loadEncryptionData(); // データを再読み込み
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('すべての暗号化データを削除しました')));
+          _loadEncryptionData(); // データを再読み込み
+        }
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('データ削除に失敗しました: $e')));
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('データ削除に失敗しました: $e')));
+        }
       }
     }
   }

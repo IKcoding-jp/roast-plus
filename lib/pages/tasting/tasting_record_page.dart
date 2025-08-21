@@ -4,7 +4,8 @@ import '../../models/tasting_models.dart';
 import '../../models/theme_settings.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 import 'tasting_record_edit_page.dart';
-import 'package:intl/intl.dart';
+import 'tasting_session_detail_page.dart';
+// import 'package:intl/intl.dart';
 import '../../models/group_provider.dart';
 import '../../widgets/lottie_animation_widget.dart';
 
@@ -29,7 +30,11 @@ class _TastingRecordPageState extends State<TastingRecordPage>
           ? groupProvider.currentGroup!.id
           : null;
       _lastGroupId = groupId;
-      context.read<TastingProvider>().subscribeTastingRecords(groupId: groupId);
+      if (groupId != null) {
+        context.read<TastingProvider>().subscribeGroupTastingSessions(groupId);
+      } else {
+        context.read<TastingProvider>().subscribeTastingRecords(groupId: null);
+      }
     });
   }
 
@@ -43,9 +48,15 @@ class _TastingRecordPageState extends State<TastingRecordPage>
           : null;
       if (_lastGroupId != groupId) {
         _lastGroupId = groupId;
+        if (groupId != null) {
+          context.read<TastingProvider>().subscribeGroupTastingSessions(
+            groupId,
+          );
+        } else {
         context.read<TastingProvider>().subscribeTastingRecords(
-          groupId: groupId,
+            groupId: null,
         );
+        }
       }
     });
   }
@@ -68,19 +79,35 @@ class _TastingRecordPageState extends State<TastingRecordPage>
     }
   }
 
-  String _getRatingText(double rating) {
-    if (rating >= 4.5) return '★★★★★';
-    if (rating >= 3.5) return '★★★★☆';
-    if (rating >= 2.5) return '★★★☆☆';
-    if (rating >= 1.5) return '★★☆☆☆';
-    return '★☆☆☆☆';
-  }
+  // String _getRatingText(double rating) {
+  //   if (rating >= 4.5) return '★★★★★';
+  //   if (rating >= 3.5) return '★★★★☆';
+  //   if (rating >= 2.5) return '★★★☆☆';
+  //   if (rating >= 1.5) return '★★☆☆☆';
+  //   return '★☆☆☆☆';
+  // }
 
   Color _getRatingColor(double rating) {
     if (rating >= 4.0) return Colors.green;
     if (rating >= 3.0) return Colors.blue;
     if (rating >= 2.0) return Colors.orange;
     return Colors.grey;
+  }
+
+  Widget _buildStarIcons(double rating) {
+    const color = Color(0xFFFFD700); // Gold
+    final clamped = rating.clamp(0.0, 5.0);
+    final full = clamped.floor();
+    final hasHalf = (clamped - full) >= 0.5;
+    final empty = 5 - full - (hasHalf ? 1 : 0);
+    return Row(
+      children: [
+        for (int i = 0; i < full; i++) Icon(Icons.star, size: 16, color: color),
+        if (hasHalf) Icon(Icons.star_half, size: 16, color: color),
+        for (int i = 0; i < empty; i++)
+          Icon(Icons.star_border, size: 16, color: color),
+      ],
+    );
   }
 
   // 煎り度ごとの色
@@ -224,8 +251,39 @@ class _TastingRecordPageState extends State<TastingRecordPage>
           if (tastingProvider.isLoading) {
             return const LoadingAnimationWidget();
           }
-
-          if (tastingProvider.tastingRecords.isEmpty) {
+          final groupProvider = context.read<GroupProvider>();
+          final hasGroup = groupProvider.hasGroup;
+          if (hasGroup && tastingProvider.sessions.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.coffee,
+                    size: 64,
+                    color: themeSettings.tastingColor.withValues(alpha: 0.5),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'セッションがありません',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: themeSettings.fontColor1,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '右下のボタンからセッションを開始してください',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: themeSettings.fontColor1.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          if (!hasGroup && tastingProvider.tastingRecords.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -256,15 +314,148 @@ class _TastingRecordPageState extends State<TastingRecordPage>
             );
           }
 
-          final tastingGroups = tastingProvider.getTastingGroups();
+          if (hasGroup) {
+            final sessions = tastingProvider.sessions;
+            final memberCount = groupProvider.currentGroup?.members.length ?? 0;
+            return ListView.builder(
+              padding: EdgeInsets.all(16),
+              itemCount: sessions.length,
+              itemBuilder: (context, index) {
+                final s = sessions[index];
+                return Card(
+                  margin: EdgeInsets.only(bottom: 12),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TastingSessionDetailPage(
+                            sessionId: s.id,
+                            beanName: s.beanName,
+                            roastLevel: s.roastLevel,
+                          ),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: BeanNameWithSticker(
+                                  beanName: s.beanName,
+                                  textStyle: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: themeSettings.fontColor1,
+                                  ),
+                                  stickerSize: 18,
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getRoastLevelColor(s.roastLevel),
+                                  border: Border.all(
+                                    color: _getRoastLevelColor(s.roastLevel),
+                                    width: 1.5,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  s.roastLevel,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: _getRoastLevelTextColor(
+                                      s.roastLevel,
+                                    ),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text('件数: ${s.entriesCount}/$memberCount'),
+                              SizedBox(width: 12),
+                              Text('平均総合: '),
+                              _buildStarIcons(s.avgOverall),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: themeSettings.fontColor1.withValues(
+                                alpha: 0.05,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              children: [
+                                _buildRatingRow(
+                                  '苦味',
+                                  s.avgBitterness,
+                                  themeSettings,
+                                ),
+                                _buildRatingRow(
+                                  '酸味',
+                                  s.avgAcidity,
+                                  themeSettings,
+                                ),
+                                _buildRatingRow(
+                                  'ボディ',
+                                  s.avgBody,
+                                  themeSettings,
+                                ),
+                                _buildRatingRow(
+                                  '甘み',
+                                  s.avgSweetness,
+                                  themeSettings,
+                                ),
+                                _buildRatingRow(
+                                  '香り',
+                                  s.avgAroma,
+                                  themeSettings,
+                                ),
+                                _buildRatingRow(
+                                  '総合',
+                                  s.avgOverall,
+                                  themeSettings,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          }
 
+          // 非グループ時は従来の個人記録の一覧
+          final tastingGroups = tastingProvider.getTastingGroups();
           return ListView.builder(
             padding: EdgeInsets.all(16),
             itemCount: tastingGroups.length,
             itemBuilder: (context, index) {
               final tastingGroup = tastingGroups[index];
               final latestRecord = tastingGroup.latestRecord;
-
               return Card(
                 margin: EdgeInsets.only(bottom: 12),
                 elevation: 4,
@@ -287,7 +478,6 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 上部: 豆の名前と評価件数
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -316,296 +506,8 @@ class _TastingRecordPageState extends State<TastingRecordPage>
                                 ],
                               ),
                             ),
-                            // 焙煎度合いを表示
-                            Row(
-                              children: [
-                                for (final roast in tastingGroup.roastLevels)
-                                  Container(
-                                    margin: EdgeInsets.only(right: 4),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _getRoastLevelColor(roast),
-                                      border: Border.all(
-                                        color: _getRoastLevelColor(roast),
-                                        width: 1.5,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      roast,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: _getRoastLevelTextColor(roast),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            SizedBox(width: 8),
-                            PopupMenuButton<String>(
-                              onSelected: (value) async {
-                                if (value == 'edit') {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          TastingRecordEditPage(
-                                            tastingRecord: latestRecord,
-                                          ),
-                                    ),
-                                  );
-                                } else if (value == 'delete') {
-                                  final messenger = ScaffoldMessenger.of(
-                                    context,
-                                  );
-                                  final groupProvider = context
-                                      .read<GroupProvider>();
-                                  final tastingProvider = context
-                                      .read<TastingProvider>();
-                                  final confirmed = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text('削除確認'),
-                                      content: Text('この試飲感想記録を削除しますか？'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: Text('キャンセル'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: Text('削除'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-
-                                  if (confirmed == true) {
-                                    try {
-                                      final groupId = groupProvider.hasGroup
-                                          ? groupProvider.currentGroup!.id
-                                          : null;
-                                      await tastingProvider.deleteTastingRecord(
-                                        latestRecord.id,
-                                        groupId: groupId,
-                                      );
-                                      if (!mounted) return;
-                                      messenger.showSnackBar(
-                                        SnackBar(content: Text('削除しました')),
-                                      );
-                                    } catch (e) {
-                                      if (!mounted) return;
-                                      messenger.showSnackBar(
-                                        SnackBar(content: Text('削除に失敗しました')),
-                                      );
-                                    }
-                                  }
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 20),
-                                      SizedBox(width: 8),
-                                      Text('編集'),
-                                    ],
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.delete,
-                                        size: 20,
-                                        color: Colors.red,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        '削除',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              child: Icon(
-                                Icons.more_vert,
-                                color: themeSettings.tastingColor,
-                              ),
-                            ),
                           ],
                         ),
-                        SizedBox(height: 8),
-                        // 中部: 最新の試飲日
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 16,
-                              color: themeSettings.fontColor1.withValues(
-                                alpha: 0.6,
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              '最新試飲日: ${DateFormat('yyyy/MM/dd').format(latestRecord.tastingDate)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: themeSettings.fontColor1.withValues(
-                                  alpha: 0.7,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        // 平均評価スコア
-                        Row(
-                          children: [
-                            Text(
-                              '平均評価: ',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: themeSettings.fontColor1,
-                              ),
-                            ),
-                            Text(
-                              _getRatingText(tastingGroup.averageRating),
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: _getRatingColor(
-                                  tastingGroup.averageRating,
-                                ),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              '(${tastingGroup.averageRating.toStringAsFixed(1)})',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: themeSettings.fontColor1.withValues(
-                                  alpha: 0.7,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-
-                        // 評価項目の詳細
-                        Container(
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: themeSettings.fontColor1.withValues(
-                              alpha: 0.05,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '評価項目',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: themeSettings.fontColor1.withValues(
-                                    alpha: 0.8,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              _buildRatingRow(
-                                '酸味',
-                                tastingGroup.averageAcidity,
-                                themeSettings,
-                              ),
-                              _buildRatingRow(
-                                '苦味',
-                                tastingGroup.averageBitterness,
-                                themeSettings,
-                              ),
-                              _buildRatingRow(
-                                '香り',
-                                tastingGroup.averageAroma,
-                                themeSettings,
-                              ),
-                              _buildRatingRow(
-                                'おいしさ',
-                                tastingGroup.averageOverallRating,
-                                themeSettings,
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 8),
-
-                        // 全体的な印象（存在する場合のみ）
-                        if (tastingGroup.allOverallImpressions.isNotEmpty) ...[
-                          Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: themeSettings.fontColor1.withValues(
-                                alpha: 0.05,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.rate_review,
-                                  size: 16,
-                                  color: themeSettings.fontColor1.withValues(
-                                    alpha: 0.6,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '全体的な印象',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: themeSettings.fontColor1
-                                              .withValues(alpha: 0.8),
-                                        ),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        tastingGroup.allOverallImpressions.join(
-                                          '\n',
-                                        ),
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: themeSettings.fontColor1
-                                              .withValues(alpha: 0.8),
-                                        ),
-                                        softWrap: true,
-                                        maxLines: null,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
@@ -617,10 +519,19 @@ class _TastingRecordPageState extends State<TastingRecordPage>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          final groupProvider = context.read<GroupProvider>();
+          if (groupProvider.hasGroup) {
+            // グループ: 詳細/新規で作るのは詳細画面の上部で行う
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TastingSessionDetailPage()),
+            );
+          } else {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => TastingRecordEditPage()),
           );
+          }
         },
         backgroundColor: themeSettings.appButtonColor,
         foregroundColor: themeSettings.fontColor2,

@@ -131,11 +131,13 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
         final groupProvider = context.read<GroupProvider>();
         await groupProvider.loadUserGroups();
 
-        // ホームページに自動遷移
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/',
-          (route) => false, // すべてのページをクリア
-        );
+        if (mounted) {
+          // ホームページに自動遷移
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/',
+            (route) => false, // すべてのページをクリア
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -209,7 +211,7 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
                     style: TextStyle(
                       fontSize: 14 * themeSettings.fontSizeScale,
                       fontFamily: themeSettings.fontFamily,
-                      color: themeSettings.fontColor1.withOpacity(0.7),
+                      color: themeSettings.fontColor1.withValues(alpha: 0.7),
                     ),
                   ),
                 ],

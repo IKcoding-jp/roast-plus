@@ -11,16 +11,18 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // グループメンバーかどうかチェック
+    // グループメンバーかどうかチェック（ユーザーの userGroups ドキュメントで判定）
     function isGroupMember(groupId) {
-      return isAuthenticated() && 
-        exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId));
     }
-    
-    // グループ管理者かどうかチェック
+
+    // グループ管理者かどうかチェック（userGroups の role またはグループ作成者）
     function isGroupAdmin(groupId) {
-      return isAuthenticated() && 
-        get(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid)).data.role == 'admin';
+      return isAuthenticated() && (
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)).data.role in ['admin', 'leader']) ||
+        (get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid)
+      );
     }
 
     // ユーザーコレクションのルール
@@ -59,6 +61,21 @@ service cloud.firestore {
           (isAuthenticated() && 
            exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
       }
+
+      // 試飲セッション: groups/{groupId}/tasting_sessions/{sessionId}
+      match /tasting_sessions/{sessionId} {
+        allow read: if isGroupMember(groupId);
+        // セッション作成はメンバーのみ。更新はトランザクション内で実施される平均・件数の更新等を許可
+        allow create, update: if isGroupMember(groupId);
+        allow delete: if false; // セッション削除は管理タスクからのみ（必要時に別途定義）
+
+        // エントリ: entries/{uid}
+        match /entries/{uid} {
+          allow read: if isGroupMember(groupId);
+          // 自分のエントリのみ書込可（upsert）
+          allow create, update, delete: if isAuthenticated() && request.auth.uid == uid && isGroupMember(groupId);
+        }
+      }
       
       // グループメンバーコレクションの特別ルール
       match /members/{memberId} {
@@ -68,10 +85,12 @@ service cloud.firestore {
       
       // グループ招待コレクションの特別ルール
       match /invitations/{invitationId} {
-        allow read: if isGroupMember(groupId);
+        allow read: if isGroupMember(groupId) || isGroupAdmin(groupId);
         allow create: if isGroupAdmin(groupId);
         allow update, delete: if isGroupAdmin(groupId) || 
-          (isAuthenticated() && resource.data.invitedUserId == request.auth.uid);
+          (isAuthenticated() && resource.data.invitedUserId == request.auth.uid) ||
+          // メール宛て招待で本人が操作するケース
+          (isAuthenticated() && resource.data.invitedEmail == request.auth.token.email);
       }
       
       // 共有データコレクションの特別ルール
@@ -94,24 +113,34 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && 
-        (resource.data.createdBy == request.auth.uid || 
-         request.resource.data.usedBy[request.auth.uid] != null ||
-         // 招待コードを使用する際の更新を許可
-         (resource.data.invitationCode == invitationCode && 
-          !resource.data.usedBy.hasAny([request.auth.uid])));
-      allow delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+        (
+          resource.data.createdBy == request.auth.uid || 
+          // usedBy は array なので hasAny は使えない。array_contains 判定相当の条件
+          (!resource.data.usedBy.hasAny([request.auth.uid]))
+        );
+      // グループ管理者も削除可能（グループ削除フローで必要）
+      allow delete: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        isGroupAdmin(resource.data.groupId)
+      );
     }
 
     // 招待コレクションのルール
     match /invitations/{invitationId} {
       allow read: if isAuthenticated() && 
         (resource.data.invitedUserId == request.auth.uid || 
-         resource.data.invitedEmail == request.auth.token.email);
+         resource.data.invitedEmail == request.auth.token.email ||
+         // グループ管理者は監督権限
+         isGroupAdmin(resource.data.groupId));
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && 
         (resource.data.invitedUserId == request.auth.uid || 
-         resource.data.invitedEmail == request.auth.token.email);
-      allow delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+         resource.data.invitedEmail == request.auth.token.email ||
+         isGroupAdmin(resource.data.groupId));
+      allow delete: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        isGroupAdmin(resource.data.groupId)
+      );
     }
 
     // システム設定コレクション（必要に応じて）

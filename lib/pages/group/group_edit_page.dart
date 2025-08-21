@@ -145,12 +145,14 @@ class _GroupEditPageState extends State<GroupEditPage> {
     try {
       final success = await groupProvider.deleteGroup(widget.group.id);
       if (success) {
+        // HomePage側の削除ページ遷移フラグは使わないためリセット
+        groupProvider.resetGroupDeletedPageFlag();
         await groupProvider.loadUserGroups(); // グループリスト再取得
         if (!mounted) return;
-        navigator.pop(); // 設定ページを閉じる
-        messenger.showSnackBar(
-          SnackBar(content: Text('グループを削除しました'), backgroundColor: Colors.red),
-        );
+        // 参加/招待画面へ即遷移（スタックを全てクリア）
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/group_required', (route) => false);
       } else {
         if (!mounted) return;
         messenger.showSnackBar(

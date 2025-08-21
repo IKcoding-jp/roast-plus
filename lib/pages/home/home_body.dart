@@ -168,16 +168,16 @@ class _HomeBodyState extends State<HomeBody> {
         Container(
           padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: accentColor.withOpacity(0.1),
+            color: accentColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: accentColor.withOpacity(0.2), width: 1),
+            border: Border.all(color: accentColor.withValues(alpha: 0.2), width: 1),
           ),
           child: Row(
             children: [
               Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.15),
+                  color: accentColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: accentColor, size: 20),
@@ -201,7 +201,7 @@ class _HomeBodyState extends State<HomeBody> {
                       subtitle,
                       style: TextStyle(
                         fontSize: 12 * WebUIUtils.getFontSizeScale(context),
-                        color: widget.themeSettings.fontColor1.withOpacity(0.7),
+                        color: widget.themeSettings.fontColor1.withValues(alpha: 0.7),
                         fontFamily: widget.themeSettings.fontFamily,
                       ),
                     ),

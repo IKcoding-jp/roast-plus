@@ -741,7 +741,7 @@ class GroupProvider extends ChangeNotifier {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
-    final sub = FirebaseFirestore.instance
+    FirebaseFirestore.instance
         .collection('groups')
         .doc(groupId)
         .collection('memberRemovals')

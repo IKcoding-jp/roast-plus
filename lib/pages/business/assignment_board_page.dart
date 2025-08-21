@@ -1554,13 +1554,18 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                     children: [
                       // 出勤退勤状況の表示
                       if (!_isAttendanceLoading && visibleAttendance.isNotEmpty)
-                        Card(
-                          elevation: 4,
-                          color: Provider.of<ThemeSettings>(
-                            context,
-                          ).cardBackgroundColor,
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
+                        Center(
+                          child: Container(
+                            constraints: kIsWeb
+                                ? BoxConstraints(maxWidth: 600)
+                                : null,
+                            child: Card(
+                              elevation: 4,
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).cardBackgroundColor,
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1624,6 +1629,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                               ],
                             ),
                           ),
+                        ),
+                        ),
                         ),
                       SizedBox(height: 16),
                       // 担当表の表示

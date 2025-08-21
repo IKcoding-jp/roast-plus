@@ -109,9 +109,16 @@ class TodoNotificationService {
   /// FirebaseからTODOリストを取得
   Future<List<String>> _getTodosFromFirebase() async {
     try {
-      final saved =
-          await UserSettingsFirestoreService.getSetting('todo_list') ?? [];
-      return saved;
+      final dynamic raw = await UserSettingsFirestoreService.getSetting(
+        'todo_list',
+        defaultValue: [],
+      );
+
+      if (raw is List) {
+        // 動的リストを厳密な List<String> に変換
+        return raw.map((e) => e.toString()).toList();
+      }
+      return [];
     } catch (e) {
       _logError('FirebaseからTODO取得エラー', e);
       return [];

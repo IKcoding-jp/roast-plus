@@ -10,7 +10,6 @@ import '../../models/group_provider.dart';
 import '../../models/group_models.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 import 'package:roastplus/pages/roast/roast_edit_page.dart';
-import '../../utils/performance_utils.dart';
 import '../../utils/permission_utils.dart';
 
 class RoastRecordListPage extends StatefulWidget {
@@ -1012,11 +1011,19 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
                                           ),
                                         ),
                                       )
-                                    : PerformanceUtils.optimizedListViewBuilder(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 8,
+                                    : ListView.builder(
+                                        padding: EdgeInsets.only(
+                                          left: 8,
+                                          right: 8,
+                                          bottom:
+                                              MediaQuery.of(
+                                                context,
+                                              ).padding.bottom +
+                                              16,
                                         ),
                                         itemCount: filteredRecords.length,
+                                        physics:
+                                            AlwaysScrollableScrollPhysics(),
                                         itemBuilder: (context, index) {
                                           final record = filteredRecords[index];
                                           final selected = _selectedIndexes
