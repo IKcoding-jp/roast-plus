@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '12.0'
+platform :ios, '13.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -33,53 +33,6 @@ target 'Runner' do
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   
-  # Firebase関連の設定
-  pod 'Firebase/Core'
-  pod 'Firebase/Auth'
-  pod 'Firebase/Firestore'
-  pod 'Firebase/Storage'
-  pod 'Firebase/Analytics'
-  
-  # Google Sign-In
-  pod 'GoogleSignIn'
-  
-  # その他のネイティブ依存関係
-  pod 'PermissionHandler'
-  pod 'ImagePicker'
-  pod 'AudioPlayers'
-  pod 'Lottie'
-  pod 'QRCodeReader'
-  pod 'MobileScanner'
-  pod 'FlutterSecureStorage'
-  pod 'LocalAuthentication'
-  
-  # 広告関連
-  pod 'Google-Mobile-Ads-SDK'
-  
-  # アプリ内課金
-  pod 'StoreKit'
-  
-  # 通知関連
-  pod 'UserNotifications'
-  
-  # カメラ・写真関連
-  pod 'AVFoundation'
-  pod 'Photos'
-  
-  # ネットワーク関連
-  pod 'AFNetworking'
-  
-  # 暗号化関連
-  pod 'CryptoKit'
-  
-  # セキュリティ関連
-  pod 'KeychainAccess'
-  
-  # その他のユーティリティ
-  pod 'SDWebImage'
-  pod 'SnapKit'
-  pod 'Alamofire'
-  
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -91,7 +44,7 @@ post_install do |installer|
     
     # iOS 12.0以降のサポート
     target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       
       # 64ビットアーキテクチャのサポート
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
