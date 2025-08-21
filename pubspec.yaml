@@ -18,10 +18,10 @@ dependencies:
   audioplayers: ^6.5.0
   fl_chart: ^1.0.0
   google_sign_in: ^7.1.1
-  firebase_core: ^3.6.0
-  firebase_auth: ^5.3.1
-  cloud_firestore: ^5.4.1
-  firebase_storage: ^12.2.1
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
+  cloud_firestore: ^4.17.5
+  firebase_storage: ^11.7.7
   image_picker: ^1.2.0
   permission_handler: ^11.3.1
   flutter_colorpicker: ^1.1.0
