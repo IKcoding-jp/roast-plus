@@ -9,7 +9,7 @@ import 'font_size_settings_page.dart';
 import 'sound_settings_page.dart';
 import 'account_info_page.dart';
 import 'passcode_lock_settings_page.dart';
-import 'biometric_settings_page.dart';
+
 // セキュリティ設定は一般ユーザーには不要なため削除
 // import 'encrypted_storage_settings_page.dart';
 // import 'network_security_settings_page.dart';
@@ -86,19 +86,6 @@ class AppSettingsPage extends StatelessWidget {
           );
         },
       ),
-      _buildSettingsCard(
-        context,
-        icon: Icons.fingerprint,
-        title: '生体認証設定',
-        subtitle: '指紋・顔認証でアプリにアクセス',
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const BiometricSettingsPage()),
-          );
-        },
-      ),
-      const SizedBox(height: 24),
 
       // カスタマイズセクション
       _buildSectionHeader(context, 'カスタマイズ'),

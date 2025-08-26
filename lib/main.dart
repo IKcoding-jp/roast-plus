@@ -19,212 +19,47 @@ import 'services/todo_notification_service.dart';
 import 'services/auto_sync_service.dart';
 import 'services/roast_timer_notification_service.dart';
 import 'services/security_monitor_service.dart';
-import 'services/biometric_auth_service.dart';
-import 'services/encrypted_local_storage_service.dart'; // Added
+import 'services/encrypted_local_storage_service.dart';
 import 'services/network_security_service.dart';
 import 'services/session_management_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:developer' as developer;
+import 'utils/performance_monitor.dart';
+import 'utils/web_compatibility.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Web互換性の初期化
+  if (WebCompatibility.isWeb) {
+    developer.log('Web版互換性モードで起動', name: 'Main');
+  }
+
+  // パフォーマンス監視開始
+  PerformanceMonitor.startTimer('アプリ起動全体');
+
   // デバッグ情報を出力
   developer.log('アプリ起動開始', name: 'Main');
-  developer.log('WEB版: $kIsWeb', name: 'Main');
 
-  // Web版では画面の縦向き固定を解除
+  // 必須の初期化処理を並列実行
+  final initializationTasks = <Future<void>>[
+    PerformanceMonitor.measureAsync('Firebase初期化', _initializeFirebase),
+    PerformanceMonitor.measureAsync('日付フォーマット初期化', _initializeDateFormatting),
+    PerformanceMonitor.measureAsync('テーマ設定初期化', _initializeThemeSettings),
+  ];
+
+  // Web版ではシステム設定初期化を除外
   if (!kIsWeb) {
-    // 画面を縦向きに固定
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-  }
-  //
-  // システムUIの設定
-  SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      // キーボードイベントの処理を改善
-      systemNavigationBarDividerColor: Colors.transparent,
-    ),
-  );
-
-  // キーボードイベントの処理を改善
-  SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.edgeToEdge,
-    overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
-  );
-
-  // エラーハンドリングを設定
-  FlutterError.onError = (FlutterErrorDetails details) {
-    // キーボードイベントのエラーを無視
-    if (details.exception.toString().contains('KeyUpEvent') ||
-        details.exception.toString().contains('physical key is not pressed') ||
-        details.exception.toString().contains('_pressedKeys.containsKey') ||
-        details.exception.toString().contains('HardwareKeyboard') ||
-        details.exception.toString().contains('KeyUpEvent#') ||
-        details.exception.toString().contains('PhysicalKeyboardKey#')) {
-      developer.log('キーボードイベントエラーを無視: ${details.exception}', name: 'Main');
-      return;
-    }
-
-    // オーバーフローエラーを非表示にする
-    if (details.exception is FlutterError &&
-        details.exception.toString().contains('overflowed')) {
-      // オーバーフローエラーは無視
-      return;
-    }
-
-    // その他のエラーは通常通り処理
-    developer.log('エラー発生: ${details.exception}', name: 'Main');
-    FlutterError.presentError(details);
-  };
-
-  try {
-    developer.log('Firebase初期化開始', name: 'Main');
-    // 暗号化されたFirebase設定で初期化
-    await EncryptedFirebaseConfigService.initializeFirebase();
-    developer.log('Firebase初期化完了', name: 'Main');
-  } catch (e) {
-    developer.log('Firebase初期化エラー: $e', name: 'Main');
+    initializationTasks.add(
+      PerformanceMonitor.measureAsync('システム設定初期化', _initializeSystemSettings),
+    );
   }
 
-  try {
-    developer.log('日付フォーマット初期化開始', name: 'Main');
-    await initializeDateFormatting('ja_JP', null);
-    developer.log('日付フォーマット初期化完了', name: 'Main');
-  } catch (e) {
-    developer.log('日付フォーマット初期化エラー: $e', name: 'Main');
-  }
+  await Future.wait(initializationTasks);
 
-  try {
-    developer.log('テーマ設定読み込み開始', name: 'Main');
-    final themeSettings = await ThemeSettings.load();
-    developer.log('テーマ設定読み込み完了', name: 'Main');
-
-    // 初期インストール時にデフォルトテーマを適用
-    await themeSettings.initializeDefaultTheme();
-  } catch (e) {
-    developer.log('テーマ設定読み込みエラー: $e', name: 'Main');
-  }
-
-  // Web版では通知サービスを初期化しない
-  if (!kIsWeb) {
-    try {
-      developer.log('通知サービス初期化開始', name: 'Main');
-      // 焙煎タイマー通知サービスを初期化
-      await RoastTimerNotificationService.initialize();
-
-      // 通知権限をリクエスト
-      await RoastTimerNotificationService.requestPermissions();
-      developer.log('通知サービス初期化完了', name: 'Main');
-    } catch (e) {
-      developer.log('通知サービス初期化エラー: $e', name: 'Main');
-    }
-  }
-
-  // Web版では通知サービスを初期化しない
-  if (!kIsWeb) {
-    try {
-      developer.log('TODO通知サービス初期化開始', name: 'Main');
-      // グローバルナビゲーションキーを通知サービスにセット
-      TodoNotificationService().setNavigatorKey(navigatorKey);
-      TodoNotificationService().startNotificationService();
-      developer.log('TODO通知サービス初期化完了', name: 'Main');
-    } catch (e) {
-      developer.log('TODO通知サービス初期化エラー: $e', name: 'Main');
-    }
-  }
-
-  try {
-    developer.log('AutoSyncService初期化開始', name: 'Main');
-    // AutoSyncServiceを初期化
-    await AutoSyncService.initialize();
-    developer.log('AutoSyncService初期化完了', name: 'Main');
-  } catch (e) {
-    developer.log('AutoSyncService初期化エラー: $e', name: 'Main');
-  }
-
-  try {
-    developer.log('セキュリティ監視サービス初期化開始', name: 'Main');
-    // セキュリティ監視を開始
-    await SecurityMonitorService.startMonitoring();
-    developer.log('セキュリティ監視サービス初期化完了', name: 'Main');
-  } catch (e) {
-    developer.log('セキュリティ監視サービス初期化エラー: $e', name: 'Main');
-  }
-
-  try {
-    developer.log('生体認証サービス初期化開始', name: 'Main');
-    // 生体認証サービスを初期化
-    await BiometricAuthService.initialize();
-    developer.log('生体認証サービス初期化完了', name: 'Main');
-  } catch (e) {
-    developer.log('生体認証サービス初期化エラー: $e', name: 'Main');
-  }
-
-  try {
-    developer.log('暗号化ローカルストレージサービス初期化開始', name: 'Main');
-    // 暗号化ローカルストレージサービスを初期化
-    await EncryptedLocalStorageService.initialize();
-    developer.log('暗号化ローカルストレージサービス初期化完了', name: 'Main');
-  } catch (e) {
-    developer.log('暗号化ローカルストレージサービス初期化エラー: $e', name: 'Main');
-  }
-
-  try {
-    developer.log('ネットワークセキュリティサービス初期化開始', name: 'Main');
-    // ネットワークセキュリティサービスを初期化
-    await NetworkSecurityService.initialize();
-    developer.log('ネットワークセキュリティサービス初期化完了', name: 'Main');
-  } catch (e) {
-    developer.log('ネットワークセキュリティサービス初期化エラー: $e', name: 'Main');
-  }
-
-  try {
-    developer.log('セッション管理サービス初期化開始', name: 'Main');
-    // セッション管理サービスを初期化
-    await SessionManagementService.initialize();
-    // 初期化時にユーザーアクティビティを記録
-    await SessionManagementService.recordUserActivity();
-    developer.log('セッション管理サービス初期化完了', name: 'Main');
-  } catch (e) {
-    developer.log('セッション管理サービス初期化エラー: $e', name: 'Main');
-  }
-
-  // アプリ終了時のクリーンアップを設定
-  WidgetsBinding.instance.addObserver(
-    LifecycleEventHandler(
-      detachedCallBack: () async {
-        // アプリ終了時のリソース解放
-        if (!kIsWeb) {
-          TodoNotificationService().stopNotificationService();
-        }
-        AutoSyncService.dispose();
-        SecurityMonitorService.stopMonitoring();
-        SessionManagementService.stopMonitoring();
-      },
-    ),
-  );
-
-  // Web版では広告を初期化しない
-  if (!kIsWeb) {
-    try {
-      developer.log('広告初期化開始', name: 'Main');
-      await MobileAds.instance.initialize();
-      developer.log('広告初期化完了', name: 'Main');
-    } catch (e) {
-      developer.log('広告初期化エラー: $e', name: 'Main');
-    }
-  }
-
-  developer.log('アプリ起動準備完了', name: 'Main');
-
+  // アプリを即座に起動
   runApp(
     MultiProvider(
       providers: [
@@ -240,9 +75,217 @@ void main() async {
         ChangeNotifierProvider(create: (_) => GroupGamificationProvider()),
         ChangeNotifierProvider(create: (_) => DashboardStatsProvider()),
       ],
-      child: WorkAssignmentApp(), // 下でMaterialAppにnavigatorKeyを渡す
+      child: WorkAssignmentApp(),
     ),
   );
+
+  // 非必須の初期化処理をバックグラウンドで実行
+  _initializeBackgroundServices();
+
+  // パフォーマンス監視終了
+  PerformanceMonitor.endTimer('アプリ起動全体');
+
+  // 最適化提案を表示
+  final suggestions = PerformanceMonitor.getOptimizationSuggestions();
+  if (suggestions.isNotEmpty) {
+    developer.log('🚀 最適化提案:', name: 'Performance');
+    for (final suggestion in suggestions) {
+      developer.log('  - $suggestion', name: 'Performance');
+    }
+  }
+}
+
+// システム設定の初期化
+Future<void> _initializeSystemSettings() async {
+  // Web版ではシステム設定をスキップ
+  if (kIsWeb) {
+    return;
+  }
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // システムUIの設定
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ),
+  );
+
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge,
+    overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+  );
+
+  // エラーハンドリングを設定
+  FlutterError.onError = (FlutterErrorDetails details) {
+    // キーボードイベントのエラーを無視
+    if (details.exception.toString().contains('KeyUpEvent') ||
+        details.exception.toString().contains('physical key is not pressed') ||
+        details.exception.toString().contains('_pressedKeys.containsKey') ||
+        details.exception.toString().contains('HardwareKeyboard') ||
+        details.exception.toString().contains('KeyUpEvent#') ||
+        details.exception.toString().contains('PhysicalKeyboardKey#')) {
+      return;
+    }
+
+    // オーバーフローエラーを非表示にする
+    if (details.exception is FlutterError &&
+        details.exception.toString().contains('overflowed')) {
+      return;
+    }
+
+    // その他のエラーは通常通り処理
+    FlutterError.presentError(details);
+  };
+}
+
+// Firebase初期化
+Future<void> _initializeFirebase() async {
+  try {
+    await EncryptedFirebaseConfigService.initializeFirebase();
+  } catch (e) {
+    developer.log('Firebase初期化エラー: $e', name: 'Main');
+  }
+}
+
+// 日付フォーマット初期化
+Future<void> _initializeDateFormatting() async {
+  try {
+    await initializeDateFormatting('ja_JP', null);
+  } catch (e) {
+    developer.log('日付フォーマット初期化エラー: $e', name: 'Main');
+  }
+}
+
+// テーマ設定初期化
+Future<void> _initializeThemeSettings() async {
+  try {
+    final themeSettings = await ThemeSettings.load();
+    await themeSettings.initializeDefaultTheme();
+  } catch (e) {
+    developer.log('テーマ設定読み込みエラー: $e', name: 'Main');
+  }
+}
+
+// バックグラウンドで非必須サービスを初期化
+void _initializeBackgroundServices() async {
+  // アプリ終了時のクリーンアップを設定
+  WidgetsBinding.instance.addObserver(
+    LifecycleEventHandler(
+      detachedCallBack: () async {
+        // Web版ではネイティブ機能のクリーンアップをスキップ
+        if (!kIsWeb) {
+          TodoNotificationService().stopNotificationService();
+          SecurityMonitorService.stopMonitoring();
+          SessionManagementService.stopMonitoring();
+        }
+        AutoSyncService.dispose();
+      },
+    ),
+  );
+
+  // 非必須サービスを並列で初期化
+  final backgroundTasks = <Future<void>>[
+    PerformanceMonitor.measureAsync('AutoSync初期化', _initializeAutoSync),
+  ];
+
+  // Web版ではネイティブ機能を除外
+  if (!kIsWeb) {
+    backgroundTasks.addAll([
+      PerformanceMonitor.measureAsync(
+        '通知サービス初期化',
+        _initializeNotificationServices,
+      ),
+      PerformanceMonitor.measureAsync('広告初期化', _initializeAds),
+      PerformanceMonitor.measureAsync(
+        'セキュリティサービス初期化',
+        _initializeSecurityServices,
+      ),
+      PerformanceMonitor.measureAsync(
+        'ストレージサービス初期化',
+        _initializeStorageServices,
+      ),
+    ]);
+  }
+
+  await Future.wait(backgroundTasks);
+}
+
+// 通知サービス初期化
+Future<void> _initializeNotificationServices() async {
+  // Web版では通知サービスをスキップ
+  if (kIsWeb) {
+    return;
+  }
+
+  try {
+    await RoastTimerNotificationService.initialize();
+    await RoastTimerNotificationService.requestPermissions();
+
+    TodoNotificationService().setNavigatorKey(navigatorKey);
+    TodoNotificationService().startNotificationService();
+  } catch (e) {
+    developer.log('通知サービス初期化エラー: $e', name: 'Main');
+  }
+}
+
+// 広告初期化
+Future<void> _initializeAds() async {
+  // Web版では広告をスキップ
+  if (kIsWeb) {
+    return;
+  }
+
+  try {
+    await MobileAds.instance.initialize();
+  } catch (e) {
+    developer.log('広告初期化エラー: $e', name: 'Main');
+  }
+}
+
+// AutoSync初期化
+Future<void> _initializeAutoSync() async {
+  try {
+    await AutoSyncService.initialize();
+  } catch (e) {
+    developer.log('AutoSyncService初期化エラー: $e', name: 'Main');
+  }
+}
+
+// セキュリティサービス初期化
+Future<void> _initializeSecurityServices() async {
+  // Web版ではセキュリティサービスをスキップ
+  if (kIsWeb) {
+    return;
+  }
+
+  try {
+    await SecurityMonitorService.startMonitoring();
+    await NetworkSecurityService.initialize();
+    await SessionManagementService.initialize();
+    await SessionManagementService.recordUserActivity();
+  } catch (e) {
+    developer.log('セキュリティサービス初期化エラー: $e', name: 'Main');
+  }
+}
+
+// ストレージサービス初期化
+Future<void> _initializeStorageServices() async {
+  // Web版ではストレージサービスをスキップ
+  if (kIsWeb) {
+    return;
+  }
+
+  try {
+    await EncryptedLocalStorageService.initialize();
+  } catch (e) {
+    developer.log('ストレージサービス初期化エラー: $e', name: 'Main');
+  }
 }
 
 // ライフサイクルイベントハンドラー

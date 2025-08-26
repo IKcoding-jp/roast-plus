@@ -10,7 +10,6 @@ import 'pages/gamification/badge_list_page.dart';
 import 'services/sync_firestore_all.dart';
 import 'services/todo_notification_service.dart';
 import 'services/secure_auth_service.dart';
-import 'services/biometric_auth_service.dart';
 import 'services/session_management_service.dart';
 import 'package:provider/provider.dart';
 import 'models/theme_settings.dart';
@@ -37,9 +36,12 @@ import 'pages/group/group_qr_generate_page.dart';
 import 'pages/group/group_qr_scanner_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 import 'utils/app_performance_config.dart';
 import 'utils/web_ui_utils.dart';
+import 'utils/web_compatibility.dart';
 import 'widgets/lottie_animation_widget.dart';
+import 'utils/font_optimizer.dart';
 // navigatorKeyが定義されているファイルをimport
 
 class WorkAssignmentApp extends StatefulWidget {
@@ -47,6 +49,13 @@ class WorkAssignmentApp extends StatefulWidget {
 
   @override
   State<WorkAssignmentApp> createState() => _WorkAssignmentAppState();
+}
+
+// Web互換性の初期化
+void _initializeWebCompatibility() {
+  if (WebCompatibility.isWeb) {
+    developer.log('Web版互換性モードでアプリ初期化', name: 'WorkAssignmentApp');
+  }
 }
 
 class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
@@ -64,29 +73,9 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
     _handleNotificationLaunch();
   }
 
-  // フォントファミリーを動的に設定する関数（フォールバック付き）
+  // フォントファミリーを動的に設定する関数（最適化版）
   String _getFontFamilyWithFallback(String fontFamily) {
-    try {
-      switch (fontFamily) {
-        case 'Noto Sans JP':
-          return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
-        case 'ZenMaruGothic':
-          return 'ZenMaruGothic';
-        case 'utsukushiFONT':
-          return 'utsukushiFONT';
-        case 'KiwiMaru':
-          return 'KiwiMaru';
-        case 'HannariMincho':
-          return 'HannariMincho';
-        case 'Harenosora':
-          return 'Harenosora';
-        default:
-          return GoogleFonts.notoSans().fontFamily ?? 'Noto Sans JP';
-      }
-    } catch (e) {
-      // エラーが発生した場合はデフォルトフォントを返す
-      return 'Noto Sans JP';
-    }
+    return FontOptimizer.getFontFamilyWithFallback(fontFamily);
   }
 
   /// 通知からアプリが起動された時の処理
@@ -99,6 +88,9 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Web互換性の初期化
+    _initializeWebCompatibility();
+
     return Consumer<ThemeSettings>(
       builder: (context, themeSettings, child) {
         return MaterialApp(
@@ -251,10 +243,14 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
             ),
           ),
           routes: {
+            // 必須のルート（即座に読み込み）
+            '/group_required': (context) => const GroupRequiredPage(),
+            '/analytics': (context) => HomePage(),
+
             '/roast': (context) => RoastTimerPage(showBackButton: true),
             '/roast_record': (context) => RoastRecordPage(),
             '/roast_record_list': (context) => RoastRecordListPage(),
-            '/roast_analysis': (context) => RoastAnalysisPage(), // 焙煎分析ページ
+            '/roast_analysis': (context) => RoastAnalysisPage(),
             '/drip': (context) => DripCounterPage(),
             '/tasting': (context) => TastingRecordPage(),
             '/work_progress': (context) => WorkProgressPage(),
@@ -465,6 +461,12 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                   style: TextStyle(fontSize: 18),
                   textAlign: TextAlign.center,
                 ),
+                SizedBox(height: 12),
+                Text(
+                  '複数のアカウントをお持ちの場合は、ログイン時にアカウントを選択できます',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
                 SizedBox(height: 24),
                 if (_error != null)
                   Padding(
@@ -473,14 +475,28 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                   ),
                 _loading
                     ? CircularProgressIndicator()
-                    : ElevatedButton.icon(
-                        icon: Image.asset(
-                          'assets/google_logo.png',
-                          width: 24,
-                          height: 24,
-                        ),
-                        label: Text('Googleでログイン'),
-                        onPressed: _signInWithGoogle,
+                    : Column(
+                        children: [
+                          ElevatedButton.icon(
+                            icon: Image.asset(
+                              'assets/google_logo.png',
+                              width: 24,
+                              height: 24,
+                            ),
+                            label: Text('Googleでログイン'),
+                            onPressed: _signInWithGoogle,
+                          ),
+                          SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            icon: Icon(Icons.swap_horiz, size: 24),
+                            label: Text('別のアカウントでログイン'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: _signInWithGoogle,
+                          ),
+                        ],
                       ),
               ],
             ),
@@ -539,14 +555,10 @@ class _PasscodeGateState extends State<PasscodeGate>
         ) ??
         false;
 
-    // 生体認証またはパスコードが設定されているかチェック
+    // パスコードが設定されているかチェック
     bool needsAuth = false;
     if (code != null && isLockEnabled) {
       needsAuth = true;
-    } else {
-      // 生体認証が有効かチェック
-      final biometricEnabled = await BiometricAuthService.isBiometricEnabled();
-      needsAuth = biometricEnabled;
     }
 
     if (needsAuth && _unlocked) {
@@ -566,14 +578,10 @@ class _PasscodeGateState extends State<PasscodeGate>
         ) ??
         false;
 
-    // 生体認証またはパスコードが設定されているかチェック
+    // パスコードが設定されているかチェック
     bool needsAuth = false;
     if (code != null && isLockEnabled) {
       needsAuth = true;
-    } else {
-      // 生体認証が有効かチェック
-      final biometricEnabled = await BiometricAuthService.isBiometricEnabled();
-      needsAuth = biometricEnabled;
     }
 
     if (mounted) {
@@ -599,182 +607,18 @@ class _PasscodeGateState extends State<PasscodeGate>
       return const LoadingScreen(title: 'Loading...');
     }
     if (!_unlocked) {
-      // 生体認証またはパスコード認証画面を表示
-      return BiometricOrPasscodeScreen(
-        onUnlock: _onUnlock,
-        correctPasscode: _passcode,
-      );
+      // パスコードが設定されている場合のみ認証画面を表示
+      if (_passcode != null && _passcode!.isNotEmpty) {
+        return PasscodeInputScreen(
+          onUnlock: _onUnlock,
+          correctPasscode: _passcode!,
+        );
+      } else {
+        // パスコードが設定されていない場合は直接アプリを表示
+        return widget.child;
+      }
     }
     return widget.child;
-  }
-}
-
-class BiometricOrPasscodeScreen extends StatefulWidget {
-  final VoidCallback onUnlock;
-  final String? correctPasscode;
-
-  const BiometricOrPasscodeScreen({
-    required this.onUnlock,
-    this.correctPasscode,
-    super.key,
-  });
-
-  @override
-  State<BiometricOrPasscodeScreen> createState() =>
-      _BiometricOrPasscodeScreenState();
-}
-
-class _BiometricOrPasscodeScreenState extends State<BiometricOrPasscodeScreen> {
-  bool _isLoading = true;
-  bool _biometricEnabled = false;
-  bool _hasPasscode = false;
-  bool _showPasscodeInput = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAuthMethods();
-  }
-
-  Future<void> _checkAuthMethods() async {
-    try {
-      // 生体認証が有効かチェック
-      final biometricEnabled = await BiometricAuthService.isBiometricEnabled();
-      final hasPasscode = widget.correctPasscode != null;
-
-      if (mounted) {
-        setState(() {
-          _biometricEnabled = biometricEnabled;
-          _hasPasscode = hasPasscode;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _authenticateWithBiometric() async {
-    try {
-      final success = await BiometricAuthService.authenticateWithBiometrics(
-        reason: 'アプリにアクセスするために認証してください',
-        fallbackTitle: 'パスコードを使用',
-      );
-
-      if (success) {
-        widget.onUnlock();
-      } else if (_hasPasscode) {
-        // 生体認証が失敗した場合、パスコード入力を表示
-        if (mounted) {
-          setState(() {
-            _showPasscodeInput = true;
-          });
-        }
-      }
-    } catch (e) {
-      if (_hasPasscode) {
-        if (mounted) {
-          setState(() {
-            _showPasscodeInput = true;
-          });
-        }
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const LoadingScreen(title: '認証方法を確認中...');
-    }
-
-    if (_showPasscodeInput && widget.correctPasscode != null) {
-      return PasscodeInputScreen(
-        onUnlock: widget.onUnlock,
-        correctPasscode: widget.correctPasscode!,
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _biometricEnabled ? Icons.fingerprint : Icons.lock,
-                  size: 80,
-                  color: Theme.of(context).primaryColor,
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  _biometricEnabled ? '生体認証' : '認証が必要です',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _biometricEnabled
-                      ? '指紋または顔認証でアプリにアクセスしてください'
-                      : 'パスコードまたは生体認証を設定してください',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 32),
-                if (_biometricEnabled) ...[
-                  ElevatedButton.icon(
-                    onPressed: _authenticateWithBiometric,
-                    icon: const Icon(Icons.fingerprint),
-                    label: const Text('生体認証でロック解除'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-                  if (_hasPasscode) ...[
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _showPasscodeInput = true;
-                        });
-                      },
-                      child: const Text('パスコードを使用'),
-                    ),
-                  ],
-                ] else if (_hasPasscode) ...[
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _showPasscodeInput = true;
-                      });
-                    },
-                    icon: const Icon(Icons.lock),
-                    label: const Text('パスコードでロック解除'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -976,6 +820,8 @@ class MainScaffoldState extends State<MainScaffold> {
   @override
   void initState() {
     super.initState();
+    // Web互換性の初期化
+    _initializeWebCompatibility();
     // 自動同期サービスを初期化
     _initializeAutoSync();
     // Web版では広告を読み込まない

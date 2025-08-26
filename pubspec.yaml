@@ -31,7 +31,7 @@ dependencies:
   flutter_local_notifications: ^19.4.0
   android_intent_plus: ^5.3.1
   package_info_plus: ^8.3.1
-  device_info_plus: ^11.5.0
+  device_info_plus: ^10.1.2
   google_mobile_ads: ^6.0.0
   in_app_purchase: ^3.2.3
   lottie: ^3.1.2
@@ -42,7 +42,6 @@ dependencies:
   flutter_layout_grid: ^2.0.0
   flutter_secure_storage: ^9.2.4
   crypto: ^3.0.3
-  local_auth: ^2.2.0
 
 dev_dependencies:
   flutter_test:
@@ -84,3 +83,4 @@ flutter_launcher_icons:
   image_path: "assets/launcher_icon/icon.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/launcher_icon/icon.png"
+

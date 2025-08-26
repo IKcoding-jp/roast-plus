@@ -15,7 +15,6 @@ class SecureStorageService {
   static const String _keyPasscode = 'app_passcode';
   static const String _keyEncryptionKey = 'encryption_key';
   static const String _keyUserCredentials = 'user_credentials';
-  static const String _keyBiometricEnabled = 'biometric_enabled';
 
   /// アクセストークンを安全に保存
   static Future<void> saveAccessToken(String token) async {
@@ -212,29 +211,6 @@ class SecureStorageService {
     } catch (e) {
       developer.log('セキュアストレージが利用できません: $e', name: _logName);
       return false;
-    }
-  }
-
-  /// 生体認証の有効状態を保存
-  static Future<void> saveBiometricEnabled(bool enabled) async {
-    try {
-      await _storage.write(key: _keyBiometricEnabled, value: enabled.toString());
-      developer.log('生体認証の有効状態を保存しました: $enabled', name: _logName);
-    } catch (e) {
-      developer.log('生体認証の有効状態の保存に失敗しました: $e', name: _logName);
-      rethrow;
-    }
-  }
-
-  /// 生体認証の有効状態を取得
-  static Future<bool?> getBiometricEnabled() async {
-    try {
-      final value = await _storage.read(key: _keyBiometricEnabled);
-      if (value == null) return null;
-      return value == 'true';
-    } catch (e) {
-      developer.log('生体認証の有効状態の取得に失敗しました: $e', name: _logName);
-      return null;
     }
   }
 

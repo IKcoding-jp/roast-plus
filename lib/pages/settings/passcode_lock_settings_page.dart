@@ -76,7 +76,6 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
       await AppSettingsFirestoreService.savePasscodeSettings(
         passcodeEnabled: true,
         passcode: _passcodeController.text,
-        useBiometric: false, // 現状バイオメトリクスは未対応
       );
 
       setState(() {
@@ -116,7 +115,6 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
       await AppSettingsFirestoreService.savePasscodeSettings(
         passcodeEnabled: false,
         passcode: null,
-        useBiometric: false, // 現状バイオメトリクスは未対応
       );
 
       setState(() {

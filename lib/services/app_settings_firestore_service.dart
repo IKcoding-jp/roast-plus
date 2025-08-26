@@ -115,7 +115,6 @@ class AppSettingsFirestoreService {
   static Future<void> savePasscodeSettings({
     required bool passcodeEnabled,
     required String? passcode,
-    required bool useBiometric,
   }) async {
     if (_uid == null) throw Exception('未ログイン');
 
@@ -128,7 +127,6 @@ class AppSettingsFirestoreService {
           .set({
             'passcodeEnabled': passcodeEnabled,
             'passcode': passcode,
-            'useBiometric': useBiometric,
             'savedAt': FieldValue.serverTimestamp(),
           });
 

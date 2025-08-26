@@ -11,6 +11,7 @@ import 'dart:async';
 import '../../services/user_settings_firestore_service.dart';
 import '../../services/group_data_sync_service.dart';
 import '../../utils/permission_utils.dart';
+import '../../utils/web_compatibility.dart';
 import '../../widgets/permission_denied_page.dart';
 import 'dart:developer' as developer;
 
@@ -926,41 +927,72 @@ class DripCounterPageState extends State<DripCounterPage>
                                     children: [
                                       Text(
                                         '$_counter',
-                                        style: TextStyle(
-                                          fontSize: 72,
-                                          fontWeight: FontWeight.w900,
-                                          foreground: Paint()
-                                            ..shader =
-                                                LinearGradient(
-                                                  colors: [
-                                                    themeSettings.fontColor1,
-                                                    themeSettings.fontColor1
+                                        style: WebCompatibility.isWeb
+                                            ? WebCompatibility.createTextStyle(
+                                                fontSize: 72,
+                                                fontWeight: FontWeight.w900,
+                                                color: themeSettings.fontColor1,
+                                                letterSpacing: 2,
+                                                fontFamily: 'Arial',
+                                                shadows: [
+                                                  WebCompatibility.createShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.1),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(2, 2),
+                                                  ),
+                                                  WebCompatibility.createShadow(
+                                                    color: Colors.white
+                                                        .withOpacity(0.8),
+                                                    blurRadius: 2,
+                                                    offset: const Offset(0, 1),
+                                                  ),
+                                                ],
+                                              )
+                                            : TextStyle(
+                                                fontSize: 72,
+                                                fontWeight: FontWeight.w900,
+                                                foreground: Paint()
+                                                  ..shader =
+                                                      LinearGradient(
+                                                        colors: [
+                                                          themeSettings
+                                                              .fontColor1,
+                                                          themeSettings
+                                                              .fontColor1
+                                                              .withValues(
+                                                                alpha: 0.8,
+                                                              ),
+                                                        ],
+                                                        begin:
+                                                            Alignment.topCenter,
+                                                        end: Alignment
+                                                            .bottomCenter,
+                                                      ).createShader(
+                                                        Rect.fromLTWH(
+                                                          0,
+                                                          0,
+                                                          200,
+                                                          72,
+                                                        ),
+                                                      ),
+                                                letterSpacing: 2,
+                                                fontFamily: 'Arial',
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.black
+                                                        .withValues(alpha: 0.1),
+                                                    blurRadius: 8,
+                                                    offset: Offset(2, 2),
+                                                  ),
+                                                  Shadow(
+                                                    color: Colors.white
                                                         .withValues(alpha: 0.8),
-                                                  ],
-                                                  begin: Alignment.topCenter,
-                                                  end: Alignment.bottomCenter,
-                                                ).createShader(
-                                                  Rect.fromLTWH(0, 0, 200, 72),
-                                                ),
-                                          letterSpacing: 2,
-                                          fontFamily: 'Arial',
-                                          shadows: [
-                                            Shadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.1,
+                                                    blurRadius: 2,
+                                                    offset: Offset(0, 1),
+                                                  ),
+                                                ],
                                               ),
-                                              blurRadius: 8,
-                                              offset: Offset(2, 2),
-                                            ),
-                                            Shadow(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.8,
-                                              ),
-                                              blurRadius: 2,
-                                              offset: Offset(0, 1),
-                                            ),
-                                          ],
-                                        ),
                                       ),
                                       SizedBox(height: 4),
                                       Text(
@@ -1231,49 +1263,83 @@ class DripCounterPageState extends State<DripCounterPage>
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: 120,
-                                              fontWeight: FontWeight.w900,
-                                              foreground: Paint()
-                                                ..shader =
-                                                    LinearGradient(
-                                                      colors: [
-                                                        themeSettings
-                                                            .fontColor1,
-                                                        themeSettings.fontColor1
+                                            style: WebCompatibility.isWeb
+                                                ? WebCompatibility.createTextStyle(
+                                                    fontSize: 120,
+                                                    fontWeight: FontWeight.w900,
+                                                    color: themeSettings
+                                                        .fontColor1,
+                                                    letterSpacing: 2,
+                                                    fontFamily: 'Arial',
+                                                    shadows: [
+                                                      WebCompatibility.createShadow(
+                                                        color: Colors.black
+                                                            .withOpacity(0.1),
+                                                        blurRadius: 8,
+                                                        offset: const Offset(
+                                                          2,
+                                                          2,
+                                                        ),
+                                                      ),
+                                                      WebCompatibility.createShadow(
+                                                        color: Colors.white
+                                                            .withOpacity(0.8),
+                                                        blurRadius: 2,
+                                                        offset: const Offset(
+                                                          0,
+                                                          1,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : TextStyle(
+                                                    fontSize: 120,
+                                                    fontWeight: FontWeight.w900,
+                                                    foreground: Paint()
+                                                      ..shader =
+                                                          LinearGradient(
+                                                            colors: [
+                                                              themeSettings
+                                                                  .fontColor1,
+                                                              themeSettings
+                                                                  .fontColor1
+                                                                  .withValues(
+                                                                    alpha: 0.8,
+                                                                  ),
+                                                            ],
+                                                            begin: Alignment
+                                                                .topCenter,
+                                                            end: Alignment
+                                                                .bottomCenter,
+                                                          ).createShader(
+                                                            Rect.fromLTWH(
+                                                              0,
+                                                              0,
+                                                              200,
+                                                              120,
+                                                            ),
+                                                          ),
+                                                    letterSpacing: 2,
+                                                    fontFamily: 'Arial',
+                                                    shadows: [
+                                                      Shadow(
+                                                        color: Colors.black
+                                                            .withValues(
+                                                              alpha: 0.1,
+                                                            ),
+                                                        blurRadius: 8,
+                                                        offset: Offset(2, 2),
+                                                      ),
+                                                      Shadow(
+                                                        color: Colors.white
                                                             .withValues(
                                                               alpha: 0.8,
                                                             ),
-                                                      ],
-                                                      begin:
-                                                          Alignment.topCenter,
-                                                      end: Alignment
-                                                          .bottomCenter,
-                                                    ).createShader(
-                                                      Rect.fromLTWH(
-                                                        0,
-                                                        0,
-                                                        200,
-                                                        120,
+                                                        blurRadius: 2,
+                                                        offset: Offset(0, 1),
                                                       ),
-                                                    ),
-                                              letterSpacing: 2,
-                                              fontFamily: 'Arial',
-                                              shadows: [
-                                                Shadow(
-                                                  color: Colors.black
-                                                      .withValues(alpha: 0.1),
-                                                  blurRadius: 8,
-                                                  offset: Offset(2, 2),
-                                                ),
-                                                Shadow(
-                                                  color: Colors.white
-                                                      .withValues(alpha: 0.8),
-                                                  blurRadius: 2,
-                                                  offset: Offset(0, 1),
-                                                ),
-                                              ],
-                                            ),
+                                                    ],
+                                                  ),
                                           ),
                                         ],
                                       ),
