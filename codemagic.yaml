@@ -133,16 +133,74 @@ workflows:
         script: |
           echo "iOSアプリをアーカイブ中..."
           cd ios
-          xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath build/Runner.xcarchive archive
+          
+          # アーカイブ前の確認
+          echo "プロジェクト設定を確認中..."
+          if [ ! -f "Runner.xcworkspace" ]; then
+            echo "❌ エラー: Runner.xcworkspaceが見つかりません"
+            exit 1
+          fi
+          
+          # アーカイブを実行
+          echo "xcodebuildでアーカイブを実行中..."
+          if xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination generic/platform=iOS \
+            -archivePath build/Runner.xcarchive \
+            archive; then
+            echo "✅ アーカイブが完了しました"
+          else
+            echo "❌ アーカイブに失敗しました"
+            exit 1
+          fi
+          
           cd ..
           echo "iOSアプリのアーカイブが完了しました"
       - name: Export IPA
         script: |
           echo "IPAファイルをエクスポート中..."
           cd ios
-          xcodebuild -exportArchive -archivePath build/Runner.xcarchive -exportPath build/ios -exportOptionsPlist exportOptions.plist
+          
+          # エクスポートオプションファイルの確認
+          if [ ! -f "exportOptions.plist" ]; then
+            echo "❌ エラー: exportOptions.plistが見つかりません"
+            exit 1
+          fi
+          
+          # アーカイブディレクトリの確認
+          if [ ! -d "build/Runner.xcarchive" ]; then
+            echo "❌ エラー: Runner.xcarchiveが見つかりません"
+            echo "生成されたファイルを確認中..."
+            ls -la build/
+            exit 1
+          fi
+          
+          # IPAファイルをエクスポート
+          echo "xcodebuildでIPAファイルをエクスポート中..."
+          if xcodebuild -exportArchive \
+            -archivePath build/Runner.xcarchive \
+            -exportPath build/ios \
+            -exportOptionsPlist exportOptions.plist; then
+            echo "✅ IPAファイルのエクスポートが完了しました"
+          else
+            echo "❌ IPAファイルのエクスポートに失敗しました"
+            exit 1
+          fi
+          
           cd ..
-          echo "IPAファイルのエクスポートが完了しました"
+          
+          # 生成されたファイルを確認
+          echo "生成されたファイルを確認中..."
+          if [ -f "ios/build/ios/Runner.ipa" ]; then
+            echo "✅ IPAファイルが正常に生成されました"
+            ls -lh ios/build/ios/Runner.ipa
+          else
+            echo "❌ IPAファイルが生成されませんでした"
+            echo "生成されたファイル:"
+            find ios/build -name "*.ipa" -type f
+            exit 1
+          fi
     artifacts:
       - build/ios/iphoneos/*.app
       - build/ios/*.ipa
@@ -241,7 +299,28 @@ workflows:
         script: |
           echo "iOSアプリをアーカイブ中..."
           cd ios
-          xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath build/Runner.xcarchive archive
+          
+          # アーカイブ前の確認
+          echo "プロジェクト設定を確認中..."
+          if [ ! -f "Runner.xcworkspace" ]; then
+            echo "❌ エラー: Runner.xcworkspaceが見つかりません"
+            exit 1
+          fi
+          
+          # アーカイブを実行
+          echo "xcodebuildでアーカイブを実行中..."
+          if xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination generic/platform=iOS \
+            -archivePath build/Runner.xcarchive \
+            archive; then
+            echo "✅ アーカイブが完了しました"
+          else
+            echo "❌ アーカイブに失敗しました"
+            exit 1
+          fi
+          
           cd ..
           echo "iOSアプリのアーカイブが完了しました"
       - name: Export IPA
