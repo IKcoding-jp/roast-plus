@@ -68,8 +68,20 @@
 		</dict>
 		<key>NSMinimumTLSVersion</key>
 		<string>TLSv1.2</string>
-		<key>NSRequiresCertificateTransparency</key>
-		<true/>
-	</dict>
+			<key>NSRequiresCertificateTransparency</key>
+	<true/>
+</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>カメラを使用してQRコードをスキャンし、画像を撮影します。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>写真ライブラリから画像を選択します。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>音声録音機能を使用します。</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>位置情報を使用してサービスを提供します。</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face IDを使用してアプリにログインします。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>ローカルネットワークに接続してサービスを提供します。</string>
 </dict>
 </plist>
