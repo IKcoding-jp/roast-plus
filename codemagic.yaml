@@ -108,20 +108,34 @@ workflows:
           echo "証明書をキーチェーンにインポート中..."
           security import /tmp/certificate.p12 -k build.keychain -P $CM_CERTIFICATE_PASSWORD -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-          
+
           # プロビジョニングプロファイルをインストール
           echo "プロビジョニングプロファイルをインストール中..."
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-          
+          # プロビジョニングプロファイルのUUIDを取得
+          PROFILE_UUID=$(security cms -D -i /tmp/profile.mobileprovision | grep -a1 "<key>UUID</key>" | tail -1 | sed 's/.*<string>//;s/<\/string>//')
+          if [ -n "$PROFILE_UUID" ]; then
+            echo "プロビジョニングプロファイルUUID: $PROFILE_UUID"
+            cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+          else
+            echo "警告: プロビジョニングプロファイルからUUIDを取得できませんでした。通常のファイル名を使用します"
+            cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          fi
+
           # Bundle IDを更新
           echo "Bundle IDを更新中: $CM_BUNDLE_ID"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CM_BUNDLE_ID" ios/Runner/Info.plist
-          
+
           # プロジェクト設定を更新
           echo "プロジェクト設定を更新中..."
+          echo "現在のBundle ID設定を確認..."
+          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj || echo "PRODUCT_BUNDLE_IDENTIFIERが見つかりません"
+
           sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = ".*";/PRODUCT_BUNDLE_IDENTIFIER = "'$CM_BUNDLE_ID'";/' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "'$CM_TEAM_ID'";/' ios/Runner.xcodeproj/project.pbxproj
+
+          echo "更新後のBundle ID設定を確認..."
+          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj | head -3
           
           echo "コード署名設定が完了しました"
       - name: Build iOS (release)
@@ -150,6 +164,7 @@ workflows:
             -configuration Release \
             -destination generic/platform=iOS \
             -archivePath build/Runner.xcarchive \
+            -allowProvisioningUpdates \
             archive; then
             echo "✅ アーカイブが完了しました"
           else
@@ -276,20 +291,34 @@ workflows:
           echo "証明書をキーチェーンにインポート中..."
           security import /tmp/certificate.p12 -k build.keychain -P $CM_CERTIFICATE_PASSWORD -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-          
+
           # プロビジョニングプロファイルをインストール
           echo "プロビジョニングプロファイルをインストール中..."
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-          
+          # プロビジョニングプロファイルのUUIDを取得
+          PROFILE_UUID=$(security cms -D -i /tmp/profile.mobileprovision | grep -a1 "<key>UUID</key>" | tail -1 | sed 's/.*<string>//;s/<\/string>//')
+          if [ -n "$PROFILE_UUID" ]; then
+            echo "プロビジョニングプロファイルUUID: $PROFILE_UUID"
+            cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+          else
+            echo "警告: プロビジョニングプロファイルからUUIDを取得できませんでした。通常のファイル名を使用します"
+            cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          fi
+
           # Bundle IDを更新
           echo "Bundle IDを更新中: $CM_BUNDLE_ID"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CM_BUNDLE_ID" ios/Runner/Info.plist
-          
+
           # プロジェクト設定を更新
           echo "プロジェクト設定を更新中..."
+          echo "現在のBundle ID設定を確認..."
+          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj || echo "PRODUCT_BUNDLE_IDENTIFIERが見つかりません"
+
           sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = ".*";/PRODUCT_BUNDLE_IDENTIFIER = "'$CM_BUNDLE_ID'";/' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "'$CM_TEAM_ID'";/' ios/Runner.xcodeproj/project.pbxproj
+
+          echo "更新後のBundle ID設定を確認..."
+          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj | head -3
           
           echo "コード署名設定が完了しました"
       - name: Build iOS (release)
@@ -318,6 +347,7 @@ workflows:
             -configuration Release \
             -destination generic/platform=iOS \
             -archivePath build/Runner.xcarchive \
+            -allowProvisioningUpdates \
             archive; then
             echo "✅ アーカイブが完了しました"
           else
