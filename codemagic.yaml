@@ -255,8 +255,8 @@ workflows:
             exit 1
           fi
           
-          # アーカイブファイルの確認
-          if [ ! -f "build/Runner.xcarchive" ]; then
+          # アーカイブディレクトリの確認
+          if [ ! -d "build/Runner.xcarchive" ]; then
             echo "❌ エラー: Runner.xcarchiveが見つかりません"
             exit 1
           fi
