@@ -61,7 +61,7 @@ workflows:
         CM_CERTIFICATE: ${{ secrets.CM_CERTIFICATE }}
         CM_CERTIFICATE_PASSWORD: ${{ secrets.CM_CERTIFICATE_PASSWORD }}
         CM_PROVISIONING_PROFILE: ${{ secrets.CM_PROVISIONING_PROFILE }}
-        CM_BUNDLE_ID: "com.yourcompany.roastplus"
+        CM_BUNDLE_ID: "com.example.roastplus"
         CM_TEAM_ID: ${{ secrets.CM_TEAM_ID }}
     cache:
       cache_paths:
@@ -143,6 +143,148 @@ workflows:
           xcodebuild -exportArchive -archivePath build/Runner.xcarchive -exportPath build/ios -exportOptionsPlist exportOptions.plist
           cd ..
           echo "IPAファイルのエクスポートが完了しました"
+    artifacts:
+      - build/ios/iphoneos/*.app
+      - build/ios/*.ipa
+      - build/ios/**/*.xcarchive
+      - build/**/xcresults/**/*.xcresult
+
+  ios_appstore:
+    name: iOS App Store
+    max_build_duration: 150
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: 15.4
+      vars:
+        COCOAPODS_DISABLE_STATS: 'true'
+        LC_ALL: en_US.UTF-8
+        LANG: en_US.UTF-8
+        # iOS署名用の環境変数（Codemagicで設定）
+        CM_CERTIFICATE: ${{ secrets.CM_CERTIFICATE }}
+        CM_CERTIFICATE_PASSWORD: ${{ secrets.CM_CERTIFICATE_PASSWORD }}
+        CM_PROVISIONING_PROFILE: ${{ secrets.CM_PROVISIONING_PROFILE }}
+        CM_BUNDLE_ID: "com.example.roastplus"
+        CM_TEAM_ID: ${{ secrets.CM_TEAM_ID }}
+        # App Store Connect用の環境変数
+        APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+        APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        APP_STORE_CONNECT_APP_ID: ${{ secrets.APP_STORE_CONNECT_APP_ID }}
+    cache:
+      cache_paths:
+        - "$HOME/Library/Caches/CocoaPods"
+        - "$HOME/.cocoapods/repo"
+        - "$FLUTTER_ROOT/.pub-cache"
+        - "ios/Pods"
+    scripts:
+      - name: Flutter deps
+        script: |
+          echo "Flutterバージョンを確認中..."
+          flutter --version
+          echo "Flutterプロジェクトをクリーン中..."
+          flutter clean
+          echo "Flutter依存関係を取得中..."
+          flutter pub get
+      - name: Prepare CocoaPods
+        script: |
+          echo "CocoaPodsの準備中..."
+          cd ios
+          echo "既存のPodfile.lockとPodsを削除中..."
+          rm -rf Podfile.lock Pods
+          echo "CocoaPodsリポジトリを更新中..."
+          pod repo update
+          echo "CocoaPodsをインストール中..."
+          pod install --repo-update --verbose
+          cd ..
+      - name: Set up code signing settings
+        script: |
+          echo "コード署名設定を開始..."
+          
+          # 証明書とプロビジョニングプロファイルを設定
+          echo "証明書をデコード中..."
+          echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
+          echo "プロビジョニングプロファイルをデコード中..."
+          echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/profile.mobileprovision
+          
+          # キーチェーンに証明書を追加
+          echo "キーチェーンを作成中..."
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -l ~/Library/Keychains/build.keychain
+          echo "証明書をキーチェーンにインポート中..."
+          security import /tmp/certificate.p12 -k build.keychain -P $CM_CERTIFICATE_PASSWORD -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          
+          # プロビジョニングプロファイルをインストール
+          echo "プロビジョニングプロファイルをインストール中..."
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          
+          # Bundle IDを更新
+          echo "Bundle IDを更新中: $CM_BUNDLE_ID"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CM_BUNDLE_ID" ios/Runner/Info.plist
+          
+          # プロジェクト設定を更新
+          echo "プロジェクト設定を更新中..."
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = ".*";/PRODUCT_BUNDLE_IDENTIFIER = "'$CM_BUNDLE_ID'";/' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "'$CM_TEAM_ID'";/' ios/Runner.xcodeproj/project.pbxproj
+          
+          echo "コード署名設定が完了しました"
+      - name: Build iOS (release)
+        script: |
+          echo "iOSリリースビルドを開始..."
+          flutter build ios --release --no-codesign
+          echo "iOSリリースビルドが完了しました"
+      - name: Archive iOS app
+        script: |
+          echo "iOSアプリをアーカイブ中..."
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Release -destination generic/platform=iOS -archivePath build/Runner.xcarchive archive
+          cd ..
+          echo "iOSアプリのアーカイブが完了しました"
+      - name: Export IPA
+        script: |
+          echo "IPAファイルをエクスポート中..."
+          cd ios
+          xcodebuild -exportArchive -archivePath build/Runner.xcarchive -exportPath build/ios -exportOptionsPlist exportOptions.plist
+          cd ..
+          echo "IPAファイルのエクスポートが完了しました"
+      - name: Upload to App Store Connect
+        script: |
+          echo "App Store Connectへのアップロードを開始..."
+          
+          # App Store Connect APIキーを設定
+          echo "App Store Connect APIキーを設定中..."
+          echo $APP_STORE_CONNECT_API_KEY | base64 --decode > /tmp/AuthKey.p8
+          
+          # アップロード前の確認
+          echo "IPAファイルの存在確認中..."
+          if [ ! -f "ios/build/ios/Runner.ipa" ]; then
+            echo "エラー: IPAファイルが見つかりません"
+            exit 1
+          fi
+          
+          echo "IPAファイルサイズ: $(ls -lh ios/build/ios/Runner.ipa | awk '{print $5}')"
+          
+          # xcrun altoolを使用してアップロード
+          echo "App Store Connectにアップロード中..."
+          xcrun altool --upload-app \
+            --type ios \
+            --file "ios/build/ios/Runner.ipa" \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            --verbose
+          
+          # アップロード結果の確認
+          if [ $? -eq 0 ]; then
+            echo "✅ App Store Connectへのアップロードが成功しました"
+            echo "📱 App Store Connectでアプリの審査状況を確認してください"
+          else
+            echo "❌ App Store Connectへのアップロードが失敗しました"
+            exit 1
+          fi
     artifacts:
       - build/ios/iphoneos/*.app
       - build/ios/*.ipa

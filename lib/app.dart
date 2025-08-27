@@ -461,12 +461,6 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                   style: TextStyle(fontSize: 18),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 12),
-                Text(
-                  '複数のアカウントをお持ちの場合は、ログイン時にアカウントを選択できます',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                  textAlign: TextAlign.center,
-                ),
                 SizedBox(height: 24),
                 if (_error != null)
                   Padding(
@@ -475,28 +469,14 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                   ),
                 _loading
                     ? CircularProgressIndicator()
-                    : Column(
-                        children: [
-                          ElevatedButton.icon(
-                            icon: Image.asset(
-                              'assets/google_logo.png',
-                              width: 24,
-                              height: 24,
-                            ),
-                            label: Text('Googleでログイン'),
-                            onPressed: _signInWithGoogle,
-                          ),
-                          SizedBox(height: 12),
-                          ElevatedButton.icon(
-                            icon: Icon(Icons.swap_horiz, size: 24),
-                            label: Text('別のアカウントでログイン'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: _signInWithGoogle,
-                          ),
-                        ],
+                    : ElevatedButton.icon(
+                        icon: Image.asset(
+                          'assets/google_logo.png',
+                          width: 24,
+                          height: 24,
+                        ),
+                        label: Text('Googleでログイン'),
+                        onPressed: _signInWithGoogle,
                       ),
               ],
             ),

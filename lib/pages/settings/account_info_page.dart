@@ -205,53 +205,6 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
     }
   }
 
-  Future<void> _signInWithDifferentAccount() async {
-    if (mounted) setState(() => _loading = true);
-    try {
-      final userCredential =
-          await SecureAuthService.signInWithDifferentAccount();
-      if (userCredential == null) {
-        // キャンセル時
-        if (!mounted) return;
-        setState(() => _loading = false);
-        return;
-      }
-
-      final user = userCredential.user;
-      if (user != null) {
-        // ユーザー情報を更新
-        if (!mounted) return;
-        setState(() {
-          _userName = user.displayName ?? user.email;
-          _userEmail = user.email;
-          _loginProvider = 'Google';
-          _userPhotoUrl = user.photoURL;
-          _loading = false;
-        });
-
-        // サインイン直後にFirestore同期
-        await syncAllFirestoreData(context);
-        if (!mounted) return;
-        setState(() {});
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          setState(() {});
-        });
-
-        // セキュリティイベントを記録
-        await SecureAuthService.logSecurityEvent(
-          'account_info_different_account_login_success',
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('別のアカウントでのログイン失敗: $e')));
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -423,38 +376,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 16),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    icon: Icon(
-                                      Icons.swap_horiz,
-                                      color:
-                                          Theme.of(context)
-                                              .elevatedButtonTheme
-                                              .style
-                                              ?.foregroundColor
-                                              ?.resolve({}) ??
-                                          Colors.white,
-                                    ),
-                                    label: Text('別のアカウントでログイン'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.orange,
-                                      foregroundColor: Colors.white,
-                                      elevation: 2,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                    ),
-                                    onPressed: _loading
-                                        ? null
-                                        : _signInWithDifferentAccount,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
+                                SizedBox(height: 24),
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
@@ -722,7 +644,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                       'assets/google_logo.png',
                                       height: 24,
                                     ),
-                                    label: Text('Googleでログイン（アカウント選択可）'),
+                                    label: Text('Googleでログイン'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.white,
                                       foregroundColor:
@@ -747,15 +669,6 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                         ? null
                                         : _signInWithGoogle,
                                   ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  '複数のGoogleアカウントをお持ちの場合は、ログイン時にアカウントを選択できます',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                  textAlign: TextAlign.center,
                                 ),
                               ],
                             ],

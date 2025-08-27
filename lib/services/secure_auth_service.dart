@@ -268,12 +268,10 @@ class SecureAuthService {
     try {
       developer.log('アカウント選択を強制したGoogleサインインを開始', name: _logName);
 
-      // モバイル版では既存セッションをクリアしてアカウント選択を強制
-      if (!kIsWeb) {
-        developer.log('モバイル版: 既存セッションをクリアしてアカウント選択を強制', name: _logName);
-        await _auth.signOut();
-        await SecureStorageService.clearAllSecureData();
-      }
+      // 毎回アカウント選択を強制するため、既存セッションをクリア
+      developer.log('既存セッションをクリアしてアカウント選択を強制', name: _logName);
+      await _auth.signOut();
+      await SecureStorageService.clearAllSecureData();
 
       final provider = GoogleAuthProvider();
       provider.setCustomParameters({'prompt': 'select_account'});
@@ -309,25 +307,6 @@ class SecureAuthService {
       developer.log('Googleサインイン状態のリセットが完了', name: _logName);
     } catch (e) {
       developer.log('Googleサインイン状態のリセットでエラーが発生: $e', name: _logName);
-    }
-  }
-
-  /// 別のアカウントでログイン（アカウント選択を強制）
-  static Future<UserCredential?> signInWithDifferentAccount() async {
-    try {
-      developer.log('別のアカウントでのログインを開始', name: _logName);
-
-      // 既存セッションを完全にクリア
-      await _auth.signOut();
-      await SecureStorageService.clearAllSecureData();
-
-      // 少し待機してから新しいログインを開始
-      await Future.delayed(Duration(milliseconds: 500));
-
-      return await signInWithGoogleForceAccountSelection();
-    } catch (e) {
-      developer.log('別のアカウントでのログインでエラー: $e', name: _logName);
-      throw Exception('別のアカウントでのログインエラー: $e');
     }
   }
 
