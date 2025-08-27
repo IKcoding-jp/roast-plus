@@ -136,8 +136,10 @@ workflows:
           
           # アーカイブ前の確認
           echo "プロジェクト設定を確認中..."
-          if [ ! -f "Runner.xcworkspace" ]; then
+          if [ ! -d "Runner.xcworkspace" ]; then
             echo "❌ エラー: Runner.xcworkspaceが見つかりません"
+            echo "現在のディレクトリ内容:"
+            ls -la
             exit 1
           fi
           
@@ -302,8 +304,10 @@ workflows:
           
           # アーカイブ前の確認
           echo "プロジェクト設定を確認中..."
-          if [ ! -f "Runner.xcworkspace" ]; then
+          if [ ! -d "Runner.xcworkspace" ]; then
             echo "❌ エラー: Runner.xcworkspaceが見つかりません"
+            echo "現在のディレクトリ内容:"
+            ls -la
             exit 1
           fi
           
