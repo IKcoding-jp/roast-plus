@@ -2296,8 +2296,23 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               user!.photoURL!.isNotEmpty) {
             profileImageUrl = user?.photoURL;
           }
+<<<<<<< HEAD
           // 他のメンバーの場合は、photoUrlが保存されていない場合はデフォルトアイコンを使用
           // Googleプロフィール画像のURLは動的に生成できないため、保存されたphotoUrlのみを使用
+=======
+          // 他のメンバーの場合、Googleプロフィール画像のURLを推測
+          else if (member.email.contains('@gmail.com') ||
+              member.email.contains('@googlemail.com')) {
+            // Gmailアカウントの場合、Googleプロフィール画像のURLを構築
+            final emailHash = member.email.toLowerCase().trim();
+            // 複数のプロフィール画像ソースを試す
+            final gravatarUrl =
+                'https://www.gravatar.com/avatar/${emailHash.hashCode.toRadixString(16)}?d=404&s=200';
+            final googleUrl =
+                'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
+            profileImageUrl = gravatarUrl; // まずGravatarを試す
+          }
+>>>>>>> b80f158cd675a243c0c1512ca367e11a1297ad4a
 
           // デバッグログを追加
           developer.log(
@@ -2336,7 +2351,55 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                               height: 40,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
+<<<<<<< HEAD
                                 // 画像読み込みエラー時はデフォルトアイコンを表示
+=======
+                                // 画像読み込みエラー時、Gmailアカウントの場合はGoogleプロフィール画像を試す
+                                if (member.email.contains('@gmail.com') ||
+                                    member.email.contains('@googlemail.com')) {
+                                  final emailHash = member.email
+                                      .toLowerCase()
+                                      .trim();
+                                  final googleUrl =
+                                      'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
+                                  return ClipOval(
+                                    child: Image.network(
+                                      googleUrl,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error2, stackTrace2) {
+                                            // Googleプロフィール画像も失敗した場合はデフォルトアイコンを表示
+                                            return Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: roleColor.withValues(
+                                                  alpha: 0.1,
+                                                ),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  member.displayName.isNotEmpty
+                                                      ? member.displayName[0]
+                                                            .toUpperCase()
+                                                      : '?',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: roleColor,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                    ),
+                                  );
+                                }
+                                // Gmailアカウントでない場合はデフォルトアイコンを表示
+>>>>>>> b80f158cd675a243c0c1512ca367e11a1297ad4a
                                 return Container(
                                   width: 40,
                                   height: 40,
