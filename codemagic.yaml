@@ -14,29 +14,8 @@ workflows:
         PROVISIONING_PROFILE_SPECIFIER: "RoastPlus ios_app_development 1756620590"
         CODE_SIGN_IDENTITY: "iPhone Developer"
         DEVELOPMENT_TEAM: "MC82QDYNZR"
-      flutter_config: "--debug"
-      xcode_config: "Debug"
       groups:
         - app_store_credentials
-      secrets:
-        - key: app_store_connect_api_key_id
-          group: app_store_credentials
-        - key: app_store_connect_api_key_issuer_id
-          group: app_store_credentials
-        - key: app_store_connect_api_key
-          group: app_store_credentials
-        - key: certificate_password
-          group: app_store_credentials
-        - key: bundle_identifier
-          group: app_store_credentials
-        - key: team_id
-          group: app_store_credentials
-        - key: provisioning_profile_specifier
-          group: app_store_credentials
-        - key: code_sign_identity
-          group: app_store_credentials
-        - key: development_team
-          group: app_store_credentials
     scripts:
       - name: Set up code signing settings
         script: |
