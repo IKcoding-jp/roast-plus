@@ -87,6 +87,9 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     debugPrint('AssignmentBoard: グループデータとローカルデータをマージ開始');
     debugPrint('AssignmentBoard: 受信データ: $groupAssignmentData');
 
+    // グループメンバーの有効性をチェックしてクリーンアップ
+    await _cleanupInvalidMembers();
+
     // 今日の担当が既に決定されているかチェック
     final today = _todayKey();
     final todayAssignedPairs = await UserSettingsFirestoreService.getSetting(
@@ -186,6 +189,120 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     debugPrint(
       'AssignmentBoard: マージ完了 - teams: ${teams.length}, leftLabels: $leftLabels, rightLabels: $rightLabels, hasTodayAssignment: $hasTodayAssignment',
     );
+  }
+
+  /// 無効なメンバーをクリーンアップ
+  Future<void> _cleanupInvalidMembers() async {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (!groupProvider.hasGroup) return;
+
+      // 有効なグループメンバー名のリストを作成
+      final validMemberNames = groupProvider.currentGroup!.members
+          .map((m) => m.displayName)
+          .toSet();
+
+      bool hasChanges = false;
+      List<Team> cleanedTeams = [];
+
+      for (final team in teams) {
+        final validMembers = <String>[];
+
+        for (final memberName in team.members) {
+          if (validMemberNames.contains(memberName)) {
+            validMembers.add(memberName);
+          } else {
+            hasChanges = true;
+            debugPrint('AssignmentBoard: 無効なメンバー名を削除: $memberName');
+          }
+        }
+
+        cleanedTeams.add(team.copyWith(members: validMembers));
+      }
+
+      if (hasChanges) {
+        setState(() {
+          teams = cleanedTeams;
+        });
+        debugPrint('AssignmentBoard: メンバーデータのクリーンアップ完了');
+
+        // クリーンアップ後のデータを保存
+        await _updateLocalData();
+      }
+    } catch (e) {
+      debugPrint('AssignmentBoard: メンバークリーンアップエラー: $e');
+    }
+  }
+
+  /// 強制クリーンアップ（古いデータを完全に削除）
+  Future<void> _forceCleanupAllOldData() async {
+    try {
+      debugPrint('AssignmentBoard: 強制クリーンアップ開始');
+
+      final groupProvider = context.read<GroupProvider>();
+      if (!groupProvider.hasGroup) return;
+
+      // 有効なグループメンバー名のリストを作成
+      final validMemberNames = groupProvider.currentGroup!.members
+          .map((m) => m.displayName)
+          .toSet();
+
+      bool hasChanges = false;
+      List<Team> cleanedTeams = [];
+
+      for (final team in teams) {
+        final validMembers = <String>[];
+
+        for (final memberName in team.members) {
+          if (validMemberNames.contains(memberName)) {
+            validMembers.add(memberName);
+          } else {
+            hasChanges = true;
+            debugPrint('AssignmentBoard: 強制クリーンアップ: 無効なメンバー名を削除: $memberName');
+          }
+        }
+
+        cleanedTeams.add(team.copyWith(members: validMembers));
+      }
+
+      if (hasChanges) {
+        setState(() {
+          teams = cleanedTeams;
+        });
+        debugPrint('AssignmentBoard: 強制クリーンアップ完了');
+
+        // クリーンアップ後のデータを保存
+        await _updateLocalData();
+
+        // Firestoreにも保存
+        try {
+          final teamsJson = jsonEncode(
+            teams.map((team) => team.toMap()).toList(),
+          );
+          await UserSettingsFirestoreService.saveMultipleSettings({
+            'teams': teamsJson,
+            'leftLabels': leftLabels,
+            'rightLabels': rightLabels,
+          });
+
+          // 後方互換性のため、最初の2つの班をA班、B班としても保存
+          if (teams.isNotEmpty) {
+            await UserSettingsFirestoreService.saveMultipleSettings({
+              'assignment_team_a': teams[0].members,
+              'assignment_team_b': teams.length > 1 ? teams[1].members : [],
+            });
+          }
+
+          debugPrint('AssignmentBoard: Firestoreデータ更新完了');
+        } catch (e) {
+          debugPrint('AssignmentBoard: Firestoreデータ更新エラー: $e');
+        }
+      } else {
+        debugPrint('AssignmentBoard: 強制クリーンアップ: 変更なし');
+      }
+    } catch (e) {
+      debugPrint('AssignmentBoard: 強制クリーンアップエラー: $e');
+    }
   }
 
   /// ローカルデータを更新
@@ -322,6 +439,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     // 初期権限チェックを実行
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkEditPermission();
+    });
+
+    // 初期化後に強制クリーンアップを実行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _forceCleanupAllOldData();
     });
   }
 
@@ -644,6 +766,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
               // グループデータが利用可能になった場合、ローカルデータとマージ
               // ただし、今日の担当が決定済みの場合は基本構成での上書きを防ぐ
               _mergeGroupDataWithLocal(groupAssignmentData);
+
+              // グループデータ受信後にクリーンアップを実行
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _forceCleanupAllOldData();
+              });
             } else {
               debugPrint('AssignmentBoard: グループ担当表データが空です - ローカルデータを維持');
               // グループデータが空の場合は、ローカルデータを維持
@@ -1624,6 +1751,17 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                   );
                 },
               ),
+              if (groupProvider.hasGroup)
+                IconButton(
+                  icon: Icon(Icons.delete_sweep),
+                  tooltip: '強制クリーンアップ（古いデータ完全削除）',
+                  onPressed: () async {
+                    await _forceCleanupAllOldData();
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('強制クリーンアップを実行しました')));
+                  },
+                ),
               if (_canEditAssignment == true)
                 IconButton(
                   icon: Icon(Icons.settings),

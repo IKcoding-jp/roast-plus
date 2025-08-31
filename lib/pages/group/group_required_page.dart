@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import 'group_create_page.dart';
-import 'group_invitations_page.dart';
+import 'group_qr_scanner_page.dart';
 
 class GroupRequiredPage extends StatelessWidget {
   const GroupRequiredPage({super.key});
@@ -127,7 +127,7 @@ class GroupRequiredPage extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              // 招待を受ける
+              // QRコードを読み取る
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -135,13 +135,13 @@ class GroupRequiredPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const GroupInvitationsPage(),
+                        builder: (context) => const GroupQRScannerPage(),
                       ),
                     );
                   },
-                  icon: Icon(Icons.mail_outline, size: 22),
+                  icon: Icon(Icons.qr_code_scanner, size: 22),
                   label: Text(
-                    '招待を受ける',
+                    'QRコードを読み取る',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                   style: OutlinedButton.styleFrom(

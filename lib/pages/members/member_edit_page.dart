@@ -46,6 +46,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _cleanupTeamData();
     });
+
+    // 初期化後に強制クリーンアップを実行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _forceCleanupOldData();
+    });
   }
 
   /// グループメンバーを読み込み
@@ -454,6 +459,59 @@ class _MemberEditPageState extends State<MemberEditPage> {
     if (hasChanges) {
       setState(() {});
       developer.log('班データのクリーンアップ完了', name: 'MemberEditPage');
+
+      // クリーンアップ後にデータを保存
+      _saveMembers();
+    }
+  }
+
+  /// 強制クリーンアップ（古いデータを完全に削除）
+  Future<void> _forceCleanupOldData() async {
+    try {
+      developer.log('強制クリーンアップ開始', name: 'MemberEditPage');
+
+      final groupProvider = context.read<GroupProvider>();
+      if (!groupProvider.hasGroup) return;
+
+      // 有効なグループメンバー名のリストを作成
+      final validMemberNames = groupProvider.currentGroup!.members
+          .map((m) => m.displayName)
+          .toSet();
+
+      bool hasChanges = false;
+      List<Team> cleanedTeams = [];
+
+      for (final team in teams) {
+        final validMembers = <String>[];
+
+        for (final memberName in team.members) {
+          if (validMemberNames.contains(memberName)) {
+            validMembers.add(memberName);
+          } else {
+            hasChanges = true;
+            developer.log(
+              '強制クリーンアップ: 無効なメンバー名を削除: $memberName',
+              name: 'MemberEditPage',
+            );
+          }
+        }
+
+        cleanedTeams.add(team.copyWith(members: validMembers));
+      }
+
+      if (hasChanges) {
+        setState(() {
+          teams = cleanedTeams;
+        });
+        developer.log('強制クリーンアップ完了', name: 'MemberEditPage');
+
+        // クリーンアップ後のデータを保存
+        await _saveMembers();
+      } else {
+        developer.log('強制クリーンアップ: 変更なし', name: 'MemberEditPage');
+      }
+    } catch (e) {
+      developer.log('強制クリーンアップエラー: $e', name: 'MemberEditPage', error: e);
     }
   }
 
@@ -763,7 +821,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
           ],
         ),
         actions: [
-          if (isGroupMode)
+          if (isGroupMode) ...[
             IconButton(
               icon: Icon(Icons.cleaning_services),
               tooltip: 'データクリーンアップ',
@@ -774,6 +832,17 @@ class _MemberEditPageState extends State<MemberEditPage> {
                 ).showSnackBar(SnackBar(content: Text('データクリーンアップを実行しました')));
               },
             ),
+            IconButton(
+              icon: Icon(Icons.delete_sweep),
+              tooltip: '強制クリーンアップ（古いデータ削除）',
+              onPressed: () async {
+                await _forceCleanupOldData();
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('強制クリーンアップを実行しました')));
+              },
+            ),
+          ],
           IconButton(icon: Icon(Icons.save), onPressed: _saveMembers),
         ],
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
