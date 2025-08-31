@@ -25,6 +25,7 @@ import 'package:roastplus/utils/app_performance_config.dart';
 import '../../services/user_settings_firestore_service.dart';
 import '../../services/first_login_service.dart';
 import '../../widgets/lottie_animation_widget.dart';
+import 'package:lottie/lottie.dart';
 
 class AssignmentBoard extends StatefulWidget {
   const AssignmentBoard({super.key});
@@ -84,6 +85,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   void _mergeGroupDataWithLocal(
     Map<String, dynamic> groupAssignmentData,
   ) async {
+    if (!mounted) return;
     debugPrint('AssignmentBoard: グループデータとローカルデータをマージ開始');
     debugPrint('AssignmentBoard: 受信データ: $groupAssignmentData');
 
@@ -136,17 +138,13 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       ];
     }
 
-    // ラベルデータはグループデータを優先、ただし空の場合はローカルデータを保持
-    if ((groupAssignmentData['leftLabels'] as List?)?.isNotEmpty ?? false) {
-      newLeftLabels = _safeStringListFromDynamic(
-        groupAssignmentData['leftLabels'],
-      );
-    }
-    if ((groupAssignmentData['rightLabels'] as List?)?.isNotEmpty ?? false) {
-      newRightLabels = _safeStringListFromDynamic(
-        groupAssignmentData['rightLabels'],
-      );
-    }
+    // グループ状態では、グループデータを完全に使用（ローカルデータは保持しない）
+    newLeftLabels = _safeStringListFromDynamic(
+      groupAssignmentData['leftLabels'],
+    );
+    newRightLabels = _safeStringListFromDynamic(
+      groupAssignmentData['rightLabels'],
+    );
 
     // 今日の担当が決定済みの場合は、基本構成を今日の担当で上書き
     if (hasTodayAssignment) {
@@ -183,8 +181,13 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       });
     }
 
-    // ローカルデータも更新（非同期だがUIブロックしない）
-    _updateLocalData();
+    // グループ状態でない場合のみローカルデータを更新
+    if (mounted) {
+      final groupProvider = context.read<GroupProvider>();
+      if (!groupProvider.hasGroup) {
+        _updateLocalData();
+      }
+    }
 
     debugPrint(
       'AssignmentBoard: マージ完了 - teams: ${teams.length}, leftLabels: $leftLabels, rightLabels: $rightLabels, hasTodayAssignment: $hasTodayAssignment',
@@ -308,6 +311,13 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   /// ローカルデータを更新
   Future<void> _updateLocalData() async {
     try {
+      // グループ状態の場合はローカルデータを保存しない
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.hasGroup) {
+        debugPrint('AssignmentBoard: グループ状態のため、ローカルデータ保存をスキップ');
+        return;
+      }
+
       // 新しい形式で保存
       final teamsJson = jsonEncode(teams.map((team) => team.toMap()).toList());
       await UserSettingsFirestoreService.saveMultipleSettings({
@@ -350,13 +360,16 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           updatedTeams.add(teams[i].copyWith(members: teamMembers));
         }
 
-        // 今日の日付と合わせてローカルにも保存（非同期だがUIブロックしない）
-        UserSettingsFirestoreService.saveMultipleSettings({
-          'assignment_$today': history,
-          'assignedDate': today,
-          'lastResetDate': null, // リセット状態をクリア
-          'resetVerified': false,
-        });
+        // グループ状態でない場合のみローカルに保存
+        final groupProvider = context.read<GroupProvider>();
+        if (!groupProvider.hasGroup) {
+          UserSettingsFirestoreService.saveMultipleSettings({
+            'assignment_$today': history,
+            'assignedDate': today,
+            'lastResetDate': null, // リセット状態をクリア
+            'resetVerified': false,
+          });
+        }
 
         if (mounted) {
           setState(() {
@@ -424,6 +437,9 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   void initState() {
     super.initState();
 
+    // 読み込み状態を開始
+    _isLoading = true;
+
     // 権限の初期値を設定（グループ未参加時は編集可能・担当決定可能）
     _canEditAssignment = true;
 
@@ -447,10 +463,23 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     });
   }
 
-  /// ローカルデータを最初に読み込み（ラベルを確実に保持）
+  /// ローカルデータを最初に読み込み（グループ状態では読み込まない）
   Future<void> _loadLocalDataFirst() async {
+    if (!mounted) return;
     try {
-      debugPrint('AssignmentBoard: ローカルデータ優先読み込み開始');
+      debugPrint('AssignmentBoard: ローカルデータ読み込み開始');
+
+      // グループ状態の場合はローカルデータを読み込まない
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.hasGroup) {
+        debugPrint('AssignmentBoard: グループ状態のため、ローカルデータ読み込みをスキップ');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
 
       final settings = await UserSettingsFirestoreService.getMultipleSettings([
         'teams',
@@ -553,9 +582,16 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    // ページ切り替え時にローディング状態を開始
+    if (!_isLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
     // グループ状態でない場合のみローカルデータを再読み込み
     final groupProvider = context.read<GroupProvider>();
-    if (!groupProvider.hasGroup && !_isLoading) {
+    if (!groupProvider.hasGroup) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _loadState();
       });
@@ -564,6 +600,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   /// 今日の出勤退勤記録を読み込み
   Future<void> _loadTodayAttendance() async {
+    if (!mounted) return;
     try {
       if (mounted) {
         setState(() {
@@ -728,6 +765,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   /// グループ監視の初期化
   void _initializeGroupMonitoring() {
+    if (!mounted) return;
     debugPrint('AssignmentBoard: グループ監視初期化開始');
     // 既に監視中の場合は何もしない
     if (_groupAssignmentSubscription != null) {
@@ -743,6 +781,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   /// グループ監視を開始
   void _startGroupMonitoring(GroupProvider groupProvider) {
+    if (!mounted) return;
     debugPrint('AssignmentBoard: グループ監視開始');
 
     // 既存のサブスクリプションをクリーンアップ
@@ -1084,10 +1123,17 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   }
 
   Future<void> _loadState() async {
+    if (!mounted) return;
+
     // このメソッドは非グループ状態でのみ使用
     final groupProvider = context.read<GroupProvider>();
     if (groupProvider.groups.isNotEmpty) {
       debugPrint('AssignmentBoard: グループ状態 - _loadStateはスキップ');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       return;
     }
 
@@ -1109,6 +1155,13 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       }
     } catch (e) {
       debugPrint('AssignmentBoard: Firestoreからのデータ取得に失敗しました: $e');
+    } finally {
+      // データ読み込み完了時にローディング状態を終了
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -1134,6 +1187,13 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   /// メンバーのみを再読み込み（ラベルデータは保持）
   Future<void> _reloadMembersOnly() async {
     try {
+      // グループ状態の場合はローカルデータを読み込まない
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.hasGroup) {
+        debugPrint('AssignmentBoard: グループ状態のため、メンバー再読み込みをスキップ');
+        return;
+      }
+
       final settings = await UserSettingsFirestoreService.getMultipleSettings([
         'teams',
         'assignment_team_a',
@@ -1174,13 +1234,16 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       final today = _todayKey();
       debugPrint('AssignmentBoard: リセット状態の検証開始 - today: $today');
 
-      // リセット状態を明示的に保存
-      await UserSettingsFirestoreService.saveMultipleSettings({
-        'assignment_$today': null,
-        'assignedDate': null,
-        'lastResetDate': today, // リセット実行日を記録
-        'resetVerified': true, // リセット検証フラグ
-      });
+      // グループ状態でない場合のみローカルデータを保存
+      final groupProvider = context.read<GroupProvider>();
+      if (!groupProvider.hasGroup) {
+        await UserSettingsFirestoreService.saveMultipleSettings({
+          'assignment_$today': null,
+          'assignedDate': null,
+          'lastResetDate': today, // リセット実行日を記録
+          'resetVerified': true, // リセット検証フラグ
+        });
+      }
 
       // 現在の状態を確認
       final assignedPairs = await UserSettingsFirestoreService.getSetting(
@@ -1460,11 +1523,14 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     final today = _todayKey();
     debugPrint('AssignmentBoard: 今日の担当リセット開始 - today: $today');
 
-    // Firebaseデータをリセット
-    await UserSettingsFirestoreService.saveMultipleSettings({
-      'assignment_$today': null,
-      'assignedDate': null,
-    });
+    // グループ状態でない場合のみローカルデータをリセット
+    final currentGroupProvider = context.read<GroupProvider>();
+    if (!currentGroupProvider.hasGroup) {
+      await UserSettingsFirestoreService.saveMultipleSettings({
+        'assignment_$today': null,
+        'assignedDate': null,
+      });
+    }
 
     // Firestoreからも削除
     try {
@@ -1505,59 +1571,15 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       debugPrint('AssignmentBoard: グループからの今日の担当履歴削除エラー: $e');
     }
 
-    // グループ状態の場合は、メンバーを元の構成に戻す
+    // グループ状態の場合は、メンバー構成を復元しない（グループデータに任せる）
     if (!mounted) return;
     final groupProvider = context.read<GroupProvider>();
     if (groupProvider.groups.isNotEmpty) {
-      // グループ状態の場合は、保存されたメンバー構成を読み込む
-      try {
-        final settings = await UserSettingsFirestoreService.getMultipleSettings(
-          ['teams', 'leftLabels', 'rightLabels'],
-        );
-
-        // 新しい形式で班データを読み込み
-        final teamsJson = settings['teams'];
-        if (teamsJson != null) {
-          final teamsList = jsonDecode(teamsJson) as List;
-          final originalTeams = teamsList
-              .map((teamMap) => Team.fromMap(teamMap))
-              .toList();
-
-          if (mounted) {
-            setState(() {
-              teams = originalTeams;
-              leftLabels = settings['leftLabels'] ?? [];
-              rightLabels = settings['rightLabels'] ?? [];
-              isAssignedToday = false;
-            });
-          }
-        } else {
-          // 既存のA班、B班データを新しい形式に変換
-          final loadedA = settings['assignment_team_a'] ?? [];
-          final loadedB = settings['assignment_team_b'] ?? [];
-          final originalTeams = [
-            Team(id: 'team_a', name: 'A班', members: loadedA),
-            Team(id: 'team_b', name: 'B班', members: loadedB),
-          ];
-
-          if (mounted) {
-            setState(() {
-              teams = originalTeams;
-              leftLabels = settings['leftLabels'] ?? [];
-              rightLabels = settings['rightLabels'] ?? [];
-              isAssignedToday = false;
-            });
-          }
-        }
-        debugPrint('AssignmentBoard: グループ状態でのメンバー構成復元完了');
-      } catch (e) {
-        debugPrint('AssignmentBoard: グループ状態でのメンバー構成復元エラー: $e');
-        // エラーの場合は既存のメンバー構成をそのまま使用
-        if (mounted) {
-          setState(() {
-            isAssignedToday = false;
-          });
-        }
+      debugPrint('AssignmentBoard: グループ状態のため、メンバー構成復元をスキップ');
+      if (mounted) {
+        setState(() {
+          isAssignedToday = false;
+        });
       }
     } else {
       // 個人状態の場合は、_loadState()を呼び出してデータを再読み込み
@@ -1623,7 +1645,28 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         }
 
         if (_isLoading) {
-          return const LoadingScreen(title: 'Loading...');
+          return Scaffold(
+            backgroundColor: Provider.of<ThemeSettings>(
+              context,
+            ).backgroundColor,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  LoadingAnimationWidget(width: 200, height: 200),
+                  SizedBox(height: 24),
+                  Text(
+                    '担当表を読み込み中...',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Provider.of<ThemeSettings>(context).fontColor1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
         final todayIsWeekend = _isWeekend();
@@ -1882,8 +1925,38 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                         ],
                                 ),
                               ),
-                              // ラベルが空かつ全チームのメンバーが空の場合のみ赤字で表示
-                              if (leftLabels.isEmpty &&
+                              // 読み込み中の場合はローディングアニメーションを表示
+                              if (_isLoading)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 40.0,
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      children: [
+                                        Lottie.asset(
+                                          'assets/animations/Loading coffee bean.json',
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.contain,
+                                        ),
+                                        SizedBox(height: 16),
+                                        Text(
+                                          '担当表を読み込み中...',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).fontColor1,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              // 読み込み完了後、ラベルが空かつ全チームのメンバーが空の場合のみ赤字で表示
+                              else if (leftLabels.isEmpty &&
                                   teams.every((t) => t.members.isEmpty))
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
