@@ -55,6 +55,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   StreamSubscription<GroupSettings?>? _groupSettingsSubscription;
   StreamSubscription<Map<String, dynamic>?>? _groupTodayAssignmentSubscription;
   StreamSubscription<Map<String, dynamic>>? _developerModeSubscription;
+  StreamSubscription<List<AttendanceRecord>>? _groupAttendanceSubscription;
   Timer? _autoSyncTimer;
 
   /// 安全な文字列リスト変換
@@ -445,12 +446,45 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         });
       }
 
-      final attendance = await AttendanceFirestoreService.getTodayAttendance();
-      if (mounted) {
-        setState(() {
-          _todayAttendance = attendance;
-          _isAttendanceLoading = false;
-        });
+      // グループ状態の場合はグループデータを優先的に読み込み
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.hasGroup) {
+        final group = groupProvider.currentGroup!;
+        final today = DateTime.now();
+        final dateKey =
+            '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+        debugPrint(
+          'AssignmentBoard: グループ出勤退勤記録読み込み開始 - groupId: ${group.id}, dateKey: $dateKey',
+        );
+
+        final groupAttendance =
+            await AttendanceFirestoreService.getGroupAttendanceData(
+              group.id,
+              dateKey,
+            );
+        if (mounted) {
+          setState(() {
+            _todayAttendance = groupAttendance;
+            _isAttendanceLoading = false;
+          });
+        }
+        debugPrint(
+          'AssignmentBoard: グループ出勤退勤記録読み込み完了 - 記録数: ${groupAttendance.length}',
+        );
+      } else {
+        // グループ状態でない場合はローカルデータを読み込み
+        final attendance =
+            await AttendanceFirestoreService.getTodayAttendance();
+        if (mounted) {
+          setState(() {
+            _todayAttendance = attendance;
+            _isAttendanceLoading = false;
+          });
+        }
+        debugPrint(
+          'AssignmentBoard: ローカル出勤退勤記録読み込み完了 - 記録数: ${attendance.length}',
+        );
       }
     } catch (e) {
       debugPrint('AssignmentBoard: 出勤退勤記録読み込みエラー: $e');
@@ -486,6 +520,10 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) return;
 
+      debugPrint(
+        'AssignmentBoard: 出勤退勤状態更新開始 - memberName: $memberName, status: $status',
+      );
+
       await AttendanceFirestoreService.updateMemberAttendance(
         userId,
         memberName,
@@ -506,8 +544,15 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         await statsProvider.onAttendanceUpdated();
       }
 
-      // ローカル状態を更新
-      await _loadTodayAttendance();
+      // グループ状態の場合はリアルタイム同期により自動更新されるため、
+      // ローカル状態の更新は不要
+      final groupProvider = context.read<GroupProvider>();
+      if (!groupProvider.hasGroup) {
+        // グループ状態でない場合のみローカル状態を更新
+        await _loadTodayAttendance();
+      } else {
+        debugPrint('AssignmentBoard: グループ状態のため、リアルタイム同期で自動更新されます');
+      }
     } catch (e) {
       debugPrint('AssignmentBoard: 出勤退勤状態更新エラー: $e');
       if (!mounted) return;
@@ -579,6 +624,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     _groupAssignmentSubscription?.cancel();
     _groupSettingsSubscription?.cancel();
     _groupTodayAssignmentSubscription?.cancel();
+    _groupAttendanceSubscription?.cancel();
 
     if (groupProvider.hasGroup) {
       final group = groupProvider.currentGroup!;
@@ -660,6 +706,31 @@ class AssignmentBoardState extends State<AssignmentBoard> {
               debugPrint('AssignmentBoard: グループの今日の担当履歴が削除されました');
               setAssignmentHistoryFromFirestore([]);
             }
+          });
+
+      // グループの出勤退勤データをリアルタイム監視
+      final today = DateTime.now();
+      final dateKey =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      debugPrint(
+        'AssignmentBoard: グループ出勤退勤データ監視開始 - groupId: ${group.id}, dateKey: $dateKey',
+      );
+
+      _groupAttendanceSubscription =
+          AttendanceFirestoreService.watchGroupAttendanceData(
+            group.id,
+            dateKey,
+          ).listen((groupAttendanceRecords) {
+            if (!mounted) return;
+            debugPrint(
+              'AssignmentBoard: グループ出勤退勤データ変更検知 - 記録数: ${groupAttendanceRecords.length}',
+            );
+
+            // グループの出勤退勤データをローカルに反映
+            setState(() {
+              _todayAttendance = groupAttendanceRecords;
+              _isAttendanceLoading = false;
+            });
           });
     }
   }
@@ -1369,16 +1440,37 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     _groupSettingsSubscription?.cancel();
     _groupTodayAssignmentSubscription?.cancel();
     _developerModeSubscription?.cancel();
+    _groupAttendanceSubscription?.cancel();
     _autoSyncTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final visibleAttendance = _todayAttendance.where((record) {
-      final allMembers = teams.expand((t) => t.members).toSet();
-      return allMembers.contains(record.memberName);
-    }).toList();
+    // 担当表に実際に表示されているメンバーのみをフィルタリング（最新の記録のみ）
+    final visibleAttendance = _todayAttendance
+        .where((record) {
+          // 空でないメンバー名のみを対象とする
+          if (record.memberName.isEmpty) return false;
+
+          // 担当表の各チームのメンバーに含まれているかチェック
+          for (final team in teams) {
+            if (team.members.contains(record.memberName)) {
+              return true;
+            }
+          }
+          return false;
+        })
+        .fold<Map<String, AttendanceRecord>>({}, (map, record) {
+          // 同じメンバー名の場合は最新の記録のみを保持
+          if (!map.containsKey(record.memberName) ||
+              record.timestamp.isAfter(map[record.memberName]!.timestamp)) {
+            map[record.memberName] = record;
+          }
+          return map;
+        })
+        .values
+        .toList();
     return Consumer<GroupProvider>(
       builder: (context, groupProvider, child) {
         // リアルタイム権限チェックを実行
@@ -1566,71 +1658,135 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                               ).cardBackgroundColor,
                               child: Padding(
                                 padding: EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(Icons.access_time, color: Colors.blue),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      '今日の出勤状況',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Provider.of<ThemeSettings>(
-                                          context,
-                                        ).fontColor1,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.access_time,
+                                          color: Colors.blue,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          '今日の出勤状況',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).fontColor1,
+                                          ),
+                                        ),
+                                        Spacer(),
+                                      ],
+                                    ),
+                                    SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: visibleAttendance.map((record) {
+                                        // 現在のユーザーかどうかを判定
+                                        final currentUser =
+                                            FirebaseAuth.instance.currentUser;
+                                        final currentUserName =
+                                            currentUser?.displayName ?? '';
+                                        final groupProvider = context
+                                            .read<GroupProvider>();
+                                        String currentUserNameInGroup =
+                                            currentUserName;
+
+                                        if (groupProvider.hasGroup) {
+                                          final currentUserInGroup =
+                                              groupProvider
+                                                  .currentGroup!
+                                                  .members
+                                                  .firstWhere(
+                                                    (member) =>
+                                                        member.uid ==
+                                                        currentUser?.uid,
+                                                    orElse: () => GroupMember(
+                                                      uid: '',
+                                                      email: '',
+                                                      displayName:
+                                                          currentUserName,
+                                                      role: GroupRole.member,
+                                                      joinedAt: DateTime.now(),
+                                                    ),
+                                                  );
+                                          currentUserNameInGroup =
+                                              currentUserInGroup.displayName;
+                                        }
+
+                                        final isCurrentUser =
+                                            record.memberName ==
+                                            currentUserNameInGroup;
+
+                                        return Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                record.status ==
+                                                    AttendanceStatus.present
+                                                ? Colors.white
+                                                : Colors.red,
+                                            border: Border.all(
+                                              color: isCurrentUser
+                                                  ? Colors.blue.shade600
+                                                  : (record.status ==
+                                                            AttendanceStatus
+                                                                .present
+                                                        ? Colors.grey.shade400
+                                                        : Colors.red.shade700),
+                                              width: isCurrentUser ? 3 : 2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (isCurrentUser)
+                                                Icon(
+                                                  Icons.person,
+                                                  size: 16,
+                                                  color:
+                                                      record.status ==
+                                                          AttendanceStatus
+                                                              .present
+                                                      ? Colors.blue.shade600
+                                                      : Colors.white,
+                                                ),
+                                              SizedBox(
+                                                width: isCurrentUser ? 4 : 0,
+                                              ),
+                                              Text(
+                                                record.memberName,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color:
+                                                      record.status ==
+                                                          AttendanceStatus
+                                                              .present
+                                                      ? Colors.black
+                                                      : Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 12),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: visibleAttendance.map((record) {
-                                    return Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            record.status ==
-                                                AttendanceStatus.present
-                                            ? Colors.white
-                                            : Colors.red,
-                                        border: Border.all(
-                                          color:
-                                              record.status ==
-                                                  AttendanceStatus.present
-                                              ? Colors.grey.shade400
-                                              : Colors.red.shade700,
-                                          width: 2,
-                                        ),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        record.memberName,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color:
-                                              record.status ==
-                                                  AttendanceStatus.present
-                                              ? Colors.black
-                                              : Colors.white,
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
-                        ),
                         ),
                       SizedBox(height: 16),
                       // 担当表の表示
@@ -2026,6 +2182,46 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   /// 出勤退勤状態変更ダイアログを表示
   void _showAttendanceDialog(String memberName) {
+    // 現在のユーザーが変更しようとしているメンバーと一致するかチェック
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUserName = currentUser?.displayName ?? '';
+
+    // グループ状態の場合は、グループメンバー情報から現在のユーザー名を取得
+    final groupProvider = context.read<GroupProvider>();
+    String currentUserNameInGroup = currentUserName;
+
+    if (groupProvider.hasGroup) {
+      final currentUserInGroup = groupProvider.currentGroup!.members.firstWhere(
+        (member) => member.uid == currentUser?.uid,
+        orElse: () => GroupMember(
+          uid: '',
+          email: '',
+          displayName: currentUserName,
+          role: GroupRole.member,
+          joinedAt: DateTime.now(),
+        ),
+      );
+      currentUserNameInGroup = currentUserInGroup.displayName;
+    }
+
+    // 自分以外のメンバーの状態は変更できない
+    if (memberName != currentUserNameInGroup) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('変更不可'),
+          content: Text('自分の出勤・退勤状態のみ変更できます。\n\n$memberName の状態は変更できません。'),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final currentStatus = _getMemberAttendanceStatus(memberName);
     final newStatus = currentStatus == AttendanceStatus.present
         ? AttendanceStatus.absent
@@ -2036,7 +2232,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       builder: (context) => AlertDialog(
         title: Text('出勤退勤状態の変更'),
         content: Text(
-          '$memberName の状態を変更しますか？\n\n現在: ${currentStatus == AttendanceStatus.present ? '緑カード（出勤）' : '赤カード（退勤）'}\n変更後: ${newStatus == AttendanceStatus.present ? '緑カード（出勤）' : '赤カード（退勤）'}',
+          '自分の状態を変更しますか？\n\n現在: ${currentStatus == AttendanceStatus.present ? '白カード（出勤）' : '赤カード（退勤）'}\n変更後: ${newStatus == AttendanceStatus.present ? '白カード（出勤）' : '赤カード（退勤）'}',
         ),
         actions: [
           TextButton(
@@ -2073,6 +2269,31 @@ class MemberCard extends StatelessWidget {
     final displayName = name.isEmpty ? '未設定' : name;
     final isUnset = displayName == '未設定';
 
+    // 現在のユーザー名を取得
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUserName = currentUser?.displayName ?? '';
+
+    // グループ状態の場合は、グループメンバー情報から現在のユーザー名を取得
+    final groupProvider = context.read<GroupProvider>();
+    String currentUserNameInGroup = currentUserName;
+
+    if (groupProvider.hasGroup) {
+      final currentUserInGroup = groupProvider.currentGroup!.members.firstWhere(
+        (member) => member.uid == currentUser?.uid,
+        orElse: () => GroupMember(
+          uid: '',
+          email: '',
+          displayName: currentUserName,
+          role: GroupRole.member,
+          joinedAt: DateTime.now(),
+        ),
+      );
+      currentUserNameInGroup = currentUserInGroup.displayName;
+    }
+
+    // 自分のカードかどうかを判定
+    final isMyCard = displayName == currentUserNameInGroup && !isUnset;
+
     // 出勤退勤状態に基づいて色を決定
     Color? cardColor;
     Color? textColor;
@@ -2085,14 +2306,18 @@ class MemberCard extends StatelessWidget {
     } else {
       switch (attendanceStatus) {
         case AttendanceStatus.present:
-          cardColor = Colors.white;
+          cardColor = Colors.white; // 白カード（出勤）
           textColor = Colors.black;
-          borderColor = Colors.grey.shade400;
+          borderColor = isMyCard
+              ? Colors.lightBlue.shade400
+              : Colors.grey.shade400;
           break;
         case AttendanceStatus.absent:
-          cardColor = Colors.red;
+          cardColor = Colors.red.shade600; // 赤カード（退勤）
           textColor = Colors.white;
-          borderColor = Colors.red.shade700;
+          borderColor = isMyCard
+              ? Colors.lightBlue.shade400
+              : Colors.red.shade700;
           break;
       }
     }
@@ -2106,7 +2331,10 @@ class MemberCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: 2),
+          border: Border.all(
+            color: borderColor,
+            width: isMyCard ? 3 : 2, // 自分のカードは太い枠線
+          ),
         ),
         alignment: Alignment.center,
         child: Column(

@@ -31,12 +31,47 @@ class _MemberEditPageState extends State<MemberEditPage> {
   final Map<String, TextEditingController> _teamNameControllers = {};
   final Map<String, TextEditingController> _memberControllers = {};
 
+  // グループメンバーリスト
+  List<GroupMember> _groupMembers = [];
+
   @override
   void initState() {
     super.initState();
     _loadMembers();
     _loadAssignmentMembersFromFirestore();
     _startAssignmentMembersListener();
+    _loadGroupMembers();
+
+    // グループメンバー読み込み後にクリーンアップを実行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _cleanupTeamData();
+    });
+  }
+
+  /// グループメンバーを読み込み
+  void _loadGroupMembers() {
+    final groupProvider = context.read<GroupProvider>();
+    if (groupProvider.hasGroup) {
+      setState(() {
+        // 重複を除去してグループメンバーを読み込み
+        final uniqueMembers = <String, GroupMember>{};
+        for (final member in groupProvider.currentGroup!.members) {
+          if (!uniqueMembers.containsKey(member.displayName)) {
+            uniqueMembers[member.displayName] = member;
+          }
+        }
+        _groupMembers = uniqueMembers.values.toList();
+      });
+      developer.log(
+        'グループメンバー読み込み完了: ${_groupMembers.length}人（重複除去後）',
+        name: 'MemberEditPage',
+      );
+
+      // グループメンバー更新後にクリーンアップを実行
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _cleanupTeamData();
+      });
+    }
   }
 
   Future<void> _loadAssignmentMembersFromFirestore() async {
@@ -377,143 +412,274 @@ class _MemberEditPageState extends State<MemberEditPage> {
     });
   }
 
+  /// グループメンバーから選択してメンバーを更新
+  void _selectGroupMember(
+    int teamIndex,
+    int memberIndex,
+    String? selectedMemberName,
+  ) {
+    if (selectedMemberName != null) {
+      _updateMember(teamIndex, memberIndex, selectedMemberName);
+    }
+  }
+
+  /// 班データをクリーンアップ（無効なメンバー名を削除）
+  void _cleanupTeamData() {
+    final groupProvider = context.read<GroupProvider>();
+    if (!groupProvider.hasGroup) return;
+
+    // 有効なグループメンバー名のリストを作成
+    final validMemberNames = _groupMembers.map((m) => m.displayName).toSet();
+
+    bool hasChanges = false;
+
+    for (int teamIndex = 0; teamIndex < teams.length; teamIndex++) {
+      final team = teams[teamIndex];
+      final validMembers = <String>[];
+
+      for (final memberName in team.members) {
+        if (validMemberNames.contains(memberName)) {
+          validMembers.add(memberName);
+        } else {
+          hasChanges = true;
+          developer.log('無効なメンバー名を削除: $memberName', name: 'MemberEditPage');
+        }
+      }
+
+      if (hasChanges) {
+        teams[teamIndex] = team.copyWith(members: validMembers);
+      }
+    }
+
+    if (hasChanges) {
+      setState(() {});
+      developer.log('班データのクリーンアップ完了', name: 'MemberEditPage');
+    }
+  }
+
+  /// ドロップダウンの有効な値を取得
+  String? _getValidDropdownValue(String currentValue) {
+    if (currentValue.isEmpty) return null;
+
+    // 現在の値がグループメンバーに存在するかチェック
+    final isValid = _groupMembers.any(
+      (member) => member.displayName == currentValue,
+    );
+    return isValid ? currentValue : null;
+  }
+
   void _adjustLabelsToTeams() {
-    // 最大メンバー数に合わせてラベル数を調整
-    final maxMembers = teams.fold<int>(
+    // 班の数に応じてラベルを調整
+    final maxTeamSize = teams.fold<int>(
       0,
       (max, team) => team.members.length > max ? team.members.length : max,
     );
-    final currentLabels = leftLabels.length;
 
-    if (maxMembers < currentLabels) {
-      // メンバー数が少ない場合、ラベルを削除
-      setState(() {
-        leftLabels = leftLabels.take(maxMembers).toList();
-        rightLabels = rightLabels.take(maxMembers).toList();
-      });
-    } else if (maxMembers > currentLabels) {
-      // メンバー数が多い場合、ラベルを追加
-      setState(() {
-        while (leftLabels.length < maxMembers) {
-          leftLabels.add('');
-          rightLabels.add('');
-        }
-      });
+    // 左ラベルを調整
+    while (leftLabels.length < maxTeamSize) {
+      leftLabels.add('ラベル${leftLabels.length + 1}');
+    }
+    if (leftLabels.length > maxTeamSize) {
+      leftLabels = leftLabels.take(maxTeamSize).toList();
+    }
+
+    // 右ラベルを調整
+    while (rightLabels.length < maxTeamSize) {
+      rightLabels.add('ラベル${rightLabels.length + 1}');
+    }
+    if (rightLabels.length > maxTeamSize) {
+      rightLabels = rightLabels.take(maxTeamSize).toList();
     }
   }
 
   Widget _buildTeamCard(Team team, int teamIndex) {
+    final groupProvider = context.read<GroupProvider>();
+    final isGroupMode = groupProvider.hasGroup;
+
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: Provider.of<ThemeSettings>(context).cardBackgroundColor,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.group,
-                  color: Provider.of<ThemeSettings>(context).iconColor,
-                ),
-                SizedBox(width: 8),
                 Expanded(
                   child: TextFormField(
                     controller: _teamNameControllers[team.id],
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
                       color: Provider.of<ThemeSettings>(context).fontColor1,
                     ),
                     decoration: InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
+                      labelText: '班名',
+                      labelStyle: TextStyle(
+                        color: Provider.of<ThemeSettings>(context).fontColor1,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.group,
+                        color: Provider.of<ThemeSettings>(context).iconColor,
+                      ),
+                      filled: true,
+                      fillColor: Provider.of<ThemeSettings>(
+                        context,
+                      ).inputBackgroundColor,
                     ),
                     onChanged: (value) => _updateTeamName(teamIndex, value),
                   ),
                 ),
+                SizedBox(width: 8),
                 IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _deleteTeam(teamIndex),
+                  icon: Icon(Icons.add, color: Colors.green),
+                  onPressed: () => _addMember(teamIndex),
                 ),
+                if (teams.length > 1)
+                  IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _deleteTeam(teamIndex),
+                  ),
               ],
             ),
             SizedBox(height: 12),
+
             ...List.generate(team.members.length, (memberIndex) {
               final memberKey = '${team.id}_$memberIndex';
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _memberControllers[memberKey],
-                        style: TextStyle(
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
+
+              if (isGroupMode) {
+                // グループモード：プルダウンで選択
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade400),
+                            borderRadius: BorderRadius.circular(12),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).inputBackgroundColor,
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            value: _getValidDropdownValue(
+                              team.members[memberIndex],
+                            ),
+                            isExpanded: true, // 幅を親要素に合わせる
+                            decoration: InputDecoration(
+                              labelText: 'メンバーを選択',
+                              labelStyle: TextStyle(
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
+                              ),
+                              border: InputBorder.none,
+                              prefixIcon: Icon(
+                                Icons.person_outline,
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).iconColor,
+                              ),
+                            ),
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Text(
+                                  'メンバーを選択してください',
+                                  style: TextStyle(color: Colors.grey),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              ..._groupMembers.map((member) {
+                                return DropdownMenuItem<String>(
+                                  value: member.displayName,
+                                  child: Text(
+                                    member.displayName,
+                                    style: TextStyle(
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                            onChanged: (value) => _selectGroupMember(
+                              teamIndex,
+                              memberIndex,
+                              value,
+                            ),
+                          ),
                         ),
-                        decoration: InputDecoration(
-                          labelText: '名前',
-                          labelStyle: TextStyle(
+                      ),
+                      SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteMember(teamIndex, memberIndex),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                // 通常モード：手動入力
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _memberControllers[memberKey],
+                          style: TextStyle(
                             color: Provider.of<ThemeSettings>(
                               context,
                             ).fontColor1,
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.person_outline,
-                            color: Provider.of<ThemeSettings>(
+                          decoration: InputDecoration(
+                            labelText: '名前',
+                            labelStyle: TextStyle(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.person_outline,
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).iconColor,
+                            ),
+                            filled: true,
+                            fillColor: Provider.of<ThemeSettings>(
                               context,
-                            ).iconColor,
+                            ).inputBackgroundColor,
                           ),
-                          filled: true,
-                          fillColor: Provider.of<ThemeSettings>(
-                            context,
-                          ).inputBackgroundColor,
+                          onChanged: (value) =>
+                              _updateMember(teamIndex, memberIndex, value),
                         ),
-                        onChanged: (value) =>
-                            _updateMember(teamIndex, memberIndex, value),
                       ),
-                    ),
-                    SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteMember(teamIndex, memberIndex),
-                    ),
-                  ],
-                ),
-              );
+                      SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteMember(teamIndex, memberIndex),
+                      ),
+                    ],
+                  ),
+                );
+              }
             }),
             SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: Icon(Icons.add),
-                label: Text('メンバー追加'),
-                onPressed: () => _addMember(teamIndex),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Theme.of(context)
-                          .elevatedButtonTheme
-                          .style
-                          ?.backgroundColor
-                          ?.resolve({}) ??
-                      Theme.of(context).colorScheme.primary,
-                  foregroundColor:
-                      Theme.of(context)
-                          .elevatedButtonTheme
-                          .style
-                          ?.foregroundColor
-                          ?.resolve({}) ??
-                      Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                ),
+            Text(
+              'メンバー数: ${team.members.length}人',
+              style: TextStyle(
+                color: Provider.of<ThemeSettings>(context).fontColor2,
+                fontSize: 12,
               ),
             ),
           ],
@@ -524,6 +690,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    final groupProvider = context.read<GroupProvider>();
+    final isGroupMode = groupProvider.hasGroup;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -553,7 +722,20 @@ class _MemberEditPageState extends State<MemberEditPage> {
             ),
           ],
         ),
-        actions: [IconButton(icon: Icon(Icons.save), onPressed: _saveMembers)],
+        actions: [
+          if (isGroupMode)
+            IconButton(
+              icon: Icon(Icons.cleaning_services),
+              tooltip: 'データクリーンアップ',
+              onPressed: () {
+                _cleanupTeamData();
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('データクリーンアップを実行しました')));
+              },
+            ),
+          IconButton(icon: Icon(Icons.save), onPressed: _saveMembers),
+        ],
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       ),
       body: Container(
@@ -580,32 +762,32 @@ class _MemberEditPageState extends State<MemberEditPage> {
                 // 班追加ボタン（一番下に配置）
                 Card(
                   elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
                   color: Provider.of<ThemeSettings>(
                     context,
                   ).cardBackgroundColor,
-                  child: Padding(
-                    padding: EdgeInsets.all(kIsWeb ? 24 : 20),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: Icon(Icons.add_business),
-                        label: Text('新しい班を追加'),
-                        onPressed: _addTeam,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Provider.of<ThemeSettings>(
-                            context,
-                          ).buttonColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: _addTeam,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_circle_outline,
+                            color: Colors.green,
+                            size: 24,
                           ),
-                          padding: EdgeInsets.symmetric(
-                            vertical: kIsWeb ? 16 : 14,
+                          SizedBox(width: 8),
+                          Text(
+                            '班を追加',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),

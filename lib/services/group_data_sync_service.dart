@@ -828,11 +828,31 @@ class GroupDataSyncService {
       developer.log('GroupDataSyncService: 時間ラベルドキュメントが存在しません');
     }
 
-    // 今日の担当履歴を同期
-    developer.log('GroupDataSyncService: 今日の担当履歴同期を開始');
+    // 出勤退勤記録を同期
+    developer.log('GroupDataSyncService: 出勤退勤記録同期を開始');
     final todayDate = DateTime.now();
     final todayKey =
         '${todayDate.year}-${todayDate.month.toString().padLeft(2, '0')}-${todayDate.day.toString().padLeft(2, '0')}';
+    final attendanceDoc = await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('attendance')
+        .doc(todayKey)
+        .get();
+
+    developer.log(
+      'GroupDataSyncService: 出勤退勤記録ドキュメント存在: ${attendanceDoc.exists}',
+    );
+    if (attendanceDoc.exists) {
+      developer.log('GroupDataSyncService: 出勤退勤記録データ: ${attendanceDoc.data()}');
+      await syncAttendanceData(groupId, {todayKey: attendanceDoc.data()!});
+      developer.log('GroupDataSyncService: 出勤退勤記録同期完了');
+    } else {
+      developer.log('GroupDataSyncService: 出勤退勤記録ドキュメントが存在しません');
+    }
+
+    // 今日の担当履歴を同期
+    developer.log('GroupDataSyncService: 今日の担当履歴同期を開始');
     final todayAssignmentDoc = await _firestore
         .collection('users')
         .doc(_uid)
@@ -1031,6 +1051,7 @@ class GroupDataSyncService {
         getGroupWorkProgress(groupId),
         getGroupAppSettings(groupId),
         getGroupMembersGamificationData(groupId),
+        getGroupAttendanceData(groupId),
       ]);
 
       data['roast_records'] = futures[0];
@@ -1047,6 +1068,7 @@ class GroupDataSyncService {
       data['work_progress'] = futures[11];
       data['app_settings'] = futures[12];
       data['gamification'] = futures[13];
+      data['attendance'] = futures[14];
 
       return data;
     } catch (e) {
@@ -1242,6 +1264,28 @@ class GroupDataSyncService {
         developer.log('GroupDataSyncService: 作業進捗記録適用完了');
       } else {
         developer.log('GroupDataSyncService: 作業進捗記録データがありません');
+      }
+
+      // 出勤退勤記録を適用
+      developer.log('GroupDataSyncService: 出勤退勤記録適用チェック');
+      if (groupData['attendance'] != null) {
+        developer.log(
+          'GroupDataSyncService: 出勤退勤記録データを適用中: ${groupData['attendance']}',
+        );
+        final attendanceData = groupData['attendance'] as Map<String, dynamic>;
+        for (final entry in attendanceData.entries) {
+          final dateKey = entry.key;
+          final dateData = entry.value as Map<String, dynamic>;
+          await _firestore
+              .collection('users')
+              .doc(_uid)
+              .collection('attendance')
+              .doc(dateKey)
+              .set(dateData, SetOptions(merge: true));
+        }
+        developer.log('GroupDataSyncService: 出勤退勤記録適用完了');
+      } else {
+        developer.log('GroupDataSyncService: 出勤退勤記録データがありません');
       }
 
       // アプリ設定を適用
