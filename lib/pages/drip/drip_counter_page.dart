@@ -937,13 +937,13 @@ class DripCounterPageState extends State<DripCounterPage>
                                                 shadows: [
                                                   WebCompatibility.createShadow(
                                                     color: Colors.black
-                                                        .withOpacity(0.1),
+                                                        .withValues(alpha: 0.1),
                                                     blurRadius: 8,
                                                     offset: const Offset(2, 2),
                                                   ),
                                                   WebCompatibility.createShadow(
                                                     color: Colors.white
-                                                        .withOpacity(0.8),
+                                                        .withValues(alpha: 0.8),
                                                     blurRadius: 2,
                                                     offset: const Offset(0, 1),
                                                   ),
@@ -1274,7 +1274,7 @@ class DripCounterPageState extends State<DripCounterPage>
                                                     shadows: [
                                                       WebCompatibility.createShadow(
                                                         color: Colors.black
-                                                            .withOpacity(0.1),
+                                                            .withValues(alpha: 0.1),
                                                         blurRadius: 8,
                                                         offset: const Offset(
                                                           2,
@@ -1283,7 +1283,7 @@ class DripCounterPageState extends State<DripCounterPage>
                                                       ),
                                                       WebCompatibility.createShadow(
                                                         color: Colors.white
-                                                            .withOpacity(0.8),
+                                                            .withValues(alpha: 0.8),
                                                         blurRadius: 2,
                                                         offset: const Offset(
                                                           0,

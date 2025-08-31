@@ -311,7 +311,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             onChanged: (value) {
               // 数字入力フィールドの場合、全角数字を半角数字に変換
               if (keyboardType == TextInputType.number ||
-                  keyboardType == TextInputType.numberWithOptions) {
+                  keyboardType == TextInputType.numberWithOptions()) {
                 final convertedValue =
                     TextInputUtils.convertFullWidthToHalfWidth(value);
                 if (convertedValue != value) {

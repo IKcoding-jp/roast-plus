@@ -36,7 +36,7 @@ class WebCompatibility {
 
   /// Web版用の色の透明度変更（withValuesの代替）
   static Color withAlpha(Color color, double alpha) {
-    return color.withOpacity(alpha);
+    return color.withValues(alpha: alpha);
   }
 
   /// Web版用のLinearGradient作成
@@ -85,7 +85,7 @@ class WebCompatibility {
     Offset? offset,
   }) {
     return BoxShadow(
-      color: color ?? Colors.black.withOpacity(0.1),
+      color: color ?? Colors.black.withValues(alpha: 0.1),
       blurRadius: blurRadius ?? 4.0,
       offset: offset ?? const Offset(0, 2),
     );
@@ -98,7 +98,7 @@ class WebCompatibility {
     Offset? offset,
   }) {
     return Shadow(
-      color: color ?? Colors.black.withOpacity(0.1),
+      color: color ?? Colors.black.withValues(alpha: 0.1),
       blurRadius: blurRadius ?? 4.0,
       offset: offset ?? const Offset(0, 2),
     );
@@ -107,7 +107,7 @@ class WebCompatibility {
   /// Web版用の色の透明度変更（withValuesの代替）
   static Color withValues(Color color, {double? alpha}) {
     if (alpha != null) {
-      return color.withOpacity(alpha);
+      return color.withValues(alpha: alpha);
     }
     return color;
   }
@@ -115,7 +115,7 @@ class WebCompatibility {
   /// Web版用の色の透明度変更（withValuesの代替、静的メソッド）
   static Color colorWithValues(Color color, {double? alpha}) {
     if (alpha != null) {
-      return color.withOpacity(alpha);
+      return color.withValues(alpha: alpha);
     }
     return color;
   }
@@ -127,13 +127,13 @@ extension WebColorExtension on Color {
   Color withValues({double? alpha}) {
     if (WebCompatibility.isWeb) {
       if (alpha != null) {
-        return withOpacity(alpha);
+        return withValues(alpha: alpha);
       }
       return this;
     } else {
       // ネイティブ版では元のwithValuesを使用
       if (alpha != null) {
-        return withOpacity(alpha);
+        return withValues(alpha: alpha);
       }
       return this;
     }

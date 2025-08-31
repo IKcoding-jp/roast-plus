@@ -212,7 +212,7 @@ class TodoPageState extends State<TodoPage>
                 ),
               ),
               SizedBox(width: 24),
-              // TODOリストセクション（右側）
+              
               Expanded(
                 child: Card(
                   elevation: 8,
@@ -223,8 +223,7 @@ class TodoPageState extends State<TodoPage>
                     padding: EdgeInsets.all(24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // TODOリストセクションヘッダー
+                      children: [                      
                         Row(
                           children: [
                             Icon(
@@ -244,8 +243,7 @@ class TodoPageState extends State<TodoPage>
                             ),
                           ],
                         ),
-                        SizedBox(height: 16),
-                        // TODOリストタブの内容
+                        SizedBox(height: 16),                       
                         Expanded(child: TodoListTab(key: _todoListTabKey)),
                       ],
                     ),

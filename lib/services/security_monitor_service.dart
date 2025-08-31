@@ -161,22 +161,7 @@ class SecurityMonitorService {
   //   }
   // }
 
-  /// アクティビティ時間を更新
-  static Future<void> _updateLastActivityTime(String userId) async {
-    try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('security_logs')
-          .add({
-            'event': 'activity_update',
-            'timestamp': FieldValue.serverTimestamp(),
-            'details': {'type': 'user_activity'},
-          });
-    } catch (e) {
-      developer.log('アクティビティ時間の更新に失敗: $e', name: _logName);
-    }
-  }
+
 
   /// セキュリティ違反を処理
   static Future<void> _handleSecurityViolation(

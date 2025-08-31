@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import '../services/encrypted_firebase_config_service.dart';
 
 /// Firebase設定を暗号化して環境変数ファイルを生成するユーティリティ
@@ -8,7 +9,7 @@ class FirebaseConfigGenerator {
   /// 暗号化された設定を生成して.envファイルに保存
   static Future<void> generateEnvFile() async {
     try {
-      print('Firebase設定の暗号化を開始...');
+      developer.log('Firebase設定の暗号化を開始...', name: 'FirebaseConfigGenerator');
 
       // 暗号化された設定を生成
       final encryptedConfigs =
@@ -30,21 +31,21 @@ class FirebaseConfigGenerator {
       final envFile = File('.env');
       await envFile.writeAsString(envContent.toString());
 
-      print('✅ .envファイルが生成されました');
-      print('📁 ファイルパス: ${envFile.absolute.path}');
-      print('🔐 暗号化された設定数: ${encryptedConfigs.length}');
+      developer.log('✅ .envファイルが生成されました', name: 'FirebaseConfigGenerator');
+      developer.log('📁 ファイルパス: ${envFile.absolute.path}', name: 'FirebaseConfigGenerator');
+      developer.log('🔐 暗号化された設定数: ${encryptedConfigs.length}', name: 'FirebaseConfigGenerator');
 
       // 生成された設定の概要を表示
       _printConfigSummary(encryptedConfigs);
     } catch (e) {
-      print('❌ 環境変数ファイルの生成に失敗: $e');
+      developer.log('❌ 環境変数ファイルの生成に失敗: $e', name: 'FirebaseConfigGenerator');
       rethrow;
     }
   }
 
   /// 設定の概要を表示
   static void _printConfigSummary(Map<String, String> configs) {
-    print('\n📋 生成された設定の概要:');
+    developer.log('\n📋 生成された設定の概要:', name: 'FirebaseConfigGenerator');
 
     final platforms = <String, int>{};
     for (var key in configs.keys) {
@@ -56,24 +57,24 @@ class FirebaseConfigGenerator {
     }
 
     platforms.forEach((platform, count) {
-      print('  • $platform: $count個の設定');
+      developer.log('  • $platform: $count個の設定', name: 'FirebaseConfigGenerator');
     });
 
-    print('\n⚠️  注意事項:');
-    print('  • .envファイルは.gitignoreに含まれていることを確認してください');
-    print('  • 本番環境では、より強力な暗号化方式を使用することを推奨します');
-    print('  • 定期的に暗号化キーを更新してください');
+    developer.log('\n⚠️  注意事項:', name: 'FirebaseConfigGenerator');
+    developer.log('  • .envファイルは.gitignoreに含まれていることを確認してください', name: 'FirebaseConfigGenerator');
+    developer.log('  • 本番環境では、より強力な暗号化方式を使用することを推奨します', name: 'FirebaseConfigGenerator');
+    developer.log('  • 定期的に暗号化キーを更新してください', name: 'FirebaseConfigGenerator');
   }
 
   /// 設定の検証
   static Future<void> validateGeneratedConfig() async {
     try {
-      print('暗号化された設定の検証を開始...');
+      developer.log('暗号化された設定の検証を開始...', name: 'FirebaseConfigGenerator');
 
       // 環境変数を読み込み
       final envFile = File('.env');
       if (!await envFile.exists()) {
-        print('❌ .envファイルが見つかりません');
+        developer.log('❌ .envファイルが見つかりません', name: 'FirebaseConfigGenerator');
         return;
       }
 
@@ -83,20 +84,20 @@ class FirebaseConfigGenerator {
           .where((line) => line.trim().isNotEmpty && !line.startsWith('#'))
           .length;
 
-      print('✅ 設定の検証が完了しました');
-      print('📊 設定項目数: $configCount');
+      developer.log('✅ 設定の検証が完了しました', name: 'FirebaseConfigGenerator');
+      developer.log('📊 設定項目数: $configCount', name: 'FirebaseConfigGenerator');
 
       // 復号化テスト
       await _testDecryption();
     } catch (e) {
-      print('❌ 設定の検証に失敗: $e');
+      developer.log('❌ 設定の検証に失敗: $e', name: 'FirebaseConfigGenerator');
     }
   }
 
   /// 復号化テスト
   static Future<void> _testDecryption() async {
     try {
-      print('復号化テストを実行中...');
+      developer.log('復号化テストを実行中...', name: 'FirebaseConfigGenerator');
 
       // サンプル設定で復号化テスト
       final testConfig = {
@@ -118,25 +119,25 @@ class FirebaseConfigGenerator {
       testConfig.forEach((key, originalValue) {
         final decryptedValue = decryptedConfig[key];
         if (decryptedValue != originalValue) {
-          print('❌ 復号化テスト失敗: $key');
+          developer.log('❌ 復号化テスト失敗: $key', name: 'FirebaseConfigGenerator');
           allValid = false;
         }
       });
 
       if (allValid) {
-        print('✅ 復号化テストが成功しました');
-      } else {
-        print('❌ 復号化テストが失敗しました');
+        developer.log('✅ 復号化テストが成功しました', name: 'FirebaseConfigGenerator');
+              } else {
+          developer.log('❌ 復号化テストが失敗しました', name: 'FirebaseConfigGenerator');
+        }
+          } catch (e) {
+        developer.log('❌ 復号化テストでエラーが発生: $e', name: 'FirebaseConfigGenerator');
       }
-    } catch (e) {
-      print('❌ 復号化テストでエラーが発生: $e');
-    }
   }
 
   /// セキュリティレポートを生成
   static Future<void> generateSecurityReport() async {
     try {
-      print('セキュリティレポートを生成中...');
+      developer.log('セキュリティレポートを生成中...', name: 'FirebaseConfigGenerator');
 
       final report = {
         'generatedAt': DateTime.now().toIso8601String(),
@@ -166,17 +167,17 @@ class FirebaseConfigGenerator {
       final reportFile = File('firebase_security_report.json');
       await reportFile.writeAsString(jsonEncode(report));
 
-      print('✅ セキュリティレポートが生成されました');
-      print('📁 ファイルパス: ${reportFile.absolute.path}');
+      developer.log('✅ セキュリティレポートが生成されました', name: 'FirebaseConfigGenerator');
+      developer.log('📁 ファイルパス: ${reportFile.absolute.path}', name: 'FirebaseConfigGenerator');
 
       // レポートの概要を表示
-      print('\n📊 セキュリティスコア:');
+      developer.log('\n📊 セキュリティスコア:', name: 'FirebaseConfigGenerator');
       final securityScore = report['securityScore'] as Map<String, dynamic>?;
-      print('  • 設定管理: ${securityScore?['configurationManagement']}/10');
-      print('  • データ保護: ${securityScore?['dataProtection']}/10');
-      print('  • 総合スコア: ${securityScore?['overall']}/10');
+      developer.log('  • 設定管理: ${securityScore?['configurationManagement']}/10', name: 'FirebaseConfigGenerator');
+      developer.log('  • データ保護: ${securityScore?['dataProtection']}/10', name: 'FirebaseConfigGenerator');
+      developer.log('  • 総合スコア: ${securityScore?['overall']}/10', name: 'FirebaseConfigGenerator');
     } catch (e) {
-      print('❌ セキュリティレポートの生成に失敗: $e');
+      developer.log('❌ セキュリティレポートの生成に失敗: $e', name: 'FirebaseConfigGenerator');
     }
   }
 }
@@ -184,30 +185,30 @@ class FirebaseConfigGenerator {
 /// メイン関数（開発時に実行）
 void main() async {
   try {
-    print('🚀 Firebase設定暗号化ツール');
-    print('=' * 50);
+    developer.log('🚀 Firebase設定暗号化ツール', name: 'FirebaseConfigGenerator');
+    developer.log('=' * 50, name: 'FirebaseConfigGenerator');
 
     // 1. 環境変数ファイルを生成
     await FirebaseConfigGenerator.generateEnvFile();
 
-    print('\n${'=' * 50}');
+    developer.log('\n${'=' * 50}', name: 'FirebaseConfigGenerator');
 
     // 2. 設定を検証
     await FirebaseConfigGenerator.validateGeneratedConfig();
 
-    print('\n${'=' * 50}');
+    developer.log('\n${'=' * 50}', name: 'FirebaseConfigGenerator');
 
     // 3. セキュリティレポートを生成
     await FirebaseConfigGenerator.generateSecurityReport();
 
-    print('\n${'=' * 50}');
-    print('✅ すべての処理が完了しました');
-    print('\n📝 次のステップ:');
-    print('  1. .envファイルが.gitignoreに含まれていることを確認');
-    print('  2. main.dartでEncryptedFirebaseConfigServiceを使用するように変更');
-    print('  3. アプリをテストして動作確認');
+    developer.log('\n${'=' * 50}', name: 'FirebaseConfigGenerator');
+    developer.log('✅ すべての処理が完了しました', name: 'FirebaseConfigGenerator');
+    developer.log('\n📝 次のステップ:', name: 'FirebaseConfigGenerator');
+    developer.log('  1. .envファイルが.gitignoreに含まれていることを確認', name: 'FirebaseConfigGenerator');
+    developer.log('  2. main.dartでEncryptedFirebaseConfigServiceを使用するように変更', name: 'FirebaseConfigGenerator');
+    developer.log('  3. アプリをテストして動作確認', name: 'FirebaseConfigGenerator');
   } catch (e) {
-    print('❌ エラーが発生しました: $e');
+    developer.log('❌ エラーが発生しました: $e', name: 'FirebaseConfigGenerator');
     exit(1);
   }
 }
