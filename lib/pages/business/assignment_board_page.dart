@@ -23,6 +23,7 @@ import 'dart:convert';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:roastplus/utils/app_performance_config.dart';
 import '../../services/user_settings_firestore_service.dart';
+import '../../services/first_login_service.dart';
 import '../../widgets/lottie_animation_widget.dart';
 
 class AssignmentBoard extends StatefulWidget {
@@ -56,6 +57,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   StreamSubscription<Map<String, dynamic>?>? _groupTodayAssignmentSubscription;
   StreamSubscription<Map<String, dynamic>>? _developerModeSubscription;
   StreamSubscription<List<AttendanceRecord>>? _groupAttendanceSubscription;
+  StreamSubscription<dynamic>? _displayNameSubscription;
   Timer? _autoSyncTimer;
 
   /// 安全な文字列リスト変換
@@ -315,6 +317,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     _initializeGroupMonitoring();
     _loadDeveloperMode();
     _startDeveloperModeListener();
+    _startDisplayNameMonitoring();
 
     // 初期権限チェックを実行
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1296,6 +1299,35 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         });
   }
 
+  /// 表示名の変更を監視
+  void _startDisplayNameMonitoring() {
+    debugPrint('AssignmentBoard: 表示名監視を開始');
+
+    // 定期的に表示名をチェックして更新を検知
+    _displayNameSubscription?.cancel();
+    _displayNameSubscription = Stream.periodic(Duration(seconds: 10)).listen((
+      _,
+    ) async {
+      if (!mounted) return;
+
+      try {
+        final currentDisplayName =
+            await FirstLoginService.getCurrentDisplayName();
+        final currentUser = FirebaseAuth.instance.currentUser;
+
+        if (currentUser != null && currentDisplayName != null) {
+          // 表示名が変更された場合、担当表を再構築
+          setState(() {
+            // 状態を更新してMemberCardを再描画
+          });
+          debugPrint('AssignmentBoard: 表示名変更を検知 - 担当表を更新: $currentDisplayName');
+        }
+      } catch (e) {
+        debugPrint('AssignmentBoard: 表示名監視エラー: $e');
+      }
+    });
+  }
+
   /// 今日の担当をリセット
   Future<void> _resetTodayAssignment() async {
     final today = _todayKey();
@@ -1441,6 +1473,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     _groupTodayAssignmentSubscription?.cancel();
     _developerModeSubscription?.cancel();
     _groupAttendanceSubscription?.cancel();
+    _displayNameSubscription?.cancel();
     _autoSyncTimer?.cancel();
     super.dispose();
   }
@@ -2084,7 +2117,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   }
 }
 
-class MemberCard extends StatelessWidget {
+class MemberCard extends StatefulWidget {
   final String name;
   final AttendanceStatus attendanceStatus;
   final VoidCallback? onTap;
@@ -2097,9 +2130,114 @@ class MemberCard extends StatelessWidget {
   });
 
   @override
+  State<MemberCard> createState() => _MemberCardState();
+}
+
+class _MemberCardState extends State<MemberCard> {
+  String? _customDisplayName;
+  bool _isLoadingDisplayName = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomDisplayName();
+    _startDisplayNameMonitoring();
+  }
+
+  /// カスタム表示名を読み込み
+  Future<void> _loadCustomDisplayName() async {
+    try {
+      // 現在のユーザーのカスタム表示名を取得
+      final customDisplayName = await FirstLoginService.getCurrentDisplayName();
+
+      if (mounted) {
+        setState(() {
+          _customDisplayName = customDisplayName;
+          _isLoadingDisplayName = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('MemberCard: カスタム表示名読み込みエラー: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingDisplayName = false;
+        });
+      }
+    }
+  }
+
+  /// 表示名の変更を監視
+  void _startDisplayNameMonitoring() {
+    // 定期的に表示名をチェック
+    Timer.periodic(Duration(seconds: 3), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      try {
+        final newDisplayName = await FirstLoginService.getCurrentDisplayName();
+        if (_customDisplayName != newDisplayName) {
+          if (mounted) {
+            setState(() {
+              _customDisplayName = newDisplayName;
+            });
+            debugPrint(
+              'MemberCard: 表示名変更を検知: $_customDisplayName -> $newDisplayName',
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('MemberCard: 表示名監視エラー: $e');
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final displayName = name.isEmpty ? '未設定' : name;
-    final isUnset = displayName == '未設定';
+    // 表示名を決定（カスタム表示名を優先）
+    String displayName;
+    if (_isLoadingDisplayName) {
+      displayName = '読み込み中...';
+    } else if (widget.name.isEmpty) {
+      displayName = '未設定';
+    } else {
+      // 現在のユーザーのカードの場合、カスタム表示名を使用
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final currentUserName = currentUser?.displayName ?? '';
+
+      // グループ状態の場合は、グループメンバー情報から現在のユーザー名を取得
+      final groupProvider = context.read<GroupProvider>();
+      String currentUserNameInGroup = currentUserName;
+
+      if (groupProvider.hasGroup) {
+        final currentUserInGroup = groupProvider.currentGroup!.members
+            .firstWhere(
+              (member) => member.uid == currentUser?.uid,
+              orElse: () => GroupMember(
+                uid: '',
+                email: '',
+                displayName: currentUserName,
+                role: GroupRole.member,
+                joinedAt: DateTime.now(),
+              ),
+            );
+        currentUserNameInGroup = currentUserInGroup.displayName;
+      }
+
+      // 自分のカードかどうかを判定
+      final isMyCard = widget.name == currentUserNameInGroup;
+
+      if (isMyCard &&
+          _customDisplayName != null &&
+          _customDisplayName!.isNotEmpty) {
+        displayName = _customDisplayName!;
+      } else {
+        displayName = widget.name;
+      }
+    }
+
+    final isUnset = displayName == '未設定' || displayName == '読み込み中...';
 
     // 現在のユーザー名を取得
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -2127,16 +2265,16 @@ class MemberCard extends StatelessWidget {
     final isMyCard = displayName == currentUserNameInGroup && !isUnset;
 
     // 出勤退勤状態に基づいて色を決定
-    Color? cardColor;
-    Color? textColor;
-    Color? borderColor;
+    Color cardColor;
+    Color textColor;
+    Color borderColor;
 
     if (isUnset) {
       cardColor = Provider.of<ThemeSettings>(context).cardBackgroundColor;
-      textColor = Colors.grey[600];
+      textColor = Colors.grey[600]!;
       borderColor = Colors.grey.shade400;
     } else {
-      switch (attendanceStatus) {
+      switch (widget.attendanceStatus) {
         case AttendanceStatus.present:
           cardColor = Colors.white; // 白カード（出勤）
           textColor = Colors.black;
@@ -2155,7 +2293,7 @@ class MemberCard extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: isUnset ? null : onTap,
+      onTap: isUnset ? null : widget.onTap,
       child: Container(
         width: kIsWeb ? 80 : 100,
         padding: EdgeInsets.symmetric(vertical: kIsWeb ? 8 : 10),

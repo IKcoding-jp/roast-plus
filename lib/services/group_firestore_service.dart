@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_models.dart';
 import 'group_invitation_service.dart';
+import 'first_login_service.dart';
 
 import 'dart:math';
 import 'dart:developer' as developer;
@@ -52,7 +53,15 @@ class GroupFirestoreService {
     return email != null && email.isNotEmpty ? email : null;
   }
 
-  static String? get _displayName => _auth.currentUser?.displayName;
+  static Future<String> get _displayName async {
+    // カスタム表示名を優先的に取得
+    final customDisplayName = await FirstLoginService.getCurrentDisplayName();
+    if (customDisplayName != null && customDisplayName.isNotEmpty) {
+      return customDisplayName;
+    }
+    // カスタム表示名がない場合はGoogleアカウントの名前を使用
+    return _auth.currentUser?.displayName ?? 'Unknown User';
+  }
   static String? get _photoUrl => _auth.currentUser?.photoURL;
 
   /// 招待コードを生成
@@ -84,10 +93,11 @@ class GroupFirestoreService {
 
         developer.log('グループID生成: $groupId', name: 'GroupFirestoreService');
 
+        final displayName = await _displayName;
         final creator = GroupMember(
           uid: _uid!,
           email: _email!,
-          displayName: _displayName ?? 'Unknown User',
+          displayName: displayName,
           photoUrl: _photoUrl,
           role: GroupRole.admin, // グループ作成者は管理者として扱う
           joinedAt: now,
@@ -555,10 +565,11 @@ class GroupFirestoreService {
     if (group == null) throw Exception('グループが見つかりません');
 
     // メンバーを追加
+    final displayName = await _displayName;
     final newMember = GroupMember(
       uid: _uid!,
       email: _email!,
-      displayName: _displayName ?? 'Unknown User',
+      displayName: displayName,
       photoUrl: _photoUrl,
       role: GroupRole.member, // 招待されたメンバーはメンバーとして扱う
       joinedAt: DateTime.now(),
@@ -631,10 +642,11 @@ class GroupFirestoreService {
     }
 
     // メンバーを追加
+    final displayName = await _displayName;
     final newMember = GroupMember(
       uid: _uid!,
       email: _email!,
-      displayName: _displayName ?? 'Unknown User',
+      displayName: displayName,
       photoUrl: _photoUrl,
       role: GroupRole.member, // 招待コードで参加したメンバーはメンバーとして扱う
       joinedAt: DateTime.now(),

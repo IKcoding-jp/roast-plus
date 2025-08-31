@@ -42,6 +42,8 @@ import 'utils/web_ui_utils.dart';
 import 'utils/web_compatibility.dart';
 import 'widgets/lottie_animation_widget.dart';
 import 'utils/font_optimizer.dart';
+import 'services/first_login_service.dart';
+import 'pages/auth/display_name_setup_page.dart';
 // navigatorKeyが定義されているファイルをimport
 
 class WorkAssignmentApp extends StatefulWidget {
@@ -245,6 +247,7 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
           routes: {
             // 必須のルート（即座に読み込み）
             '/group_required': (context) => const GroupRequiredPage(),
+            '/display_name_setup': (context) => const DisplayNameSetupPage(),
             '/analytics': (context) => HomePage(),
 
             '/roast': (context) => RoastTimerPage(showBackButton: true),
@@ -289,10 +292,65 @@ class AuthGate extends StatelessWidget {
           return GoogleSignInScreen();
         }
 
-        // ログイン後はグループ参加チェックを行う
-        return GroupRequiredWrapper(child: child);
+        // ログイン後は初回ログインチェックを行う
+        return FirstLoginWrapper(child: child);
       },
     );
+  }
+}
+
+/// 初回ログインチェックのラッパー
+class FirstLoginWrapper extends StatefulWidget {
+  final Widget child;
+
+  const FirstLoginWrapper({super.key, required this.child});
+
+  @override
+  State<FirstLoginWrapper> createState() => _FirstLoginWrapperState();
+}
+
+class _FirstLoginWrapperState extends State<FirstLoginWrapper> {
+  bool _isChecking = true;
+  bool _isFirstLogin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFirstLogin();
+  }
+
+  Future<void> _checkFirstLogin() async {
+    try {
+      final isFirstLogin = await FirstLoginService.isFirstLogin();
+      if (mounted) {
+        setState(() {
+          _isFirstLogin = isFirstLogin;
+          _isChecking = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('初回ログインチェックでエラーが発生: $e');
+      if (mounted) {
+        setState(() {
+          _isFirstLogin = false;
+          _isChecking = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isChecking) {
+      return const LoadingScreen(title: 'Loading...');
+    }
+
+    if (_isFirstLogin) {
+      return const DisplayNameSetupPage();
+    }
+
+    // 初回ログインでない場合はグループ参加チェックを行う
+    return GroupRequiredWrapper(child: widget.child);
   }
 }
 

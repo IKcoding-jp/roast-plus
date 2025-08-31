@@ -5,6 +5,7 @@ import '../../services/sync_firestore_all.dart';
 import '../../services/data_sync_service.dart';
 import '../../services/secure_auth_service.dart';
 import '../../services/encrypted_local_storage_service.dart';
+import '../../services/first_login_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
 import '../../utils/app_performance_config.dart';
@@ -63,18 +64,15 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
   Future<void> _loadCustomDisplayName() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
-    if (doc.exists &&
-        doc.data() != null &&
-        doc.data()!['displayName'] != null) {
+
+    // FirstLoginServiceを使用してカスタム表示名を取得
+    final customDisplayName = await FirstLoginService.getCurrentDisplayName();
+    if (customDisplayName != null && customDisplayName.isNotEmpty) {
       setState(() {
-        _userName = doc.data()!['displayName'];
+        _userName = customDisplayName;
       });
     } else {
-      // Firestoreにカスタム名がなければGoogleアカウント名
+      // カスタム表示名がなければGoogleアカウント名
       setState(() {
         _userName = user.displayName ?? user.email;
       });
@@ -87,10 +85,24 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('表示名を編集'),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(hintText: '新しい表示名'),
-          maxLength: 30,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Googleアカウント名から名字への変更を推奨します。',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: '例: 田中、佐藤',
+                labelText: '表示名（名字）',
+              ),
+              maxLength: 30,
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -107,54 +119,64 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
     if (result != null && result.isNotEmpty) {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'displayName': result,
-        }, SetOptions(merge: true));
-        setState(() {
-          _userName = result;
-        });
-        // 参加中の全グループのmembers配列も更新
-        final groupsSnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('userGroups')
-            .get();
-        for (final doc in groupsSnapshot.docs) {
-          final groupId = doc.data()['groupId'] as String?;
-          if (groupId == null) continue;
-          final groupDoc = await FirebaseFirestore.instance
-              .collection('groups')
-              .doc(groupId)
+        // FirstLoginServiceを使用して表示名を設定
+        final success = await FirstLoginService.setDisplayName(result);
+        if (success) {
+          setState(() {
+            _userName = result;
+          });
+          // 参加中の全グループのmembers配列も更新
+          final groupsSnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('userGroups')
               .get();
-          if (!groupDoc.exists) continue;
-          final groupData = groupDoc.data();
-          if (groupData == null || groupData['members'] == null) continue;
-          final membersRaw = groupData['members'];
-          if (membersRaw is! List) continue;
-          final updatedMembers = membersRaw
-              .map((m) {
-                if (m is Map<String, dynamic> && m['uid'] == user.uid) {
-                  return {...m, 'displayName': result};
-                }
-                return m;
-              })
-              .where((m) => m != null)
-              .toList();
-          await FirebaseFirestore.instance
-              .collection('groups')
-              .doc(groupId)
-              .update({
-                'members': updatedMembers,
-                'updatedAt': FieldValue.serverTimestamp(),
-              });
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('表示名を変更しました（グループにも反映）'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          for (final doc in groupsSnapshot.docs) {
+            final groupId = doc.data()['groupId'] as String?;
+            if (groupId == null) continue;
+            final groupDoc = await FirebaseFirestore.instance
+                .collection('groups')
+                .doc(groupId)
+                .get();
+            if (!groupDoc.exists) continue;
+            final groupData = groupDoc.data();
+            if (groupData == null || groupData['members'] == null) continue;
+            final membersRaw = groupData['members'];
+            if (membersRaw is! List) continue;
+            final updatedMembers = membersRaw
+                .map((m) {
+                  if (m is Map<String, dynamic> && m['uid'] == user.uid) {
+                    return {...m, 'displayName': result};
+                  }
+                  return m;
+                })
+                .where((m) => m != null)
+                .toList();
+            await FirebaseFirestore.instance
+                .collection('groups')
+                .doc(groupId)
+                .update({
+                  'members': updatedMembers,
+                  'updatedAt': FieldValue.serverTimestamp(),
+                });
+          }
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('表示名を変更しました（担当表にも反映されます）'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('表示名の変更に失敗しました'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       }
     }

@@ -67,8 +67,25 @@ class SecureAuthService {
   /// ユーザー情報をFirestoreに保存
   static Future<void> _saveUserToFirestore(User user) async {
     try {
+      // 既存のカスタム表示名を保持するため、まず現在のデータを取得
+      final existingDoc = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      String? displayNameToSave = user.displayName;
+
+      if (existingDoc.exists) {
+        final existingData = existingDoc.data();
+        // カスタム表示名が設定されている場合はそれを保持
+        if (existingData != null &&
+            existingData['displayName'] != null &&
+            existingData['displayName'] != user.displayName) {
+          displayNameToSave = existingData['displayName'];
+        }
+      }
+
       await _firestore.collection('users').doc(user.uid).set({
-        'displayName': user.displayName,
+        'displayName': displayNameToSave,
         'email': user.email,
         'photoUrl': user.photoURL,
         'lastLogin': FieldValue.serverTimestamp(),
