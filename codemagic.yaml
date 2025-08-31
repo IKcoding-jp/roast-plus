@@ -1,517 +1,101 @@
 workflows:
-  ios_debug:
-    name: iOS Debug (no codesign)
-    max_build_duration: 60
-    instance_type: mac_mini_m2
+  ios-workflow:
+    name: iOS Build
     environment:
+      xcode: latest
+      cocoapods: default
+      node: latest
       flutter: stable
-      xcode: 15.4
       vars:
-        COCOAPODS_DISABLE_STATS: 'true'
-        LC_ALL: en_US.UTF-8
-        LANG: en_US.UTF-8
-    cache:
-      cache_paths:
-        - "$HOME/Library/Caches/CocoaPods"
-        - "$HOME/.cocoapods/repo"
-        - "$FLUTTER_ROOT/.pub-cache"
-        - "ios/Pods"
+        XCODE_PROJECT: "ios/Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+        BUNDLE_ID: "com.example.roastplus"
+        TEAM_ID: "MC82QDYNZR"
+        PROVISIONING_PROFILE_SPECIFIER: "RoastPlus ios_app_development 1756620590"
+        CODE_SIGN_IDENTITY: "iPhone Developer"
+        DEVELOPMENT_TEAM: "MC82QDYNZR"
+      flutter_config: "--debug"
+      xcode_config: "Debug"
+      groups:
+        - app_store_credentials
+      secrets:
+        - key: app_store_connect_api_key_id
+          group: app_store_credentials
+        - key: app_store_connect_api_key_issuer_id
+          group: app_store_credentials
+        - key: app_store_connect_api_key
+          group: app_store_credentials
+        - key: certificate_password
+          group: app_store_credentials
+        - key: bundle_identifier
+          group: app_store_credentials
+        - key: team_id
+          group: app_store_credentials
+        - key: provisioning_profile_specifier
+          group: app_store_credentials
+        - key: code_sign_identity
+          group: app_store_credentials
+        - key: development_team
+          group: app_store_credentials
     scripts:
-      - name: Flutter deps
-        script: |
-          echo "Flutterバージョンを確認中..."
-          flutter --version
-          echo "Flutterプロジェクトをクリーン中..."
-          flutter clean
-          echo "Flutter依存関係を取得中..."
-          flutter pub get
-      - name: Prepare CocoaPods (repo update + install)
-        script: |
-          echo "CocoaPodsの準備中..."
-          cd ios
-          echo "既存のPodfile.lockとPodsを削除中..."
-          rm -rf Podfile.lock Pods
-          echo "CocoaPodsリポジトリを更新中..."
-          pod repo update
-          echo "CocoaPodsをインストール中..."
-          pod install --repo-update --verbose
-          cd ..
-      - name: Build iOS (debug)
-        script: |
-          echo "iOSデバッグビルドを開始..."
-          flutter build ios --debug --no-codesign
-          echo "iOSデバッグビルドが完了しました"
-    artifacts:
-      - build/ios/iphoneos/*.app
-      - build/ios/**/*.xcarchive
-      - build/**/xcresults/**/*.xcresult
-
-  ios_release:
-    name: iOS Release
-    max_build_duration: 120
-    instance_type: mac_mini_m2
-    environment:
-      flutter: stable
-      xcode: 15.4
-      vars:
-        COCOAPODS_DISABLE_STATS: 'true'
-        LC_ALL: en_US.UTF-8
-        LANG: en_US.UTF-8
-        # iOS署名用の環境変数（Codemagicで設定）
-        CM_CERTIFICATE: ${{ secrets.CM_CERTIFICATE }}
-        CM_CERTIFICATE_PASSWORD: ${{ secrets.CM_CERTIFICATE_PASSWORD }}
-        CM_PROVISIONING_PROFILE: ${{ secrets.CM_PROVISIONING_PROFILE }}
-        CM_BUNDLE_ID: "com.example.roastplus"
-        CM_TEAM_ID: ${{ secrets.CM_TEAM_ID }}
-    cache:
-      cache_paths:
-        - "$HOME/Library/Caches/CocoaPods"
-        - "$HOME/.cocoapods/repo"
-        - "$FLUTTER_ROOT/.pub-cache"
-        - "ios/Pods"
-    scripts:
-      - name: Flutter deps
-        script: |
-          echo "Flutterバージョンを確認中..."
-          flutter --version
-          echo "Flutterプロジェクトをクリーン中..."
-          flutter clean
-          echo "Flutter依存関係を取得中..."
-          flutter pub get
-      - name: Prepare CocoaPods
-        script: |
-          echo "CocoaPodsの準備中..."
-          cd ios
-          echo "既存のPodfile.lockとPodsを削除中..."
-          rm -rf Podfile.lock Pods
-          echo "CocoaPodsリポジトリを更新中..."
-          pod repo update
-          echo "CocoaPodsをインストール中..."
-          pod install --repo-update --verbose
-          cd ..
       - name: Set up code signing settings
         script: |
-          echo "コード署名設定を開始..."
+          keychain_name="codemagic.keychain"
+          keychain_password="temp"
           
-          # 証明書とプロビジョニングプロファイルを設定
-          echo "証明書をデコード中..."
-          echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
-          echo "プロビジョニングプロファイルをデコード中..."
-          echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/profile.mobileprovision
+          # Create keychain
+          security create-keychain -p "$keychain_password" "$keychain_name"
+          security list-keychains -s "$keychain_name"
+          security default-keychain -s "$keychain_name"
+          security unlock-keychain -p "$keychain_password" "$keychain_name"
+          security set-keychain-settings -t 3600 -l ~/Library/Keychains/"$keychain_name"
           
-          # キーチェーンに証明書を追加
-          echo "キーチェーンを作成中..."
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security set-keychain-settings -t 3600 -l ~/Library/Keychains/build.keychain
-          echo "証明書をキーチェーンにインポート中..."
-          security import /tmp/certificate.p12 -k build.keychain -P $CM_CERTIFICATE_PASSWORD -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-
-          # プロビジョニングプロファイルをインストール
-          echo "プロビジョニングプロファイルをインストール中..."
+          # Import certificate
+          echo "$CM_CERTIFICATE" | base64 --decode > /tmp/certificate.p12
+          security import /tmp/certificate.p12 -k "$keychain_name" -P "$CM_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain_name"
+          
+          # Import provisioning profile
+          echo "$CM_PROVISIONING_PROFILE" | base64 --decode > /tmp/profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          # プロビジョニングプロファイルのUUIDを取得
-          PROFILE_UUID=$(security cms -D -i /tmp/profile.mobileprovision | grep -a1 "<key>UUID</key>" | tail -1 | sed 's/.*<string>//;s/<\/string>//')
-          if [ -n "$PROFILE_UUID" ]; then
-            echo "プロビジョニングプロファイルUUID: $PROFILE_UUID"
-            cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
-          else
-            echo "警告: プロビジョニングプロファイルからUUIDを取得できませんでした。通常のファイル名を使用します"
-            cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-          fi
-
-          # Bundle IDを更新
-          echo "Bundle IDを更新中: $CM_BUNDLE_ID"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CM_BUNDLE_ID" ios/Runner/Info.plist
-
-          # プロジェクト設定を更新
-          echo "プロジェクト設定を更新中..."
-          echo "現在のBundle ID設定を確認..."
-          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj || echo "PRODUCT_BUNDLE_IDENTIFIERが見つかりません"
-
-          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = ".*";/PRODUCT_BUNDLE_IDENTIFIER = "'$CM_BUNDLE_ID'";/' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "'$CM_TEAM_ID'";/' ios/Runner.xcodeproj/project.pbxproj
-
-          echo "更新後のBundle ID設定を確認..."
-          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj | head -3
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
           
-          echo "コード署名設定が完了しました"
-      - name: Build iOS (release)
+          # Set up code signing settings
+          /usr/libexec/PlistBuddy -c "Set :method development" /tmp/exportOptions.plist
+          /usr/libexec/PlistBuddy -c "Set :teamID $CM_TEAM_ID" /tmp/exportOptions.plist
+          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:$CM_BUNDLE_ID $CM_PROVISIONING_PROFILE_SPECIFIER" /tmp/exportOptions.plist
+          /usr/libexec/PlistBuddy -c "Set :signingCertificate $CM_CODE_SIGN_IDENTITY" /tmp/exportOptions.plist
+          /usr/libexec/PlistBuddy -c "Set :signingStyle manual" /tmp/exportOptions.plist
+      - name: Get Flutter packages
         script: |
-          echo "iOSリリースビルドを開始..."
-          flutter build ios --release --no-codesign
-          echo "iOSリリースビルドが完了しました"
-      - name: Archive iOS app
-        script: |
-          echo "iOSアプリをアーカイブ中..."
-          cd ios
-          
-          # アーカイブ前の確認
-          echo "プロジェクト設定を確認中..."
-          if [ ! -d "Runner.xcworkspace" ]; then
-            echo "❌ エラー: Runner.xcworkspaceが見つかりません"
-            echo "現在のディレクトリ内容:"
-            ls -la
-            exit 1
-          fi
-          
-          # アーカイブを実行
-          echo "xcodebuildでアーカイブを実行中..."
-          if xcodebuild -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -destination generic/platform=iOS \
-            -archivePath build/Runner.xcarchive \
-            -allowProvisioningUpdates \
-            archive; then
-            echo "✅ アーカイブが完了しました"
-          else
-            echo "❌ アーカイブに失敗しました"
-            exit 1
-          fi
-          
-          cd ..
-          echo "iOSアプリのアーカイブが完了しました"
-      - name: Export IPA
-        script: |
-          echo "IPAファイルをエクスポート中..."
-          cd ios
-          
-          # エクスポートオプションファイルの確認
-          if [ ! -f "exportOptions.plist" ]; then
-            echo "❌ エラー: exportOptions.plistが見つかりません"
-            exit 1
-          fi
-          
-          # アーカイブディレクトリの確認
-          if [ ! -d "build/Runner.xcarchive" ]; then
-            echo "❌ エラー: Runner.xcarchiveが見つかりません"
-            echo "生成されたファイルを確認中..."
-            ls -la build/
-            exit 1
-          fi
-          
-          # IPAファイルをエクスポート
-          echo "xcodebuildでIPAファイルをエクスポート中..."
-          if xcodebuild -exportArchive \
-            -archivePath build/Runner.xcarchive \
-            -exportPath build/ios \
-            -exportOptionsPlist exportOptions.plist; then
-            echo "✅ IPAファイルのエクスポートが完了しました"
-          else
-            echo "❌ IPAファイルのエクスポートに失敗しました"
-            exit 1
-          fi
-          
-          cd ..
-          
-          # 生成されたファイルを確認
-          echo "生成されたファイルを確認中..."
-          if [ -f "ios/build/ios/Runner.ipa" ]; then
-            echo "✅ IPAファイルが正常に生成されました"
-            ls -lh ios/build/ios/Runner.ipa
-          else
-            echo "❌ IPAファイルが生成されませんでした"
-            echo "生成されたファイル:"
-            find ios/build -name "*.ipa" -type f
-            exit 1
-          fi
-    artifacts:
-      - build/ios/iphoneos/*.app
-      - build/ios/*.ipa
-      - build/ios/**/*.xcarchive
-      - build/**/xcresults/**/*.xcresult
-
-  ios_appstore:
-    name: iOS App Store
-    max_build_duration: 120
-    instance_type: mac_mini_m2
-    environment:
-      flutter: stable
-      xcode: 15.4
-      vars:
-        COCOAPODS_DISABLE_STATS: 'true'
-        LC_ALL: en_US.UTF-8
-        LANG: en_US.UTF-8
-        # iOS署名用の環境変数（Codemagicで設定）
-        CM_CERTIFICATE: ${{ secrets.CM_CERTIFICATE }}
-        CM_CERTIFICATE_PASSWORD: ${{ secrets.CM_CERTIFICATE_PASSWORD }}
-        CM_PROVISIONING_PROFILE: ${{ secrets.CM_PROVISIONING_PROFILE }}
-        CM_BUNDLE_ID: "com.example.roastplus"
-        CM_TEAM_ID: ${{ secrets.CM_TEAM_ID }}
-        # App Store Connect用の環境変数
-        APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-        APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-        APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
-        APP_STORE_CONNECT_APP_ID: ${{ secrets.APP_STORE_CONNECT_APP_ID }}
-    cache:
-      cache_paths:
-        - "$HOME/Library/Caches/CocoaPods"
-        - "$HOME/.cocoapods/repo"
-        - "$FLUTTER_ROOT/.pub-cache"
-        - "ios/Pods"
-    scripts:
-      - name: Flutter deps
-        script: |
-          echo "Flutterバージョンを確認中..."
-          flutter --version
-          echo "Flutterプロジェクトをクリーン中..."
-          flutter clean
-          echo "Flutter依存関係を取得中..."
           flutter pub get
-      - name: Prepare CocoaPods
+      - name: Clean iOS build
         script: |
-          echo "CocoaPodsの準備中..."
           cd ios
-          echo "既存のPodfile.lockとPodsを削除中..."
-          rm -rf Podfile.lock Pods
-          echo "CocoaPodsリポジトリを更新中..."
-          pod repo update
-          echo "CocoaPodsをインストール中..."
-          pod install --repo-update --verbose
+          rm -rf Pods
+          rm -rf .symlinks
+          rm -rf Podfile.lock
+          rm -rf Runner.xcworkspace
           cd ..
-      - name: Set up code signing settings
+      - name: Install iOS dependencies
         script: |
-          echo "コード署名設定を開始..."
-          
-          # 証明書とプロビジョニングプロファイルを設定
-          echo "証明書をデコード中..."
-          echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
-          echo "プロビジョニングプロファイルをデコード中..."
-          echo $CM_PROVISIONING_PROFILE | base64 --decode > /tmp/profile.mobileprovision
-          
-          # キーチェーンに証明書を追加
-          echo "キーチェーンを作成中..."
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security set-keychain-settings -t 3600 -l ~/Library/Keychains/build.keychain
-          echo "証明書をキーチェーンにインポート中..."
-          security import /tmp/certificate.p12 -k build.keychain -P $CM_CERTIFICATE_PASSWORD -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-
-          # プロビジョニングプロファイルをインストール
-          echo "プロビジョニングプロファイルをインストール中..."
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          # プロビジョニングプロファイルのUUIDを取得
-          PROFILE_UUID=$(security cms -D -i /tmp/profile.mobileprovision | grep -a1 "<key>UUID</key>" | tail -1 | sed 's/.*<string>//;s/<\/string>//')
-          if [ -n "$PROFILE_UUID" ]; then
-            echo "プロビジョニングプロファイルUUID: $PROFILE_UUID"
-            cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
-          else
-            echo "警告: プロビジョニングプロファイルからUUIDを取得できませんでした。通常のファイル名を使用します"
-            cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-          fi
-
-          # Bundle IDを更新
-          echo "Bundle IDを更新中: $CM_BUNDLE_ID"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CM_BUNDLE_ID" ios/Runner/Info.plist
-
-          # プロジェクト設定を更新
-          echo "プロジェクト設定を更新中..."
-          echo "現在のBundle ID設定を確認..."
-          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj || echo "PRODUCT_BUNDLE_IDENTIFIERが見つかりません"
-
-          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = ".*";/PRODUCT_BUNDLE_IDENTIFIER = "'$CM_BUNDLE_ID'";/' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "'$CM_TEAM_ID'";/' ios/Runner.xcodeproj/project.pbxproj
-
-          echo "更新後のBundle ID設定を確認..."
-          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj | head -3
-          
-          echo "コード署名設定が完了しました"
-      - name: Build iOS (release)
-        script: |
-          echo "iOSリリースビルドを開始..."
-          flutter build ios --release --no-codesign
-          echo "iOSリリースビルドが完了しました"
-      - name: Archive iOS app
-        script: |
-          echo "iOSアプリをアーカイブ中..."
           cd ios
-          
-          # アーカイブ前の確認
-          echo "プロジェクト設定を確認中..."
-          if [ ! -d "Runner.xcworkspace" ]; then
-            echo "❌ エラー: Runner.xcworkspaceが見つかりません"
-            echo "現在のディレクトリ内容:"
-            ls -la
-            exit 1
-          fi
-          
-          # アーカイブを実行
-          echo "xcodebuildでアーカイブを実行中..."
-          if xcodebuild -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -destination generic/platform=iOS \
-            -archivePath build/Runner.xcarchive \
-            -allowProvisioningUpdates \
-            archive; then
-            echo "✅ アーカイブが完了しました"
-          else
-            echo "❌ アーカイブに失敗しました"
-            exit 1
-          fi
-          
+          pod install --repo-update
           cd ..
-          echo "iOSアプリのアーカイブが完了しました"
-      - name: Export IPA
+      - name: Build iOS app
         script: |
-          echo "IPAファイルをエクスポート中..."
-          cd ios
-          
-          # エクスポートオプションファイルの確認
-          if [ ! -f "exportOptions.plist" ]; then
-            echo "❌ エラー: exportOptions.plistが見つかりません"
-            exit 1
-          fi
-          
-          # アーカイブディレクトリの確認
-          if [ ! -d "build/Runner.xcarchive" ]; then
-            echo "❌ エラー: Runner.xcarchiveが見つかりません"
-            exit 1
-          fi
-          
-          # IPAファイルをエクスポート
-          echo "xcodebuildでIPAファイルをエクスポート中..."
-          if xcodebuild -exportArchive \
-            -archivePath build/Runner.xcarchive \
-            -exportPath build/ios \
-            -exportOptionsPlist exportOptions.plist; then
-            echo "✅ IPAファイルのエクスポートが完了しました"
-          else
-            echo "❌ IPAファイルのエクスポートに失敗しました"
-            exit 1
-          fi
-          
-          cd ..
-          
-          # 生成されたファイルを確認
-          echo "生成されたファイルを確認中..."
-          if [ -f "ios/build/ios/Runner.ipa" ]; then
-            echo "✅ IPAファイルが正常に生成されました"
-            ls -lh ios/build/ios/Runner.ipa
-          else
-            echo "❌ IPAファイルが生成されませんでした"
-            echo "生成されたファイル:"
-            find ios/build -name "*.ipa" -type f
-            exit 1
-          fi
-      - name: Upload to App Store Connect
-        script: |
-          echo "App Store Connectへのアップロードを開始..."
-          
-          # 環境変数の確認
-          echo "環境変数の確認中..."
-          if [ -z "$APP_STORE_CONNECT_API_KEY" ]; then
-            echo "❌ エラー: APP_STORE_CONNECT_API_KEYが設定されていません"
-            exit 1
-          fi
-          if [ -z "$APP_STORE_CONNECT_API_KEY_ID" ]; then
-            echo "❌ エラー: APP_STORE_CONNECT_API_KEY_IDが設定されていません"
-            exit 1
-          fi
-          if [ -z "$APP_STORE_CONNECT_API_ISSUER_ID" ]; then
-            echo "❌ エラー: APP_STORE_CONNECT_API_ISSUER_IDが設定されていません"
-            exit 1
-          fi
-          
-          # App Store Connect APIキーを設定
-          echo "App Store Connect APIキーを設定中..."
-          if ! echo "$APP_STORE_CONNECT_API_KEY" | base64 --decode > /tmp/AuthKey.p8 2>/dev/null; then
-            echo "❌ エラー: App Store Connect APIキーのbase64デコードに失敗しました"
-            echo "APIキーが正しくbase64エンコードされているか確認してください"
-            exit 1
-          fi
-          
-          # IPAファイルの存在確認
-          echo "IPAファイルの存在確認中..."
-          IPA_PATH="ios/build/ios/Runner.ipa"
-          if [ ! -f "$IPA_PATH" ]; then
-            echo "❌ エラー: IPAファイルが見つかりません: $IPA_PATH"
-            echo "生成されたファイルを確認中..."
-            find ios/build -name "*.ipa" -type f
-            echo "ディレクトリ構造を確認中..."
-            ls -la ios/build/
-            if [ -d "ios/build/ios" ]; then
-              ls -la ios/build/ios/
-            fi
-            exit 1
-          fi
-          
-          echo "✅ IPAファイルが見つかりました: $IPA_PATH"
-          echo "IPAファイルサイズ: $(ls -lh "$IPA_PATH" | awk '{print $5}')"
-          
-          # xcrun altoolを使用してアップロード
-          echo "App Store Connectにアップロード中..."
-          if xcrun altool --upload-app \
-            --type ios \
-            --file "$IPA_PATH" \
-            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
-            --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID" \
-            --verbose; then
-            echo "✅ App Store Connectへのアップロードが成功しました"
-            echo "📱 App Store Connectでアプリの審査状況を確認してください"
-          else
-            echo "❌ App Store Connectへのアップロードが失敗しました"
-            exit 1
-          fi
+          flutter build ipa \
+            --debug \
+            --export-options-plist /tmp/exportOptions.plist \
+            --build-number=$CM_BUILD_NUMBER
     artifacts:
-      - build/ios/iphoneos/*.app
-      - build/ios/*.ipa
-      - build/ios/**/*.xcarchive
-      - build/**/xcresults/**/*.xcresult
-
-  ios_test:
-    name: iOS Test
-    max_build_duration: 60
-    instance_type: mac_mini_m2
-    environment:
-      flutter: stable
-      xcode: 15.4
-      vars:
-        COCOAPODS_DISABLE_STATS: 'true'
-        LC_ALL: en_US.UTF-8
-        LANG: en_US.UTF-8
-    cache:
-      cache_paths:
-        - "$HOME/Library/Caches/CocoaPods"
-        - "$HOME/.cocoapods/repo"
-        - "$FLUTTER_ROOT/.pub-cache"
-        - "ios/Pods"
-    scripts:
-      - name: Flutter deps
-        script: |
-          echo "Flutterバージョンを確認中..."
-          flutter --version
-          echo "Flutterプロジェクトをクリーン中..."
-          flutter clean
-          echo "Flutter依存関係を取得中..."
-          flutter pub get
-      - name: Prepare CocoaPods
-        script: |
-          echo "CocoaPodsの準備中..."
-          cd ios
-          echo "既存のPodfile.lockとPodsを削除中..."
-          rm -rf Podfile.lock Pods
-          echo "CocoaPodsリポジトリを更新中..."
-          pod repo update
-          echo "CocoaPodsをインストール中..."
-          pod install --repo-update --verbose
-          cd ..
-      - name: Run tests
-        script: |
-          echo "テストを実行中..."
-          flutter test
-          echo "テストが完了しました"
-      - name: Build iOS (test)
-        script: |
-          echo "iOSテストビルドを開始..."
-          flutter build ios --debug --no-codesign
-          echo "iOSテストビルドが完了しました"
-    artifacts:
-      - build/ios/iphoneos/*.app
-      - test_driver/**/*.png
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: false
 

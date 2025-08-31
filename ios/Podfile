@@ -54,6 +54,15 @@ post_install do |installer|
       config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
       config.build_settings['OTHER_LDFLAGS'] << '-ObjC'
       
+      # Flutter-ObjCフレームワークの問題を解決
+      config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
+      config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '$(PODS_ROOT)/Flutter'
+      config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '$(PODS_CONFIGURATION_BUILD_DIR)/Flutter'
+      
+      # リンカー設定の改善
+      config.build_settings['LD_RUNPATH_SEARCH_PATHS'] ||= ['$(inherited)']
+      config.build_settings['LD_RUNPATH_SEARCH_PATHS'] << '@executable_path/Frameworks'
+      
       # プライバシー設定
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'PERMISSION_CAMERA=1'
