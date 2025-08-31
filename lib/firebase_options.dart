@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDcKAdqrCS9p7l7sTVxKQUUsEUu97eE_1M',
-    appId: '1:781258244482:android:8fe7b807bea7dc33d58f9b',
+    appId: '1:781258244482:android:a50fe4967c4fee02d58f9b',
     messagingSenderId: '781258244482',
     projectId: 'bysnlogapp',
     storageBucket: 'bysnlogapp.firebasestorage.app',
