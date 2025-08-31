@@ -813,7 +813,8 @@ class MainScaffoldState extends State<MainScaffold> {
     _initializeAutoSync();
     // Web版では広告を読み込まない
     if (!kIsWeb) {
-      _loadInterstitialAd();
+      // 起動時のインタースティシャル広告を無効化
+      // _loadInterstitialAd();
       _loadBannerAd();
     }
   }
