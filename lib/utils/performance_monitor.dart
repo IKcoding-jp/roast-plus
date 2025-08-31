@@ -123,7 +123,7 @@ class PerformanceMonitor {
               .toStringAsFixed(1);
 
       developer.log(
-        '${entry.key}: ${entry.value.inMilliseconds}ms (${percentage}%)',
+        '${entry.key}: ${entry.value.inMilliseconds}ms ($percentage%)',
         name: 'Performance',
       );
     }

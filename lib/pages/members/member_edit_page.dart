@@ -660,7 +660,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
                             ).inputBackgroundColor,
                           ),
                           child: DropdownButtonFormField<String>(
-                            value: _getValidDropdownValue(
+                            initialValue: _getValidDropdownValue(
                               team.members[memberIndex],
                             ),
                             isExpanded: true, // 幅を親要素に合わせる
@@ -704,7 +704,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             ],
                             onChanged: (value) => _selectGroupMember(
                               teamIndex,

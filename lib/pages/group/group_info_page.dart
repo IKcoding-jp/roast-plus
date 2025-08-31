@@ -2294,7 +2294,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           else if (member.uid == user?.uid &&
               user?.photoURL != null &&
               user!.photoURL!.isNotEmpty) {
-            profileImageUrl = user?.photoURL;
+            profileImageUrl = user.photoURL;
           }
           // 他のメンバーの場合は、photoUrlが保存されていない場合はデフォルトアイコンを使用
           // Googleプロフィール画像のURLは動的に生成できないため、保存されたphotoUrlのみを使用
@@ -2436,7 +2436,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
     else if (member.uid == user?.uid &&
         user?.photoURL != null &&
         user!.photoURL!.isNotEmpty) {
-      profileImageUrl = user?.photoURL;
+      profileImageUrl = user.photoURL;
     }
     // 他のメンバーの場合、Googleプロフィール画像のURLを推測
     else if (member.email.contains('@gmail.com') ||
