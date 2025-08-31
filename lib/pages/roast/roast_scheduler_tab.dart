@@ -561,7 +561,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                                 Icon(
                                   Icons.note_add,
                                   size: 64,
-                                  color: themeSettings.fontColor2.withValues(
+                                  color: themeSettings.fontColor1.withValues(
                                     alpha: 0.5,
                                   ),
                                 ),
@@ -569,7 +569,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                                 Text(
                                   'メモがありません',
                                   style: TextStyle(
-                                    color: themeSettings.fontColor2,
+                                    color: themeSettings.fontColor1,
                                     fontSize: 16,
                                   ),
                                 ),
@@ -577,7 +577,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                                 Text(
                                   '右下の「+」ボタンから新しいメモを作成してください',
                                   style: TextStyle(
-                                    color: themeSettings.fontColor2.withValues(
+                                    color: themeSettings.fontColor1.withValues(
                                       alpha: 0.7,
                                     ),
                                     fontSize: 14,
