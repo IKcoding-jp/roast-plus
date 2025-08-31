@@ -262,7 +262,7 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
 
                         // 作業段階のドロップダウン
                         DropdownButtonFormField<WorkStage>(
-                          value: _selectedStage,
+                          initialValue: _selectedStage,
                           decoration: InputDecoration(
                             labelText: '作業段階を選択',
                             border: OutlineInputBorder(
@@ -309,7 +309,7 @@ class _WorkProgressEditPageState extends State<WorkProgressEditPage> {
                           ),
                           SizedBox(height: 8),
                           DropdownButtonFormField<WorkStatus>(
-                            value: _selectedStatus,
+                            initialValue: _selectedStatus,
                             decoration: InputDecoration(
                               labelText: '作業状況を選択',
                               border: OutlineInputBorder(

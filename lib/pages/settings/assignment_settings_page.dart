@@ -153,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             Switch(
                               value: developerMode,
                               onChanged: _toggleDevMode,
-                              activeColor: Provider.of<ThemeSettings>(
+                              activeThumbColor: Provider.of<ThemeSettings>(
                                 context,
                               ).buttonColor,
                             ),

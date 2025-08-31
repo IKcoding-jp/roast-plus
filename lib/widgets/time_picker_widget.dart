@@ -52,7 +52,7 @@ class _TimePickerWidgetState extends State<TimePickerWidget> {
           // 時間選択
           Expanded(
             child: DropdownButtonFormField<int>(
-              value: _selectedHour,
+              initialValue: _selectedHour,
               decoration: InputDecoration(
                 labelText: '時',
                 border: OutlineInputBorder(
@@ -84,7 +84,7 @@ class _TimePickerWidgetState extends State<TimePickerWidget> {
           // 分選択
           Expanded(
             child: DropdownButtonFormField<int>(
-              value: _selectedMinute,
+              initialValue: _selectedMinute,
               decoration: InputDecoration(
                 labelText: '分',
                 border: OutlineInputBorder(

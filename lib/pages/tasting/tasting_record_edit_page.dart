@@ -448,7 +448,7 @@ class _TastingRecordEditPageState extends State<TastingRecordEditPage> {
 
                       SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: _selectedRoastLevel,
+                        initialValue: _selectedRoastLevel,
                         decoration: InputDecoration(
                           labelText: '焙煎度合い *',
                           border: OutlineInputBorder(),

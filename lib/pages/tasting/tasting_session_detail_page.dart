@@ -258,7 +258,7 @@ class _TastingSessionDetailPageState extends State<TastingSessionDetailPage> {
               ),
               SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _roastLevel,
+                initialValue: _roastLevel,
                 items: roasts
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),

@@ -173,7 +173,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
                 border: Border.all(color: Colors.grey.shade300),
               ),
               child: DropdownButtonFormField<String>(
-                value: roastLevel,
+                initialValue: roastLevel,
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
@@ -414,7 +414,7 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: DropdownButtonFormField<String>(
-            value: controller.text.isEmpty ? null : controller.text,
+            initialValue: controller.text.isEmpty ? null : controller.text,
             decoration: InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(

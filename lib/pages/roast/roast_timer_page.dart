@@ -1082,7 +1082,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 vertical: 16,
                               ),
                             ),
-                            value: _selectedRecommendBean,
+                            initialValue: _selectedRecommendBean,
                             items: _recommendBeanList
                                 .map(
                                   (e) => DropdownMenuItem(
@@ -1128,7 +1128,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 vertical: 16,
                               ),
                             ),
-                            value: _selectedRecommendWeight,
+                            initialValue: _selectedRecommendWeight,
                             items: _recommendWeightList
                                 .map(
                                   (e) => DropdownMenuItem(
@@ -1173,7 +1173,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                                 vertical: 16,
                               ),
                             ),
-                            value: _selectedRecommendRoast,
+                            initialValue: _selectedRecommendRoast,
                             items: _recommendRoastList
                                 .map(
                                   (e) => DropdownMenuItem(

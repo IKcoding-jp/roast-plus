@@ -395,7 +395,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
               trailing: Switch(
                 value: _timerSoundEnabled,
                 onChanged: _saveTimerSoundEnabled,
-                activeColor: themeSettings.buttonColor,
+                activeThumbColor: themeSettings.buttonColor,
               ),
             ),
             if (_timerSoundEnabled) ...[
@@ -502,7 +502,7 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
               trailing: Switch(
                 value: _notificationSoundEnabled,
                 onChanged: _saveNotificationSoundEnabled,
-                activeColor: themeSettings.buttonColor,
+                activeThumbColor: themeSettings.buttonColor,
               ),
             ),
             if (_notificationSoundEnabled) ...[

@@ -2182,7 +2182,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
               developer.log('New value: $newValue', name: 'GroupInfoPage');
               onChanged(newValue);
             },
-            activeColor: themeSettings.buttonColor,
+            activeThumbColor: themeSettings.buttonColor,
           ),
         ],
       ),

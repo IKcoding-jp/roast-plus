@@ -550,7 +550,7 @@ class DripCounterPageState extends State<DripCounterPage>
             ],
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedRoast,
+            initialValue: _selectedRoast,
             items: _roastLevels
                 .map(
                   (level) => DropdownMenuItem(

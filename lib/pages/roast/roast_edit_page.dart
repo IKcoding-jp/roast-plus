@@ -331,7 +331,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                 border: Border.all(color: Colors.grey.shade300),
                               ),
                               child: DropdownButtonFormField<String>(
-                                value: _selectedWeight,
+                                initialValue: _selectedWeight,
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.symmetric(
@@ -469,7 +469,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                 border: Border.all(color: Colors.grey.shade300),
                               ),
                               child: DropdownButtonFormField<String>(
-                                value: _selectedRoast,
+                                initialValue: _selectedRoast,
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.symmetric(

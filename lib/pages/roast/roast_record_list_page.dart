@@ -1368,7 +1368,7 @@ class _RoastRecordListPageState extends State<RoastRecordListPage> {
         border: Border.all(color: Color(0xFF795548).withValues(alpha: 0.3)),
       ),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         items: items
             .map(
               (item) => DropdownMenuItem(

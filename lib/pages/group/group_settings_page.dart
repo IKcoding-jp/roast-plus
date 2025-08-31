@@ -580,7 +580,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: themeSettings.buttonColor,
+          activeThumbColor: themeSettings.buttonColor,
         ),
       ],
     );

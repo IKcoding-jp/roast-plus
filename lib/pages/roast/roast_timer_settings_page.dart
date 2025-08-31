@@ -300,7 +300,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               Switch(
                                 value: _usePreheat,
                                 onChanged: (v) => _saveUsePreheat(v),
-                                activeColor: themeSettings.appButtonColor,
+                                activeThumbColor: themeSettings.appButtonColor,
                               ),
                               SizedBox(width: 10),
                               Text(
@@ -319,7 +319,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               Switch(
                                 value: _useRoast,
                                 onChanged: (v) => _saveUseRoast(v),
-                                activeColor: themeSettings.appButtonColor,
+                                activeThumbColor: themeSettings.appButtonColor,
                               ),
                               SizedBox(width: 10),
                               Text(
@@ -338,7 +338,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               Switch(
                                 value: _useCooling,
                                 onChanged: (v) => _saveUseCooling(v),
-                                activeColor: themeSettings.appButtonColor,
+                                activeThumbColor: themeSettings.appButtonColor,
                               ),
                               SizedBox(width: 10),
                               Text(
