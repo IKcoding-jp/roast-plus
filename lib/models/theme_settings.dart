@@ -327,6 +327,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFD2691E), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF8B4513), // 設定機能のアクセント色
+      'calculatorColor': Color(0xFFD2691E), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFD2691E), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ダーク': {
       'appBarColor': Color(0xFF121212), // アプリバーの背景色
@@ -350,6 +353,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFF81C784), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFF424242), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF2E7D32), // 設定機能のアクセント色
+      'calculatorColor': Color(0xFF81C784), // 計算機機能のアクセント色
+      'todoColor': Color(0xFF81C784), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ライト': {
       'appBarColor': Color(0xFFFAFAFA), // アプリバーの背景色
@@ -373,6 +379,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFF2196F3), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFF757575), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF1976D2), // 設定機能のアクセント色
+      'calculatorColor': Color(0xFF2196F3), // 計算機機能のアクセント色
+      'todoColor': Color(0xFF2196F3), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
 
     // ブラウン系（コーヒーテーマ強化）
@@ -398,6 +407,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFD7CCC8), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF5D4037), // 設定機能のアクセント色
+      'calculatorColor': Color(0xFFBCAAA4), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFBCAAA4), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ベージュ': {
       'appBarColor': Color(0xFF8D6E63), // アプリバーの背景色
@@ -421,6 +433,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFE4C441), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF8D6E63), // 設定機能のアクセント色
+      'calculatorColor': Color(0xFFE4C441), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFE4C441), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'エスプレッソ': {
       'appBarColor': Color(0xFF1A0E0A), // アプリバーの背景色
@@ -444,6 +459,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFD4AF37), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFFFFFFFF), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF3E2723), // 設定機能のアクセント色
+      'calculatorColor': Color(0xFFD4AF37), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFD4AF37), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'カプチーノ': {
       'appBarColor': Color(0xFFA0764A), // アプリバーの背景色
@@ -467,6 +485,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFCD853F), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF6D4C41), // 設定機能のアクセント色
+      'calculatorColor': Color(0xFFCD853F), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFCD853F), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // 赤・ピンク系（より洗練された色調）
     'サクラ': {
@@ -491,6 +512,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFFF80AB), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFFE1BEE7), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFFC2185B), // 設定機能のアクセント色
+      'calculatorColor': Color(0xFFFF80AB), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFFF80AB), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // グリーン系（自然で現代的）
     'フォレスト': {
@@ -515,6 +539,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFF81C784), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF2E7D32), // 設定機能のアクセント色
+      'calculatorColor': Color(0xFF81C784), // 計算機機能のアクセント色
+      'todoColor': Color(0xFF81C784), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ティール': {
       // 新追加
@@ -538,6 +565,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFF80CBC4),
       'bottomNavigationUnselectedColor': Color(0xFFB2DFDB), // 薄いティール（深い背景に対して）
       'settingsColor': Color(0xFF00695C), // ダークティール
+      'calculatorColor': Color(0xFF80CBC4), // 計算機機能のアクセント色
+      'todoColor': Color(0xFF80CBC4), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ミントグリーン': {
       // 新追加
@@ -563,6 +593,9 @@ class ThemeSettings extends ChangeNotifier {
         0xFFB2DFDB,
       ), // 薄いミントグリーン（深い背景に対して）
       'settingsColor': Color(0xFF00796B), // ダークミントグリーン
+      'calculatorColor': Color(0xFF4DB6AC), // 計算機機能のアクセント色
+      'todoColor': Color(0xFF4DB6AC), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // ブルー系（クリーンで現代的）
     'オーシャン': {
@@ -587,6 +620,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFF4FC3F7),
       'bottomNavigationUnselectedColor': Color(0xFFFFFFFF), // 白
       'settingsColor': Color(0xFF0277BD), // ダークオーシャン
+      'calculatorColor': Color(0xFF4FC3F7), // 計算機機能のアクセント色
+      'todoColor': Color(0xFF4FC3F7), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ネイビー': {
       'appBarColor': Color(0xFF1A237E), // より深いネイビー
@@ -609,6 +645,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFF7986CB),
       'bottomNavigationUnselectedColor': Color(0xFFC5CAE9), // 薄いネイビー（深い背景に対して）
       'settingsColor': Color(0xFF1A237E), // ダークネイビー
+      'calculatorColor': Color(0xFF7986CB), // 計算機機能のアクセント色
+      'todoColor': Color(0xFF7986CB), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // パープル系（エレガント）
     'ラベンダー': {
@@ -633,6 +672,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFCE93D8),
       'bottomNavigationUnselectedColor': Color(0xFFE1BEE7), // 薄いラベンダー（深い背景に対して）
       'settingsColor': Color(0xFF7B1FA2), // ダークラベンダー
+      'calculatorColor': Color(0xFFCE93D8), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFCE93D8), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // ゴールド系（エレガント）
     'ゴールド': {
@@ -656,6 +698,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFFFD700),
       'bottomNavigationUnselectedColor': Color(0xFFFFF8DC), // 薄いゴールド（深い背景に対して）
       'settingsColor': Color(0xFFB8860B), // ダークゴールド
+      'calculatorColor': Color(0xFFFFD700), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFFFD700), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // シルバー系（エレガント）
     'シルバー': {
@@ -679,6 +724,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFC0C0C0),
       'bottomNavigationUnselectedColor': Color(0xFFD3D3D3), // 薄いシルバー（深い背景に対して）
       'settingsColor': Color(0xFF696969), // ダークグレー
+      'calculatorColor': Color(0xFFC0C0C0), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFC0C0C0), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // レッド・オレンジ系テーマ
     'レッド': {
@@ -702,6 +750,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFEF5350),
       'bottomNavigationUnselectedColor': Color(0xFFFFCDD2), // 薄いレッド（深い背景に対して）
       'settingsColor': Color(0xFFC62828), // ダークレッド
+      'calculatorColor': Color(0xFFEF5350), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFEF5350), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'オレンジ': {
       // 新追加
@@ -725,6 +776,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFFFB74D),
       'bottomNavigationUnselectedColor': Color(0xFFFFE0B2), // 薄いオレンジ（深い背景に対して）
       'settingsColor': Color(0xFFE65100), // ダークオレンジ
+      'calculatorColor': Color(0xFFFFB74D), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFFFB74D), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'タンジェリン': {
       // 新追加
@@ -748,6 +802,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFFFCC02),
       'bottomNavigationUnselectedColor': Color(0xFFFFE0B2), // 薄いオレンジ（深い背景に対して）
       'settingsColor': Color(0xFFFF6F00), // ダークタンジェリン
+      'calculatorColor': Color(0xFFFFCC02), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFFFCC02), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'アンバー': {
       // 新追加
@@ -771,6 +828,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFFDD835),
       'bottomNavigationUnselectedColor': Color(0xFFFFECB3), // 薄いアンバー（深い背景に対して）
       'settingsColor': Color(0xFFFF8F00), // ダークアンバー
+      'calculatorColor': Color(0xFFFDD835), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFFDD835), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'キャラメル': {
       // 新追加
@@ -794,6 +854,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFDAA520),
       'bottomNavigationUnselectedColor': Color(0xFFF3E5AB), // 薄いキャラメル（深い背景に対して）
       'settingsColor': Color(0xFFB8860B), // ダークキャラメル
+      'calculatorColor': Color(0xFFDAA520), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFDAA520), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'パンプキン': {
       // 新追加
@@ -817,6 +880,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFFFB347),
       'bottomNavigationUnselectedColor': Color(0xFFFFD8B1), // 薄いパンプキン（深い背景に対して）
       'settingsColor': Color(0xFFCD853F), // ダークパンプキン
+      'calculatorColor': Color(0xFFFFB347), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFFFB347), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // 新しいトレンドカラー
     'サンセット': {
@@ -841,6 +907,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFFFAB91),
       'bottomNavigationUnselectedColor': Color(0xFFFFCCBC), // 薄いサンセット（深い背景に対して）
       'settingsColor': Color(0xFFD84315), // ダークオレンジ
+      'calculatorColor': Color(0xFFFFAB91), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFFFAB91), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // パステル系テーマ
     'ピンク': {
@@ -864,6 +933,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFF48FB1),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFFE91E63), // ダークピンク
+      'calculatorColor': Color(0xFFF48FB1), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFF48FB1), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ブルー': {
       'appBarColor': Color(0xFFB3E5FC), // 優しいブルー
@@ -886,6 +958,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFF4FC3F7),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF0277BD), // ダークブルー
+      'calculatorColor': Color(0xFF4FC3F7), // 計算機機能のアクセント色
+      'todoColor': Color(0xFF4FC3F7), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'グリーン': {
       'appBarColor': Color(0xFFC8E6C9), // 優しいグリーン
@@ -908,6 +983,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFF81C784),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF388E3C), // ダークグリーン
+      'calculatorColor': Color(0xFF81C784), // 計算機機能のアクセント色
+      'todoColor': Color(0xFF81C784), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'イエロー': {
       'appBarColor': Color(0xFFFFF9C4), // 優しいイエロー
@@ -930,6 +1008,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFFFF176),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFFF57F17), // ダークイエロー
+      'calculatorColor': Color(0xFFFFF176), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFFFF176), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'パープル': {
       'appBarColor': Color(0xFFE1BEE7), // 優しいパープル
@@ -952,6 +1033,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFBA68C8),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF8E24AA), // ダークパープル
+      'calculatorColor': Color(0xFFBA68C8), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFBA68C8), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ピーチ': {
       'appBarColor': Color(0xFFFFCCBC), // 優しいピーチ
@@ -974,6 +1058,9 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationSelectedColor': Color(0xFFFF8A65),
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFFD84315), // ダークピーチ
+      'calculatorColor': Color(0xFFFF8A65), // 計算機機能のアクセント色
+      'todoColor': Color(0xFFFF8A65), // TODO機能のアクセント色
+      'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
 
     // 個性派
@@ -1000,7 +1087,16 @@ class ThemeSettings extends ChangeNotifier {
     'utsukushiFONT',
   ];
 
+  // 遅延初期化用のフラグ
+  static bool _isInitialized = false;
+  static ThemeSettings? _instance;
+
+  // シングルトンパターンで遅延初期化
   static Future<ThemeSettings> load() async {
+    if (_isInitialized && _instance != null) {
+      return _instance!;
+    }
+
     try {
       // Firebase初期化の確認
       try {
@@ -1010,7 +1106,7 @@ class ThemeSettings extends ChangeNotifier {
         // Firebaseが初期化されていない場合は、デフォルトテーマのみで作成
         debugPrint('ThemeSettings: Firebase初期化エラー - デフォルトテーマを使用: $e');
         final defaultTheme = presets['デフォルト']!;
-        return ThemeSettings(
+        _instance = ThemeSettings(
           appBarColor: defaultTheme['appBarColor']!,
           backgroundColor: defaultTheme['backgroundColor']!,
           buttonColor: defaultTheme['buttonColor']!,
@@ -1036,8 +1132,82 @@ class ThemeSettings extends ChangeNotifier {
           todoColor: defaultTheme['todoColor']!,
           tastingColor: defaultTheme['tastingColor']!,
         );
+        _isInitialized = true;
+        return _instance!;
       }
 
+      // デフォルトテーマで即座にインスタンスを作成
+      final defaultTheme = presets['デフォルト']!;
+      _instance = ThemeSettings(
+        appBarColor: defaultTheme['appBarColor']!,
+        backgroundColor: defaultTheme['backgroundColor']!,
+        buttonColor: defaultTheme['buttonColor']!,
+        appButtonColor: defaultTheme['appButtonColor']!,
+        cardBackgroundColor: defaultTheme['cardBackgroundColor']!,
+        fontColor1: defaultTheme['fontColor1']!,
+        fontColor2: defaultTheme['fontColor2']!,
+        iconColor: defaultTheme['iconColor']!,
+        timerCircleColor: defaultTheme['timerCircleColor']!,
+        bottomNavigationColor: defaultTheme['bottomNavigationColor']!,
+        inputBackgroundColor: defaultTheme['inputBackgroundColor']!,
+        memberBackgroundColor: defaultTheme['memberBackgroundColor']!,
+        appBarTextColor: defaultTheme['appBarTextColor']!,
+        bottomNavigationTextColor: defaultTheme['bottomNavigationTextColor']!,
+        dialogBackgroundColor: defaultTheme['dialogBackgroundColor']!,
+        dialogTextColor: defaultTheme['dialogTextColor']!,
+        inputTextColor: defaultTheme['inputTextColor']!,
+        fontSizeScale: 1.0,
+        fontFamily: 'Noto Sans JP',
+        borderColor: defaultTheme['borderColor']!,
+        calculatorColor: defaultTheme['calculatorColor']!,
+        settingsColor: defaultTheme['settingsColor']!,
+        todoColor: defaultTheme['todoColor']!,
+        tastingColor: defaultTheme['tastingColor']!,
+      );
+
+      // バックグラウンドでFirebaseから設定を非同期取得
+      _loadSettingsFromFirebaseAsync();
+
+      _isInitialized = true;
+      return _instance!;
+    } catch (e) {
+      debugPrint('ThemeSettings: 初期化エラー - デフォルトテーマを使用: $e');
+      // エラー時もデフォルトテーマで作成
+      final defaultTheme = presets['デフォルト']!;
+      _instance = ThemeSettings(
+        appBarColor: defaultTheme['appBarColor']!,
+        backgroundColor: defaultTheme['backgroundColor']!,
+        buttonColor: defaultTheme['buttonColor']!,
+        appButtonColor: defaultTheme['appButtonColor']!,
+        cardBackgroundColor: defaultTheme['cardBackgroundColor']!,
+        fontColor1: defaultTheme['fontColor1']!,
+        fontColor2: defaultTheme['fontColor2']!,
+        iconColor: defaultTheme['iconColor']!,
+        timerCircleColor: defaultTheme['timerCircleColor']!,
+        bottomNavigationColor: defaultTheme['bottomNavigationColor']!,
+        inputBackgroundColor: defaultTheme['inputBackgroundColor']!,
+        memberBackgroundColor: defaultTheme['memberBackgroundColor']!,
+        appBarTextColor: defaultTheme['appBarTextColor']!,
+        bottomNavigationTextColor: defaultTheme['bottomNavigationTextColor']!,
+        dialogBackgroundColor: defaultTheme['dialogBackgroundColor']!,
+        dialogTextColor: defaultTheme['dialogTextColor']!,
+        inputTextColor: defaultTheme['inputTextColor']!,
+        fontSizeScale: 1.0,
+        fontFamily: 'Noto Sans JP',
+        borderColor: defaultTheme['borderColor']!,
+        calculatorColor: defaultTheme['calculatorColor']!,
+        settingsColor: defaultTheme['settingsColor']!,
+        todoColor: defaultTheme['todoColor']!,
+        tastingColor: defaultTheme['tastingColor']!,
+      );
+      _isInitialized = true;
+      return _instance!;
+    }
+  }
+
+  // バックグラウンドでFirebaseから設定を非同期取得
+  static Future<void> _loadSettingsFromFirebaseAsync() async {
+    try {
       // Firebaseからテーマ設定を取得
       final settings = await UserSettingsFirestoreService.getMultipleSettings([
         'theme_appBarColor',
@@ -1070,154 +1240,109 @@ class ThemeSettings extends ChangeNotifier {
       // デフォルトテーマ
       final defaultTheme = presets['デフォルト']!;
 
-      // Firebaseから取得した設定またはデフォルト値を使用
-      return ThemeSettings(
-        appBarColor: Color(
+      // 取得した設定を適用
+      if (_instance != null) {
+        _instance!.appBarColor = Color(
           settings['theme_appBarColor'] ??
               defaultTheme['appBarColor']!.toARGB32(),
-        ),
-        backgroundColor: Color(
+        );
+        _instance!.backgroundColor = Color(
           settings['theme_backgroundColor'] ??
               defaultTheme['backgroundColor']!.toARGB32(),
-        ),
-        buttonColor: Color(
+        );
+        _instance!.buttonColor = Color(
           settings['theme_buttonColor'] ??
               defaultTheme['buttonColor']!.toARGB32(),
-        ),
-        appButtonColor: Color(
+        );
+        _instance!.appButtonColor = Color(
           settings['theme_appButtonColor'] ??
               defaultTheme['appButtonColor']!.toARGB32(),
-        ),
-        cardBackgroundColor: Color(
+        );
+        _instance!.cardBackgroundColor = Color(
           settings['theme_cardBackgroundColor'] ??
               defaultTheme['cardBackgroundColor']!.toARGB32(),
-        ),
-        fontColor1: Color(
+        );
+        _instance!.fontColor1 = Color(
           settings['theme_fontColor1'] ??
               defaultTheme['fontColor1']!.toARGB32(),
-        ),
-        fontColor2: Color(
+        );
+        _instance!.fontColor2 = Color(
           settings['theme_fontColor2'] ??
               defaultTheme['fontColor2']!.toARGB32(),
-        ),
-        iconColor: Color(
+        );
+        _instance!.iconColor = Color(
           settings['theme_iconColor'] ?? defaultTheme['iconColor']!.toARGB32(),
-        ),
-        timerCircleColor: Color(
+        );
+        _instance!.timerCircleColor = Color(
           settings['theme_timerCircleColor'] ??
               defaultTheme['timerCircleColor']!.toARGB32(),
-        ),
-        bottomNavigationColor: Color(
+        );
+        _instance!.bottomNavigationColor = Color(
           settings['theme_bottomNavigationColor'] ??
               defaultTheme['bottomNavigationColor']!.toARGB32(),
-        ),
-        inputBackgroundColor: Color(
+        );
+        _instance!.inputBackgroundColor = Color(
           settings['theme_inputBackgroundColor'] ??
               defaultTheme['inputBackgroundColor']!.toARGB32(),
-        ),
-        memberBackgroundColor: Color(
+        );
+        _instance!.memberBackgroundColor = Color(
           settings['theme_memberBackgroundColor'] ??
               defaultTheme['memberBackgroundColor']!.toARGB32(),
-        ),
-        appBarTextColor: Color(
+        );
+        _instance!.appBarTextColor = Color(
           settings['theme_appBarTextColor'] ??
               defaultTheme['appBarTextColor']!.toARGB32(),
-        ),
-        bottomNavigationTextColor: Color(
+        );
+        _instance!.bottomNavigationTextColor = Color(
           settings['theme_bottomNavigationTextColor'] ??
               defaultTheme['bottomNavigationTextColor']!.toARGB32(),
-        ),
-        dialogBackgroundColor: Color(
+        );
+        _instance!.dialogBackgroundColor = Color(
           settings['theme_dialogBackgroundColor'] ??
               defaultTheme['dialogBackgroundColor']!.toARGB32(),
-        ),
-        dialogTextColor: Color(
+        );
+        _instance!.dialogTextColor = Color(
           settings['theme_dialogTextColor'] ??
               defaultTheme['dialogTextColor']!.toARGB32(),
-        ),
-        inputTextColor: Color(
+        );
+        _instance!.inputTextColor = Color(
           settings['theme_inputTextColor'] ??
               defaultTheme['inputTextColor']!.toARGB32(),
-        ),
-        borderColor: defaultTheme['borderColor']!,
-        fontSizeScale:
-            await _loadFontSizeScaleFromLocal() ??
-            settings['theme_fontSizeScale'] ??
-            1.0,
-        fontFamily: _getValidFontFamily(
-          await _loadFontFamilyFromLocal() ??
-              settings['theme_fontFamily'] ??
-              'Noto Sans JP',
-        ),
-        bottomNavigationSelectedColor:
+        );
+        _instance!.fontSizeScale = settings['theme_fontSizeScale'] ?? 1.0;
+        _instance!.fontFamily = settings['theme_fontFamily'] ?? 'Noto Sans JP';
+        _instance!.borderColor = Color(
+          settings['theme_borderColor'] ??
+              defaultTheme['borderColor']!.toARGB32(),
+        );
+        _instance!._bottomNavigationSelectedColor =
             settings['theme_bottomNavigationSelectedColor'] != null
             ? Color(settings['theme_bottomNavigationSelectedColor'])
-            : defaultTheme['bottomNavigationSelectedColor'],
-        bottomNavigationUnselectedColor:
+            : defaultTheme['bottomNavigationSelectedColor'];
+        _instance!._bottomNavigationUnselectedColor =
             settings['theme_bottomNavigationUnselectedColor'] != null
             ? Color(settings['theme_bottomNavigationUnselectedColor'])
-            : defaultTheme['bottomNavigationUnselectedColor'],
-        calculatorColor: settings['theme_calculatorColor'] != null
-            ? Color(settings['theme_calculatorColor'])
-            : Color(0xFF1565C0), // デフォルトは計算機らしい深い青
-        settingsColor: settings['theme_settingsColor'] != null
-            ? Color(settings['theme_settingsColor'])
-            : defaultTheme['settingsColor']!,
-        todoColor: settings['theme_todoColor'] != null
-            ? Color(settings['theme_todoColor'])
-            : defaultTheme['iconColor']!, // デフォルトはアイコン色と同じ
-        tastingColor: Color(0xFFD84315), // コーヒーらしい深いオレンジ
-        customBottomNavigationSelectedColor:
-            settings['customBottomNavigationSelectedColor'] != null
-            ? Color(settings['customBottomNavigationSelectedColor'])
-            : null,
-        customBottomNavigationUnselectedColor:
-            settings['customBottomNavigationUnselectedColor'] != null
-            ? Color(settings['customBottomNavigationUnselectedColor'])
-            : null,
-      );
-    } catch (e, st) {
-      developer.log(
-        'テーマ設定読み込みエラー',
-        name: 'ThemeSettings',
-        error: e,
-        stackTrace: st,
-      );
+            : defaultTheme['bottomNavigationUnselectedColor'];
+        _instance!.customBottomNavigationSelectedColor = null;
+        _instance!.customBottomNavigationUnselectedColor = null;
+        _instance!.settingsColor = Color(
+          settings['theme_settingsColor'] ??
+              defaultTheme['settingsColor']!.toARGB32(),
+        );
+        _instance!.todoColor = Color(
+          settings['theme_todoColor'] ?? defaultTheme['todoColor']!.toARGB32(),
+        );
+        _instance!.calculatorColor = Color(
+          settings['theme_calculatorColor'] ??
+              defaultTheme['calculatorColor']!.toARGB32(),
+        );
 
-      // エラー時はデフォルトテーマを返す
-      final defaultTheme = presets['デフォルト']!;
-      return ThemeSettings(
-        appBarColor: defaultTheme['appBarColor']!,
-        backgroundColor: defaultTheme['backgroundColor']!,
-        buttonColor: defaultTheme['buttonColor']!,
-        appButtonColor: defaultTheme['appButtonColor']!,
-        cardBackgroundColor: defaultTheme['cardBackgroundColor']!,
-        fontColor1: defaultTheme['fontColor1']!,
-        fontColor2: defaultTheme['fontColor2']!,
-        iconColor: defaultTheme['iconColor']!,
-        timerCircleColor: defaultTheme['timerCircleColor']!,
-        bottomNavigationColor: defaultTheme['bottomNavigationColor']!,
-        inputBackgroundColor: defaultTheme['inputBackgroundColor']!,
-        memberBackgroundColor: defaultTheme['memberBackgroundColor']!,
-        appBarTextColor: defaultTheme['appBarTextColor']!,
-        bottomNavigationTextColor: defaultTheme['bottomNavigationTextColor']!,
-        dialogBackgroundColor: defaultTheme['dialogBackgroundColor']!,
-        dialogTextColor: defaultTheme['dialogTextColor']!,
-        inputTextColor: defaultTheme['inputTextColor']!,
-        borderColor: defaultTheme['borderColor']!,
-        fontSizeScale: 1.0,
-        fontFamily: 'Noto Sans JP',
-        bottomNavigationSelectedColor:
-            defaultTheme['bottomNavigationSelectedColor'],
-        bottomNavigationUnselectedColor:
-            defaultTheme['bottomNavigationUnselectedColor'],
-        calculatorColor: defaultTheme['iconColor']!,
-        settingsColor: defaultTheme['settingsColor']!,
-        todoColor: defaultTheme['iconColor']!,
-        tastingColor: Color(0xFFD84315),
-        customBottomNavigationSelectedColor: null,
-        customBottomNavigationUnselectedColor: null,
-      );
+        // 設定変更を通知
+        _instance!.notifyListeners();
+        debugPrint('ThemeSettings: Firebaseから設定を非同期取得完了');
+      }
+    } catch (e) {
+      debugPrint('ThemeSettings: Firebase設定取得エラー: $e');
     }
   }
 

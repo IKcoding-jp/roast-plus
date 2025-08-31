@@ -589,7 +589,6 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   Widget _buildTeamCard(Team team, int teamIndex) {
     final groupProvider = context.read<GroupProvider>();
-    final isGroupMode = groupProvider.hasGroup;
 
     return Card(
       elevation: 4,
@@ -644,7 +643,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
             ...List.generate(team.members.length, (memberIndex) {
               final memberKey = '${team.id}_$memberIndex';
 
-              if (isGroupMode) {
+              if (groupProvider.hasGroup) {
                 // グループモード：プルダウンで選択
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
@@ -788,9 +787,6 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    final groupProvider = context.read<GroupProvider>();
-    final isGroupMode = groupProvider.hasGroup;
-
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -820,31 +816,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
             ),
           ],
         ),
-        actions: [
-          if (isGroupMode) ...[
-            IconButton(
-              icon: Icon(Icons.cleaning_services),
-              tooltip: 'データクリーンアップ',
-              onPressed: () {
-                _cleanupTeamData();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('データクリーンアップを実行しました')));
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.delete_sweep),
-              tooltip: '強制クリーンアップ（古いデータ削除）',
-              onPressed: () async {
-                await _forceCleanupOldData();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('強制クリーンアップを実行しました')));
-              },
-            ),
-          ],
-          IconButton(icon: Icon(Icons.save), onPressed: _saveMembers),
-        ],
+        actions: [IconButton(icon: Icon(Icons.save), onPressed: _saveMembers)],
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       ),
       body: Container(

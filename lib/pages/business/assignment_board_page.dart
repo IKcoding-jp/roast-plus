@@ -50,7 +50,6 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
   // 出勤退勤機能用
   List<AttendanceRecord> _todayAttendance = [];
-  bool _isAttendanceLoading = true;
 
   // グループ同期用
   StreamSubscription<Map<String, dynamic>?>? _groupAssignmentSubscription;
@@ -604,7 +603,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     try {
       if (mounted) {
         setState(() {
-          _isAttendanceLoading = true;
+          // ローディング状態を設定
         });
       }
 
@@ -628,7 +627,6 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         if (mounted) {
           setState(() {
             _todayAttendance = groupAttendance;
-            _isAttendanceLoading = false;
           });
         }
         debugPrint(
@@ -641,7 +639,6 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         if (mounted) {
           setState(() {
             _todayAttendance = attendance;
-            _isAttendanceLoading = false;
           });
         }
         debugPrint(
@@ -650,11 +647,6 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       }
     } catch (e) {
       debugPrint('AssignmentBoard: 出勤退勤記録読み込みエラー: $e');
-      if (mounted) {
-        setState(() {
-          _isAttendanceLoading = false;
-        });
-      }
     }
   }
 
@@ -898,7 +890,6 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             // グループの出勤退勤データをローカルに反映
             setState(() {
               _todayAttendance = groupAttendanceRecords;
-              _isAttendanceLoading = false;
             });
           });
     }
@@ -1794,17 +1785,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                   );
                 },
               ),
-              if (groupProvider.hasGroup)
-                IconButton(
-                  icon: Icon(Icons.delete_sweep),
-                  tooltip: '強制クリーンアップ（古いデータ完全削除）',
-                  onPressed: () async {
-                    await _forceCleanupAllOldData();
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('強制クリーンアップを実行しました')));
-                  },
-                ),
+
               if (_canEditAssignment == true)
                 IconButton(
                   icon: Icon(Icons.settings),

@@ -87,14 +87,8 @@ void main() async {
   // パフォーマンス監視終了
   PerformanceMonitor.endTimer('アプリ起動全体');
 
-  // 最適化提案を表示
-  final suggestions = PerformanceMonitor.getOptimizationSuggestions();
-  if (suggestions.isNotEmpty) {
-    developer.log('🚀 最適化提案:', name: 'Performance');
-    for (final suggestion in suggestions) {
-      developer.log('  - $suggestion', name: 'Performance');
-    }
-  }
+  // 詳細パフォーマンスレポートを生成
+  PerformanceMonitor.generateDetailedReport();
 }
 
 // システム設定の初期化
@@ -173,15 +167,11 @@ Future<void> _initializeDateFormatting() async {
 // テーマ設定初期化
 Future<void> _initializeThemeSettings() async {
   try {
-    // Firebase初期化の確認
-    if (!EncryptedFirebaseConfigService.isInitialized) {
-      developer.log('Firebase初期化を待機中...', name: 'Main');
-      // Firebase初期化が完了するまで少し待機
-      await Future.delayed(Duration(milliseconds: 100));
-    }
-
+    // デフォルトテーマのみで即座に初期化（Firebase設定は後で非同期取得）
     final themeSettings = await ThemeSettings.load();
-    await themeSettings.initializeDefaultTheme();
+
+    // 初期化完了をログ出力
+    developer.log('テーマ設定初期化完了（デフォルトテーマ）', name: 'Main');
   } catch (e) {
     developer.log('テーマ設定読み込みエラー: $e', name: 'Main');
   }

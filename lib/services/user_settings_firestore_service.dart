@@ -225,4 +225,24 @@ class UserSettingsFirestoreService {
       return _convertValue(data['value'], data['type']);
     });
   }
+
+  /// テーマ設定を一括保存（最適化版）
+  static Future<void> saveThemeSettingsOptimized(
+    Map<String, dynamic> themeSettings,
+  ) async {
+    if (_uid == null) throw Exception('未ログイン');
+
+    try {
+      // テーマ設定を1つのドキュメントにまとめて保存
+      await _userSettingsCollection.doc('theme_settings').set({
+        'themeData': themeSettings,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      _logInfo('テーマ設定を最適化保存: ${themeSettings.keys.length}個の設定');
+    } catch (e, st) {
+      _logError('テーマ設定最適化保存エラー', e, st);
+      rethrow;
+    }
+  }
 }

@@ -35,11 +35,6 @@ class LabelEditPageState extends State<LabelEditPage> {
     super.initState();
     _loadLabels();
     _initializeGroupMonitoring();
-
-    // 初期化後にクリーンアップを実行
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _forceCleanupOldData();
-    });
   }
 
   @override
@@ -357,10 +352,6 @@ class LabelEditPageState extends State<LabelEditPage> {
         currentBMembers = [];
       }
 
-      // メンバーデータをクリーンアップ（無効なメンバー名を削除）
-      currentAMembers = await _cleanupMembers(currentAMembers);
-      currentBMembers = await _cleanupMembers(currentBMembers);
-
       developer.log('UserSettings保存開始', name: 'LabelEditPage');
       await UserSettingsFirestoreService.saveMultipleSettings({
         'leftLabels': leftLabels,
@@ -455,114 +446,6 @@ class LabelEditPageState extends State<LabelEditPage> {
     });
   }
 
-  /// メンバーリストをクリーンアップ（無効なメンバー名を削除）
-  Future<List<String>> _cleanupMembers(List<String> members) async {
-    try {
-      final groupProvider = context.read<GroupProvider>();
-      if (!groupProvider.hasGroup) return members;
-
-      // 有効なグループメンバー名のリストを作成
-      final validMemberNames = groupProvider.currentGroup!.members
-          .map((m) => m.displayName)
-          .toSet();
-
-      final cleanedMembers = <String>[];
-      bool hasChanges = false;
-
-      for (final memberName in members) {
-        if (validMemberNames.contains(memberName)) {
-          cleanedMembers.add(memberName);
-        } else {
-          hasChanges = true;
-          developer.log(
-            'LabelEditPage: 無効なメンバー名を削除: $memberName',
-            name: 'LabelEditPage',
-          );
-        }
-      }
-
-      if (hasChanges) {
-        developer.log(
-          'LabelEditPage: メンバーデータのクリーンアップ完了',
-          name: 'LabelEditPage',
-        );
-      }
-
-      return cleanedMembers;
-    } catch (e) {
-      developer.log(
-        'LabelEditPage: メンバークリーンアップエラー: $e',
-        name: 'LabelEditPage',
-        error: e,
-      );
-      return members; // エラーの場合は元のデータを返す
-    }
-  }
-
-  /// 強制クリーンアップ（古いデータを完全に削除）
-  Future<void> _forceCleanupOldData() async {
-    try {
-      developer.log('LabelEditPage: 強制クリーンアップ開始', name: 'LabelEditPage');
-
-      final groupProvider = context.read<GroupProvider>();
-      if (!groupProvider.hasGroup) return;
-
-      // 有効なグループメンバー名のリストを作成
-      final validMemberNames = groupProvider.currentGroup!.members
-          .map((m) => m.displayName)
-          .toSet();
-
-      bool hasChanges = false;
-
-      // aMembersとbMembersをクリーンアップ
-      final cleanedAMembers = <String>[];
-      final cleanedBMembers = <String>[];
-
-      for (final memberName in aMembers) {
-        if (validMemberNames.contains(memberName)) {
-          cleanedAMembers.add(memberName);
-        } else {
-          hasChanges = true;
-          developer.log(
-            'LabelEditPage: 強制クリーンアップ: A班から無効なメンバー名を削除: $memberName',
-            name: 'LabelEditPage',
-          );
-        }
-      }
-
-      for (final memberName in bMembers) {
-        if (validMemberNames.contains(memberName)) {
-          cleanedBMembers.add(memberName);
-        } else {
-          hasChanges = true;
-          developer.log(
-            'LabelEditPage: 強制クリーンアップ: B班から無効なメンバー名を削除: $memberName',
-            name: 'LabelEditPage',
-          );
-        }
-      }
-
-      if (hasChanges) {
-        setState(() {
-          aMembers = cleanedAMembers;
-          bMembers = cleanedBMembers;
-        });
-        developer.log('LabelEditPage: 強制クリーンアップ完了', name: 'LabelEditPage');
-
-        // クリーンアップ後のデータを保存
-        await _saveLabels();
-      } else {
-        developer.log('LabelEditPage: 強制クリーンアップ: 変更なし', name: 'LabelEditPage');
-      }
-    } catch (e) {
-      developer.log(
-        'LabelEditPage: 強制クリーンアップエラー: $e',
-        name: 'LabelEditPage',
-        error: e,
-      );
-    }
-  }
-
   void _deleteLabel(int i) {
     // 削除するコントローラーを破棄
     _leftLabelControllers[i].dispose();
@@ -615,27 +498,7 @@ class LabelEditPageState extends State<LabelEditPage> {
             ),
           ],
         ),
-        actions: [
-          Consumer<GroupProvider>(
-            builder: (context, groupProvider, _) {
-              if (groupProvider.hasGroup) {
-                return IconButton(
-                  icon: Icon(Icons.delete_sweep),
-                  tooltip: '古いデータ削除',
-                  onPressed: () async {
-                    await _forceCleanupOldData();
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('古いデータを削除しました')));
-                  },
-                );
-              } else {
-                return SizedBox.shrink();
-              }
-            },
-          ),
-          IconButton(icon: Icon(Icons.save), onPressed: _saveLabels),
-        ],
+        actions: [IconButton(icon: Icon(Icons.save), onPressed: _saveLabels)],
         backgroundColor: Provider.of<ThemeSettings>(context).appBarColor,
       ),
       body: Container(
