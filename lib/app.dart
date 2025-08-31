@@ -307,15 +307,23 @@ class GroupRequiredWrapper extends StatefulWidget {
 }
 
 class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
     // GroupProviderの初期化を開始（一度だけ）
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final groupProvider = Provider.of<GroupProvider>(context, listen: false);
       // データがなく、読み込み中でもない場合のみ初期化
       if (groupProvider.groups.isEmpty && !groupProvider.loading) {
-        groupProvider.loadUserGroups();
+        await groupProvider.loadUserGroups();
+      }
+      // 初期化完了フラグを設定
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
       }
     });
   }
@@ -324,8 +332,10 @@ class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
   Widget build(BuildContext context) {
     return Consumer<GroupProvider>(
       builder: (context, groupProvider, child) {
-        // データ読み込み中の場合はローディング画面を表示
-        if (groupProvider.loading) {
+        // 初期化前またはデータ読み込み中の場合はローディング画面を表示
+        if (!_isInitialized ||
+            groupProvider.loading ||
+            !groupProvider.initialized) {
           return const LoadingScreen(title: 'Loading...');
         }
 

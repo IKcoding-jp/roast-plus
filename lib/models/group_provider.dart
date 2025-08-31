@@ -16,6 +16,7 @@ class GroupProvider extends ChangeNotifier {
   List<GroupInvitation> _invitations = [];
   Group? _currentGroup;
   bool _loading = false;
+  bool _initialized = false;
   String? _error;
   bool _isWatchingGroupData = false;
   final Map<String, Map<String, dynamic>> _groupStatistics = {};
@@ -39,11 +40,18 @@ class GroupProvider extends ChangeNotifier {
   bool _showGroupDeletedPage = false;
   bool get showGroupDeletedPage => _showGroupDeletedPage;
 
+  GroupProvider() {
+    // 初期化状態をリセット
+    _initialized = false;
+    debugPrint('GroupProvider: 初期化状態をリセット');
+  }
+
   // Getters
   List<Group> get groups => _groups;
   List<GroupInvitation> get invitations => _invitations;
   Group? get currentGroup => _currentGroup;
   bool get loading => _loading;
+  bool get initialized => _initialized;
   bool get isWatchingGroupData => _isWatchingGroupData;
   String? get error => _error;
   Map<String, Map<String, dynamic>> get groupStatistics => _groupStatistics;
@@ -75,8 +83,8 @@ class GroupProvider extends ChangeNotifier {
       return;
     }
 
-    if (_groups.isNotEmpty) {
-      debugPrint('GroupProvider: 既にグループデータが存在します');
+    if (_groups.isNotEmpty && _initialized) {
+      debugPrint('GroupProvider: 既にグループデータが存在し、初期化済みです');
       return;
     }
 
@@ -111,6 +119,8 @@ class GroupProvider extends ChangeNotifier {
         _currentGroup = null;
       }
 
+      // 初期化完了フラグを設定
+      _initialized = true;
       _safeNotifyListeners();
     } catch (e) {
       debugPrint('GroupProvider: グループ読み込みエラー: $e');
@@ -121,6 +131,8 @@ class GroupProvider extends ChangeNotifier {
       } else {
         _setError('グループの取得に失敗しました: $e');
       }
+      // エラーが発生しても初期化完了フラグを設定
+      _initialized = true;
     } finally {
       _setLoading(false);
     }
@@ -933,6 +945,8 @@ class GroupProvider extends ChangeNotifier {
 
   /// 全データをリフレッシュ
   Future<void> refresh() async {
+    // 初期化状態をリセット
+    _initialized = false;
     await Future.wait([loadUserGroups(), loadInvitations()]);
   }
 
