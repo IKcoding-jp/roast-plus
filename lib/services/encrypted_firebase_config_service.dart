@@ -238,7 +238,20 @@ class EncryptedFirebaseConfigService {
     try {
       developer.log('暗号化されたFirebase設定で初期化を開始', name: _logName);
       
-             // 環境変数の読み込みは不要（SecurityConfigから直接取得）
+      // Web版では既にindex.htmlで初期化されている可能性があるため、チェック
+      if (kIsWeb) {
+        try {
+          // 既存のFirebaseアプリをチェック
+          final apps = Firebase.apps;
+          if (apps.isNotEmpty) {
+            developer.log('Web版: 既存のFirebaseアプリを検出しました', name: _logName);
+            _isInitialized = true;
+            return;
+          }
+        } catch (e) {
+          developer.log('Web版: Firebaseアプリチェック中にエラー: $e', name: _logName);
+        }
+      }
       
       // 暗号化された設定を取得
       final options = getFirebaseOptions();
@@ -249,6 +262,12 @@ class EncryptedFirebaseConfigService {
       _isInitialized = true;
       developer.log('Firebaseの初期化が完了しました', name: _logName);
     } catch (e) {
+      // 重複初期化エラーの場合は成功として扱う
+      if (e.toString().contains('duplicate-app') || e.toString().contains('already exists')) {
+        developer.log('Firebaseは既に初期化されています（重複エラーを無視）', name: _logName);
+        _isInitialized = true;
+        return;
+      }
       developer.log('Firebaseの初期化に失敗: $e', name: _logName);
       rethrow;
     }

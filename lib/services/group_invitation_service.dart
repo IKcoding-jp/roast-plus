@@ -11,6 +11,29 @@ class GroupInvitationService {
   static String? get _uid => _auth.currentUser?.uid;
   static String? get _userDisplayName =>
       _auth.currentUser?.displayName ?? '匿名ユーザー';
+      
+  static String? get _photoUrl {
+    final photoURL = _auth.currentUser?.photoURL;
+    developer.log(
+      'GroupInvitationService: _photoUrl取得 - $photoURL',
+      name: 'GroupInvitationService',
+    );
+    
+    // プロフィール画像URLが有効かチェック
+    if (photoURL != null && photoURL.isNotEmpty) {
+      developer.log(
+        'GroupInvitationService: 有効なプロフィール画像URLを取得 - $photoURL',
+        name: 'GroupInvitationService',
+      );
+      return photoURL;
+    } else {
+      developer.log(
+        'GroupInvitationService: プロフィール画像URLが無効または空 - $photoURL',
+        name: 'GroupInvitationService',
+      );
+      return null;
+    }
+  }
 
   /// 招待コードを生成
   static String generateInvitationCode() {
@@ -211,10 +234,16 @@ class GroupInvitationService {
       }
 
       // 新しいメンバーを追加
+      final photoUrl = _photoUrl;
+      developer.log(
+        'GroupInvitationService: メンバー追加 - UID: $_uid, 表示名: $_userDisplayName, プロフィール画像: $photoUrl',
+        name: 'GroupInvitationService',
+      );
       final newMember = {
         'uid': _uid,
         'email': _auth.currentUser?.email ?? '',
         'displayName': _userDisplayName,
+        'photoUrl': photoUrl, // プロフィール画像URLを追加
         'role': 'member', // 招待で参加した場合は通常メンバー
         'joinedAt': DateTime.now().toIso8601String(),
         'isActive': true,

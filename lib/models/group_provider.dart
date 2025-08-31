@@ -122,6 +122,10 @@ class GroupProvider extends ChangeNotifier {
       // 初期化完了フラグを設定
       _initialized = true;
       _safeNotifyListeners();
+
+      debugPrint(
+        'GroupProvider: グループ読み込み完了 - hasGroup: $hasGroup, currentGroup: ${_currentGroup?.id}',
+      );
     } catch (e) {
       debugPrint('GroupProvider: グループ読み込みエラー: $e');
       if (e.toString().contains('未ログイン')) {
@@ -133,6 +137,7 @@ class GroupProvider extends ChangeNotifier {
       }
       // エラーが発生しても初期化完了フラグを設定
       _initialized = true;
+      _safeNotifyListeners();
     } finally {
       _setLoading(false);
     }
@@ -396,10 +401,18 @@ class GroupProvider extends ChangeNotifier {
     _clearError();
 
     try {
+      debugPrint('GroupProvider: 招待コードでグループ参加開始 - inviteCode: $inviteCode');
+
       await GroupFirestoreService.joinGroupByInviteCode(inviteCode);
+
+      debugPrint('GroupProvider: Firestoreでのグループ参加完了、グループリストを再読み込み開始');
 
       // グループリストを再読み込み
       await loadUserGroups();
+
+      debugPrint(
+        'GroupProvider: グループリスト再読み込み完了 - currentGroup: ${_currentGroup?.id}',
+      );
 
       // 現在のグループの監視を開始
       if (_currentGroup != null) {
@@ -410,9 +423,13 @@ class GroupProvider extends ChangeNotifier {
         watchGroupGamificationProfile(_currentGroup!.id);
       }
 
+      // 状態更新を確実に通知
       _safeNotifyListeners();
+
+      debugPrint('GroupProvider: 招待コード参加処理完了 - hasGroup: $hasGroup');
       return true;
     } catch (e) {
+      debugPrint('GroupProvider: 招待コード参加エラー: $e');
       if (e.toString().contains('未ログイン')) {
         _setError('ログインすることで、グループ機能を使うことができます');
       } else {
@@ -707,6 +724,9 @@ class GroupProvider extends ChangeNotifier {
               debugPrint(
                 'GroupProvider: グループ更新検知 - ID: $groupId, メンバー数: ${updated.members.length}',
               );
+              debugPrint(
+                'GroupProvider: メンバー一覧: ${updated.members.map((m) => '${m.displayName}(${m.email})').join(', ')}',
+              );
 
               // 現在のユーザーがメンバーから削除されたかチェック
               if (currentUser != null && !updated.isMember(currentUser.uid)) {
@@ -728,6 +748,9 @@ class GroupProvider extends ChangeNotifier {
                 debugPrint('GroupProvider: 現在のグループを更新');
               }
 
+              debugPrint(
+                'GroupProvider: notifyListeners呼び出し - メンバー数: ${updated.members.length}',
+              );
               notifyListeners();
             } else {
               // グループが削除された場合の処理

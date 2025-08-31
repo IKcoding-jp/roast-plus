@@ -149,7 +149,13 @@ Future<void> _initializeFirebase() async {
   try {
     await EncryptedFirebaseConfigService.initializeFirebase();
   } catch (e) {
-    developer.log('Firebase初期化エラー: $e', name: 'Main');
+    // 重複初期化エラーの場合は警告として記録
+    if (e.toString().contains('duplicate-app') ||
+        e.toString().contains('already exists')) {
+      developer.log('Firebase初期化警告: 既に初期化されています - $e', name: 'Main');
+    } else {
+      developer.log('Firebase初期化エラー: $e', name: 'Main');
+    }
   }
 }
 
