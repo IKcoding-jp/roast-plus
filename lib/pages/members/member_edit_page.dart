@@ -468,6 +468,43 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return isValid ? currentValue : null;
   }
 
+  /// 選択可能なメンバーリストを取得（既に選択済みのメンバーを除外）
+  List<GroupMember> _getAvailableMembers(
+    int currentTeamIndex,
+    int currentMemberIndex,
+  ) {
+    // 現在のメンバーが選択している値を取得
+    final currentValue = teams[currentTeamIndex].members[currentMemberIndex];
+
+    // すべての班で既に選択されているメンバー名を収集
+    final selectedMemberNames = <String>{};
+    for (int teamIndex = 0; teamIndex < teams.length; teamIndex++) {
+      for (
+        int memberIndex = 0;
+        memberIndex < teams[teamIndex].members.length;
+        memberIndex++
+      ) {
+        final memberName = teams[teamIndex].members[memberIndex];
+        if (memberName.isNotEmpty) {
+          // 現在のメンバー自身は除外（自分自身は選択可能）
+          if (!(teamIndex == currentTeamIndex &&
+              memberIndex == currentMemberIndex)) {
+            selectedMemberNames.add(memberName);
+          }
+        }
+      }
+    }
+
+    // 選択済みでないメンバーのみを返す
+    return _groupMembers
+        .where(
+          (member) =>
+              !selectedMemberNames.contains(member.displayName) ||
+              member.displayName == currentValue,
+        )
+        .toList();
+  }
+
   void _adjustLabelsToTeams() {
     // 班の数に応じてラベルを調整
     final maxTeamSize = teams.fold<int>(
@@ -594,7 +631,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              ..._groupMembers.map((member) {
+                              ..._getAvailableMembers(
+                                teamIndex,
+                                memberIndex,
+                              ).map((member) {
                                 return DropdownMenuItem<String>(
                                   value: member.displayName,
                                   child: Text(
