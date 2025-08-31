@@ -514,7 +514,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
     // 左ラベルを調整
     while (leftLabels.length < maxTeamSize) {
-      leftLabels.add('ラベル${leftLabels.length + 1}');
+      leftLabels.add('');
     }
     if (leftLabels.length > maxTeamSize) {
       leftLabels = leftLabels.take(maxTeamSize).toList();
@@ -522,7 +522,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
     // 右ラベルを調整
     while (rightLabels.length < maxTeamSize) {
-      rightLabels.add('ラベル${rightLabels.length + 1}');
+      rightLabels.add('');
     }
     if (rightLabels.length > maxTeamSize) {
       rightLabels = rightLabels.take(maxTeamSize).toList();
