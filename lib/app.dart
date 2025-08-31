@@ -390,6 +390,11 @@ class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
   Widget build(BuildContext context) {
     return Consumer<GroupProvider>(
       builder: (context, groupProvider, child) {
+        // GroupProviderが初期化済みで、かつ読み込み中でない場合は初期化完了とみなす
+        if (groupProvider.initialized && !groupProvider.loading) {
+          _isInitialized = true;
+        }
+
         // 初期化前またはデータ読み込み中の場合はローディング画面を表示
         if (!_isInitialized ||
             groupProvider.loading ||

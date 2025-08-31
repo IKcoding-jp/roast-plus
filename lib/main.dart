@@ -43,9 +43,11 @@ void main() async {
   // デバッグ情報を出力
   developer.log('アプリ起動開始', name: 'Main');
 
-  // 必須の初期化処理を並列実行
+  // Firebase初期化を最初に実行（他の初期化処理が依存しているため）
+  await PerformanceMonitor.measureAsync('Firebase初期化', _initializeFirebase);
+
+  // その他の初期化処理を並列実行
   final initializationTasks = <Future<void>>[
-    PerformanceMonitor.measureAsync('Firebase初期化', _initializeFirebase),
     PerformanceMonitor.measureAsync('日付フォーマット初期化', _initializeDateFormatting),
     PerformanceMonitor.measureAsync('テーマ設定初期化', _initializeThemeSettings),
   ];
@@ -149,7 +151,13 @@ Future<void> _initializeFirebase() async {
   try {
     await EncryptedFirebaseConfigService.initializeFirebase();
   } catch (e) {
-    developer.log('Firebase初期化エラー: $e', name: 'Main');
+    // 重複初期化エラーの場合は警告として記録
+    if (e.toString().contains('duplicate-app') ||
+        e.toString().contains('already exists')) {
+      developer.log('Firebase初期化警告: 既に初期化されています - $e', name: 'Main');
+    } else {
+      developer.log('Firebase初期化エラー: $e', name: 'Main');
+    }
   }
 }
 
@@ -165,6 +173,13 @@ Future<void> _initializeDateFormatting() async {
 // テーマ設定初期化
 Future<void> _initializeThemeSettings() async {
   try {
+    // Firebase初期化の確認
+    if (!EncryptedFirebaseConfigService.isInitialized) {
+      developer.log('Firebase初期化を待機中...', name: 'Main');
+      // Firebase初期化が完了するまで少し待機
+      await Future.delayed(Duration(milliseconds: 100));
+    }
+
     final themeSettings = await ThemeSettings.load();
     await themeSettings.initializeDefaultTheme();
   } catch (e) {

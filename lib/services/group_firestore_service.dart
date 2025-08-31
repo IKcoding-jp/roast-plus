@@ -62,7 +62,29 @@ class GroupFirestoreService {
     // カスタム表示名がない場合はGoogleアカウントの名前を使用
     return _auth.currentUser?.displayName ?? 'Unknown User';
   }
-  static String? get _photoUrl => _auth.currentUser?.photoURL;
+
+  static String? get _photoUrl {
+    final photoURL = _auth.currentUser?.photoURL;
+    developer.log(
+      'GroupFirestoreService: _photoUrl取得 - $photoURL',
+      name: 'GroupFirestoreService',
+    );
+
+    // プロフィール画像URLが有効かチェック
+    if (photoURL != null && photoURL.isNotEmpty) {
+      developer.log(
+        'GroupFirestoreService: 有効なプロフィール画像URLを取得 - $photoURL',
+        name: 'GroupFirestoreService',
+      );
+      return photoURL;
+    } else {
+      developer.log(
+        'GroupFirestoreService: プロフィール画像URLが無効または空 - $photoURL',
+        name: 'GroupFirestoreService',
+      );
+      return null;
+    }
+  }
 
   /// 招待コードを生成
   static String _generateInviteCode() {
@@ -94,11 +116,20 @@ class GroupFirestoreService {
         developer.log('グループID生成: $groupId', name: 'GroupFirestoreService');
 
         final displayName = await _displayName;
+        final photoUrl = _photoUrl;
+        developer.log(
+          'GroupFirestoreService: グループ作成者 - UID: $_uid, 表示名: $displayName, プロフィール画像: $photoUrl',
+          name: 'GroupFirestoreService',
+        );
+        developer.log(
+          'GroupFirestoreService: プロフィール画像詳細 - photoUrl: $photoUrl, 有効: ${photoUrl != null && photoUrl.isNotEmpty}',
+          name: 'GroupFirestoreService',
+        );
         final creator = GroupMember(
           uid: _uid!,
           email: _email!,
           displayName: displayName,
-          photoUrl: _photoUrl,
+          photoUrl: photoUrl,
           role: GroupRole.admin, // グループ作成者は管理者として扱う
           joinedAt: now,
           lastActiveAt: now,
@@ -566,11 +597,20 @@ class GroupFirestoreService {
 
     // メンバーを追加
     final displayName = await _displayName;
+    final photoUrl = _photoUrl;
+    developer.log(
+      'GroupFirestoreService: メンバー追加 - UID: $_uid, 表示名: $displayName, プロフィール画像: $photoUrl',
+      name: 'GroupFirestoreService',
+    );
+    developer.log(
+      'GroupFirestoreService: プロフィール画像詳細 - photoUrl: $photoUrl, 有効: ${photoUrl != null && photoUrl.isNotEmpty}',
+      name: 'GroupFirestoreService',
+    );
     final newMember = GroupMember(
       uid: _uid!,
       email: _email!,
       displayName: displayName,
-      photoUrl: _photoUrl,
+      photoUrl: photoUrl,
       role: GroupRole.member, // 招待されたメンバーはメンバーとして扱う
       joinedAt: DateTime.now(),
       lastActiveAt: DateTime.now(),
@@ -643,11 +683,20 @@ class GroupFirestoreService {
 
     // メンバーを追加
     final displayName = await _displayName;
+    final photoUrl = _photoUrl;
+    developer.log(
+      'GroupFirestoreService: 招待コードでメンバー追加 - UID: $_uid, 表示名: $displayName, プロフィール画像: $photoUrl',
+      name: 'GroupFirestoreService',
+    );
+    developer.log(
+      'GroupFirestoreService: プロフィール画像詳細 - photoUrl: $photoUrl, 有効: ${photoUrl != null && photoUrl.isNotEmpty}',
+      name: 'GroupFirestoreService',
+    );
     final newMember = GroupMember(
       uid: _uid!,
       email: _email!,
       displayName: displayName,
-      photoUrl: _photoUrl,
+      photoUrl: photoUrl,
       role: GroupRole.member, // 招待コードで参加したメンバーはメンバーとして扱う
       joinedAt: DateTime.now(),
       lastActiveAt: DateTime.now(),

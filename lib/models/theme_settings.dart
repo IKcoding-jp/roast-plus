@@ -1002,6 +1002,42 @@ class ThemeSettings extends ChangeNotifier {
 
   static Future<ThemeSettings> load() async {
     try {
+      // Firebase初期化の確認
+      try {
+        // Firebaseが初期化されているかチェック
+        FirebaseFirestore.instance;
+      } catch (e) {
+        // Firebaseが初期化されていない場合は、デフォルトテーマのみで作成
+        debugPrint('ThemeSettings: Firebase初期化エラー - デフォルトテーマを使用: $e');
+        final defaultTheme = presets['デフォルト']!;
+        return ThemeSettings(
+          appBarColor: defaultTheme['appBarColor']!,
+          backgroundColor: defaultTheme['backgroundColor']!,
+          buttonColor: defaultTheme['buttonColor']!,
+          appButtonColor: defaultTheme['appButtonColor']!,
+          cardBackgroundColor: defaultTheme['cardBackgroundColor']!,
+          fontColor1: defaultTheme['fontColor1']!,
+          fontColor2: defaultTheme['fontColor2']!,
+          iconColor: defaultTheme['iconColor']!,
+          timerCircleColor: defaultTheme['timerCircleColor']!,
+          bottomNavigationColor: defaultTheme['bottomNavigationColor']!,
+          inputBackgroundColor: defaultTheme['inputBackgroundColor']!,
+          memberBackgroundColor: defaultTheme['memberBackgroundColor']!,
+          appBarTextColor: defaultTheme['appBarTextColor']!,
+          bottomNavigationTextColor: defaultTheme['bottomNavigationTextColor']!,
+          dialogBackgroundColor: defaultTheme['dialogBackgroundColor']!,
+          dialogTextColor: defaultTheme['dialogTextColor']!,
+          inputTextColor: defaultTheme['inputTextColor']!,
+          fontSizeScale: 1.0,
+          fontFamily: 'Noto Sans JP',
+          borderColor: defaultTheme['borderColor']!,
+          calculatorColor: defaultTheme['calculatorColor']!,
+          settingsColor: defaultTheme['settingsColor']!,
+          todoColor: defaultTheme['todoColor']!,
+          tastingColor: defaultTheme['tastingColor']!,
+        );
+      }
+
       // Firebaseからテーマ設定を取得
       final settings = await UserSettingsFirestoreService.getMultipleSettings([
         'theme_appBarColor',

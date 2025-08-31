@@ -799,24 +799,29 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
   Widget _buildGroupInfoView(ThemeSettings themeSettings, Group group) {
     final size = MediaQuery.of(context).size;
-    return Consumer<GroupProvider>(
-      builder: (context, groupProvider, child) {
+    return Selector<GroupProvider, Group?>(
+      selector: (context, groupProvider) => groupProvider.currentGroup,
+      builder: (context, currentGroup, child) {
+        // 最新のグループ情報を使用
+        final groupToUse = currentGroup ?? group;
         // グループの監視を確実に開始
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          final groupProvider = context.read<GroupProvider>();
           if (!groupProvider.isWatchingGroupData) {
-            groupProvider.watchGroup(group.id);
+            groupProvider.watchGroup(groupToUse.id);
           }
         });
 
         // プロフィールが読み込まれていない場合は読み込みを開始
+        final groupProvider = context.read<GroupProvider>();
         final groupGamificationProfile = groupProvider
-            .getGroupGamificationProfile(group.id);
+            .getGroupGamificationProfile(groupToUse.id);
 
         // プロフィールが存在しない場合は読み込みを開始
         if (groupGamificationProfile == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            groupProvider.loadGroupGamificationProfile(group.id);
-            groupProvider.watchGroupGamificationProfile(group.id);
+            groupProvider.loadGroupGamificationProfile(groupToUse.id);
+            groupProvider.watchGroupGamificationProfile(groupToUse.id);
           });
         }
 
@@ -828,12 +833,12 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         final experiencePoints =
             groupGamificationProfile?.experiencePoints ?? 0;
 
-        final memberCount = group.members.length;
+        final memberCount = groupToUse.members.length;
 
         // デバッグ情報を出力
         developer.log('メンバー数: $memberCount', name: 'GroupInfoPage');
         developer.log(
-          'メンバー一覧: ${group.members.map((m) => '${m.displayName}(${m.email})').join(', ')}',
+          'メンバー一覧: ${groupToUse.members.map((m) => '${m.displayName}(${m.email})').join(', ')}',
           name: 'GroupInfoPage',
         );
         developer.log(
@@ -913,7 +918,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                           ),
                         ),
                         SizedBox(height: 12),
-                        _buildMembersSection(themeSettings, group),
+                        _buildMembersSection(themeSettings, groupToUse),
 
                         // 統計情報
                         Text(
@@ -2278,14 +2283,39 @@ class _GroupInfoPageState extends State<GroupInfoPage>
             roleText = 'メンバー';
           }
 
-          // プロフィール画像の取得（Googleアカウントの画像を優先）
+          // プロフィール画像の取得
           String? profileImageUrl;
-          if (member.uid == user?.uid) {
-            // 現在のユーザーの場合はFirebase Authから取得
+
+          // メンバーのphotoUrlを確認
+          if (member.photoUrl != null && member.photoUrl!.isNotEmpty) {
+            profileImageUrl = member.photoUrl;
+          }
+          // 現在のユーザーの場合はFirebase Authから取得
+          else if (member.uid == user?.uid &&
+              user?.photoURL != null &&
+              user!.photoURL!.isNotEmpty) {
             profileImageUrl = user?.photoURL;
           }
-          // メンバーのphotoUrlが存在する場合はそれを使用
-          profileImageUrl ??= member.photoUrl;
+          // 他のメンバーの場合は、photoUrlが保存されていない場合はデフォルトアイコンを使用
+          // Googleプロフィール画像のURLは動的に生成できないため、保存されたphotoUrlのみを使用
+
+          // デバッグログを追加
+          developer.log(
+            'プロフィール画像デバッグ - メンバー: ${member.displayName}(${member.email})',
+            name: 'GroupInfoPage',
+          );
+          developer.log(
+            '  - member.photoUrl: ${member.photoUrl}',
+            name: 'GroupInfoPage',
+          );
+          developer.log(
+            '  - user?.photoURL: ${user?.photoURL}',
+            name: 'GroupInfoPage',
+          );
+          developer.log(
+            '  - 最終的なprofileImageUrl: $profileImageUrl',
+            name: 'GroupInfoPage',
+          );
 
           return GestureDetector(
             onTap: isCurrentUserAdmin && member.uid != user.uid
@@ -2298,11 +2328,39 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: roleColor.withValues(alpha: 0.1),
-                    backgroundImage: profileImageUrl != null
-                        ? NetworkImage(profileImageUrl)
-                        : null,
-                    child: profileImageUrl == null
-                        ? Text(
+                    child: profileImageUrl != null
+                        ? ClipOval(
+                            child: Image.network(
+                              profileImageUrl,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                // 画像読み込みエラー時はデフォルトアイコンを表示
+                                return Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: roleColor.withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      member.displayName.isNotEmpty
+                                          ? member.displayName[0].toUpperCase()
+                                          : '?',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: roleColor,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : Text(
                             member.displayName.isNotEmpty
                                 ? member.displayName[0].toUpperCase()
                                 : '?',
@@ -2311,8 +2369,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                               fontWeight: FontWeight.bold,
                               color: roleColor,
                             ),
-                          )
-                        : null,
+                          ),
                   ),
                   SizedBox(height: 4),
                   Row(
@@ -2368,14 +2425,31 @@ class _GroupInfoPageState extends State<GroupInfoPage>
         ? 'リーダー'
         : 'メンバー';
 
-    // プロフィール画像の取得（Googleアカウントの画像を優先）
+    // プロフィール画像の取得
     String? profileImageUrl;
-    if (member.uid == user?.uid) {
-      // 現在のユーザーの場合はFirebase Authから取得
+
+    // メンバーのphotoUrlを確認
+    if (member.photoUrl != null && member.photoUrl!.isNotEmpty) {
+      profileImageUrl = member.photoUrl;
+    }
+    // 現在のユーザーの場合はFirebase Authから取得
+    else if (member.uid == user?.uid &&
+        user?.photoURL != null &&
+        user!.photoURL!.isNotEmpty) {
       profileImageUrl = user?.photoURL;
     }
-    // メンバーのphotoUrlが存在する場合はそれを使用
-    profileImageUrl ??= member.photoUrl;
+    // 他のメンバーの場合、Googleプロフィール画像のURLを推測
+    else if (member.email.contains('@gmail.com') ||
+        member.email.contains('@googlemail.com')) {
+      // Gmailアカウントの場合、Googleプロフィール画像のURLを構築
+      final emailHash = member.email.toLowerCase().trim();
+      // 複数のプロフィール画像ソースを試す
+      final gravatarUrl =
+          'https://www.gravatar.com/avatar/${emailHash.hashCode.toRadixString(16)}?d=404&s=200';
+      final googleUrl =
+          'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
+      profileImageUrl = gravatarUrl; // まずGravatarを試す
+    }
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.3),
@@ -2396,11 +2470,83 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                 CircleAvatar(
                   radius: 32,
                   backgroundColor: roleColor.withValues(alpha: 0.12),
-                  backgroundImage: profileImageUrl != null
-                      ? NetworkImage(profileImageUrl)
-                      : null,
-                  child: profileImageUrl == null
-                      ? Text(
+                  child: profileImageUrl != null
+                      ? ClipOval(
+                          child: Image.network(
+                            profileImageUrl,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              // 画像読み込みエラー時、Gmailアカウントの場合はGoogleプロフィール画像を試す
+                              if (member.email.contains('@gmail.com') ||
+                                  member.email.contains('@googlemail.com')) {
+                                final emailHash = member.email
+                                    .toLowerCase()
+                                    .trim();
+                                final googleUrl =
+                                    'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
+                                return ClipOval(
+                                  child: Image.network(
+                                    googleUrl,
+                                    width: 64,
+                                    height: 64,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error2, stackTrace2) {
+                                          // Googleプロフィール画像も失敗した場合はデフォルトアイコンを表示
+                                          return Container(
+                                            width: 64,
+                                            height: 64,
+                                            decoration: BoxDecoration(
+                                              color: roleColor.withValues(
+                                                alpha: 0.12,
+                                              ),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                member.displayName.isNotEmpty
+                                                    ? member.displayName[0]
+                                                          .toUpperCase()
+                                                    : '?',
+                                                style: TextStyle(
+                                                  fontSize: 28,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: roleColor,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                  ),
+                                );
+                              }
+                              // Gmailアカウントでない場合はデフォルトアイコンを表示
+                              return Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: roleColor.withValues(alpha: 0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    member.displayName.isNotEmpty
+                                        ? member.displayName[0].toUpperCase()
+                                        : '?',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: roleColor,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : Text(
                           member.displayName.isNotEmpty
                               ? member.displayName[0].toUpperCase()
                               : '?',
@@ -2409,8 +2555,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                             fontWeight: FontWeight.bold,
                             color: roleColor,
                           ),
-                        )
-                      : null,
+                        ),
                 ),
                 SizedBox(height: 12),
                 Text(
@@ -2678,7 +2823,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
 
   Future<void> _removeMember(GroupMember member, Group group) async {
     final provider = context.read<GroupProvider>();
-    
+
     // 確認ダイアログを表示
     final confirmed = await showDialog<bool>(
       context: context,
@@ -2728,7 +2873,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
   /// グループから脱退
   Future<void> _leaveGroup(Group group) async {
     final provider = context.read<GroupProvider>();
-    
+
     // 確認ダイアログを表示
     final confirmed = await showDialog<bool>(
       context: context,
@@ -2838,8 +2983,28 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       roleText = 'メンバー';
     }
 
-    // プロフィール画像の取得（Googleアカウントの画像を優先）
-    String? profileImageUrl = user.photoURL ?? currentMember.photoUrl;
+    // プロフィール画像の取得
+    String? profileImageUrl;
+
+    // メンバーのphotoUrlを確認
+    if (currentMember.photoUrl != null && currentMember.photoUrl!.isNotEmpty) {
+      profileImageUrl = currentMember.photoUrl;
+    }
+    // Firebase Authから取得
+    else if (user.photoURL != null && user.photoURL!.isNotEmpty) {
+      profileImageUrl = user.photoURL;
+    }
+    // Gmailアカウントの場合、Googleプロフィール画像のURLを推測
+    else if (currentMember.email.contains('@gmail.com') ||
+        currentMember.email.contains('@googlemail.com')) {
+      final emailHash = currentMember.email.toLowerCase().trim();
+      // 複数のプロフィール画像ソースを試す
+      final gravatarUrl =
+          'https://www.gravatar.com/avatar/${emailHash.hashCode.toRadixString(16)}?d=404&s=200';
+      final googleUrl =
+          'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
+      profileImageUrl = gravatarUrl; // まずGravatarを試す
+    }
 
     return Container(
       padding: EdgeInsets.all(16),
@@ -2857,11 +3022,80 @@ class _GroupInfoPageState extends State<GroupInfoPage>
           CircleAvatar(
             radius: 24,
             backgroundColor: roleColor.withValues(alpha: 0.1),
-            backgroundImage: profileImageUrl != null
-                ? NetworkImage(profileImageUrl)
-                : null,
-            child: profileImageUrl == null
-                ? Text(
+            child: profileImageUrl != null
+                ? ClipOval(
+                    child: Image.network(
+                      profileImageUrl,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        // 画像読み込みエラー時、Gmailアカウントの場合はGoogleプロフィール画像を試す
+                        if (currentMember.email.contains('@gmail.com') ||
+                            currentMember.email.contains('@googlemail.com')) {
+                          final emailHash = currentMember.email
+                              .toLowerCase()
+                              .trim();
+                          final googleUrl =
+                              'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
+                          return ClipOval(
+                            child: Image.network(
+                              googleUrl,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error2, stackTrace2) {
+                                // Googleプロフィール画像も失敗した場合はデフォルトアイコンを表示
+                                return Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: roleColor.withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      currentMember.displayName.isNotEmpty
+                                          ? currentMember.displayName[0]
+                                                .toUpperCase()
+                                          : '?',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: roleColor,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        }
+                        // Gmailアカウントでない場合はデフォルトアイコンを表示
+                        return Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: roleColor.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              currentMember.displayName.isNotEmpty
+                                  ? currentMember.displayName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: roleColor,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                : Text(
                     currentMember.displayName.isNotEmpty
                         ? currentMember.displayName[0].toUpperCase()
                         : '?',
@@ -2870,8 +3104,7 @@ class _GroupInfoPageState extends State<GroupInfoPage>
                       fontWeight: FontWeight.bold,
                       color: roleColor,
                     ),
-                  )
-                : null,
+                  ),
           ),
           SizedBox(width: 12),
           // ユーザー情報
