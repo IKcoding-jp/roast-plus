@@ -601,11 +601,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   Future<void> _loadTodayAttendance() async {
     if (!mounted) return;
     try {
-      if (mounted) {
-        setState(() {
-          // ローディング状態を設定
-        });
-      }
+      debugPrint('AssignmentBoard: 出勤退勤記録読み込み開始');
 
       // グループ状態の場合はグループデータを優先的に読み込み
       final groupProvider = context.read<GroupProvider>();
@@ -647,6 +643,18 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       }
     } catch (e) {
       debugPrint('AssignmentBoard: 出勤退勤記録読み込みエラー: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('出勤退勤記録の読み込みに失敗しました')));
+      }
+    } finally {
+      // ローディング状態を確実に解除
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -670,6 +678,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     String memberName,
     AttendanceStatus status,
   ) async {
+    if (!mounted) return;
+
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) return;
@@ -677,6 +687,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       debugPrint(
         'AssignmentBoard: 出勤退勤状態更新開始 - memberName: $memberName, status: $status',
       );
+
+      // ローディング状態を設定
+      setState(() {
+        _isLoading = true;
+      });
 
       await AttendanceFirestoreService.updateMemberAttendance(
         userId,
@@ -698,21 +713,37 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         await statsProvider.onAttendanceUpdated();
       }
 
-      // グループ状態の場合はリアルタイム同期により自動更新されるため、
-      // ローカル状態の更新は不要
+      // 状態更新後にUIを更新
       final groupProvider = context.read<GroupProvider>();
       if (!groupProvider.hasGroup) {
-        // グループ状態でない場合のみローカル状態を更新
+        // グループ状態でない場合はローカル状態を更新
         await _loadTodayAttendance();
       } else {
-        debugPrint('AssignmentBoard: グループ状態のため、リアルタイム同期で自動更新されます');
+        // グループ状態の場合は少し待ってから再読み込み（リアルタイム同期の遅延を考慮）
+        debugPrint('AssignmentBoard: グループ状態のため、少し待ってから再読み込みします');
+        await Future.delayed(Duration(milliseconds: 500));
+        if (mounted) {
+          await _loadTodayAttendance();
+        }
+      }
+
+      // ローディング状態を解除
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     } catch (e) {
       debugPrint('AssignmentBoard: 出勤退勤状態更新エラー: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('出勤退勤状態の更新に失敗しました')));
+      // エラー時もローディング状態を解除
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('出勤退勤状態の更新に失敗しました')));
+      }
     }
   }
 
@@ -2286,24 +2317,41 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('出勤退勤状態の変更'),
-        content: Text(
-          '自分の状態を変更しますか？\n\n現在: ${currentStatus == AttendanceStatus.present ? '白カード（出勤）' : '赤カード（退勤）'}\n変更後: ${newStatus == AttendanceStatus.present ? '白カード（出勤）' : '赤カード（退勤）'}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('キャンセル'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _updateMemberAttendance(memberName, newStatus);
-            },
-            child: Text('変更'),
-          ),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          bool isUpdating = false;
+
+          return AlertDialog(
+            title: Text('出勤退勤状態の変更'),
+            content: Text(
+              '自分の状態を変更しますか？\n\n現在: ${currentStatus == AttendanceStatus.present ? '白カード（出勤）' : '赤カード（退勤）'}\n変更後: ${newStatus == AttendanceStatus.present ? '白カード（出勤）' : '赤カード（退勤）'}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: isUpdating ? null : () => Navigator.pop(context),
+                child: Text('キャンセル'),
+              ),
+              ElevatedButton(
+                onPressed: isUpdating
+                    ? null
+                    : () async {
+                        setDialogState(() {
+                          isUpdating = true;
+                        });
+                        Navigator.pop(context);
+                        await _updateMemberAttendance(memberName, newStatus);
+                      },
+                child: isUpdating
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text('変更'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

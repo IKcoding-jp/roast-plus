@@ -497,8 +497,21 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+
+      String errorMessage = 'Googleログインに失敗しました';
+
+      // 特定のエラーの場合は分かりやすいメッセージを表示
+      if (e.toString().contains('invalid-cert-hash')) {
+        errorMessage =
+            '署名証明書の検証に失敗しました。\nこれはGoogle Playからインストールしたアプリで発生する問題です。\n開発者に連絡してください。';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'ネットワーク接続に問題があります。\nインターネット接続を確認してください。';
+      } else if (e.toString().contains('cancelled')) {
+        errorMessage = 'ログインがキャンセルされました。';
+      }
+
       setState(() {
-        _error = 'Googleログインに失敗しました: $e';
+        _error = errorMessage;
       });
       debugPrint('Google Sign-In error: $e');
     } finally {
@@ -508,6 +521,53 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
     setState(() {
       _loading = false;
     });
+  }
+
+  /// Google Sign-Inの問題を診断
+  Future<void> _runDiagnosis() async {
+    if (!mounted) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final diagnosis = await SecureAuthService.diagnoseGoogleSignInIssues();
+
+      if (!mounted) return;
+
+      // 診断結果をエラーメッセージとして表示
+      final diagnosisText =
+          '''
+診断結果:
+• アプリパッケージ名: ${diagnosis['app_package_name'] ?? '不明'}
+• アプリバージョン: ${diagnosis['app_version'] ?? '不明'}
+• ビルド番号: ${diagnosis['app_build_number'] ?? '不明'}
+• 期待されるリリース用ハッシュ: ${diagnosis['expected_release_hash']}
+• 期待されるデバッグ用ハッシュ: ${diagnosis['expected_debug_hash']}
+
+詳細はログを確認してください。
+''';
+
+      setState(() {
+        _error = diagnosisText;
+      });
+
+      debugPrint('診断結果: $diagnosis');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '診断中にエラーが発生しました: $e';
+      });
+      debugPrint('診断エラー: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -539,14 +599,23 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                   ),
                 _loading
                     ? CircularProgressIndicator()
-                    : ElevatedButton.icon(
-                        icon: Image.asset(
-                          'assets/google_logo.png',
-                          width: 24,
-                          height: 24,
-                        ),
-                        label: Text('Googleでログイン'),
-                        onPressed: _signInWithGoogle,
+                    : Column(
+                        children: [
+                          ElevatedButton.icon(
+                            icon: Image.asset(
+                              'assets/google_logo.png',
+                              width: 24,
+                              height: 24,
+                            ),
+                            label: Text('Googleでログイン'),
+                            onPressed: _signInWithGoogle,
+                          ),
+                          SizedBox(height: 16),
+                          TextButton(
+                            onPressed: _runDiagnosis,
+                            child: Text('問題を診断'),
+                          ),
+                        ],
                       ),
               ],
             ),

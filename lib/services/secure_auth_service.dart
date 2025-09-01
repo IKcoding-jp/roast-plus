@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:developer' as developer;
 import 'secure_storage_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// セキュアな認証サービス
 /// Google認証のトークンを安全に管理し、セキュリティを強化するサービス
@@ -41,6 +42,25 @@ class SecureAuthService {
       return userCredential;
     } catch (e) {
       developer.log('セキュアなGoogleサインインでエラーが発生: $e', name: _logName);
+
+      // invalid-cert-hashエラーの詳細なログ記録
+      if (e.toString().contains('invalid-cert-hash')) {
+        developer.log(
+          '署名証明書ハッシュエラーが発生しました。これはGoogle Playからインストールしたアプリでよく発生する問題です。',
+          name: _logName,
+        );
+        developer.log(
+          '解決方法: Firebase Consoleでリリース用の署名証明書ハッシュを追加してください。',
+          name: _logName,
+        );
+        developer.log('現在のアプリID: com.ikcoding.roastplus', name: _logName);
+        developer.log(
+          'リリース用SHA1ハッシュ: DF:B6:AE:56:F6:B9:D0:6D:69:19:35:F2:75:63:10:CC:56:19:8A:1D',
+          name: _logName,
+        );
+        await _logDetailedError('invalid_cert_hash_error', e.toString());
+      }
+
       if (e.toString().contains('SSL') ||
           e.toString().contains('TLS') ||
           e.toString().contains('certificate') ||
@@ -351,6 +371,28 @@ class SecureAuthService {
       // 5. Firebase認証状態（重複だが明示）
       diagnosis['firebase_user_exists'] = _auth.currentUser != null;
       diagnosis['firebase_user_email'] = _auth.currentUser?.email;
+
+      // 6. アプリの署名情報を確認
+      try {
+        final packageInfo = await PackageInfo.fromPlatform();
+        diagnosis['app_package_name'] = packageInfo.packageName;
+        diagnosis['app_version'] = packageInfo.version;
+        diagnosis['app_build_number'] = packageInfo.buildNumber;
+
+        developer.log(
+          'アプリ情報: ${packageInfo.packageName} v${packageInfo.version} (${packageInfo.buildNumber})',
+          name: _logName,
+        );
+      } catch (e) {
+        diagnosis['app_info_error'] = e.toString();
+        developer.log('アプリ情報の取得でエラー: $e', name: _logName);
+      }
+
+      // 7. 署名証明書ハッシュの確認
+      diagnosis['expected_release_hash'] =
+          'dfb6ae56f6b9d06d691935f2756310cc56198a1d';
+      diagnosis['expected_debug_hash'] =
+          '33b446e0ecc4ae2bd47ae5a3b8d58710d2194183';
     } catch (e) {
       diagnosis['diagnosis_error'] = e.toString();
     }
