@@ -145,9 +145,19 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       });
       if (_remainingSeconds <= 0) {
         _timer?.cancel();
-        await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-        await _audioPlayer.setVolume(1.0); // 音量を最大に設定
-        await _audioPlayer.play(AssetSource('sounds/alarm.mp3'));
+        // 通知ストリームを使用するように設定（通知音量で制御）
+        try {
+          await _audioPlayer.setPlayerMode(PlayerMode.lowLatency);
+          await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+          await _audioPlayer.setVolume(1.0); // 音量を最大に設定
+          await _audioPlayer.play(AssetSource('sounds/alarm.mp3'));
+        } catch (e) {
+          debugPrint('AudioPlayer設定エラー: $e');
+          // フォールバック: デフォルト設定で再生
+          await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+          await _audioPlayer.setVolume(1.0);
+          await _audioPlayer.play(AssetSource('sounds/alarm.mp3'));
+        }
         _showCompletionDialog();
       }
     });
@@ -267,7 +277,11 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   @override
   void dispose() {
     _timer?.cancel();
-    _audioPlayer.dispose();
+    try {
+      _audioPlayer.dispose();
+    } catch (e) {
+      debugPrint('AudioPlayer破棄エラー: $e');
+    }
     _manualMinuteController.dispose();
     _beanController.dispose();
     _weightController.dispose();

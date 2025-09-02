@@ -137,9 +137,19 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
             final selectedSound = await SoundUtils.getSelectedTimerSound();
             final volume = await SoundUtils.getTimerVolume();
 
-            await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-            await _audioPlayer.setVolume(volume);
-            await _audioPlayer.play(AssetSource(selectedSound));
+            // 通知ストリームを使用するように設定（通知音量で制御）
+            try {
+              await _audioPlayer.setPlayerMode(PlayerMode.lowLatency);
+              await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+              await _audioPlayer.setVolume(volume);
+              await _audioPlayer.play(AssetSource(selectedSound));
+            } catch (e) {
+              debugPrint('AudioPlayer設定エラー: $e');
+              // フォールバック: デフォルト設定で再生
+              await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+              await _audioPlayer.setVolume(volume);
+              await _audioPlayer.play(AssetSource(selectedSound));
+            }
           }
 
           if (!mounted) return;
@@ -328,7 +338,11 @@ class _RoastTimerAdvancedPageState extends State<RoastTimerAdvancedPage>
   @override
   void dispose() {
     _timer?.cancel();
-    _audioPlayer.dispose(); // AudioPlayerのリソース解放を有効化
+    try {
+      _audioPlayer.dispose(); // AudioPlayerのリソース解放を有効化
+    } catch (e) {
+      debugPrint('AudioPlayer破棄エラー: $e');
+    }
     super.dispose();
   }
 

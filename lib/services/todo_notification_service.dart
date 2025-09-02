@@ -372,9 +372,18 @@ class TodoNotificationService {
       _logInfo('選択された通知音: $selectedSound, 音量: $volume');
 
       _isPlaying = true;
-      await _audioPlayer?.setVolume(volume);
-      // 修正: selectedSoundが既にフルパスの場合はそのまま渡す
-      await _audioPlayer?.play(AssetSource(selectedSound));
+      // 通知ストリームを使用するように設定（通知音量で制御）
+      try {
+        await _audioPlayer?.setPlayerMode(PlayerMode.lowLatency);
+        await _audioPlayer?.setVolume(volume);
+        // 修正: selectedSoundが既にフルパスの場合はそのまま渡す
+        await _audioPlayer?.play(AssetSource(selectedSound));
+      } catch (e) {
+        debugPrint('AudioPlayer設定エラー: $e');
+        // フォールバック: デフォルト設定で再生
+        await _audioPlayer?.setVolume(volume);
+        await _audioPlayer?.play(AssetSource(selectedSound));
+      }
       _logInfo('通知音再生中...');
 
       // 3秒後に停止

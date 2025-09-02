@@ -523,53 +523,6 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
     });
   }
 
-  /// Google Sign-Inの問題を診断
-  Future<void> _runDiagnosis() async {
-    if (!mounted) return;
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      final diagnosis = await SecureAuthService.diagnoseGoogleSignInIssues();
-
-      if (!mounted) return;
-
-      // 診断結果をエラーメッセージとして表示
-      final diagnosisText =
-          '''
-診断結果:
-• アプリパッケージ名: ${diagnosis['app_package_name'] ?? '不明'}
-• アプリバージョン: ${diagnosis['app_version'] ?? '不明'}
-• ビルド番号: ${diagnosis['app_build_number'] ?? '不明'}
-• 期待されるリリース用ハッシュ: ${diagnosis['expected_release_hash']}
-• 期待されるデバッグ用ハッシュ: ${diagnosis['expected_debug_hash']}
-
-詳細はログを確認してください。
-''';
-
-      setState(() {
-        _error = diagnosisText;
-      });
-
-      debugPrint('診断結果: $diagnosis');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = '診断中にエラーが発生しました: $e';
-      });
-      debugPrint('診断エラー: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -609,11 +562,6 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                             ),
                             label: Text('Googleでログイン'),
                             onPressed: _signInWithGoogle,
-                          ),
-                          SizedBox(height: 16),
-                          TextButton(
-                            onPressed: _runDiagnosis,
-                            child: Text('問題を診断'),
                           ),
                         ],
                       ),
