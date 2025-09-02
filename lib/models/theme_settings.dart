@@ -47,7 +47,6 @@ class ThemeSettings extends ChangeNotifier {
   Future<void> initializeDefaultTheme() async {
     // 未ログインの場合はFirestoreにアクセスしない
     if (FirebaseAuth.instance.currentUser == null) {
-      debugPrint('ThemeSettings: 未ログインのためローカルデフォルトテーマのみ適用');
       final defaultTheme = presets['デフォルト']!;
       appBarColor = defaultTheme['appBarColor']!;
       backgroundColor = defaultTheme['backgroundColor']!;
@@ -85,8 +84,6 @@ class ThemeSettings extends ChangeNotifier {
         await UserSettingsFirestoreService.getSetting('isFirstInstall') ?? true;
 
     if (isFirstInstall) {
-      debugPrint('ThemeSettings: 初期インストール - デフォルトテーマを適用');
-
       // デフォルトテーマを適用
       final defaultTheme = presets['デフォルト']!;
       appBarColor = defaultTheme['appBarColor']!;
@@ -125,7 +122,6 @@ class ThemeSettings extends ChangeNotifier {
       await UserSettingsFirestoreService.saveSetting('isFirstInstall', false);
 
       notifyListeners();
-      debugPrint('ThemeSettings: デフォルトテーマ適用完了');
     }
   }
 
@@ -133,7 +129,6 @@ class ThemeSettings extends ChangeNotifier {
   Future<void> loadThemeFromFirestore() async {
     final themeData = await ThemeCloudService.getThemeFromCloud();
     if (themeData != null) {
-      debugPrint('ThemeSettings: Firestoreから取得したテーマデータ: $themeData');
       appBarColor = themeData['appBarColor'] ?? appBarColor;
       backgroundColor = themeData['backgroundColor'] ?? backgroundColor;
       buttonColor = themeData['buttonColor'] ?? buttonColor;
@@ -164,14 +159,6 @@ class ThemeSettings extends ChangeNotifier {
       settingsColor = themeData['settingsColor'] ?? settingsColor;
       todoColor = themeData['todoColor'] ?? todoColor;
       calculatorColor = themeData['calculatorColor'] ?? calculatorColor;
-      debugPrint('ThemeSettings: 更新後のiconColor: $iconColor');
-      debugPrint(
-        'ThemeSettings: 更新後のcustomBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
-      );
-      debugPrint(
-        'ThemeSettings: 更新後のcustomBottomNavigationUnselectedColor: $customBottomNavigationUnselectedColor',
-      );
-      debugPrint('ThemeSettings: 更新後のsettingsColor: $settingsColor');
       notifyListeners();
     }
   }
@@ -234,14 +221,6 @@ class ThemeSettings extends ChangeNotifier {
               settingsColor = themeData['settingsColor'] ?? settingsColor;
               todoColor = themeData['todoColor'] ?? todoColor;
               calculatorColor = themeData['calculatorColor'] ?? calculatorColor;
-              debugPrint('ThemeSettings: 更新後のiconColor: $iconColor');
-              debugPrint(
-                'ThemeSettings: 更新後のcustomBottomNavigationSelectedColor: $customBottomNavigationSelectedColor',
-              );
-              debugPrint(
-                'ThemeSettings: 更新後のcustomBottomNavigationUnselectedColor: $customBottomNavigationUnselectedColor',
-              );
-              debugPrint('ThemeSettings: 更新後のsettingsColor: $settingsColor');
               notifyListeners();
             }
           }
@@ -1104,7 +1083,7 @@ class ThemeSettings extends ChangeNotifier {
         FirebaseFirestore.instance;
       } catch (e) {
         // Firebaseが初期化されていない場合は、デフォルトテーマのみで作成
-        debugPrint('ThemeSettings: Firebase初期化エラー - デフォルトテーマを使用: $e');
+        // Firebase初期化エラー - デフォルトテーマを使用
         final defaultTheme = presets['デフォルト']!;
         _instance = ThemeSettings(
           appBarColor: defaultTheme['appBarColor']!,
@@ -1171,7 +1150,7 @@ class ThemeSettings extends ChangeNotifier {
       _isInitialized = true;
       return _instance!;
     } catch (e) {
-      debugPrint('ThemeSettings: 初期化エラー - デフォルトテーマを使用: $e');
+      // 初期化エラー - デフォルトテーマを使用
       // エラー時もデフォルトテーマで作成
       final defaultTheme = presets['デフォルト']!;
       _instance = ThemeSettings(
@@ -1339,10 +1318,10 @@ class ThemeSettings extends ChangeNotifier {
 
         // 設定変更を通知
         _instance!.notifyListeners();
-        debugPrint('ThemeSettings: Firebaseから設定を非同期取得完了');
+        // Firebaseから設定を非同期取得完了
       }
     } catch (e) {
-      debugPrint('ThemeSettings: Firebase設定取得エラー: $e');
+      // Firebase設定取得エラー
     }
   }
 

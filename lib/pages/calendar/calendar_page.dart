@@ -77,7 +77,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
       await _loadWorkProgressRecords(_selectedDate);
     } catch (e) {
-      debugPrint('カレンダーデータ読み込みエラー: $e');
+      // カレンダーデータ読み込みエラー
     } finally {
       if (mounted) {
         setState(() {
@@ -99,7 +99,7 @@ class _CalendarPageState extends State<CalendarPage> {
         });
       }
     } catch (e) {
-      debugPrint('本日のスケジュール読み込みエラー: $e');
+      // 本日のスケジュール読み込みエラー
     }
   }
 
@@ -132,20 +132,10 @@ class _CalendarPageState extends State<CalendarPage> {
         setState(() {
           _roastScheduleMemos = filteredMemos;
         });
-        debugPrint(
-          'ローストスケジュールメモ: 全${allMemos.length}件中、${filteredMemos.length}件を表示',
-        );
-
-        // デバッグ用：各メモの詳細をログ出力
-        for (int i = 0; i < filteredMemos.length; i++) {
-          final memo = filteredMemos[i];
-          debugPrint(
-            'メモ${i + 1}: ${memo.time} - ${memo.beanName ?? 'null'} (焙煎機オン: ${memo.isRoasterOn}, アフターパージ: ${memo.isAfterPurge}, 作成日: ${memo.createdAt})',
-          );
-        }
+        // ローストスケジュールメモを表示
       }
     } catch (e) {
-      debugPrint('ローストスケジュールメモ読み込みエラー: $e');
+      // ローストスケジュールメモ読み込みエラー
     }
   }
 
@@ -198,7 +188,7 @@ class _CalendarPageState extends State<CalendarPage> {
         });
       }
     } catch (e) {
-      debugPrint('担当履歴読み込みエラー: $e');
+      // 担当履歴読み込みエラー
     }
   }
 
@@ -216,7 +206,7 @@ class _CalendarPageState extends State<CalendarPage> {
         });
       }
     } catch (e) {
-      debugPrint('ドリップパック記録読み込みエラー: $e');
+      // ドリップパック記録読み込みエラー
     }
   }
 
@@ -232,7 +222,7 @@ class _CalendarPageState extends State<CalendarPage> {
         });
       }
     } catch (e) {
-      debugPrint('作業状況記録読み込みエラー: $e');
+      // 作業状況記録読み込みエラー
     }
   }
 
@@ -252,7 +242,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
       return doc.exists ? doc.data() : null;
     } catch (e) {
-      debugPrint('指定日付のスケジュール読み込みエラー: $e');
+      // 指定日付のスケジュール読み込みエラー
       return null;
     }
   }

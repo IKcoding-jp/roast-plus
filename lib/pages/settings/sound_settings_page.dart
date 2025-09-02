@@ -274,7 +274,6 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
 
     try {
       _isPlaying = true;
-      debugPrint('再生開始: $soundFile');
 
       // 既に再生中の音声があれば停止
       await _stopCurrentSound();
@@ -285,28 +284,23 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
       // エラーハンドリングを追加
       _currentPlayer!.onPlayerStateChanged.listen((state) {
         if (state == PlayerState.completed) {
-          debugPrint('再生完了: $soundFile');
           _isPlaying = false;
         } else if (state == PlayerState.stopped) {
-          debugPrint('再生停止: $soundFile');
           _isPlaying = false;
         }
       });
 
       // 再生開始（パスを修正）
       await _currentPlayer!.play(AssetSource(soundFile));
-      debugPrint('再生成功: $soundFile');
 
       // 3秒後に自動停止
       Future.delayed(const Duration(milliseconds: 3000), () async {
         if (_isPlaying && _currentPlayer != null) {
           await _stopCurrentSound();
-          debugPrint('自動停止: $soundFile');
         }
       });
     } catch (e) {
       // エラー時のフィードバック
-      debugPrint('再生エラー: $soundFile - $e');
       _isPlaying = false;
       if (!mounted) return;
       messenger.showSnackBar(

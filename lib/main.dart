@@ -144,6 +144,7 @@ Future<void> _initializeSystemSettings() async {
 Future<void> _initializeFirebase() async {
   try {
     await EncryptedFirebaseConfigService.initializeFirebase();
+    developer.log('Firebase初期化完了', name: 'Main');
   } catch (e) {
     // 重複初期化エラーの場合は警告として記録
     if (e.toString().contains('duplicate-app') ||
@@ -151,6 +152,10 @@ Future<void> _initializeFirebase() async {
       developer.log('Firebase初期化警告: 既に初期化されています - $e', name: 'Main');
     } else {
       developer.log('Firebase初期化エラー: $e', name: 'Main');
+      // TestFlight環境ではFirebase初期化エラーでもアプリを起動
+      if (kDebugMode) {
+        developer.log('デバッグモード: Firebase初期化エラーを無視してアプリを起動', name: 'Main');
+      }
     }
   }
 }

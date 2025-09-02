@@ -50,8 +50,7 @@ class TodoPageState extends State<TodoPage>
     final themeSettings = Provider.of<ThemeSettings>(context);
 
     // デバッグ用：現在のtodoColorの値をログ出力
-    debugPrint('TodoPage: 現在のtodoColor: ${themeSettings.todoColor}');
-    debugPrint('TodoPage: 現在のiconColor: ${themeSettings.iconColor}');
+    // テーマ設定を適用
 
     return Scaffold(
       appBar: AppBar(

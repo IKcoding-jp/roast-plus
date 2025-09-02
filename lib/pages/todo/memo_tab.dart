@@ -83,10 +83,7 @@ class _MemoTabState extends State<MemoTab> {
       );
 
       // 常に個人のメモを保存
-      debugPrint('メモ保存: 個人に保存中...');
-      debugPrint('メモ保存: メモ内容:  ${memo.toJson()}');
       await MemoFirestoreService.saveMemo(memo);
-      debugPrint('メモ保存: 個人に保存完了');
 
       _titleController.clear();
       _contentController.clear();
@@ -104,7 +101,7 @@ class _MemoTabState extends State<MemoTab> {
         );
       }
     } catch (e) {
-      debugPrint('メモ保存エラー: $e');
+      // メモ保存エラー
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('メモの保存に失敗しました'), backgroundColor: Colors.red),

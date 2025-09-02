@@ -83,5 +83,15 @@
 	<string>Face IDを使用してアプリにログインします。</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>ローカルネットワークに接続してサービスを提供します。</string>
+	
+	<!-- iOS 15.0以降で必要な設定 -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>より良いユーザー体験を提供するために、アプリの使用状況を追跡します。</string>
+	
+	<!-- アプリの安定性向上のための設定 -->
+	<key>UIApplicationSupportsMultipleScenes</key>
+	<false/>
+	<key>UISceneDelegate</key>
+	<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
 </dict>
 </plist>

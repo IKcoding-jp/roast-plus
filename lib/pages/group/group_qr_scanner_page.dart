@@ -116,16 +116,12 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
     });
 
     try {
-      debugPrint('GroupQRScannerPage: グループ参加開始 - groupId: $groupId, inviteCode: $inviteCode');
-      
       // GroupInvitationServiceを使用してグループに参加
       final success = await GroupInvitationService.joinGroupWithInvitationCode(
         inviteCode,
       );
 
       if (success && mounted) {
-        debugPrint('GroupQRScannerPage: GroupInvitationServiceでの参加成功');
-        
         // 成功メッセージを表示
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('グループに参加しました'), backgroundColor: Colors.green),
@@ -133,15 +129,12 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
 
         // グループプロバイダーを更新
         final groupProvider = context.read<GroupProvider>();
-        debugPrint('GroupQRScannerPage: GroupProviderの状態更新開始');
         await groupProvider.loadUserGroups();
-        debugPrint('GroupQRScannerPage: GroupProviderの状態更新完了 - hasGroup: ${groupProvider.hasGroup}');
 
         if (mounted) {
           // 少し待ってからホームページに自動遷移（状態更新の確実性のため）
           await Future.delayed(Duration(milliseconds: 500));
           
-          debugPrint('GroupQRScannerPage: ホームページに遷移開始');
           // ホームページに自動遷移
           Navigator.of(context).pushNamedAndRemoveUntil(
             '/',
@@ -150,7 +143,7 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
         }
       }
     } catch (e) {
-      debugPrint('GroupQRScannerPage: グループ参加エラー: $e');
+      // グループ参加エラー
       if (mounted) {
         _showError('グループの参加に失敗しました: $e');
       }

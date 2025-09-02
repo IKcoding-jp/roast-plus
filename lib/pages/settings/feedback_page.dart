@@ -64,18 +64,14 @@ ${_messageController.text.trim()}
         queryParameters: {'subject': subject, 'body': body},
       );
 
-      debugPrint('メールURI起動を試行中: $emailUri');
-
       final messenger = ScaffoldMessenger.of(context);
       final navigator = Navigator.of(context);
 
       if (await canLaunchUrl(emailUri)) {
-        debugPrint('URL起動可能、起動を試行中...');
         final result = await launchUrl(
           emailUri,
           mode: LaunchMode.externalApplication,
         );
-        debugPrint('起動結果: $result');
 
         if (result) {
           if (!mounted) return;
@@ -85,11 +81,10 @@ ${_messageController.text.trim()}
           throw Exception('メールアプリの起動に失敗しました');
         }
       } else {
-        debugPrint('URL起動不可: $emailUri');
         throw Exception('メールアプリを開けませんでした。デバイスにメールアプリがインストールされているか確認してください。');
       }
     } catch (e) {
-      debugPrint('フィードバック送信エラー: $e');
+      // フィードバック送信エラー
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

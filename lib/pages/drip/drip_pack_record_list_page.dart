@@ -36,9 +36,9 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
           await GroupDataSyncService.syncDripCounterRecords(groupId, {
             'records': _records,
           });
-          debugPrint('DripPackRecordListPage: 記録削除をグループに同期しました');
+          // 記録削除をグループに同期完了
         } catch (e) {
-          debugPrint('DripPackRecordListPage: グループ同期エラー: $e');
+          // グループ同期エラー
           // エラー時は元に戻す
           setState(() {
             _records.insert(index, _records[index]);
@@ -76,9 +76,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
 
     // グループが変更された場合、データを再読み込み
     if (_currentGroupId != null && _currentGroupId != currentGroupId) {
-      debugPrint(
-        'DripPackRecordListPage: グループ変更を検知 - 前のグループ: $_currentGroupId, 新しいグループ: $currentGroupId',
-      );
+      // グループ変更を検知
 
       // 1. 既存のリスナーを停止
       _groupDataSubscription?.cancel();
@@ -115,7 +113,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
       if (groupProvider.hasGroup) {
         // グループモード：グループの共有データを取得
         final groupId = groupProvider.currentGroup!.id;
-        debugPrint('DripPackRecordListPage: グループデータ読み込み開始 - groupId: $groupId');
+        // グループデータ読み込み開始
 
         final groupData = await GroupDataSyncService.getGroupDripCounterRecords(
           groupId,
@@ -128,9 +126,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
               _isGroupMode = true;
               _isLoading = false;
             });
-            debugPrint(
-              'DripPackRecordListPage: グループデータ読み込み完了 - 記録数: ${_records.length}',
-            );
+            // グループデータ読み込み完了
           } else {
             // グループデータがない場合は空の状態を設定
             setState(() {
@@ -138,16 +134,16 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
               _isGroupMode = true;
               _isLoading = false;
             });
-            debugPrint('DripPackRecordListPage: グループデータが存在しません');
+            // グループデータが存在しません
           }
         }
       } else {
         // ローカルモード：ローカルデータを取得
-        debugPrint('DripPackRecordListPage: ローカルデータ読み込み開始');
+        // ローカルデータ読み込み開始
         await _loadLocalRecords();
       }
     } catch (e) {
-      debugPrint('ドリップパック記録読み込みエラー: $e');
+      // ドリップパック記録読み込みエラー
       // エラー時はローカルデータを取得
       if (mounted) {
         await _loadLocalRecords();
@@ -179,9 +175,9 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
   Future<void> _clearLocalData() async {
     try {
       await UserSettingsFirestoreService.deleteSetting('dripPackRecords');
-      debugPrint('DripPackRecordListPage: ローカルデータをクリアしました');
+      // ローカルデータをクリア完了
     } catch (e) {
-      debugPrint('DripPackRecordListPage: ローカルデータのクリアに失敗: $e');
+      // ローカルデータのクリアに失敗
     }
   }
 
@@ -192,7 +188,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
     if (groupProvider.hasGroup) {
       final groupId = groupProvider.currentGroup!.id;
 
-      debugPrint('DripPackRecordListPage: グループデータリスナー開始 - groupId: $groupId');
+      // グループデータリスナー開始
 
       // 既存のリスナーを停止
       _groupDataSubscription?.cancel();
@@ -203,9 +199,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
           GroupDataSyncService.watchGroupDripCounterRecords(groupId).listen(
             (groupData) {
               if (mounted) {
-                debugPrint(
-                  'DripPackRecordListPage: グループデータ受信 - groupId: $groupId, データ: ${groupData != null ? 'あり' : 'なし'}',
-                );
+                // グループデータ受信
 
                 if (groupData != null && groupData['records'] != null) {
                   setState(() {
@@ -215,9 +209,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                     _isGroupMode = true;
                     _isLoading = false;
                   });
-                  debugPrint(
-                    'DripPackRecordListPage: グループデータの変更を検知しました - 記録数: ${_records.length}',
-                  );
+                  // グループデータの変更を検知
                 } else {
                   // グループデータがない場合は空の状態を設定
                   setState(() {
@@ -225,16 +217,16 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                     _isGroupMode = true;
                     _isLoading = false;
                   });
-                  debugPrint('DripPackRecordListPage: グループデータが空です');
+                  // グループデータが空です
                 }
               }
             },
             onError: (error) {
-              debugPrint('DripPackRecordListPage: グループデータ監視エラー: $error');
+              // グループデータ監視エラー
             },
           );
     } else {
-      debugPrint('DripPackRecordListPage: グループに参加していないため、リスナーを開始しません');
+      // グループに参加していないため、リスナーを開始しません
     }
   }
 
@@ -373,7 +365,9 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                           leading: Container(
                             padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: themeSettings.iconColor.withValues(alpha: 0.1),
+                              color: themeSettings.iconColor.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
@@ -403,7 +397,9 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                                   record['memo'].toString(),
                                   style: TextStyle(
                                     fontSize: 14 * themeSettings.fontSizeScale,
-                                    color: themeSettings.fontColor1.withValues(alpha: 0.8),
+                                    color: themeSettings.fontColor1.withValues(
+                                      alpha: 0.8,
+                                    ),
                                   ),
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
@@ -414,7 +410,9 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                                 '記録日時: $formattedDate',
                                 style: TextStyle(
                                   fontSize: 12 * themeSettings.fontSizeScale,
-                                  color: themeSettings.fontColor1.withValues(alpha: 0.6),
+                                  color: themeSettings.fontColor1.withValues(
+                                    alpha: 0.6,
+                                  ),
                                 ),
                               ),
                             ],

@@ -403,15 +403,7 @@ class _BadgeListPageState extends State<BadgeListPage>
     final filteredBadges = _getFilteredBadges();
     final earnedBadgeIds = profile.badges.map((b) => b.id).toSet();
 
-    // デバッグ情報を出力
-    debugPrint('=== バッジ一覧デバッグ情報 ===');
-    debugPrint('プロフィールレベル: ${profile.level}');
-    debugPrint('プロフィール経験値: ${profile.experiencePoints}');
-    debugPrint('獲得済みバッジ数: ${profile.badges.length}');
-    debugPrint('獲得済みバッジID: ${profile.badges.map((b) => b.id).toList()}');
-    debugPrint('獲得済みバッジ名: ${profile.badges.map((b) => b.name).toList()}');
-    debugPrint('フィルタリングされたバッジ数: ${filteredBadges.length}');
-    debugPrint('==============================');
+    // バッジ一覧を表示
 
     // WEB版では5列、モバイル版では2列
     final crossAxisCount = isWeb ? 5 : 2;
@@ -442,20 +434,13 @@ class _BadgeListPageState extends State<BadgeListPage>
           bool finalIsEarned = isEarned;
           if (condition.category == BadgeCategory.level && !isEarned) {
             finalIsEarned = _checkLevelBadgeCondition(condition, profile.level);
-            if (finalIsEarned) {
-              debugPrint(
-                'レベルバッジ条件達成: ${condition.name} (${condition.badgeId}) - 現在レベル: ${profile.level}',
-              );
-            }
+            // レベルバッジ条件達成
           }
 
           // 獲得済みの場合は進捗を100%にする
           final finalProgress = finalIsEarned ? 1.0 : progress;
 
-          // 各バッジの状態をデバッグ出力
-          debugPrint(
-            'バッジ: ${condition.name} (${condition.badgeId}) - 獲得済み: $isEarned, 条件判定: $finalIsEarned, 進捗: ${(finalProgress * 100).toInt()}%',
-          );
+          // バッジ状態を確認
 
           return BadgeCard(
             condition: condition,

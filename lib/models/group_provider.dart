@@ -43,7 +43,6 @@ class GroupProvider extends ChangeNotifier {
   GroupProvider() {
     // 初期化状態をリセット
     _initialized = false;
-    debugPrint('GroupProvider: 初期化状態をリセット');
   }
 
   // Getters
@@ -63,9 +62,6 @@ class GroupProvider extends ChangeNotifier {
   // 単一グループ対応のための追加getter
   bool get hasGroup {
     final hasGroup = _currentGroup != null;
-    debugPrint(
-      'GroupProvider: hasGroup called - currentGroup: ${_currentGroup?.id}, hasGroup: $hasGroup',
-    );
     return hasGroup;
   }
 
@@ -79,12 +75,10 @@ class GroupProvider extends ChangeNotifier {
   Future<void> loadUserGroups() async {
     // 既に読み込み中またはデータがある場合はスキップ
     if (_loading) {
-      debugPrint('GroupProvider: 既に読み込み中です');
       return;
     }
 
     if (_groups.isNotEmpty && _initialized) {
-      debugPrint('GroupProvider: 既にグループデータが存在し、初期化済みです');
       return;
     }
 
@@ -92,26 +86,19 @@ class GroupProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      debugPrint('GroupProvider: グループ読み込み開始');
+      // グループ読み込み開始
 
       // タイムアウト付きでグループ読み込みを実行
       _groups = await GroupFirestoreService.getUserGroups().timeout(
         Duration(seconds: 20),
         onTimeout: () {
-          debugPrint('GroupProvider: グループ読み込みがタイムアウトしました');
           throw TimeoutException('グループ読み込みがタイムアウトしました');
         },
       );
 
-      debugPrint('GroupProvider: グループ読み込み完了 - グループ数: ${_groups.length}');
-
       // 単一グループ制限: 最初のグループのみをcurrentGroupに設定
       if (_groups.isNotEmpty) {
         _currentGroup = _groups.first;
-        debugPrint('GroupProvider: currentGroupを設定: ${_currentGroup!.name}');
-
-        // グループに参加している場合はデータ同期の準備完了
-        debugPrint('GroupProvider: データ同期の準備完了');
 
         // グループの監視を開始
         watchGroup(_currentGroup!.id);
@@ -123,11 +110,9 @@ class GroupProvider extends ChangeNotifier {
       _initialized = true;
       _safeNotifyListeners();
 
-      debugPrint(
-        'GroupProvider: グループ読み込み完了 - hasGroup: $hasGroup, currentGroup: ${_currentGroup?.id}',
-      );
+      // グループ読み込み完了
     } catch (e) {
-      debugPrint('GroupProvider: グループ読み込みエラー: $e');
+      // グループ読み込みエラー
       if (e.toString().contains('未ログイン')) {
         _setError('ログインすることで、グループ機能を使うことができます');
       } else if (e.toString().contains('タイムアウト')) {
@@ -145,9 +130,8 @@ class GroupProvider extends ChangeNotifier {
 
   /// グループ作成成功後の処理
   void _postGroupCreationSuccess(String groupId) {
-    debugPrint('GroupProvider: グループ作成成功後の処理開始: $groupId');
+    // グループ作成成功後の処理開始
     // グループ作成直後は処理をスキップ（クラッシュ防止のため）
-    debugPrint('GroupProvider: グループ作成成功後の処理をスキップ（クラッシュ防止）: $groupId');
   }
 
   /// 招待一覧を取得
@@ -184,7 +168,7 @@ class GroupProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      debugPrint('GroupProvider: グループ作成開始');
+      // グループ作成開始
 
       // グループ削除フラグをリセット
       _showGroupDeletedPage = false;
@@ -194,27 +178,27 @@ class GroupProvider extends ChangeNotifier {
         description: description,
       );
 
-      debugPrint('GroupProvider: Firestoreでのグループ作成完了: ${newGroup.id}');
+      // Firestoreでのグループ作成完了
 
       _groups.clear(); // 他のグループがあれば削除
       _groups.add(newGroup);
       _currentGroup = newGroup; // 新しいグループをcurrentGroupに設定
 
-      debugPrint('GroupProvider: ローカル状態の更新完了');
+      // ローカル状態の更新完了
 
       // グループ作成フラグを設定
       _showGroupCreationCelebration = true;
       _newlyCreatedGroupId = newGroup.id;
 
       _safeNotifyListeners();
-      debugPrint('GroupProvider: グループ作成完了');
+      // グループ作成完了
 
       // グループ作成成功後の処理を非同期で実行（軽量化）
       _postGroupCreationSuccess(newGroup.id);
 
       return true;
     } catch (e) {
-      debugPrint('GroupProvider: グループ作成エラー: $e');
+      // グループ作成エラー
       if (e.toString().contains('未ログイン')) {
         _setError('ログインすることで、グループ機能を使うことができます');
       } else {
@@ -276,7 +260,7 @@ class GroupProvider extends ChangeNotifier {
 
         // グループ削除ページ表示フラグを設定
         _showGroupDeletedPage = true;
-        debugPrint('GroupProvider: グループ削除フラグを設定しました');
+        // グループ削除フラグを設定
       }
 
       // ローカルデータをクリア
@@ -311,9 +295,9 @@ class GroupProvider extends ChangeNotifier {
       // その他のローカルデータも必要に応じてクリア
       // 例: 焙煎記録、試飲記録など
 
-      debugPrint('GroupProvider: ローカルデータをクリアしました');
+      // ローカルデータをクリア完了
     } catch (e) {
-      debugPrint('GroupProvider: ローカルデータのクリアに失敗: $e');
+      // ローカルデータのクリアに失敗
     }
   }
 
@@ -368,7 +352,7 @@ class GroupProvider extends ChangeNotifier {
 
       // 現在のグループの監視を開始
       if (_currentGroup != null) {
-        debugPrint('GroupProvider: 招待承諾後、グループ監視を開始: ${_currentGroup!.id}');
+        // 招待承諾後、グループ監視を開始
         watchGroup(_currentGroup!.id);
 
         // ゲーミフィケーションプロフィールの監視も開始
@@ -401,22 +385,20 @@ class GroupProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      debugPrint('GroupProvider: 招待コードでグループ参加開始 - inviteCode: $inviteCode');
+      // 招待コードでグループ参加開始
 
       await GroupFirestoreService.joinGroupByInviteCode(inviteCode);
 
-      debugPrint('GroupProvider: Firestoreでのグループ参加完了、グループリストを再読み込み開始');
+      // Firestoreでのグループ参加完了、グループリストを再読み込み開始
 
       // グループリストを再読み込み
       await loadUserGroups();
 
-      debugPrint(
-        'GroupProvider: グループリスト再読み込み完了 - currentGroup: ${_currentGroup?.id}',
-      );
+      // グループリスト再読み込み完了
 
       // 現在のグループの監視を開始
       if (_currentGroup != null) {
-        debugPrint('GroupProvider: 招待コード参加後、グループ監視を開始: ${_currentGroup!.id}');
+        // 招待コード参加後、グループ監視を開始
         watchGroup(_currentGroup!.id);
 
         // ゲーミフィケーションプロフィールの監視も開始
@@ -426,10 +408,10 @@ class GroupProvider extends ChangeNotifier {
       // 状態更新を確実に通知
       _safeNotifyListeners();
 
-      debugPrint('GroupProvider: 招待コード参加処理完了 - hasGroup: $hasGroup');
+      // 招待コード参加処理完了
       return true;
     } catch (e) {
-      debugPrint('GroupProvider: 招待コード参加エラー: $e');
+      // 招待コード参加エラー
       if (e.toString().contains('未ログイン')) {
         _setError('ログインすることで、グループ機能を使うことができます');
       } else {
@@ -533,43 +515,37 @@ class GroupProvider extends ChangeNotifier {
     _setLoading(true);
     _clearError();
 
-    debugPrint('GroupProvider: グループ脱退開始 - groupId: $groupId');
+    // グループ脱退開始
 
     try {
       await GroupFirestoreService.leaveGroup(groupId);
 
-      debugPrint('GroupProvider: Firestore脱退処理完了');
+      // Firestore脱退処理完了
 
       // ローカルのグループリストから削除
       _groups.removeWhere((g) => g.id == groupId);
-      debugPrint(
-        'GroupProvider: ローカルグループリストから削除完了 - 残りグループ数: ${_groups.length}',
-      );
+      // ローカルグループリストから削除完了
 
       // 現在のグループが脱退した場合、nullに設定
       if (_currentGroup?.id == groupId) {
-        debugPrint(
-          'GroupProvider: 現在のグループを脱退中 - currentGroup: ${_currentGroup?.id}',
-        );
+        // 現在のグループを脱退中
         _currentGroup = null;
 
         // 監視を停止
         unwatchGroup(groupId);
-        debugPrint('GroupProvider: グループ監視停止完了');
+        // グループ監視停止完了
 
         // ローカルデータをクリア
         await _clearLocalData();
-        debugPrint('GroupProvider: ローカルデータクリア完了');
+        // ローカルデータクリア完了
 
-        debugPrint(
-          'GroupProvider: グループ脱退処理完了 - groupId: $groupId, hasGroup: $hasGroup',
-        );
+        // グループ脱退処理完了
       } else {
-        debugPrint('GroupProvider: 現在のグループではないため、currentGroupは変更なし');
+        // 現在のグループではないため、currentGroupは変更なし
       }
 
       _safeNotifyListeners();
-      debugPrint('GroupProvider: リスナー通知完了');
+      // リスナー通知完了
       return true;
     } catch (e) {
       if (e.toString().contains('未ログイン')) {
@@ -708,7 +684,7 @@ class GroupProvider extends ChangeNotifier {
   void watchGroup(String groupId) {
     if (_groupWatchers.containsKey(groupId)) return;
 
-    debugPrint('GroupProvider: グループ監視開始: $groupId');
+    // グループ監視開始
 
     final sub = FirebaseFirestore.instance
         .collection('groups')
@@ -721,36 +697,29 @@ class GroupProvider extends ChangeNotifier {
               final idx = _groups.indexWhere((g) => g.id == groupId);
               final currentUser = FirebaseAuth.instance.currentUser;
 
-              debugPrint(
-                'GroupProvider: グループ更新検知 - ID: $groupId, メンバー数: ${updated.members.length}',
-              );
-              debugPrint(
-                'GroupProvider: メンバー一覧: ${updated.members.map((m) => '${m.displayName}(${m.email})').join(', ')}',
-              );
+              // グループ更新検知
 
               // 現在のユーザーがメンバーから削除されたかチェック
               if (currentUser != null && !updated.isMember(currentUser.uid)) {
-                debugPrint('GroupProvider: 現在のユーザーがメンバーから削除されました');
+                // 現在のユーザーがメンバーから削除されました
                 _handleMemberRemoval(groupId);
                 return;
               }
 
               if (idx != -1) {
                 _groups[idx] = updated;
-                debugPrint('GroupProvider: 既存グループを更新');
+                // 既存グループを更新
               } else {
                 _groups.add(updated);
-                debugPrint('GroupProvider: 新しいグループを追加');
+                // 新しいグループを追加
               }
 
               if (_currentGroup?.id == groupId) {
                 _currentGroup = updated;
-                debugPrint('GroupProvider: 現在のグループを更新');
+                // 現在のグループを更新
               }
 
-              debugPrint(
-                'GroupProvider: notifyListeners呼び出し - メンバー数: ${updated.members.length}',
-              );
+              // notifyListeners呼び出し
               notifyListeners();
             } else {
               // グループが削除された場合の処理
@@ -758,7 +727,7 @@ class GroupProvider extends ChangeNotifier {
             }
           },
           onError: (error) {
-            debugPrint('GroupProvider: グループ監視エラー: $error');
+            // グループ監視エラー
           },
         );
 
@@ -785,7 +754,7 @@ class GroupProvider extends ChangeNotifier {
         .listen(
           (doc) {
             if (doc.exists) {
-              debugPrint('GroupProvider: メンバー脱退通知を検知 - groupId: $groupId');
+              // メンバー脱退通知を検知
 
               // 脱退通知を削除
               doc.reference.delete();
@@ -795,7 +764,7 @@ class GroupProvider extends ChangeNotifier {
             }
           },
           onError: (error) {
-            debugPrint('GroupProvider: メンバー脱退通知監視エラー: $error');
+            // メンバー脱退通知監視エラー
           },
         );
 
@@ -805,7 +774,7 @@ class GroupProvider extends ChangeNotifier {
 
   /// メンバー脱退処理
   void _handleMemberRemoval(String groupId) {
-    debugPrint('GroupProvider: メンバー脱退処理開始 - groupId: $groupId');
+    // メンバー脱退処理開始
 
     // ローカルのグループリストから削除
     _groups.removeWhere((g) => g.id == groupId);

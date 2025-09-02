@@ -1,4 +1,3 @@
-
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 
@@ -37,8 +36,10 @@ class EncryptedFirebaseConfigService {
         'messagingSenderId': '781258244482',
         'projectId': 'bysnlogapp',
         'storageBucket': 'bysnlogapp.firebasestorage.app',
-        'androidClientId': '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
-        'iosClientId': '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
+        'androidClientId':
+            '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
+        'iosClientId':
+            '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
         'iosBundleId': 'com.example.roastplus',
       },
       'macos': {
@@ -47,8 +48,10 @@ class EncryptedFirebaseConfigService {
         'messagingSenderId': '781258244482',
         'projectId': 'bysnlogapp',
         'storageBucket': 'bysnlogapp.firebasestorage.app',
-        'androidClientId': '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
-        'iosClientId': '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
+        'androidClientId':
+            '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
+        'iosClientId':
+            '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
         'iosBundleId': 'com.example.roastplus',
       },
       'windows': {
@@ -63,7 +66,7 @@ class EncryptedFirebaseConfigService {
     };
 
     final encryptedConfigs = <String, String>{};
-    
+
     configs.forEach((platform, config) {
       config.forEach((key, value) {
         final encryptedKey = '${platform.toUpperCase()}_${key.toUpperCase()}';
@@ -79,46 +82,48 @@ class EncryptedFirebaseConfigService {
   static Map<String, String> _getEncryptedConfigFromSecurityConfig() {
     final config = <String, String>{};
 
-         // 基本設定
-     config['apiKey'] = SecurityConfig.getEncryptedApiKey();
-     config['appId'] = SecurityConfig.getEncryptedAppId();
-     config['messagingSenderId'] = SecurityConfig.getEncryptedSenderId();
-     config['projectId'] = SecurityConfig.getEncryptedProjectId();
-     config['storageBucket'] = SecurityConfig.getEncryptedStorageBucket();
+    // 基本設定
+    config['apiKey'] = SecurityConfig.getEncryptedApiKey();
+    config['appId'] = SecurityConfig.getEncryptedAppId();
+    config['messagingSenderId'] = SecurityConfig.getEncryptedSenderId();
+    config['projectId'] = SecurityConfig.getEncryptedProjectId();
+    config['storageBucket'] = SecurityConfig.getEncryptedStorageBucket();
 
-     // プラットフォーム固有の設定
-     final authDomain = SecurityConfig.getEncryptedAuthDomain();
-     if (authDomain.isNotEmpty) {
-       config['authDomain'] = authDomain;
-     }
+    // プラットフォーム固有の設定
+    final authDomain = SecurityConfig.getEncryptedAuthDomain();
+    if (authDomain.isNotEmpty) {
+      config['authDomain'] = authDomain;
+    }
 
-     final measurementId = SecurityConfig.getEncryptedMeasurementId();
-     if (measurementId.isNotEmpty) {
-       config['measurementId'] = measurementId;
-     }
+    final measurementId = SecurityConfig.getEncryptedMeasurementId();
+    if (measurementId.isNotEmpty) {
+      config['measurementId'] = measurementId;
+    }
 
-     final androidClientId = SecurityConfig.getEncryptedAndroidClientId();
-     if (androidClientId.isNotEmpty) {
-       config['androidClientId'] = androidClientId;
-     }
+    final androidClientId = SecurityConfig.getEncryptedAndroidClientId();
+    if (androidClientId.isNotEmpty) {
+      config['androidClientId'] = androidClientId;
+    }
 
-     final iosClientId = SecurityConfig.getEncryptedIosClientId();
-     if (iosClientId.isNotEmpty) {
-       config['iosClientId'] = iosClientId;
-     }
+    final iosClientId = SecurityConfig.getEncryptedIosClientId();
+    if (iosClientId.isNotEmpty) {
+      config['iosClientId'] = iosClientId;
+    }
 
-     final iosBundleId = SecurityConfig.getEncryptedIosBundleId();
-     if (iosBundleId.isNotEmpty) {
-       config['iosBundleId'] = iosBundleId;
-     }
+    final iosBundleId = SecurityConfig.getEncryptedIosBundleId();
+    if (iosBundleId.isNotEmpty) {
+      config['iosBundleId'] = iosBundleId;
+    }
 
     return config;
   }
 
   /// 暗号化された設定を復号化
-  static Map<String, String> _decryptConfig(Map<String, String> encryptedConfig) {
+  static Map<String, String> _decryptConfig(
+    Map<String, String> encryptedConfig,
+  ) {
     final decryptedConfig = <String, String>{};
-    
+
     encryptedConfig.forEach((key, encryptedValue) {
       try {
         final decryptedValue = SecurityConfig.decryptToken(encryptedValue);
@@ -136,11 +141,12 @@ class EncryptedFirebaseConfigService {
   /// Firebase設定を取得
   static FirebaseOptions getFirebaseOptions() {
     try {
-             // SecurityConfigから暗号化された設定を取得
-       final encryptedConfig = _getEncryptedConfigFromSecurityConfig();
-      
+      // SecurityConfigから暗号化された設定を取得
+      final encryptedConfig = _getEncryptedConfigFromSecurityConfig();
+
       // 設定が空の場合は、デフォルトの暗号化された設定を使用
-      if (encryptedConfig.isEmpty || encryptedConfig.values.every((v) => v.isEmpty)) {
+      if (encryptedConfig.isEmpty ||
+          encryptedConfig.values.every((v) => v.isEmpty)) {
         developer.log('環境変数から設定を取得できません。デフォルト設定を使用します。', name: _logName);
         return _getDefaultFirebaseOptions();
       }
@@ -192,15 +198,17 @@ class EncryptedFirebaseConfigService {
           storageBucket: 'bysnlogapp.firebasestorage.app',
         );
       case TargetPlatform.iOS:
-        return const FirebaseOptions(
+        return FirebaseOptions(
           apiKey: 'AIzaSyAo6DWzmD7nXY9Lb4mnS51cOxfDT-gC6rM',
           appId: '1:781258244482:ios:c45b64301e3eb7fad58f9b',
           messagingSenderId: '781258244482',
           projectId: 'bysnlogapp',
           storageBucket: 'bysnlogapp.firebasestorage.app',
-          androidClientId: '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
-          iosClientId: '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
-          iosBundleId: 'com.example.roastplus',
+          androidClientId:
+              '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
+          iosClientId:
+              '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
+          iosBundleId: null, // 動的に取得するためnullに設定
         );
       case TargetPlatform.macOS:
         return const FirebaseOptions(
@@ -209,8 +217,10 @@ class EncryptedFirebaseConfigService {
           messagingSenderId: '781258244482',
           projectId: 'bysnlogapp',
           storageBucket: 'bysnlogapp.firebasestorage.app',
-          androidClientId: '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
-          iosClientId: '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
+          androidClientId:
+              '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
+          iosClientId:
+              '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
           iosBundleId: 'com.example.roastplus',
         );
       case TargetPlatform.windows:
@@ -224,7 +234,9 @@ class EncryptedFirebaseConfigService {
           measurementId: 'G-QJSVBBTXW1',
         );
       default:
-        throw UnsupportedError('Unsupported platform for Firebase configuration');
+        throw UnsupportedError(
+          'Unsupported platform for Firebase configuration',
+        );
     }
   }
 
@@ -237,7 +249,7 @@ class EncryptedFirebaseConfigService {
 
     try {
       developer.log('暗号化されたFirebase設定で初期化を開始', name: _logName);
-      
+
       // Web版では既にindex.htmlで初期化されている可能性があるため、チェック
       if (kIsWeb) {
         try {
@@ -252,18 +264,19 @@ class EncryptedFirebaseConfigService {
           developer.log('Web版: Firebaseアプリチェック中にエラー: $e', name: _logName);
         }
       }
-      
+
       // 暗号化された設定を取得
       final options = getFirebaseOptions();
-      
+
       // Firebaseを初期化
       await Firebase.initializeApp(options: options);
-      
+
       _isInitialized = true;
       developer.log('Firebaseの初期化が完了しました', name: _logName);
     } catch (e) {
       // 重複初期化エラーの場合は成功として扱う
-      if (e.toString().contains('duplicate-app') || e.toString().contains('already exists')) {
+      if (e.toString().contains('duplicate-app') ||
+          e.toString().contains('already exists')) {
         developer.log('Firebaseは既に初期化されています（重複エラーを無視）', name: _logName);
         _isInitialized = true;
         return;
@@ -279,11 +292,16 @@ class EncryptedFirebaseConfigService {
   /// 設定の検証
   static Future<bool> validateConfiguration() async {
     try {
-             final config = _getEncryptedConfigFromSecurityConfig();
+      final config = _getEncryptedConfigFromSecurityConfig();
       if (config.isEmpty) return false;
 
       // 必須項目の存在確認
-      final requiredKeys = ['apiKey', 'appId', 'messagingSenderId', 'projectId'];
+      final requiredKeys = [
+        'apiKey',
+        'appId',
+        'messagingSenderId',
+        'projectId',
+      ];
       for (final key in requiredKeys) {
         if (!config.containsKey(key) || config[key]!.isEmpty) {
           developer.log('必須設定が不足: $key', name: _logName);

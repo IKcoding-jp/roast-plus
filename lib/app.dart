@@ -404,12 +404,10 @@ class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
 
         // グループに参加していない場合はグループ参加ページを表示
         if (!groupProvider.hasGroup) {
-          debugPrint('GroupRequiredWrapper: グループ未参加 - GroupRequiredPageを表示');
           return const GroupRequiredPage();
         }
 
         // グループに参加している場合はメイン画面を表示
-        debugPrint('GroupRequiredWrapper: グループ参加中 - メイン画面を表示');
         // データ同期は後で自動的に実行されるため、ここでは実行しない
         return widget.child;
       },
@@ -487,13 +485,13 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
             );
           }
         } catch (e) {
-          debugPrint('担当表データの更新に失敗しました: $e');
+          // 担当表データの更新に失敗
         }
 
         // サウンド設定は既にSharedPreferencesに保存されているので、
         // 各画面で読み込まれる際に反映される
       } catch (e) {
-        debugPrint('クラウド設定のダウンロードに失敗しました: $e');
+        // クラウド設定のダウンロードに失敗
       }
     } catch (e) {
       if (!mounted) return;
@@ -513,7 +511,7 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
       setState(() {
         _error = errorMessage;
       });
-      debugPrint('Google Sign-In error: $e');
+      // Google Sign-In エラー
     } finally {
       // do nothing
     }
@@ -993,18 +991,15 @@ class MainScaffoldState extends State<MainScaffold> {
 
   Future<void> _initializeAutoSync() async {
     // グループ作成直後はAutoSyncServiceの初期化をスキップ（クラッシュ防止のため）
-    debugPrint('MainScaffold: AutoSyncServiceの初期化をスキップ（グループ作成直後）');
 
     // GroupProviderを初期化（グループデータの監視は後で開始）
     if (mounted) {
       final groupProvider = context.read<GroupProvider>();
       await groupProvider.loadUserGroups();
       // グループデータの監視は後で開始（クラッシュ防止のため）
-      debugPrint('MainScaffold: グループデータ監視は後で開始');
     }
 
     // GamificationProviderの初期化は後で実行（クラッシュ防止のため）
-    debugPrint('MainScaffold: GamificationProviderの初期化は後で実行');
   }
 
   void _onItemTapped(int index) {

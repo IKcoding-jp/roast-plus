@@ -42,9 +42,7 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
 
     // グループが変更された場合、データを再読み込み
     if (_currentGroupId != null && _currentGroupId != currentGroupId) {
-      debugPrint(
-        'DripCounterHistoryPage: グループ変更を検知 - 前のグループ: $_currentGroupId, 新しいグループ: $currentGroupId',
-      );
+      // グループ変更を検知
 
       setState(() {
         _records = [];
@@ -60,11 +58,11 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
       }
     } else if (_currentGroupId == null && currentGroupId != null) {
       // 初回グループ参加時
-      debugPrint('DripCounterHistoryPage: 初回グループ参加');
+      // 初回グループ参加
       _loadGroupRecords();
     } else if (_currentGroupId != null && currentGroupId == null) {
       // グループ脱退時
-      debugPrint('DripCounterHistoryPage: グループ脱退');
+      // グループ脱退
       _loadRecords();
     }
 
@@ -96,7 +94,7 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.hasGroup) {
         final groupId = groupProvider.currentGroup!.id;
-        debugPrint('DripCounterHistoryPage: グループデータ読み込み開始 - groupId: $groupId');
+        // グループデータ読み込み開始
 
         final data = await GroupDataSyncService.getGroupDripCounterRecords(
           groupId,
@@ -107,19 +105,17 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
             setState(() {
               _records = List<Map<String, dynamic>>.from(data['records']);
             });
-            debugPrint(
-              'DripCounterHistoryPage: グループデータ読み込み完了 - 記録数: ${_records.length}',
-            );
+            // グループデータ読み込み完了
           } else {
             setState(() {
               _records = [];
             });
-            debugPrint('DripCounterHistoryPage: グループデータが存在しません');
+            // グループデータが存在しません
           }
         }
       }
     } catch (e) {
-      debugPrint('グループドリップパック記録の読み込みエラー: $e');
+      // グループドリップパック記録の読み込みエラー
     }
   }
 
@@ -143,9 +139,9 @@ class _DripCounterHistoryPageState extends State<DripCounterHistoryPage> {
   Future<void> _clearLocalData() async {
     try {
       await UserSettingsFirestoreService.deleteSetting('dripPackRecords');
-      debugPrint('DripCounterHistoryPage: ローカルデータをクリアしました');
+      // ローカルデータをクリア完了
     } catch (e) {
-      debugPrint('DripCounterHistoryPage: ローカルデータのクリアに失敗: $e');
+      // ローカルデータのクリアに失敗
     }
   }
 

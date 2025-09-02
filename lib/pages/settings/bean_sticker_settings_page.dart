@@ -91,7 +91,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('Error loading bean stickers: $e');
+      // 豆ステッカー読み込みエラー
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -257,7 +257,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                     if (!mounted) return;
                     await _loadBeanStickers();
                   } catch (e) {
-                    debugPrint('Error saving bean sticker: $e');
+                    // 豆ステッカー保存エラー
                     messenger.showSnackBar(
                       SnackBar(content: Text('保存に失敗しました: $e')),
                     );
@@ -320,7 +320,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                 if (!mounted) return;
                 await _loadBeanStickers();
               } catch (e) {
-                debugPrint('Error deleting bean sticker: $e');
+                // 豆ステッカー削除エラー
                 messenger.showSnackBar(
                   SnackBar(content: Text('削除に失敗しました: $e')),
                 );

@@ -81,16 +81,9 @@ class _TodayScheduleState extends State<TodaySchedule>
 
   // ラベル追加・削除・初期化時にコントローラを管理
   void _initScheduleControllers() {
-    debugPrint(
-      'TodaySchedule: _initScheduleControllers開始 - ラベル数: ${_scheduleLabels.length}',
-    );
-    debugPrint('TodaySchedule: 現在のラベル: $_scheduleLabels');
-    debugPrint('TodaySchedule: 現在のコントローラー数: ${_scheduleControllers.length}');
-
     // 新規ラベルのみcontroller生成
     for (final label in _scheduleLabels) {
       if (!_scheduleControllers.containsKey(label)) {
-        debugPrint('TodaySchedule: 新規コントローラー作成: $label');
         _scheduleControllers[label] = TextEditingController(
           text: _scheduleContents[label] ?? '',
         );
@@ -101,14 +94,9 @@ class _TodayScheduleState extends State<TodaySchedule>
         .where((k) => !_scheduleLabels.contains(k))
         .toList();
     for (final k in toRemove) {
-      debugPrint('TodaySchedule: 不要なコントローラー削除: $k');
       _scheduleControllers[k]?.dispose();
       _scheduleControllers.remove(k);
     }
-
-    debugPrint(
-      'TodaySchedule: _initScheduleControllers完了 - 最終コントローラー数: ${_scheduleControllers.length}',
-    );
   }
 
   // ▼▼▼ 範囲選択の保存 ▼▼▼
@@ -120,7 +108,7 @@ class _TodayScheduleState extends State<TodaySchedule>
         ranges,
       );
     } catch (e) {
-      debugPrint('範囲選択保存エラー: $e');
+      // 範囲選択保存エラー
     }
   }
 
@@ -138,7 +126,7 @@ class _TodayScheduleState extends State<TodaySchedule>
         }
       }
     } catch (e) {
-      debugPrint('範囲選択読み込みエラー: $e');
+      // 範囲選択読み込みエラー
     }
   }
   // ▲▲▲
@@ -146,7 +134,6 @@ class _TodayScheduleState extends State<TodaySchedule>
   @override
   void initState() {
     super.initState();
-    debugPrint('TodaySchedule: initState開始');
     _loadArrowRanges();
     _setupGroupDataListener();
     _setupFirestoreListener();
@@ -160,17 +147,12 @@ class _TodayScheduleState extends State<TodaySchedule>
     // 初期化処理を一つのコールバックにまとめる
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final groupProvider = context.read<GroupProvider>();
-      debugPrint(
-        'TodaySchedule: GroupProvider確認 - グループ数: ${groupProvider.groups.length}, 読み込み中: ${groupProvider.loading}',
-      );
 
       if (groupProvider.groups.isEmpty && !groupProvider.loading) {
-        debugPrint('TodaySchedule: グループが読み込まれていないため、ローカルデータを読み込みます');
         // グループ未参加時のみローカルデータを読み込み
         await _loadSchedules();
         groupProvider.loadUserGroups();
       } else if (groupProvider.groups.isNotEmpty) {
-        debugPrint('TodaySchedule: グループが既に読み込まれています - グループデータ監視を開始');
         _startGroupDataWatching(groupProvider);
         _setupGroupTimeLabelsListener();
         _setupPermissionListener(); // 権限変更リスナーを設定
@@ -180,19 +162,16 @@ class _TodayScheduleState extends State<TodaySchedule>
         await _loadGroupData();
       } else {
         // グループが読み込み中の場合は、読み込み完了後に処理を実行
-        debugPrint('TodaySchedule: グループ読み込み中 - 完了を待機');
         // グループ読み込み完了を待機
         groupProvider.addListener(() async {
           if (!mounted) return;
           if (groupProvider.groups.isNotEmpty) {
-            debugPrint('TodaySchedule: グループ読み込み完了 - グループデータ監視を開始');
             _startGroupDataWatching(groupProvider);
             _setupGroupTimeLabelsListener();
             _setupPermissionListener(); // 権限変更リスナーを設定
             await _checkEditPermissions();
             await _loadGroupData();
           } else {
-            debugPrint('TodaySchedule: グループ読み込み完了 - ローカルデータを読み込みます');
             _loadSchedules();
           }
         });
@@ -218,9 +197,7 @@ class _TodayScheduleState extends State<TodaySchedule>
 
     // グループが変更された場合、データを再読み込み
     if (_currentGroupId != null && _currentGroupId != currentGroupId) {
-      debugPrint(
-        'TodaySchedule: グループ変更を検知 - 前のグループ: $_currentGroupId, 新しいグループ: $currentGroupId',
-      );
+      // グループ変更を検知
 
       // ローカルデータをクリア
       _clearLocalData();
@@ -243,9 +220,9 @@ class _TodayScheduleState extends State<TodaySchedule>
       await UserSettingsFirestoreService.deleteSetting(
         'todaySchedule_contents',
       );
-      debugPrint('TodaySchedule: ローカルデータをクリアしました');
+      // ローカルデータをクリア完了
     } catch (e) {
-      debugPrint('TodaySchedule: ローカルデータのクリアに失敗: $e');
+      // ローカルデータのクリアに失敗
     }
   }
 
@@ -270,7 +247,7 @@ class _TodayScheduleState extends State<TodaySchedule>
         _groupProvider!.removeListener(_groupProviderListener!);
       } catch (e) {
         // dispose中なのでエラーは無視
-        debugPrint('TodaySchedule: GroupProviderリスナー削除エラー（無視）: $e');
+        // GroupProviderリスナー削除エラー（無視）
       }
       _groupProviderListener = null;
     }

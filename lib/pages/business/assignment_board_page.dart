@@ -188,9 +188,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       }
     }
 
-    debugPrint(
-      'AssignmentBoard: マージ完了 - teams: ${teams.length}, leftLabels: $leftLabels, rightLabels: $rightLabels, hasTodayAssignment: $hasTodayAssignment',
-    );
+    // マージ完了
   }
 
   /// 無効なメンバーをクリーンアップ
@@ -215,7 +213,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             validMembers.add(memberName);
           } else {
             hasChanges = true;
-            debugPrint('AssignmentBoard: 無効なメンバー名を削除: $memberName');
+            // 無効なメンバー名を削除
           }
         }
 
@@ -226,7 +224,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         setState(() {
           teams = cleanedTeams;
         });
-        debugPrint('AssignmentBoard: メンバーデータのクリーンアップ完了');
+        // メンバーデータのクリーンアップ完了
 
         // クリーンアップ後のデータを保存
         await _updateLocalData();
@@ -239,7 +237,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   /// 強制クリーンアップ（古いデータを完全に削除）
   Future<void> _forceCleanupAllOldData() async {
     try {
-      debugPrint('AssignmentBoard: 強制クリーンアップ開始');
+      // 強制クリーンアップ開始
 
       final groupProvider = context.read<GroupProvider>();
       if (!groupProvider.hasGroup) return;
@@ -260,7 +258,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             validMembers.add(memberName);
           } else {
             hasChanges = true;
-            debugPrint('AssignmentBoard: 強制クリーンアップ: 無効なメンバー名を削除: $memberName');
+            // 強制クリーンアップ: 無効なメンバー名を削除
           }
         }
 
@@ -271,7 +269,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         setState(() {
           teams = cleanedTeams;
         });
-        debugPrint('AssignmentBoard: 強制クリーンアップ完了');
+        // 強制クリーンアップ完了
 
         // クリーンアップ後のデータを保存
         await _updateLocalData();
@@ -300,7 +298,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           debugPrint('AssignmentBoard: Firestoreデータ更新エラー: $e');
         }
       } else {
-        debugPrint('AssignmentBoard: 強制クリーンアップ: 変更なし');
+        // 強制クリーンアップ: 変更なし
       }
     } catch (e) {
       debugPrint('AssignmentBoard: 強制クリーンアップエラー: $e');
@@ -313,7 +311,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       // グループ状態の場合はローカルデータを保存しない
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.hasGroup) {
-        debugPrint('AssignmentBoard: グループ状態のため、ローカルデータ保存をスキップ');
+        // グループ状態のため、ローカルデータ保存をスキップ
         return;
       }
 
@@ -346,7 +344,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     bool shouldUpdateState = false;
     bool newAssignedStatus = false;
 
-    debugPrint('AssignmentBoard: 今日の担当履歴設定開始 - history: $history');
+    // 今日の担当履歴設定開始
 
     if (history.isNotEmpty &&
         history.length == leftLabels.length &&
@@ -377,7 +375,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           });
         }
 
-        debugPrint('AssignmentBoard: グループから今日の担当履歴を受信・適用完了');
+        // グループから今日の担当履歴を受信・適用完了
       } catch (e) {
         debugPrint('AssignmentBoard: 履歴データ適用エラー: $e');
         shouldUpdateState = true;
@@ -387,7 +385,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       // 履歴が空または無効な場合は決定済みフラグをリセット
       shouldUpdateState = true;
       newAssignedStatus = false;
-      debugPrint('AssignmentBoard: 履歴データが無効または空 - 決定済みフラグをリセット');
+      // 履歴データが無効または空 - 決定済みフラグをリセット
 
       // 状態変更が必要かつ値が変わる場合のみsetStateを呼ぶ
       if (shouldUpdateState && isAssignedToday != newAssignedStatus) {
@@ -466,12 +464,12 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   Future<void> _loadLocalDataFirst() async {
     if (!mounted) return;
     try {
-      debugPrint('AssignmentBoard: ローカルデータ読み込み開始');
+      // ローカルデータ読み込み開始
 
       // グループ状態の場合はローカルデータを読み込まない
       final groupProvider = context.read<GroupProvider>();
       if (groupProvider.hasGroup) {
-        debugPrint('AssignmentBoard: グループ状態のため、ローカルデータ読み込みをスキップ');
+        // グループ状態のため、ローカルデータ読み込みをスキップ
         if (mounted) {
           setState(() {
             _isLoading = false;
@@ -510,9 +508,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       final loadedLeftLabels = settings['leftLabels'] ?? [];
       final loadedRightLabels = settings['rightLabels'] ?? [];
 
-      debugPrint(
-        'AssignmentBoard: ローカルデータ読み込み完了 - leftLabels: $loadedLeftLabels, rightLabels: $loadedRightLabels',
-      );
+      // ローカルデータ読み込み完了
 
       // 今日の担当があるかチェック
       final today = _todayKey();
@@ -535,7 +531,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
       // 今日の担当が決定済みの場合は、基本構成を今日の担当で上書き
       if (hasTodayAssignment) {
-        debugPrint('AssignmentBoard: 今日の担当決定済み - 基本構成に担当データを適用');
+        // 今日の担当決定済み - 基本構成に担当データを適用
         try {
           final assignedPairs = todayAssignedPairs;
           if (assignedPairs.length == loadedLeftLabels.length &&
@@ -547,7 +543,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                   .toList();
               loadedTeams[i] = loadedTeams[i].copyWith(members: newTeamMembers);
             }
-            debugPrint('AssignmentBoard: ローカルデータに今日の担当を適用完了');
+            // ローカルデータに今日の担当を適用完了
           }
         } catch (e) {
           debugPrint('AssignmentBoard: ローカルデータでの今日の担当適用エラー: $e');
@@ -601,7 +597,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   Future<void> _loadTodayAttendance() async {
     if (!mounted) return;
     try {
-      debugPrint('AssignmentBoard: 出勤退勤記録読み込み開始');
+      // 出勤退勤記録読み込み開始
 
       // グループ状態の場合はグループデータを優先的に読み込み
       final groupProvider = context.read<GroupProvider>();
@@ -611,9 +607,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         final dateKey =
             '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
-        debugPrint(
-          'AssignmentBoard: グループ出勤退勤記録読み込み開始 - groupId: ${group.id}, dateKey: $dateKey',
-        );
+        // グループ出勤退勤記録読み込み開始
 
         final groupAttendance =
             await AttendanceFirestoreService.getGroupAttendanceData(
@@ -625,9 +619,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             _todayAttendance = groupAttendance;
           });
         }
-        debugPrint(
-          'AssignmentBoard: グループ出勤退勤記録読み込み完了 - 記録数: ${groupAttendance.length}',
-        );
+        // グループ出勤退勤記録読み込み完了
       } else {
         // グループ状態でない場合はローカルデータを読み込み
         final attendance =
@@ -637,12 +629,10 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             _todayAttendance = attendance;
           });
         }
-        debugPrint(
-          'AssignmentBoard: ローカル出勤退勤記録読み込み完了 - 記録数: ${attendance.length}',
-        );
+        // ローカル出勤退勤記録読み込み完了
       }
     } catch (e) {
-      debugPrint('AssignmentBoard: 出勤退勤記録読み込みエラー: $e');
+      // 出勤退勤記録読み込みエラー
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -684,9 +674,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) return;
 
-      debugPrint(
-        'AssignmentBoard: 出勤退勤状態更新開始 - memberName: $memberName, status: $status',
-      );
+      // 出勤退勤状態更新開始
 
       // ローディング状態を設定
       setState(() {
@@ -720,7 +708,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         await _loadTodayAttendance();
       } else {
         // グループ状態の場合は少し待ってから再読み込み（リアルタイム同期の遅延を考慮）
-        debugPrint('AssignmentBoard: グループ状態のため、少し待ってから再読み込みします');
+        // グループ状態のため、少し待ってから再読み込みします
         await Future.delayed(Duration(milliseconds: 500));
         if (mounted) {
           await _loadTodayAttendance();
@@ -734,7 +722,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         });
       }
     } catch (e) {
-      debugPrint('AssignmentBoard: 出勤退勤状態更新エラー: $e');
+      // 出勤退勤状態更新エラー
       // エラー時もローディング状態を解除
       if (mounted) {
         setState(() {
@@ -756,7 +744,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       // 成果表示（グループレベルシステム用に簡略化）
       _showGroupAttendanceResult();
     } catch (e) {
-      debugPrint('出勤記録処理エラー: $e');
+      // 出勤記録処理エラー
     }
   }
 
@@ -773,7 +761,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         await groupProvider.processGroupAttendance(groupId, context: context);
       }
     } catch (e) {
-      debugPrint('グループレベルシステム処理エラー: $e');
+      // グループレベルシステム処理エラー
     }
   }
 
@@ -789,10 +777,10 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   /// グループ監視の初期化
   void _initializeGroupMonitoring() {
     if (!mounted) return;
-    debugPrint('AssignmentBoard: グループ監視初期化開始');
+    // グループ監視初期化開始
     // 既に監視中の場合は何もしない
     if (_groupAssignmentSubscription != null) {
-      debugPrint('AssignmentBoard: 既にグループ監視中です');
+      // 既にグループ監視中です
       return;
     }
 
@@ -805,7 +793,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   /// グループ監視を開始
   void _startGroupMonitoring(GroupProvider groupProvider) {
     if (!mounted) return;
-    debugPrint('AssignmentBoard: グループ監視開始');
+    // グループ監視開始
 
     // 既存のサブスクリプションをクリーンアップ
     _groupAssignmentSubscription?.cancel();
@@ -815,7 +803,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
     if (groupProvider.hasGroup) {
       final group = groupProvider.currentGroup!;
-      debugPrint('AssignmentBoard: グループ監視開始 - groupId: ${group.id}');
+      // グループ監視開始
 
       // グループの担当表データを監視（基本構成）
       _groupAssignmentSubscription =
@@ -823,7 +811,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             groupAssignmentData,
           ) {
             if (!mounted) return; // ウィジェットが破棄されている場合は処理しない
-            debugPrint('AssignmentBoard: グループ担当表データ変更検知: $groupAssignmentData');
+            // グループ担当表データ変更検知
             if (groupAssignmentData != null) {
               // グループデータが利用可能になった場合、ローカルデータとマージ
               // ただし、今日の担当が決定済みの場合は基本構成での上書きを防ぐ
@@ -834,7 +822,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                 _forceCleanupAllOldData();
               });
             } else {
-              debugPrint('AssignmentBoard: グループ担当表データが空です - ローカルデータを維持');
+              // グループ担当表データが空です - ローカルデータを維持
               // グループデータが空の場合は、ローカルデータを維持
               if (mounted) {
                 setState(() {
@@ -845,23 +833,21 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           });
 
       // グループ設定を監視
-      debugPrint('AssignmentBoard: グループ設定監視を開始 - groupId: ${group.id}');
+      // グループ設定監視を開始
       _groupSettingsSubscription =
           GroupFirestoreService.watchGroupSettings(group.id).listen((
             groupSettings,
           ) {
             if (!mounted) return; // ウェットが破棄されている場合は処理しない
-            debugPrint('AssignmentBoard: グループ設定変更検知: $groupSettings');
+            // グループ設定変更検知
 
             if (groupSettings != null) {
-              debugPrint(
-                'AssignmentBoard: グループ設定変換成功: ${groupSettings.dataPermissions}',
-              );
+              // グループ設定変換成功
 
               // グループ設定が変更されたら権限を再チェック
               _checkEditPermissionFromSettings(groupSettings, groupProvider);
             } else {
-              debugPrint('AssignmentBoard: グループ設定データがnullです');
+              // グループ設定データがnullです
             }
           });
 
@@ -871,13 +857,11 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             groupTodayAssignmentData,
           ) {
             if (!mounted) return; // ウェットが破棄されている場合は処理しない
-            debugPrint(
-              'AssignmentBoard: グループ今日の担当履歴変更検知: $groupTodayAssignmentData',
-            );
+            // グループ今日の担当履歴変更検知
 
             // データがnullまたは削除された場合の処理を強化
             if (groupTodayAssignmentData == null) {
-              debugPrint('AssignmentBoard: グループの今日の担当データが削除されました');
+              // グループの今日の担当データが削除されました
               setAssignmentHistoryFromFirestore([]);
               return;
             }
@@ -887,15 +871,15 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                 groupTodayAssignmentData['assignments'],
               );
               if (assignments.isNotEmpty) {
-                debugPrint('AssignmentBoard: グループから今日の担当データを受信 - 最優先で適用');
+                // グループから今日の担当データを受信 - 最優先で適用
                 setAssignmentHistoryFromFirestore(assignments);
               } else {
-                debugPrint('AssignmentBoard: グループの今日の担当データが空です');
+                // グループの今日の担当データが空です
                 setAssignmentHistoryFromFirestore([]);
               }
             } else {
               // グループの今日の担当履歴が削除された場合
-              debugPrint('AssignmentBoard: グループの今日の担当履歴が削除されました');
+              // グループの今日の担当履歴が削除されました
               setAssignmentHistoryFromFirestore([]);
             }
           });
@@ -904,9 +888,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       final today = DateTime.now();
       final dateKey =
           '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-      debugPrint(
-        'AssignmentBoard: グループ出勤退勤データ監視開始 - groupId: ${group.id}, dateKey: $dateKey',
-      );
+      // グループ出勤退勤データ監視開始
 
       _groupAttendanceSubscription =
           AttendanceFirestoreService.watchGroupAttendanceData(
@@ -914,9 +896,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             dateKey,
           ).listen((groupAttendanceRecords) {
             if (!mounted) return;
-            debugPrint(
-              'AssignmentBoard: グループ出勤退勤データ変更検知 - 記録数: ${groupAttendanceRecords.length}',
-            );
+            // グループ出勤退勤データ変更検知
 
             // グループの出勤退勤データをローカルに反映
             setState(() {
@@ -940,51 +920,37 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       return;
     }
 
-    debugPrint('AssignmentBoard: _checkEditPermissionFromSettings開始');
-    debugPrint('AssignmentBoard: 現在の権限状態: $_canEditAssignment');
-    debugPrint('AssignmentBoard: 受信したグループ設定: $groupSettings');
-    debugPrint(
-      'AssignmentBoard: 受信したグループ設定のdataPermissions: ${groupSettings.dataPermissions}',
-    );
+    // 権限チェック開始
 
     try {
       final userRole = groupProvider.currentGroup!.getMemberRole(
         currentUser.uid,
       );
       if (userRole == null) {
-        debugPrint('AssignmentBoard: ユーザーロールが取得できません');
+        // ユーザーロールが取得できません
         setState(() {
           _canEditAssignment = false;
         });
         return;
       }
 
-      debugPrint('AssignmentBoard: ユーザーロール: $userRole');
-      debugPrint(
-        'AssignmentBoard: グループ設定のdataPermissions: ${groupSettings.dataPermissions}',
-      );
+      // ユーザーロール確認
 
       final canEdit = groupSettings.canEditDataType(
         'assignment_board',
         userRole,
       );
 
-      debugPrint(
-        'AssignmentBoard: 設定変更による権限チェック - ユーザーロール: $userRole, 編集権限: $canEdit',
-      );
+      // 設定変更による権限チェック
 
       if (mounted && _canEditAssignment != canEdit) {
-        debugPrint(
-          'AssignmentBoard: 権限状態を更新します - 編集権限: $_canEditAssignment -> $canEdit',
-        );
+        // 権限状態を更新
         setState(() {
           _canEditAssignment = canEdit;
         });
-        debugPrint('AssignmentBoard: 権限状態を更新完了 - canEdit: $canEdit');
+        // 権限状態を更新完了
       } else {
-        debugPrint(
-          'AssignmentBoard: 権限状態は変更されませんでした - 現在: $_canEditAssignment, 新しい値: $canEdit',
-        );
+        // 権限状態は変更されませんでした
       }
     } catch (e) {
       debugPrint('AssignmentBoard: 設定変更による権限チェックエラー - $e');

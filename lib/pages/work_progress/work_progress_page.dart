@@ -61,7 +61,6 @@ class _WorkProgressPageState extends State<WorkProgressPage>
     _groupWorkProgressSubscription?.cancel();
 
     if (newGroupId != null) {
-      debugPrint('[DEBUG] settings listener set for groupId: $newGroupId');
       _settingsSubscription = FirebaseFirestore.instance
           .collection('groups')
           .doc(newGroupId)
@@ -69,7 +68,6 @@ class _WorkProgressPageState extends State<WorkProgressPage>
           .listen((doc) {
             if (!mounted) return;
             final settings = doc.data()?['settings'];
-            debugPrint('[DEBUG] settings snapshot fired: $settings');
             if (settings != null && settings['dataPermissions'] != null) {
               final dataPermissions =
                   settings['dataPermissions'] as Map<String, dynamic>;
@@ -81,9 +79,6 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                 orElse: () => AccessLevel.adminLeader,
               );
               final groupRole = groupProvider.getCurrentUserRole();
-              debugPrint(
-                '[DEBUG] work_progress access: $access, groupRole: $groupRole',
-              );
               if (groupRole != null) {
                 bool canEdit = false;
                 if (access == AccessLevel.allMembers) {
@@ -95,7 +90,6 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                 } else if (access == AccessLevel.adminOnly) {
                   canEdit = groupRole == GroupRole.admin;
                 }
-                debugPrint('[DEBUG] canEdit判定: $canEdit');
                 setState(() {
                   _canEdit = canEdit;
                 });
