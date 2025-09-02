@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:developer' as developer;
 import 'secure_storage_service.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 /// セキュアな認証サービス
 /// Google認証のトークンを安全に管理し、セキュリティを強化するサービス

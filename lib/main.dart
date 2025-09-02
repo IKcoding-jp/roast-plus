@@ -26,6 +26,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:developer' as developer;
 import 'utils/performance_monitor.dart';
 import 'utils/web_compatibility.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -152,9 +153,23 @@ Future<void> _initializeFirebase() async {
       developer.log('Firebase初期化警告: 既に初期化されています - $e', name: 'Main');
     } else {
       developer.log('Firebase初期化エラー: $e', name: 'Main');
+
       // TestFlight環境ではFirebase初期化エラーでもアプリを起動
       if (kDebugMode) {
         developer.log('デバッグモード: Firebase初期化エラーを無視してアプリを起動', name: 'Main');
+      } else {
+        // 本番環境ではFirebase初期化エラーを記録するが、アプリは起動
+        developer.log('本番環境: Firebase初期化エラーを記録、アプリは起動を継続', name: 'Main');
+
+        // クラッシュを防ぐため、Firebase関連の機能を無効化
+        try {
+          // 基本的なFirebase設定のみで初期化を試行
+          await Firebase.initializeApp();
+          developer.log('基本的なFirebase初期化が完了しました', name: 'Main');
+        } catch (fallbackError) {
+          developer.log('基本的なFirebase初期化も失敗: $fallbackError', name: 'Main');
+          // 完全にFirebaseを無効化してアプリを起動
+        }
       }
     }
   }

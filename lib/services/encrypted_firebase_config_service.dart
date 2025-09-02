@@ -208,7 +208,7 @@ class EncryptedFirebaseConfigService {
               '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
           iosClientId:
               '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
-          iosBundleId: null, // 動的に取得するためnullに設定
+          iosBundleId: 'com.example.roastplus', // 実際のBundle IDに戻す
         );
       case TargetPlatform.macOS:
         return const FirebaseOptions(
