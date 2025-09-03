@@ -31,65 +31,97 @@ import 'package:firebase_core/firebase_core.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    developer.log('WidgetsFlutterBinding初期化完了', name: 'Main');
 
-  // Web互換性の初期化
-  if (WebCompatibility.isWeb) {
-    developer.log('Web版互換性モードで起動', name: 'Main');
-  }
+    // Web互換性の初期化
+    if (WebCompatibility.isWeb) {
+      developer.log('Web版互換性モードで起動', name: 'Main');
+    }
 
-  // パフォーマンス監視開始
-  PerformanceMonitor.startTimer('アプリ起動全体');
+    // パフォーマンス監視開始
+    PerformanceMonitor.startTimer('アプリ起動全体');
 
-  // デバッグ情報を出力
-  developer.log('アプリ起動開始', name: 'Main');
+    // デバッグ情報を出力
+    developer.log('アプリ起動開始', name: 'Main');
 
-  // Firebase初期化を最初に実行（他の初期化処理が依存しているため）
-  await PerformanceMonitor.measureAsync('Firebase初期化', _initializeFirebase);
+    // Firebase初期化を最初に実行（他の初期化処理が依存しているため）
+    await PerformanceMonitor.measureAsync('Firebase初期化', _initializeFirebase);
 
-  // その他の初期化処理を並列実行
-  final initializationTasks = <Future<void>>[
-    PerformanceMonitor.measureAsync('日付フォーマット初期化', _initializeDateFormatting),
-    PerformanceMonitor.measureAsync('テーマ設定初期化', _initializeThemeSettings),
-  ];
+    // その他の初期化処理を並列実行
+    final initializationTasks = <Future<void>>[
+      PerformanceMonitor.measureAsync('日付フォーマット初期化', _initializeDateFormatting),
+      PerformanceMonitor.measureAsync('テーマ設定初期化', _initializeThemeSettings),
+    ];
 
-  // Web版ではシステム設定初期化を除外
-  if (!kIsWeb) {
-    initializationTasks.add(
-      PerformanceMonitor.measureAsync('システム設定初期化', _initializeSystemSettings),
+    // Web版ではシステム設定初期化を除外
+    if (!kIsWeb) {
+      initializationTasks.add(
+        PerformanceMonitor.measureAsync('システム設定初期化', _initializeSystemSettings),
+      );
+    }
+
+    await Future.wait(initializationTasks);
+
+    // アプリを即座に起動
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => RoastScheduleFormProvider()),
+          ChangeNotifierProvider<ThemeSettings>.value(
+            value: await ThemeSettings.load(),
+          ),
+          ChangeNotifierProvider(create: (_) => GroupProvider()),
+          ChangeNotifierProvider(create: (_) => WorkProgressProvider()),
+          ChangeNotifierProvider(create: (_) => TastingProvider()),
+          ChangeNotifierProvider(create: (_) => BeanStickerProvider()),
+          ChangeNotifierProvider(create: (_) => GamificationProvider()),
+          ChangeNotifierProvider(create: (_) => GroupGamificationProvider()),
+          ChangeNotifierProvider(create: (_) => DashboardStatsProvider()),
+        ],
+        child: WorkAssignmentApp(),
+      ),
     );
-  }
 
-  await Future.wait(initializationTasks);
+    // 非必須の初期化処理をバックグラウンドで実行
+    _initializeBackgroundServices();
 
-  // アプリを即座に起動
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => RoastScheduleFormProvider()),
-        ChangeNotifierProvider<ThemeSettings>.value(
-          value: await ThemeSettings.load(),
+    // パフォーマンス監視終了
+    PerformanceMonitor.endTimer('アプリ起動全体');
+
+    // 詳細パフォーマンスレポートを生成
+    PerformanceMonitor.generateDetailedReport();
+
+    developer.log('アプリ起動処理完了', name: 'Main');
+  } catch (e, stackTrace) {
+    developer.log('アプリ起動時エラー: $e', name: 'Main');
+    developer.log('スタックトレース: $stackTrace', name: 'Main');
+
+    // エラーが発生してもアプリを起動
+    try {
+      runApp(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text('アプリの初期化中にエラーが発生しました'),
+                  SizedBox(height: 8),
+                  Text('$e', style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+          ),
         ),
-        ChangeNotifierProvider(create: (_) => GroupProvider()),
-        ChangeNotifierProvider(create: (_) => WorkProgressProvider()),
-        ChangeNotifierProvider(create: (_) => TastingProvider()),
-        ChangeNotifierProvider(create: (_) => BeanStickerProvider()),
-        ChangeNotifierProvider(create: (_) => GamificationProvider()),
-        ChangeNotifierProvider(create: (_) => GroupGamificationProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardStatsProvider()),
-      ],
-      child: WorkAssignmentApp(),
-    ),
-  );
-
-  // 非必須の初期化処理をバックグラウンドで実行
-  _initializeBackgroundServices();
-
-  // パフォーマンス監視終了
-  PerformanceMonitor.endTimer('アプリ起動全体');
-
-  // 詳細パフォーマンスレポートを生成
-  PerformanceMonitor.generateDetailedReport();
+      );
+    } catch (finalError) {
+      developer.log('エラー画面表示も失敗: $finalError', name: 'Main');
+    }
+  }
 }
 
 // システム設定の初期化
@@ -144,33 +176,28 @@ Future<void> _initializeSystemSettings() async {
 // Firebase初期化
 Future<void> _initializeFirebase() async {
   try {
-    await EncryptedFirebaseConfigService.initializeFirebase();
-    developer.log('Firebase初期化完了', name: 'Main');
+    // iOS実機での問題を回避するため、基本的な初期化を先に試行
+    await Firebase.initializeApp();
+    developer.log('基本的なFirebase初期化完了', name: 'Main');
+
+    // カスタム設定は後で適用
+    try {
+      await EncryptedFirebaseConfigService.initializeFirebase();
+      developer.log('カスタムFirebase設定完了', name: 'Main');
+    } catch (e) {
+      developer.log('カスタムFirebase設定エラー（無視）: $e', name: 'Main');
+    }
   } catch (e) {
-    // 重複初期化エラーの場合は警告として記録
-    if (e.toString().contains('duplicate-app') ||
-        e.toString().contains('already exists')) {
-      developer.log('Firebase初期化警告: 既に初期化されています - $e', name: 'Main');
-    } else {
-      developer.log('Firebase初期化エラー: $e', name: 'Main');
+    developer.log('Firebase初期化エラー: $e', name: 'Main');
 
-      // TestFlight環境ではFirebase初期化エラーでもアプリを起動
-      if (kDebugMode) {
-        developer.log('デバッグモード: Firebase初期化エラーを無視してアプリを起動', name: 'Main');
-      } else {
-        // 本番環境ではFirebase初期化エラーを記録するが、アプリは起動
-        developer.log('本番環境: Firebase初期化エラーを記録、アプリは起動を継続', name: 'Main');
-
-        // クラッシュを防ぐため、Firebase関連の機能を無効化
-        try {
-          // 基本的なFirebase設定のみで初期化を試行
-          await Firebase.initializeApp();
-          developer.log('基本的なFirebase初期化が完了しました', name: 'Main');
-        } catch (fallbackError) {
-          developer.log('基本的なFirebase初期化も失敗: $fallbackError', name: 'Main');
-          // 完全にFirebaseを無効化してアプリを起動
-        }
-      }
+    // エラーが発生してもアプリは起動を継続
+    try {
+      // 最後の手段として、デフォルト設定で初期化を試行
+      await Firebase.initializeApp();
+      developer.log('フォールバックFirebase初期化完了', name: 'Main');
+    } catch (fallbackError) {
+      developer.log('フォールバックFirebase初期化も失敗: $fallbackError', name: 'Main');
+      // 完全にFirebaseを無効化してアプリを起動
     }
   }
 }

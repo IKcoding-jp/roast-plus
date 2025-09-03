@@ -68,9 +68,9 @@
 		</dict>
 		<key>NSMinimumTLSVersion</key>
 		<string>TLSv1.2</string>
-			<key>NSRequiresCertificateTransparency</key>
-	<true/>
-</dict>
+		<key>NSRequiresCertificateTransparency</key>
+		<true/>
+	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>カメラを使用してQRコードをスキャンし、画像を撮影します。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
