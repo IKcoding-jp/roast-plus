@@ -64,9 +64,11 @@ class DefaultFirebaseOptions {
     messagingSenderId: '781258244482',
     projectId: 'bysnlogapp',
     storageBucket: 'bysnlogapp.firebasestorage.app',
-    androidClientId: '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
-    iosClientId: '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
-    iosBundleId: 'com.example.roastplus',
+    androidClientId:
+        '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
+    iosClientId:
+        '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
+    iosBundleId: 'com.ikcoding.roastplus',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -75,9 +77,11 @@ class DefaultFirebaseOptions {
     messagingSenderId: '781258244482',
     projectId: 'bysnlogapp',
     storageBucket: 'bysnlogapp.firebasestorage.app',
-    androidClientId: '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
-    iosClientId: '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
-    iosBundleId: 'com.example.roastplus',
+    androidClientId:
+        '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
+    iosClientId:
+        '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
+    iosBundleId: 'com.ikcoding.roastplus',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -89,5 +93,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'bysnlogapp.firebasestorage.app',
     measurementId: 'G-QJSVBBTXW1',
   );
-
 }
