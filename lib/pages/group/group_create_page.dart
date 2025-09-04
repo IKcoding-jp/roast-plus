@@ -172,6 +172,8 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 600;
 
     return Scaffold(
       appBar: AppBar(
@@ -187,197 +189,213 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
         backgroundColor: themeSettings.appBarColor,
         iconTheme: IconThemeData(color: themeSettings.iconColor),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16),
+      body: Center(
         child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  color: themeSettings.cardBackgroundColor,
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'グループ情報',
-                          style: TextStyle(
-                            color: themeSettings.fontColor1,
-                            fontSize: 18 * themeSettings.fontSizeScale,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: themeSettings.fontFamily,
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            labelText: 'グループ名 *',
-                            labelStyle: TextStyle(
-                              color: themeSettings.fontColor1,
-                              fontFamily: themeSettings.fontFamily,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: themeSettings.appButtonColor,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                          style: TextStyle(
-                            color: themeSettings.fontColor1,
-                            fontFamily: themeSettings.fontFamily,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'グループ名を入力してください';
-                            }
-                            if (value.trim().length < 2) {
-                              return 'グループ名は2文字以上で入力してください';
-                            }
-                            if (value.trim().length > 50) {
-                              return 'グループ名は50文字以下で入力してください';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 16),
-                        TextFormField(
-                          controller: _descriptionController,
-                          decoration: InputDecoration(
-                            labelText: '説明',
-                            labelStyle: TextStyle(
-                              color: themeSettings.fontColor1,
-                              fontFamily: themeSettings.fontFamily,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: themeSettings.appButtonColor,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                          style: TextStyle(
-                            color: themeSettings.fontColor1,
-                            fontFamily: themeSettings.fontFamily,
-                          ),
-                          maxLines: 3,
-                          maxLength: 200,
-                        ),
-                      ],
+          padding: EdgeInsets.symmetric(
+            horizontal: isWeb ? 40.0 : 16.0,
+            vertical: 24.0,
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isWeb ? 500 : double.infinity,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Card(
+                    elevation: isWeb ? 2 : 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(isWeb ? 12 : 16),
                     ),
-                  ),
-                ),
-                SizedBox(height: 24),
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  color: themeSettings.cardBackgroundColor,
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: themeSettings.iconColor,
-                              size: 20,
+                    color: themeSettings.cardBackgroundColor,
+                    child: Padding(
+                      padding: EdgeInsets.all(isWeb ? 20 : 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'グループ情報',
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize:
+                                  (isWeb ? 20 : 18) *
+                                  themeSettings.fontSizeScale,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: themeSettings.fontFamily,
                             ),
-                            SizedBox(width: 8),
-                            Text(
-                              'グループ作成について',
-                              style: TextStyle(
+                          ),
+                          SizedBox(height: isWeb ? 20 : 16),
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: InputDecoration(
+                              labelText: 'グループ名 *',
+                              labelStyle: TextStyle(
                                 color: themeSettings.fontColor1,
-                                fontSize: 16 * themeSettings.fontSizeScale,
-                                fontWeight: FontWeight.bold,
                                 fontFamily: themeSettings.fontFamily,
                               ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          '• グループを作成すると、あなたが管理者になります\n'
-                          '• 管理者・リーダーはメンバーの招待・削除・権限変更ができます\n'
-                          '• メンバーはデータの閲覧のみ可能です\n'
-                          '• グループ内でデータを共有・同期できます\n'
-                          '• グループアイコンは、グループを識別するために様々な画面で表示されます',
-                          style: TextStyle(
-                            color: themeSettings.fontColor1,
-                            fontSize: 14 * themeSettings.fontSizeScale,
-                            fontFamily: themeSettings.fontFamily,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isCreating ? null : _createGroup,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: themeSettings.appButtonColor,
-                    foregroundColor: themeSettings.fontColor2,
-                    textStyle: const TextStyle(fontSize: 16),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isCreating
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  themeSettings.fontColor2,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: themeSettings.appButtonColor,
+                                  width: 2,
                                 ),
                               ),
                             ),
-                            SizedBox(width: 12),
-                            Text(
-                              '作成中...',
-                              style: TextStyle(
-                                fontSize: 16 * themeSettings.fontSizeScale,
-                                fontWeight: FontWeight.bold,
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'グループ名を入力してください';
+                              }
+                              if (value.trim().length < 2) {
+                                return 'グループ名は2文字以上で入力してください';
+                              }
+                              if (value.trim().length > 50) {
+                                return 'グループ名は50文字以下で入力してください';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: isWeb ? 20 : 16),
+                          TextFormField(
+                            controller: _descriptionController,
+                            decoration: InputDecoration(
+                              labelText: '説明',
+                              labelStyle: TextStyle(
+                                color: themeSettings.fontColor1,
                                 fontFamily: themeSettings.fontFamily,
                               ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: themeSettings.appButtonColor,
+                                  width: 2,
+                                ),
+                              ),
                             ),
-                          ],
-                        )
-                      : Text(
-                          'グループを作成',
-                          style: TextStyle(
-                            fontSize: 16 * themeSettings.fontSizeScale,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: themeSettings.fontFamily,
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                            maxLines: isWeb ? 4 : 3,
+                            maxLength: 200,
                           ),
-                        ),
-                ),
-              ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  Card(
+                    elevation: isWeb ? 2 : 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(isWeb ? 12 : 16),
+                    ),
+                    color: themeSettings.cardBackgroundColor,
+                    child: Padding(
+                      padding: EdgeInsets.all(isWeb ? 20 : 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: themeSettings.iconColor,
+                                size: isWeb ? 22 : 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'グループ作成について',
+                                style: TextStyle(
+                                  color: themeSettings.fontColor1,
+                                  fontSize:
+                                      (isWeb ? 18 : 16) *
+                                      themeSettings.fontSizeScale,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: themeSettings.fontFamily,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: isWeb ? 16 : 12),
+                          Text(
+                            '• グループを作成すると、あなたが管理者になります\n'
+                            '• 管理者・リーダーはメンバーの招待・削除・権限変更ができます\n'
+                            '• メンバーはデータの閲覧のみ可能です\n'
+                            '• グループ内でデータを共有・同期できます\n'
+                            '• グループアイコンは、グループを識別するために様々な画面で表示されます',
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize: 14 * themeSettings.fontSizeScale,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: isWeb ? 32 : 24),
+                  ElevatedButton(
+                    onPressed: _isCreating ? null : _createGroup,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: themeSettings.appButtonColor,
+                      foregroundColor: themeSettings.fontColor2,
+                      textStyle: const TextStyle(fontSize: 16),
+                      padding: EdgeInsets.symmetric(
+                        vertical: isWeb ? 16 : 14,
+                        horizontal: isWeb ? 24 : 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(isWeb ? 10 : 12),
+                      ),
+                      elevation: isWeb ? 1 : 2,
+                    ),
+                    child: _isCreating
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    themeSettings.fontColor2,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                '作成中...',
+                                style: TextStyle(
+                                  fontSize: 16 * themeSettings.fontSizeScale,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: themeSettings.fontFamily,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            'グループを作成',
+                            style: TextStyle(
+                              fontSize: 16 * themeSettings.fontSizeScale,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: themeSettings.fontFamily,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

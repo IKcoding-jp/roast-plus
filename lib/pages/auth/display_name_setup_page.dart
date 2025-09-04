@@ -108,6 +108,8 @@ class _DisplayNameSetupPageState extends State<DisplayNameSetupPage> {
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 600;
 
     return Scaffold(
       backgroundColor: themeSettings.backgroundColor,
@@ -118,245 +120,261 @@ class _DisplayNameSetupPageState extends State<DisplayNameSetupPage> {
         automaticallyImplyLeading: false, // 戻るボタンを無効化
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 40),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isWeb ? 40.0 : 24.0,
+              vertical: 24.0,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isWeb ? 500 : double.infinity,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 40),
 
-                // アイコン
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: themeSettings.iconColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: themeSettings.iconColor.withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.person_add,
-                    size: 40,
-                    color: themeSettings.iconColor,
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // タイトル
-                Text(
-                  '表示名を設定してください',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: themeSettings.fontColor1,
-                    fontFamily: themeSettings.fontFamily,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 16),
-
-                // 説明文
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: themeSettings.cardBackgroundColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: themeSettings.iconColor.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 28,
-                        color: themeSettings.iconColor,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'グループ内で表示される名前を設定します。\nGoogleアカウント名から名字への変更を推奨します。',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: themeSettings.fontColor1,
-                          height: 1.4,
-                          fontFamily: themeSettings.fontFamily,
+                    // アイコン
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: themeSettings.iconColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: themeSettings.iconColor.withValues(alpha: 0.3),
+                          width: 2,
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // 表示名入力フィールド
-                TextFormField(
-                  controller: _displayNameController,
-                  decoration: InputDecoration(
-                    labelText: '表示名（名字）',
-                    hintText: '例: 田中、佐藤',
-                    prefixIcon: Icon(
-                      Icons.person,
-                      color: themeSettings.iconColor,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: themeSettings.iconColor.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
+                      child: Icon(
+                        Icons.person_add,
+                        size: 40,
                         color: themeSettings.iconColor,
-                        width: 2,
                       ),
                     ),
-                    filled: true,
-                    fillColor: themeSettings.cardBackgroundColor,
-                  ),
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: themeSettings.fontColor1,
-                    fontFamily: themeSettings.fontFamily,
-                  ),
-                  maxLength: 30,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return '表示名を入力してください';
-                    }
-                    if (value.trim().length < 2) {
-                      return '表示名は2文字以上で入力してください';
-                    }
-                    if (value.trim().length > 30) {
-                      return '表示名は30文字以内で入力してください';
-                    }
-                    return null;
-                  },
-                ),
 
-                const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
-                // エラーメッセージ
-                if (_error != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.red.withValues(alpha: 0.3),
+                    // タイトル
+                    Text(
+                      '表示名を設定してください',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: themeSettings.fontColor1,
+                        fontFamily: themeSettings.fontFamily,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.error_outline, color: Colors.red, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _error!,
+
+                    const SizedBox(height: 16),
+
+                    // 説明文
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: themeSettings.cardBackgroundColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: themeSettings.iconColor.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 28,
+                            color: themeSettings.iconColor,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'グループ内で表示される名前を設定します。\nGoogleアカウント名から名字への変更を推奨します。',
                             style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: themeSettings.fontColor1,
+                              height: 1.4,
                               fontFamily: themeSettings.fontFamily,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // 表示名入力フィールド
+                    TextFormField(
+                      controller: _displayNameController,
+                      decoration: InputDecoration(
+                        labelText: '表示名（名字）',
+                        hintText: '例: 田中、佐藤',
+                        prefixIcon: Icon(
+                          Icons.person,
+                          color: themeSettings.iconColor,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: themeSettings.iconColor.withValues(
+                              alpha: 0.3,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-
-                const SizedBox(height: 32),
-
-                // 設定ボタン
-                SizedBox(
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submitDisplayName,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: themeSettings.iconColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: themeSettings.iconColor,
+                            width: 2,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: themeSettings.cardBackgroundColor,
                       ),
-                      elevation: 2,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: themeSettings.fontColor1,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                      maxLength: 30,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return '表示名を入力してください';
+                        }
+                        if (value.trim().length < 2) {
+                          return '表示名は2文字以上で入力してください';
+                        }
+                        if (value.trim().length > 30) {
+                          return '表示名は30文字以内で入力してください';
+                        }
+                        return null;
+                      },
                     ),
-                    child: _isSubmitting
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
+
+                    const SizedBox(height: 16),
+
+                    // エラーメッセージ
+                    if (_error != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.red,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                  fontFamily: themeSettings.fontFamily,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                '設定中...',
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 32),
+
+                    // 設定ボタン
+                    SizedBox(
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitDisplayName,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: themeSettings.iconColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: _isSubmitting
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    '設定中...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: themeSettings.fontFamily,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                '表示名を設定する',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: themeSettings.fontFamily,
                                 ),
                               ),
-                            ],
-                          )
-                        : Text(
-                            '表示名を設定する',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: themeSettings.fontFamily,
-                            ),
-                          ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // 注意事項
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.orange.withValues(alpha: 0.3),
-                      width: 1,
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.security, color: Colors.orange, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '表示名は後から設定画面で変更できます',
-                          style: TextStyle(
-                            color: Colors.orange.shade800,
-                            fontSize: 14,
-                            fontFamily: themeSettings.fontFamily,
-                          ),
+
+                    const SizedBox(height: 20),
+
+                    // 注意事項
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.orange.withValues(alpha: 0.3),
+                          width: 1,
                         ),
                       ),
-                    ],
-                  ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.security, color: Colors.orange, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '表示名は後から設定画面で変更できます',
+                              style: TextStyle(
+                                color: Colors.orange.shade800,
+                                fontSize: 14,
+                                fontFamily: themeSettings.fontFamily,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

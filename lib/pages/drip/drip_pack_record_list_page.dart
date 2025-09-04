@@ -239,6 +239,9 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 600;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -338,12 +341,19 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                 ],
               ),
             )
-          : Column(
-              children: [
-                // 記録リスト
-                Expanded(
+          : Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWeb ? 40.0 : 16.0,
+                  vertical: 24.0,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isWeb ? 600 : double.infinity,
+                  ),
                   child: ListView.builder(
-                    padding: EdgeInsets.all(16),
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
                     itemCount: _records.length,
                     itemBuilder: (context, index) {
                       final record = _records[index];
@@ -354,26 +364,28 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                         'yyyy/MM/dd HH:mm',
                       ).format(date);
                       return Card(
-                        elevation: 4,
+                        elevation: isWeb ? 2 : 4,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(isWeb ? 12 : 16),
                         ),
                         color: themeSettings.cardBackgroundColor,
-                        margin: EdgeInsets.only(bottom: 12),
+                        margin: EdgeInsets.only(bottom: isWeb ? 16 : 12),
                         child: ListTile(
-                          contentPadding: EdgeInsets.all(16),
+                          contentPadding: EdgeInsets.all(isWeb ? 20 : 16),
                           leading: Container(
-                            padding: EdgeInsets.all(8),
+                            padding: EdgeInsets.all(isWeb ? 10 : 8),
                             decoration: BoxDecoration(
                               color: themeSettings.iconColor.withValues(
                                 alpha: 0.1,
                               ),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(
+                                isWeb ? 10 : 8,
+                              ),
                             ),
                             child: Icon(
                               Icons.coffee,
                               color: themeSettings.iconColor,
-                              size: 24,
+                              size: isWeb ? 28 : 24,
                             ),
                           ),
                           title: Text(
@@ -453,7 +465,7 @@ class _DripPackRecordListPageState extends State<DripPackRecordListPage> {
                     },
                   ),
                 ),
-              ],
+              ),
             ),
     );
   }

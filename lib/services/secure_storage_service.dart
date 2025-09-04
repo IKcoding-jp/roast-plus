@@ -1,4 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import '../utils/security_config.dart';
 
@@ -7,6 +9,43 @@ import '../utils/security_config.dart';
 class SecureStorageService {
   static const _storage = FlutterSecureStorage();
   static const String _logName = 'SecureStorageService';
+
+  /// Web版ではSharedPreferencesを使用、ネイティブ版ではFlutterSecureStorageを使用
+  static Future<void> _write(String key, String value) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, value);
+    } else {
+      await _storage.write(key: key, value: value);
+    }
+  }
+
+  static Future<String?> _read(String key) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(key);
+    } else {
+      return await _storage.read(key: key);
+    }
+  }
+
+  static Future<void> _delete(String key) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+    } else {
+      await _storage.delete(key: key);
+    }
+  }
+
+  static Future<void> _deleteAll() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    } else {
+      await _storage.deleteAll();
+    }
+  }
 
   // キー定数
   static const String _keyAccessToken = 'access_token';
@@ -20,7 +59,7 @@ class SecureStorageService {
   static Future<void> saveAccessToken(String token) async {
     try {
       final encryptedToken = SecurityConfig.encryptToken(token);
-      await _storage.write(key: _keyAccessToken, value: encryptedToken);
+      await _write(_keyAccessToken, encryptedToken);
       developer.log('アクセストークンを安全に保存しました', name: _logName);
     } catch (e) {
       developer.log('アクセストークンの保存に失敗しました: $e', name: _logName);
@@ -31,7 +70,7 @@ class SecureStorageService {
   /// アクセストークンを安全に取得
   static Future<String?> getAccessToken() async {
     try {
-      final encryptedToken = await _storage.read(key: _keyAccessToken);
+      final encryptedToken = await _read(_keyAccessToken);
       if (encryptedToken == null) return null;
 
       return SecurityConfig.decryptToken(encryptedToken);
@@ -45,7 +84,7 @@ class SecureStorageService {
   static Future<void> saveIdToken(String token) async {
     try {
       final encryptedToken = SecurityConfig.encryptToken(token);
-      await _storage.write(key: _keyIdToken, value: encryptedToken);
+      await _write(_keyIdToken, encryptedToken);
       developer.log('IDトークンを安全に保存しました', name: _logName);
     } catch (e) {
       developer.log('IDトークンの保存に失敗しました: $e', name: _logName);
@@ -56,7 +95,7 @@ class SecureStorageService {
   /// IDトークンを安全に取得
   static Future<String?> getIdToken() async {
     try {
-      final encryptedToken = await _storage.read(key: _keyIdToken);
+      final encryptedToken = await _read(_keyIdToken);
       if (encryptedToken == null) return null;
 
       return SecurityConfig.decryptToken(encryptedToken);
@@ -70,7 +109,7 @@ class SecureStorageService {
   static Future<void> saveRefreshToken(String token) async {
     try {
       final encryptedToken = SecurityConfig.encryptToken(token);
-      await _storage.write(key: _keyRefreshToken, value: encryptedToken);
+      await _write(_keyRefreshToken, encryptedToken);
       developer.log('リフレッシュトークンを安全に保存しました', name: _logName);
     } catch (e) {
       developer.log('リフレッシュトークンの保存に失敗しました: $e', name: _logName);
@@ -81,7 +120,7 @@ class SecureStorageService {
   /// リフレッシュトークンを安全に取得
   static Future<String?> getRefreshToken() async {
     try {
-      final encryptedToken = await _storage.read(key: _keyRefreshToken);
+      final encryptedToken = await _read(_keyRefreshToken);
       if (encryptedToken == null) return null;
 
       return SecurityConfig.decryptToken(encryptedToken);
@@ -95,7 +134,7 @@ class SecureStorageService {
   static Future<void> savePasscode(String passcode) async {
     try {
       final hashedPasscode = SecurityConfig.hashPassword(passcode);
-      await _storage.write(key: _keyPasscode, value: hashedPasscode);
+      await _write(_keyPasscode, hashedPasscode);
       developer.log('パスコードを安全に保存しました', name: _logName);
     } catch (e) {
       developer.log('パスコードの保存に失敗しました: $e', name: _logName);
@@ -106,7 +145,7 @@ class SecureStorageService {
   /// パスコードを検証
   static Future<bool> verifyPasscode(String passcode) async {
     try {
-      final storedHash = await _storage.read(key: _keyPasscode);
+      final storedHash = await _read(_keyPasscode);
       if (storedHash == null) return false;
 
       return SecurityConfig.verifyPassword(passcode, storedHash);
@@ -119,7 +158,7 @@ class SecureStorageService {
   /// 暗号化キーを安全に保存
   static Future<void> saveEncryptionKey(String key) async {
     try {
-      await _storage.write(key: _keyEncryptionKey, value: key);
+      await _write(_keyEncryptionKey, key);
       developer.log('暗号化キーを安全に保存しました', name: _logName);
     } catch (e) {
       developer.log('暗号化キーの保存に失敗しました: $e', name: _logName);
@@ -130,7 +169,7 @@ class SecureStorageService {
   /// 暗号化キーを安全に取得
   static Future<String?> getEncryptionKey() async {
     try {
-      return await _storage.read(key: _keyEncryptionKey);
+      return await _read(_keyEncryptionKey);
     } catch (e) {
       developer.log('暗号化キーの取得に失敗しました: $e', name: _logName);
       return null;
@@ -150,10 +189,7 @@ class SecureStorageService {
         'savedAt': DateTime.now().toIso8601String(),
       };
 
-      await _storage.write(
-        key: _keyUserCredentials,
-        value: credentials.toString(),
-      );
+      await _write(_keyUserCredentials, credentials.toString());
       developer.log('ユーザー認証情報を安全に保存しました', name: _logName);
     } catch (e) {
       developer.log('ユーザー認証情報の保存に失敗しました: $e', name: _logName);
@@ -164,7 +200,7 @@ class SecureStorageService {
   /// ユーザー認証情報を安全に取得
   static Future<Map<String, dynamic>?> getUserCredentials() async {
     try {
-      final credentials = await _storage.read(key: _keyUserCredentials);
+      final credentials = await _read(_keyUserCredentials);
       if (credentials == null) return null;
 
       // 文字列からMapに変換（実際の実装ではJSONを使用）
@@ -178,7 +214,7 @@ class SecureStorageService {
   /// すべての機密情報を削除
   static Future<void> clearAllSecureData() async {
     try {
-      await _storage.deleteAll();
+      await _deleteAll();
       developer.log('すべての機密情報を削除しました', name: _logName);
     } catch (e) {
       developer.log('機密情報の削除に失敗しました: $e', name: _logName);
@@ -189,7 +225,7 @@ class SecureStorageService {
   /// 特定のキーの機密情報を削除
   static Future<void> deleteSecureData(String key) async {
     try {
-      await _storage.delete(key: key);
+      await _delete(key);
       developer.log('機密情報を削除しました: $key', name: _logName);
     } catch (e) {
       developer.log('機密情報の削除に失敗しました: $e', name: _logName);
@@ -203,9 +239,9 @@ class SecureStorageService {
       const testKey = 'test_availability';
       const testValue = 'test_value';
 
-      await _storage.write(key: testKey, value: testValue);
-      final readValue = await _storage.read(key: testKey);
-      await _storage.delete(key: testKey);
+      await _write(testKey, testValue);
+      final readValue = await _read(testKey);
+      await _delete(testKey);
 
       return readValue == testValue;
     } catch (e) {
@@ -217,7 +253,7 @@ class SecureStorageService {
   /// パスコードが設定されているかチェック
   static Future<bool> hasPasscode() async {
     try {
-      final passcode = await _storage.read(key: _keyPasscode);
+      final passcode = await _read(_keyPasscode);
       return passcode != null;
     } catch (e) {
       developer.log('パスコード存在確認に失敗しました: $e', name: _logName);

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'dart:developer' as developer;
 import 'secure_storage_service.dart';
 
@@ -16,19 +17,51 @@ class SecureAuthService {
     try {
       developer.log('セキュアなGoogleサインインを開始', name: _logName);
 
+      // Web版でのFirebase初期化状態を確認
+      if (kIsWeb) {
+        developer.log('Web版: Firebase初期化状態を確認中', name: _logName);
+        final apps = Firebase.apps;
+        developer.log('Web版: Firebaseアプリ数: ${apps.length}', name: _logName);
+
+        if (apps.isEmpty) {
+          developer.log('Web版: Firebaseアプリが初期化されていません', name: _logName);
+          throw Exception('Firebaseが初期化されていません。ページを再読み込みしてください。');
+        }
+      }
+
       final provider = GoogleAuthProvider();
       // 可能ならアカウント選択を促す
       provider.setCustomParameters({'prompt': 'select_account'});
 
       late final UserCredential userCredential;
       if (kIsWeb) {
-        userCredential = await _auth.signInWithPopup(provider);
+        // Web版ではポップアップ方式を試行し、失敗した場合はリダイレクト方式にフォールバック
+        try {
+          developer.log('Web版: ポップアップ方式でGoogleサインインを試行', name: _logName);
+          userCredential = await _auth.signInWithPopup(provider);
+          developer.log('Web版: ポップアップ方式でサインイン成功', name: _logName);
+        } catch (popupError) {
+          developer.log(
+            'Web版: ポップアップ方式失敗、リダイレクト方式にフォールバック: $popupError',
+            name: _logName,
+          );
+          await _auth.signInWithRedirect(provider);
+          developer.log('Web版: リダイレクトが開始されました', name: _logName);
+          return null;
+        }
       } else {
+        developer.log('ネイティブ版: signInWithProviderを実行', name: _logName);
         userCredential = await _auth.signInWithProvider(provider);
+        developer.log('ネイティブ版: signInWithProvider完了', name: _logName);
       }
 
       final user = userCredential.user;
-      if (user == null) return userCredential;
+      if (user == null) {
+        developer.log('ユーザー情報が取得できませんでした', name: _logName);
+        return userCredential;
+      }
+
+      developer.log('ユーザー情報取得成功: ${user.email}', name: _logName);
 
       // FirebaseのIDトークンを取得して保存
       final idToken = await user.getIdToken();
@@ -41,6 +74,36 @@ class SecureAuthService {
       return userCredential;
     } catch (e) {
       developer.log('セキュアなGoogleサインインでエラーが発生: $e', name: _logName);
+
+      // Web版特有のエラーハンドリング
+      if (kIsWeb) {
+        if (e.toString().contains('popup_blocked')) {
+          developer.log('Web版: ポップアップがブロックされました', name: _logName);
+          throw Exception('ポップアップがブロックされています。ブラウザの設定でポップアップを許可してください。');
+        }
+
+        if (e.toString().contains('auth/popup-closed-by-user')) {
+          developer.log('Web版: ユーザーがポップアップを閉じました', name: _logName);
+          throw Exception('ログインがキャンセルされました。');
+        }
+
+        if (e.toString().contains('auth/unauthorized-domain')) {
+          developer.log('Web版: 未承認ドメインエラー', name: _logName);
+          throw Exception('このドメインは認証に使用できません。Firebase Consoleでドメインを追加してください。');
+        }
+
+        if (e.toString().contains('auth/operation-not-allowed')) {
+          developer.log('Web版: Google認証が有効になっていません', name: _logName);
+          throw Exception(
+            'Google認証が有効になっていません。Firebase ConsoleでGoogle認証を有効にしてください。',
+          );
+        }
+
+        if (e.toString().contains('auth/network-request-failed')) {
+          developer.log('Web版: ネットワークエラー', name: _logName);
+          throw Exception('ネットワークエラーが発生しました。インターネット接続を確認してください。');
+        }
+      }
 
       // invalid-cert-hashエラーの詳細なログ記録
       if (e.toString().contains('invalid-cert-hash')) {
@@ -67,6 +130,11 @@ class SecureAuthService {
         developer.log('SSL/TLS接続エラーを検出: $e', name: _logName);
         await _logDetailedError('ssl_tls_connection_error', e.toString());
       }
+
+      // エラーの詳細をログに記録
+      developer.log('エラーの詳細: ${e.runtimeType} - $e', name: _logName);
+      await _logDetailedError('google_signin_error', e.toString());
+
       throw Exception('Googleサインインエラー: $e');
     }
   }
@@ -176,11 +244,24 @@ class SecureAuthService {
   static Future<bool> isUserAuthenticated() async {
     try {
       final user = _auth.currentUser;
-      if (user == null) return false;
+      if (user == null) {
+        developer.log('認証状態確認: ユーザーがnull', name: _logName);
+        return false;
+      }
 
-      // セキュアストレージにトークンが存在するか確認
+      developer.log('認証状態確認: ユーザーが存在 - ${user.email}', name: _logName);
+
+      // Web版ではセキュアストレージのチェックをスキップ
+      if (kIsWeb) {
+        developer.log('Web版: 認証状態確認完了', name: _logName);
+        return true;
+      }
+
+      // ネイティブ版ではセキュアストレージにトークンが存在するか確認
       final idToken = await SecureStorageService.getIdToken();
-      return idToken != null;
+      final hasToken = idToken != null;
+      developer.log('ネイティブ版: トークン存在確認 - $hasToken', name: _logName);
+      return hasToken;
     } catch (e) {
       developer.log('認証状態の確認に失敗: $e', name: _logName);
       return false;
@@ -331,6 +412,62 @@ class SecureAuthService {
     } catch (e) {
       developer.log('アカウント選択を強制したGoogleサインインでエラー: $e', name: _logName);
       throw Exception('Googleサインインエラー: $e');
+    }
+  }
+
+  /// Web版でのGoogleサインイン（リダイレクト方式）
+  /// ポップアップがブロックされた場合の代替手段
+  static Future<void> signInWithGoogleRedirect() async {
+    try {
+      developer.log('Web版: Googleサインイン（リダイレクト方式）を開始', name: _logName);
+
+      if (!kIsWeb) {
+        throw Exception('リダイレクト方式はWeb版でのみ使用できます');
+      }
+
+      final provider = GoogleAuthProvider();
+      provider.setCustomParameters({'prompt': 'select_account'});
+
+      await _auth.signInWithRedirect(provider);
+      developer.log('Web版: リダイレクトが開始されました', name: _logName);
+    } catch (e) {
+      developer.log('Web版: リダイレクト方式でエラー: $e', name: _logName);
+      throw Exception('Googleサインイン（リダイレクト）エラー: $e');
+    }
+  }
+
+  /// リダイレクト後の認証結果を取得
+  static Future<UserCredential?> getRedirectResult() async {
+    try {
+      developer.log('Web版: リダイレクト結果を取得中', name: _logName);
+
+      if (!kIsWeb) {
+        return null;
+      }
+
+      final userCredential = await _auth.getRedirectResult();
+
+      if (userCredential.user != null) {
+        final user = userCredential.user!;
+        developer.log('Web版: リダイレクト認証成功: ${user.email}', name: _logName);
+
+        final idToken = await user.getIdToken();
+        await _saveIdTokenSecurely(idToken);
+        await _saveUserToFirestore(user);
+
+        // セキュリティイベントを記録
+        await logSecurityEvent('web_redirect_login_success');
+
+        developer.log('Web版: リダイレクト認証処理完了', name: _logName);
+      } else {
+        developer.log('Web版: リダイレクト認証結果なし', name: _logName);
+      }
+
+      return userCredential;
+    } catch (e) {
+      developer.log('Web版: リダイレクト結果取得エラー: $e', name: _logName);
+      await _logDetailedError('web_redirect_result_error', e.toString());
+      return null;
     }
   }
 

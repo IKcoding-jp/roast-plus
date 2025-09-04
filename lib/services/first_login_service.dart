@@ -15,9 +15,16 @@ class FirstLoginService {
 
       developer.log('初回ログイン判定を開始: ${user.uid}', name: _logName);
 
-      // Firestoreからユーザー情報を取得
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      
+      // Web版ではFirestoreの初期化を待つ
+      await _firestore.enableNetwork();
+
+      // Firestoreからユーザー情報を取得（タイムアウト付き）
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .get()
+          .timeout(Duration(seconds: 10));
+
       if (!userDoc.exists) {
         developer.log('ユーザードキュメントが存在しないため初回ログインと判定', name: _logName);
         return true;
@@ -29,13 +36,13 @@ class FirstLoginService {
         return true;
       }
 
-      // カスタム表示名が設定されているかチェック
-      final hasCustomDisplayName = userData['displayName'] != null && 
-                                  userData['displayName'].toString().isNotEmpty &&
-                                  userData['displayName'] != user.displayName;
+      // 表示名が設定されているかチェック（Googleアカウントの表示名と同じでもOK）
+      final hasDisplayName =
+          userData['displayName'] != null &&
+          userData['displayName'].toString().isNotEmpty;
 
-      if (!hasCustomDisplayName) {
-        developer.log('カスタム表示名が未設定のため初回ログインと判定', name: _logName);
+      if (!hasDisplayName) {
+        developer.log('表示名が未設定のため初回ログインと判定', name: _logName);
         return true;
       }
 
@@ -43,6 +50,13 @@ class FirstLoginService {
       return false;
     } catch (e) {
       developer.log('初回ログイン判定でエラーが発生: $e', name: _logName);
+
+      // Web版でのFirestore接続エラーの場合は、より詳細なログを出力
+      if (e.toString().contains('network') ||
+          e.toString().contains('timeout')) {
+        developer.log('Web版: Firestore接続エラーのため初回ログインとして扱う', name: _logName);
+      }
+
       // エラーの場合は初回ログインとして扱う
       return true;
     }
@@ -64,20 +78,34 @@ class FirstLoginService {
 
       developer.log('表示名を設定中: $displayName', name: _logName);
 
-      // Firestoreにユーザー情報を保存
-      await _firestore.collection('users').doc(user.uid).set({
-        'displayName': displayName.trim(),
-        'email': user.email,
-        'photoUrl': user.photoURL,
-        'lastLogin': FieldValue.serverTimestamp(),
-        'loginProvider': 'Google',
-        'displayNameSetAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      // Web版ではFirestoreの初期化を待つ
+      await _firestore.enableNetwork();
+
+      // Firestoreにユーザー情報を保存（タイムアウト付き）
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set({
+            'displayName': displayName.trim(),
+            'email': user.email,
+            'photoUrl': user.photoURL,
+            'lastLogin': FieldValue.serverTimestamp(),
+            'loginProvider': 'Google',
+            'displayNameSetAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true))
+          .timeout(Duration(seconds: 10));
 
       developer.log('表示名の設定が完了しました', name: _logName);
       return true;
     } catch (e) {
       developer.log('表示名設定でエラーが発生: $e', name: _logName);
+
+      // Web版でのFirestore接続エラーの場合は、より詳細なログを出力
+      if (e.toString().contains('network') ||
+          e.toString().contains('timeout')) {
+        developer.log('Web版: Firestore接続エラーのため表示名設定に失敗', name: _logName);
+      }
+
       return false;
     }
   }
@@ -88,8 +116,12 @@ class FirstLoginService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return null;
 
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .get()
+          .timeout(Duration(seconds: 10));
+
       if (!userDoc.exists) return null;
 
       final userData = userDoc.data();
@@ -98,6 +130,13 @@ class FirstLoginService {
       return userData['displayName'] as String?;
     } catch (e) {
       developer.log('表示名取得でエラーが発生: $e', name: _logName);
+
+      // Web版でのFirestore接続エラーの場合は、より詳細なログを出力
+      if (e.toString().contains('network') ||
+          e.toString().contains('timeout')) {
+        developer.log('Web版: Firestore接続エラーのため表示名取得に失敗', name: _logName);
+      }
+
       return null;
     }
   }
@@ -109,6 +148,13 @@ class FirstLoginService {
       return displayName != null && displayName.trim().isNotEmpty;
     } catch (e) {
       developer.log('表示名設定チェックでエラーが発生: $e', name: _logName);
+
+      // Web版でのFirestore接続エラーの場合は、より詳細なログを出力
+      if (e.toString().contains('network') ||
+          e.toString().contains('timeout')) {
+        developer.log('Web版: Firestore接続エラーのため表示名設定チェックに失敗', name: _logName);
+      }
+
       return false;
     }
   }

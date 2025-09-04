@@ -36,7 +36,12 @@ class WebCompatibility {
 
   /// Web版用の色の透明度変更（withValuesの代替）
   static Color withAlpha(Color color, double alpha) {
-    return color.withValues(alpha: alpha);
+    return Color.fromARGB(
+      (alpha * 255).round(),
+      color.red,
+      color.green,
+      color.blue,
+    );
   }
 
   /// Web版用のLinearGradient作成
@@ -85,7 +90,7 @@ class WebCompatibility {
     Offset? offset,
   }) {
     return BoxShadow(
-      color: color ?? Colors.black.withValues(alpha: 0.1),
+      color: color ?? Color.fromARGB(25, 0, 0, 0), // alpha: 0.1 = 25/255
       blurRadius: blurRadius ?? 4.0,
       offset: offset ?? const Offset(0, 2),
     );
@@ -98,7 +103,7 @@ class WebCompatibility {
     Offset? offset,
   }) {
     return Shadow(
-      color: color ?? Colors.black.withValues(alpha: 0.1),
+      color: color ?? Color.fromARGB(25, 0, 0, 0), // alpha: 0.1 = 25/255
       blurRadius: blurRadius ?? 4.0,
       offset: offset ?? const Offset(0, 2),
     );
@@ -107,7 +112,12 @@ class WebCompatibility {
   /// Web版用の色の透明度変更（withValuesの代替）
   static Color withValues(Color color, {double? alpha}) {
     if (alpha != null) {
-      return color.withValues(alpha: alpha);
+      return Color.fromARGB(
+        (alpha * 255).round(),
+        color.red,
+        color.green,
+        color.blue,
+      );
     }
     return color;
   }
@@ -115,7 +125,12 @@ class WebCompatibility {
   /// Web版用の色の透明度変更（withValuesの代替、静的メソッド）
   static Color colorWithValues(Color color, {double? alpha}) {
     if (alpha != null) {
-      return color.withValues(alpha: alpha);
+      return Color.fromARGB(
+        (alpha * 255).round(),
+        color.red,
+        color.green,
+        color.blue,
+      );
     }
     return color;
   }
@@ -125,17 +140,9 @@ class WebCompatibility {
 extension WebColorExtension on Color {
   /// Web版用のwithValues代替メソッド
   Color withValues({double? alpha}) {
-    if (WebCompatibility.isWeb) {
-      if (alpha != null) {
-        return withValues(alpha: alpha);
-      }
-      return this;
-    } else {
-      // ネイティブ版では元のwithValuesを使用
-      if (alpha != null) {
-        return withValues(alpha: alpha);
-      }
-      return this;
+    if (alpha != null) {
+      return Color.fromARGB((alpha * 255).round(), red, green, blue);
     }
+    return this;
   }
 }

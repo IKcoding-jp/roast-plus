@@ -107,8 +107,10 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
                 // キーボードイベントのエラーを防ぐため、タップでキーボードを閉じる
                 onTap: () {
                   FocusScope.of(context).unfocus();
-                  // ユーザーアクティビティを記録
-                  SessionManagementService.recordUserActivity();
+                  // Web版ではユーザーアクティビティ記録をスキップ
+                  if (!kIsWeb) {
+                    SessionManagementService.recordUserActivity();
+                  }
                 },
                 child: child!,
               ),
@@ -282,20 +284,27 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingScreen(title: 'Loading...');
-        }
-        if (!snapshot.hasData) {
-          return GoogleSignInScreen();
-        }
+    // すべてのプラットフォームでFirebase Authの状態をチェック
+    try {
+      return StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingScreen(title: 'Loading...');
+          }
+          if (!snapshot.hasData) {
+            return GoogleSignInScreen();
+          }
 
-        // ログイン後は初回ログインチェックを行う
-        return FirstLoginWrapper(child: child);
-      },
-    );
+          // ログイン後は初回ログインチェックを行う
+          return FirstLoginWrapper(child: child);
+        },
+      );
+    } catch (e) {
+      // Firebase初期化エラーの場合はログイン画面を表示
+      print('Firebase Auth初期化エラー: $e');
+      return GoogleSignInScreen();
+    }
   }
 }
 
@@ -434,8 +443,24 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
       _error = null;
     });
     try {
-      final userCredential =
-          await SecureAuthService.signInWithGoogleForceAccountSelection();
+      UserCredential? userCredential;
+
+      // Web版ではリダイレクト方式を使用（COOPポリシーの問題を回避）
+      if (kIsWeb) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error = 'Googleログインを開始しています...';
+        });
+
+        // リダイレクト方式でログイン
+        await SecureAuthService.signInWithGoogleRedirect();
+        return; // リダイレクトが開始されたので処理を終了
+      } else {
+        userCredential =
+            await SecureAuthService.signInWithGoogleForceAccountSelection();
+      }
+
       if (userCredential == null) {
         if (!mounted) return;
         setState(() {
@@ -544,12 +569,61 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                 ),
                 SizedBox(height: 24),
                 if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(_error!, style: TextStyle(color: Colors.red)),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: _error!.contains('開始')
+                          ? Colors.blue.withOpacity(0.1)
+                          : Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _error!.contains('開始')
+                            ? Colors.blue
+                            : Colors.red,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _error!.contains('開始')
+                              ? Icons.info_outline
+                              : Icons.error_outline,
+                          color: _error!.contains('開始')
+                              ? Colors.blue
+                              : Colors.red,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: _error!.contains('開始')
+                                  ? Colors.blue
+                                  : Colors.red,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 _loading
-                    ? CircularProgressIndicator()
+                    ? Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Googleログインを処理中...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      )
                     : Column(
                         children: [
                           ElevatedButton.icon(
@@ -560,6 +634,24 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                             ),
                             label: Text('Googleでログイン'),
                             onPressed: _signInWithGoogle,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'ログイン後、表示名の設定画面が表示されます',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),

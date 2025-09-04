@@ -41,56 +41,56 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDfk6xs4N35cdVXWXE_UAIylcPgrX3w4WU',
-    appId: '1:781258244482:web:cbcaba8a1604caa0d58f9b',
-    messagingSenderId: '781258244482',
-    projectId: 'bysnlogapp',
-    authDomain: 'bysnlogapp.firebaseapp.com',
-    storageBucket: 'bysnlogapp.firebasestorage.app',
-    measurementId: 'G-XLEGLN9L2K',
+    apiKey: 'AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8',
+    appId: '1:330871937318:web:d4f31865d8c0e924d0c9e7',
+    messagingSenderId: '330871937318',
+    projectId: 'roastplus-app',
+    authDomain: 'roastplus-app.firebaseapp.com',
+    storageBucket: 'roastplus-app.firebasestorage.app',
+    // measurementId: 'G-37TB0Z23XQ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDcKAdqrCS9p7l7sTVxKQUUsEUu97eE_1M',
-    appId: '1:781258244482:android:a50fe4967c4fee02d58f9b',
-    messagingSenderId: '781258244482',
-    projectId: 'bysnlogapp',
-    storageBucket: 'bysnlogapp.firebasestorage.app',
+    apiKey: 'AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8',
+    appId: '1:330871937318:android:92967163c2b52892d0c9e7',
+    messagingSenderId: '330871937318',
+    projectId: 'roastplus-app',
+    storageBucket: 'roastplus-app.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAo6DWzmD7nXY9Lb4mnS51cOxfDT-gC6rM',
-    appId: '1:781258244482:ios:c45b64301e3eb7fad58f9b',
-    messagingSenderId: '781258244482',
-    projectId: 'bysnlogapp',
-    storageBucket: 'bysnlogapp.firebasestorage.app',
+    apiKey: 'AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8',
+    appId: '1:330871937318:ios:92967163c2b52892d0c9e7',
+    messagingSenderId: '330871937318',
+    projectId: 'roastplus-app',
+    storageBucket: 'roastplus-app.firebasestorage.app',
     androidClientId:
-        '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
+        '330871937318-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
     iosClientId:
-        '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
+        '330871937318-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
     iosBundleId: 'com.ikcoding.roastplus',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAo6DWzmD7nXY9Lb4mnS51cOxfDT-gC6rM',
-    appId: '1:781258244482:ios:c45b64301e3eb7fad58f9b',
-    messagingSenderId: '781258244482',
-    projectId: 'bysnlogapp',
-    storageBucket: 'bysnlogapp.firebasestorage.app',
+    apiKey: 'AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8',
+    appId: '1:330871937318:ios:92967163c2b52892d0c9e7',
+    messagingSenderId: '330871937318',
+    projectId: 'roastplus-app',
+    storageBucket: 'roastplus-app.firebasestorage.app',
     androidClientId:
-        '781258244482-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
+        '330871937318-84qipi741b1mjb42nl4uu9d9e799ol11.apps.googleusercontent.com',
     iosClientId:
-        '781258244482-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
+        '330871937318-65hi6fpa3h2jef9dl8k7eaoi2sprne9k.apps.googleusercontent.com',
     iosBundleId: 'com.ikcoding.roastplus',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDfk6xs4N35cdVXWXE_UAIylcPgrX3w4WU',
-    appId: '1:781258244482:web:ebf7be16b0ea7e02d58f9b',
-    messagingSenderId: '781258244482',
-    projectId: 'bysnlogapp',
-    authDomain: 'bysnlogapp.firebaseapp.com',
-    storageBucket: 'bysnlogapp.firebasestorage.app',
-    measurementId: 'G-QJSVBBTXW1',
+    apiKey: 'AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8',
+    appId: '1:330871937318:web:92967163c2b52892d0c9e7',
+    messagingSenderId: '330871937318',
+    projectId: 'roastplus-app',
+    authDomain: 'roastplus-app.firebaseapp.com',
+    storageBucket: 'roastplus-app.firebasestorage.app',
+    // measurementId: 'G-37TB0Z23XQ',
   );
 }

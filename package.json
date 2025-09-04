@@ -1,5 +1,20 @@
 {
+  "name": "roastplus",
+  "version": "1.0.0",
+  "description": "ローストプラス - コーヒー焙煎業務管理アプリ",
+  "scripts": {
+    "build": "flutter build web --release",
+    "build:local": "flutter build web --release --base-href /",
+    "serve": "firebase serve --only hosting --port 5000",
+    "serve:local": "firebase serve --only hosting --port 5000 --project roastplus-app",
+    "deploy": "firebase deploy --only hosting",
+    "dev": "flutter run -d web-server --web-port 3000",
+    "dev:local": "flutter run -d web-server --web-port 3000 --web-hostname localhost"
+  },
   "dependencies": {
-    "firebase": "^12.1.0"
+    "firebase": "^12.2.1"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
   }
 }

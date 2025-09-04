@@ -7,6 +7,7 @@ import 'app.dart';
 import 'models/roast_schedule_form_provider.dart';
 
 import 'services/encrypted_firebase_config_service.dart';
+import 'services/secure_auth_service.dart';
 import 'models/theme_settings.dart';
 import 'models/group_provider.dart';
 import 'models/work_progress_models.dart';
@@ -27,6 +28,7 @@ import 'dart:developer' as developer;
 import 'utils/performance_monitor.dart';
 import 'utils/web_compatibility.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -38,6 +40,7 @@ void main() async {
     // Web互換性の初期化
     if (WebCompatibility.isWeb) {
       developer.log('Web版互換性モードで起動', name: 'Main');
+      developer.log('Web版: ブラウザ情報 - ${WebCompatibility.isWeb}', name: 'Main');
     }
 
     // パフォーマンス監視開始
@@ -48,6 +51,14 @@ void main() async {
 
     // Firebase初期化を最初に実行（他の初期化処理が依存しているため）
     await PerformanceMonitor.measureAsync('Firebase初期化', _initializeFirebase);
+
+    // Web版ではリダイレクト結果をチェック
+    if (kIsWeb) {
+      await PerformanceMonitor.measureAsync(
+        'Web版リダイレクト結果チェック',
+        _checkWebRedirectResult,
+      );
+    }
 
     // その他の初期化処理を並列実行
     final initializationTasks = <Future<void>>[
@@ -98,10 +109,18 @@ void main() async {
     developer.log('アプリ起動時エラー: $e', name: 'Main');
     developer.log('スタックトレース: $stackTrace', name: 'Main');
 
+    // Web版では詳細なエラー情報をコンソールに出力
+    if (kIsWeb) {
+      developer.log('Web版: ブラウザのコンソールでエラー詳細を確認してください', name: 'Main');
+      print('Flutter Web Error: $e');
+      print('Stack Trace: $stackTrace');
+    }
+
     // エラーが発生してもアプリを起動
     try {
       runApp(
         MaterialApp(
+          title: 'RoastPlus',
           home: Scaffold(
             body: Center(
               child: Column(
@@ -112,6 +131,13 @@ void main() async {
                   Text('アプリの初期化中にエラーが発生しました'),
                   SizedBox(height: 8),
                   Text('$e', style: TextStyle(fontSize: 12)),
+                  if (kIsWeb) ...[
+                    SizedBox(height: 16),
+                    Text(
+                      'ブラウザのコンソールで詳細を確認してください',
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -120,6 +146,10 @@ void main() async {
       );
     } catch (finalError) {
       developer.log('エラー画面表示も失敗: $finalError', name: 'Main');
+      // 最後の手段として最小限のアプリを起動
+      if (kIsWeb) {
+        print('Critical Error: $finalError');
+      }
     }
   }
 }
@@ -176,9 +206,38 @@ Future<void> _initializeSystemSettings() async {
 // Firebase初期化
 Future<void> _initializeFirebase() async {
   try {
-    // iOS実機での問題を回避するため、基本的な初期化を先に試行
-    await Firebase.initializeApp();
-    developer.log('基本的なFirebase初期化完了', name: 'Main');
+    // Web版では既にindex.htmlで初期化されているため、スキップ
+    if (kIsWeb) {
+      developer.log('Web版: Firebaseは既にindex.htmlで初期化済みのためスキップ', name: 'Main');
+
+      // Web版でもFirebaseアプリが利用可能かチェック
+      try {
+        final apps = Firebase.apps;
+        if (apps.isEmpty) {
+          developer.log('Web版: Firebaseアプリが見つからないため、初期化を試行', name: 'Main');
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+          developer.log('Web版: Firebase初期化完了', name: 'Main');
+        } else {
+          developer.log(
+            'Web版: Firebaseアプリが既に存在します (${apps.length}個)',
+            name: 'Main',
+          );
+        }
+      } catch (e) {
+        developer.log('Web版: Firebaseアプリチェックエラー: $e', name: 'Main');
+        // Web版ではFirebaseエラーがあってもアプリを継続
+        developer.log('Web版: Firebaseエラーを無視してアプリを継続', name: 'Main');
+      }
+      return;
+    }
+
+    // ネイティブ版でのみFirebase初期化を実行
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    developer.log('ネイティブ版: Firebase初期化完了', name: 'Main');
 
     // カスタム設定は後で適用
     try {
@@ -193,7 +252,9 @@ Future<void> _initializeFirebase() async {
     // エラーが発生してもアプリは起動を継続
     try {
       // 最後の手段として、デフォルト設定で初期化を試行
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       developer.log('フォールバックFirebase初期化完了', name: 'Main');
     } catch (fallbackError) {
       developer.log('フォールバックFirebase初期化も失敗: $fallbackError', name: 'Main');
@@ -215,12 +276,37 @@ Future<void> _initializeDateFormatting() async {
 Future<void> _initializeThemeSettings() async {
   try {
     // デフォルトテーマのみで即座に初期化（Firebase設定は後で非同期取得）
-    final themeSettings = await ThemeSettings.load();
+    await ThemeSettings.load();
 
     // 初期化完了をログ出力
     developer.log('テーマ設定初期化完了（デフォルトテーマ）', name: 'Main');
   } catch (e) {
     developer.log('テーマ設定読み込みエラー: $e', name: 'Main');
+  }
+}
+
+// Web版リダイレクト結果チェック
+Future<void> _checkWebRedirectResult() async {
+  try {
+    developer.log('Web版: リダイレクト結果をチェック中', name: 'Main');
+
+    // Firebase認証の初期化を確認
+    final apps = Firebase.apps;
+    if (apps.isEmpty) {
+      developer.log('Web版: Firebaseアプリが初期化されていません', name: 'Main');
+      return;
+    }
+
+    // SecureAuthServiceをインポートして使用
+    final redirectResult = await SecureAuthService.getRedirectResult();
+
+    if (redirectResult?.user != null) {
+      developer.log('Web版: リダイレクト認証が成功しました', name: 'Main');
+    } else {
+      developer.log('Web版: リダイレクト認証結果なし', name: 'Main');
+    }
+  } catch (e) {
+    developer.log('Web版: リダイレクト結果チェックエラー: $e', name: 'Main');
   }
 }
 
@@ -302,6 +388,12 @@ Future<void> _initializeAds() async {
 
 // AutoSync初期化
 Future<void> _initializeAutoSync() async {
+  // Web版ではAutoSyncをスキップ
+  if (kIsWeb) {
+    developer.log('Web版: AutoSyncServiceをスキップ', name: 'Main');
+    return;
+  }
+
   try {
     await AutoSyncService.initialize();
   } catch (e) {

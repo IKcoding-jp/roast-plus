@@ -30,28 +30,28 @@
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://bysnlogapp.web.app/">
-  <meta property="og:title" content="ローストプラス - コーヒー焙煎業務管理アプリ">
+  <meta property="og:url" content="https://roastplus.web.app/">
+  <meta property="og:title" content="RoastPlus - コーヒー焙煎業務管理アプリ">
   <meta property="og:description" content="焙煎スケジュール管理、ドリップカウンター、テイスティング記録、グループ機能で効率的なコーヒー焙煎業務をサポートします。">
-  <meta property="og:image" content="https://bysnlogapp.web.app/icons/Icon-512.png">
-  <meta property="og:site_name" content="ローストプラス">
+  <meta property="og:image" content="https://roastplus.web.app/icons/Icon-512.png">
+  <meta property="og:site_name" content="RoastPlus">
   <meta property="og:locale" content="ja_JP">
   
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://bysnlogapp.web.app/">
-  <meta property="twitter:title" content="ローストプラス - コーヒー焙煎業務管理アプリ">
+  <meta property="twitter:url" content="https://roastplus.web.app/">
+  <meta property="twitter:title" content="RoastPlus - コーヒー焙煎業務管理アプリ">
   <meta property="twitter:description" content="焙煎スケジュール管理、ドリップカウンター、テイスティング記録、グループ機能で効率的なコーヒー焙煎業務をサポートします。">
-  <meta property="twitter:image" content="https://bysnlogapp.web.app/icons/Icon-512.png">
+  <meta property="twitter:image" content="https://roastplus.web.app/icons/Icon-512.png">
   
   <!-- 構造化データ -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "ローストプラス",
+    "name": "RoastPlus",
     "description": "コーヒー焙煎業務管理アプリ",
-    "url": "https://bysnlogapp.web.app",
+    "url": "https://roastplus.web.app",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
     "offers": {
@@ -61,7 +61,7 @@
     },
     "author": {
       "@type": "Organization",
-      "name": "ローストプラス"
+      "name": "RoastPlus"
     }
   }
   </script>
@@ -82,18 +82,18 @@
   <script type="module">
     // Import the functions you need from the SDKs you need
     import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+    import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    // import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 
     // Your web app's Firebase configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyDfk6xs4N35cdVXWXE_UAIylcPgrX3w4WU",
-      authDomain: "bysnlogapp.firebaseapp.com",
-      projectId: "bysnlogapp",
-      storageBucket: "bysnlogapp.firebasestorage.app",
-      messagingSenderId: "781258244482",
-      appId: "1:781258244482:web:cbcaba8a1604caa0d58f9b",
-      measurementId: "G-XLEGLN9L2K"
+      apiKey: "AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8",
+      authDomain: "roastplus-app.firebaseapp.com",
+      projectId: "roastplus-app",
+      storageBucket: "roastplus-app.firebasestorage.app",
+      messagingSenderId: "330871937318",
+      appId: "1:330871937318:web:d4f31865d8c0e924d0c9e7",
+      // measurementId: "G-37TB0Z23XQ"
     };
 
     // Check if Firebase is already initialized
@@ -104,19 +104,52 @@
         // Initialize Firebase only if not already initialized
         app = initializeApp(firebaseConfig);
         console.log('Firebase initialized in index.html');
+        console.log('Firebase config:', firebaseConfig);
       } else {
         // Use existing app
         app = apps[0];
         console.log('Using existing Firebase app');
       }
     } catch (error) {
-      console.log('Firebase initialization error:', error);
+      console.error('Firebase initialization error:', error);
+      console.error('Error details:', error.message, error.stack);
       // Try to initialize anyway
-      app = initializeApp(firebaseConfig);
+      try {
+        app = initializeApp(firebaseConfig);
+        console.log('Firebase initialized after error recovery');
+      } catch (retryError) {
+        console.error('Firebase initialization failed completely:', retryError);
+        console.error('Retry error details:', retryError.message, retryError.stack);
+        // アプリの起動を継続するため、エラーを無視
+        app = null;
+      }
     }
 
-    const auth = getAuth(app);
-    const analytics = getAnalytics(app);
+    // Firebase アプリが正常に初期化された場合のみ認証を初期化（Analyticsは一時的に無効化）
+    if (app) {
+      try {
+        const auth = getAuth(app);
+        console.log('Firebase Auth initialized successfully');
+        console.log('Auth domain:', firebaseConfig.authDomain);
+        
+        // 認証状態の変更を監視
+        auth.onAuthStateChanged((user) => {
+          if (user) {
+            console.log('User signed in:', user.email);
+          } else {
+            console.log('User signed out');
+          }
+        });
+        
+        // const analytics = getAnalytics(app);
+        // console.log('Firebase Analytics initialized successfully');
+      } catch (error) {
+        console.error('Firebase Auth initialization error:', error);
+        console.error('Auth error details:', error.message, error.stack);
+      }
+    } else {
+      console.error('Firebase app is null, cannot initialize Auth');
+    }
   </script>
 
   <!-- カスタムフォント読み込み -->
@@ -193,6 +226,46 @@
 </head>
 <body>
   <!-- Flutter Web スクリプト -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script src="flutter.js" defer></script>
+  <script src="flutter_bootstrap.js" defer></script>
+  
+  <!-- デバッグ用スクリプト -->
+  <script>
+    console.log('index.html: スクリプト読み込み開始');
+    
+    // Flutter初期化の監視
+    window.addEventListener('flutter-first-frame', function () {
+      console.log('Flutter: 最初のフレームが描画されました');
+    });
+    
+    // Flutter初期化エラーの監視
+    window.addEventListener('flutter-error', function (event) {
+      console.error('Flutter: エラーが発生しました', event.detail);
+    });
+    
+    // ページ読み込み完了の監視
+    window.addEventListener('load', function () {
+      console.log('index.html: ページ読み込み完了');
+      
+      // Flutterアプリの状態をチェック
+      setTimeout(function() {
+        const flutterApp = document.querySelector('flt-glass-pane');
+        if (flutterApp) {
+          console.log('Flutter: アプリ要素が見つかりました', flutterApp);
+        } else {
+          console.error('Flutter: アプリ要素が見つかりません');
+        }
+      }, 2000);
+    });
+    
+    // エラーハンドリング
+    window.addEventListener('error', function (event) {
+      console.error('JavaScript: エラーが発生しました', event.error);
+    });
+    
+    window.addEventListener('unhandledrejection', function (event) {
+      console.error('JavaScript: 未処理のPromise拒否', event.reason);
+    });
+  </script>
 </body>
 </html>
