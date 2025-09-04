@@ -29,6 +29,7 @@ import 'utils/performance_monitor.dart';
 import 'utils/web_compatibility.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -58,6 +59,13 @@ void main() async {
         'Web版リダイレクト結果チェック',
         _checkWebRedirectResult,
       );
+      // リダイレクト結果チェック後に現在のユーザーをログ
+      try {
+        final currentUser = fb_auth.FirebaseAuth.instance.currentUser;
+        developer.log('Web版: 現在のユーザー: ${currentUser?.email}', name: 'Main');
+      } catch (e) {
+        developer.log('Web版: 現在ユーザー確認でエラー: $e', name: 'Main');
+      }
     }
 
     // その他の初期化処理を並列実行
@@ -225,6 +233,16 @@ Future<void> _initializeFirebase() async {
             name: 'Main',
           );
         }
+
+        // 重要: WebのAuth永続化をLOCALに固定（リダイレクト後にセッションが消える問題対策）
+        try {
+          await fb_auth.FirebaseAuth.instance.setPersistence(
+            fb_auth.Persistence.LOCAL,
+          );
+          developer.log('Web版: FirebaseAuth永続化をLOCALに設定', name: 'Main');
+        } catch (persistError) {
+          developer.log('Web版: 永続化設定に失敗: $persistError', name: 'Main');
+        }
       } catch (e) {
         developer.log('Web版: Firebaseアプリチェックエラー: $e', name: 'Main');
         // Web版ではFirebaseエラーがあってもアプリを継続
@@ -297,11 +315,22 @@ Future<void> _checkWebRedirectResult() async {
       return;
     }
 
+    // 現在のユーザー状態を確認
+    final currentUser = fb_auth.FirebaseAuth.instance.currentUser;
+    developer.log('Web版: リダイレクト前の現在ユーザー: ${currentUser?.email}', name: 'Main');
+
     // SecureAuthServiceをインポートして使用
     final redirectResult = await SecureAuthService.getRedirectResult();
 
     if (redirectResult?.user != null) {
-      developer.log('Web版: リダイレクト認証が成功しました', name: 'Main');
+      developer.log(
+        'Web版: リダイレクト認証が成功しました: ${redirectResult!.user!.email}',
+        name: 'Main',
+      );
+
+      // リダイレクト後のユーザー状態を再確認
+      final newUser = fb_auth.FirebaseAuth.instance.currentUser;
+      developer.log('Web版: リダイレクト後の現在ユーザー: ${newUser?.email}', name: 'Main');
     } else {
       developer.log('Web版: リダイレクト認証結果なし', name: 'Main');
     }

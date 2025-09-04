@@ -278,9 +278,44 @@ class _WorkAssignmentAppState extends State<WorkAssignmentApp> {
 }
 
 /// Google認証必須ガード
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   final Widget child;
   const AuthGate({required this.child, super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool _isCheckingRedirect = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRedirectResult();
+  }
+
+  Future<void> _checkRedirectResult() async {
+    if (kIsWeb) {
+      setState(() {
+        _isCheckingRedirect = true;
+      });
+
+      try {
+        // リダイレクト結果をチェック
+        await SecureAuthService.getRedirectResult();
+        developer.log('AuthGate: リダイレクト結果チェック完了', name: 'AuthGate');
+      } catch (e) {
+        developer.log('AuthGate: リダイレクト結果チェックエラー: $e', name: 'AuthGate');
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isCheckingRedirect = false;
+          });
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -289,6 +324,11 @@ class AuthGate extends StatelessWidget {
       return StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
+          // Web版でリダイレクト結果チェック中はローディング表示
+          if (_isCheckingRedirect) {
+            return const LoadingScreen(title: '認証を確認中...');
+          }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const LoadingScreen(title: 'Loading...');
           }
@@ -297,7 +337,7 @@ class AuthGate extends StatelessWidget {
           }
 
           // ログイン後は初回ログインチェックを行う
-          return FirstLoginWrapper(child: child);
+          return FirstLoginWrapper(child: widget.child);
         },
       );
     } catch (e) {
@@ -445,17 +485,17 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
     try {
       UserCredential? userCredential;
 
-      // Web版ではリダイレクト方式を使用（COOPポリシーの問題を回避）
+      // Web版では一時的にポップアップ方式を使用（localhost開発用）
       if (kIsWeb) {
         if (!mounted) return;
         setState(() {
-          _loading = false;
+          _loading = true;
           _error = 'Googleログインを開始しています...';
         });
 
-        // リダイレクト方式でログイン
-        await SecureAuthService.signInWithGoogleRedirect();
-        return; // リダイレクトが開始されたので処理を終了
+        // ポップアップ方式でログイン（localhost開発用）
+        userCredential = await SecureAuthService.signInWithGoogle();
+        developer.log('Web版: ポップアップ方式でログイン成功', name: 'GoogleSignInScreen');
       } else {
         userCredential =
             await SecureAuthService.signInWithGoogleForceAccountSelection();

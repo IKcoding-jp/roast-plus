@@ -264,6 +264,9 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('焙煎タイマー設定'),
@@ -275,21 +278,24 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
           ? Center(
               child: CircularProgressIndicator(color: themeSettings.iconColor),
             )
-          : ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: kIsWeb ? 800 : double.infinity,
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(kIsWeb ? 16 : 20),
-                child: SingleChildScrollView(
+          : Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWeb ? 40.0 : 20.0,
+                  vertical: 24.0,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isWeb ? 600 : double.infinity,
+                  ),
                   child: Card(
-                    elevation: 6,
+                    elevation: isWeb ? 2 : 6,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(isWeb ? 12 : 16),
                     ),
                     color: themeSettings.cardBackgroundColor,
                     child: Padding(
-                      padding: EdgeInsets.all(kIsWeb ? 32 : 24),
+                      padding: EdgeInsets.all(isWeb ? 32 : 24),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,13 +313,13 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 '予熱タイマーを使う',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: kIsWeb ? 16 : 16,
+                                  fontSize: isWeb ? 16 : 16,
                                   color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: kIsWeb ? 16 : 10),
+                          SizedBox(height: isWeb ? 16 : 10),
                           Row(
                             children: [
                               Switch(
@@ -326,13 +332,13 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 '焙煎タイマーを使う',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: kIsWeb ? 16 : 16,
+                                  fontSize: isWeb ? 16 : 16,
                                   color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: kIsWeb ? 16 : 10),
+                          SizedBox(height: isWeb ? 16 : 10),
                           Row(
                             children: [
                               Switch(
@@ -345,37 +351,37 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 '豆冷ましタイマーを使う',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: kIsWeb ? 16 : 16,
+                                  fontSize: isWeb ? 16 : 16,
                                   color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: kIsWeb ? 40 : 32),
+                          SizedBox(height: isWeb ? 40 : 32),
                           // 時間設定欄を下にまとめる
                           Row(
                             children: [
                               Icon(
                                 Icons.timer,
                                 color: themeSettings.iconColor,
-                                size: kIsWeb ? 24 : 24,
+                                size: isWeb ? 24 : 24,
                               ),
                               SizedBox(width: 10),
                               Text(
                                 '予熱時間（分）',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: kIsWeb ? 18 : 18,
+                                  fontSize: isWeb ? 18 : 18,
                                   color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: kIsWeb ? 20 : 18),
+                          SizedBox(height: isWeb ? 20 : 18),
                           Row(
                             children: [
                               SizedBox(
-                                width: kIsWeb ? 120 : 100,
+                                width: isWeb ? 120 : 100,
                                 child: TextField(
                                   controller: _preheatController,
                                   keyboardType: TextInputType.numberWithOptions(
@@ -383,7 +389,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     signed: false,
                                   ),
                                   style: TextStyle(
-                                    fontSize: kIsWeb ? 16 : 16,
+                                    fontSize: isWeb ? 16 : 16,
                                     color: themeSettings.inputTextColor,
                                   ),
                                   decoration: InputDecoration(
@@ -411,8 +417,8 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     ),
                                     isDense: true,
                                     contentPadding: EdgeInsets.symmetric(
-                                      horizontal: kIsWeb ? 16 : 14,
-                                      vertical: kIsWeb ? 16 : 12,
+                                      horizontal: isWeb ? 16 : 14,
+                                      vertical: isWeb ? 16 : 12,
                                     ),
                                   ),
                                   onChanged: (value) {
@@ -436,20 +442,20 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               SizedBox(width: 16),
                               ElevatedButton.icon(
                                 onPressed: _savePreheat,
-                                icon: Icon(Icons.save, size: kIsWeb ? 20 : 20),
+                                icon: Icon(Icons.save, size: isWeb ? 20 : 20),
                                 label: Text(
                                   '保存',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: kIsWeb ? 16 : 16,
+                                    fontSize: isWeb ? 16 : 16,
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: themeSettings.appButtonColor,
                                   foregroundColor: themeSettings.fontColor2,
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: kIsWeb ? 24 : 24,
-                                    vertical: kIsWeb ? 16 : 14,
+                                    horizontal: isWeb ? 24 : 24,
+                                    vertical: isWeb ? 16 : 14,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
@@ -459,30 +465,30 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: kIsWeb ? 40 : 32),
+                          SizedBox(height: isWeb ? 40 : 32),
                           Row(
                             children: [
                               Icon(
                                 Icons.ac_unit,
                                 color: themeSettings.iconColor,
-                                size: kIsWeb ? 24 : 24,
+                                size: isWeb ? 24 : 24,
                               ),
                               SizedBox(width: 10),
                               Text(
                                 '豆冷まし時間（分）',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: kIsWeb ? 18 : 18,
+                                  fontSize: isWeb ? 18 : 18,
                                   color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: kIsWeb ? 20 : 18),
+                          SizedBox(height: isWeb ? 20 : 18),
                           Row(
                             children: [
                               SizedBox(
-                                width: kIsWeb ? 120 : 100,
+                                width: isWeb ? 120 : 100,
                                 child: TextField(
                                   controller: _coolingController,
                                   keyboardType: TextInputType.numberWithOptions(
@@ -490,7 +496,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     signed: false,
                                   ),
                                   style: TextStyle(
-                                    fontSize: kIsWeb ? 16 : 16,
+                                    fontSize: isWeb ? 16 : 16,
                                     color: themeSettings.inputTextColor,
                                   ),
                                   decoration: InputDecoration(
@@ -518,8 +524,8 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     ),
                                     isDense: true,
                                     contentPadding: EdgeInsets.symmetric(
-                                      horizontal: kIsWeb ? 16 : 14,
-                                      vertical: kIsWeb ? 16 : 12,
+                                      horizontal: isWeb ? 16 : 14,
+                                      vertical: isWeb ? 16 : 12,
                                     ),
                                   ),
                                   onChanged: (value) {
@@ -543,20 +549,20 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               SizedBox(width: 16),
                               ElevatedButton.icon(
                                 onPressed: _saveCooling,
-                                icon: Icon(Icons.save, size: kIsWeb ? 20 : 20),
+                                icon: Icon(Icons.save, size: isWeb ? 20 : 20),
                                 label: Text(
                                   '保存',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: kIsWeb ? 16 : 16,
+                                    fontSize: isWeb ? 16 : 16,
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: themeSettings.appButtonColor,
                                   foregroundColor: themeSettings.fontColor2,
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: kIsWeb ? 24 : 24,
-                                    vertical: kIsWeb ? 16 : 14,
+                                    horizontal: isWeb ? 24 : 24,
+                                    vertical: isWeb ? 16 : 14,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
@@ -566,39 +572,39 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: kIsWeb ? 40 : 32),
+                          SizedBox(height: isWeb ? 40 : 32),
                           // おすすめ焙煎の引き秒数設定欄
                           Row(
                             children: [
                               Icon(
                                 Icons.recommend,
                                 color: themeSettings.iconColor,
-                                size: kIsWeb ? 24 : 24,
+                                size: isWeb ? 24 : 24,
                               ),
                               SizedBox(width: 10),
                               Text(
                                 '焙煎室にいくまでの時間（秒）',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: kIsWeb ? 18 : 18,
+                                  fontSize: isWeb ? 18 : 18,
                                   color: themeSettings.fontColor1,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: kIsWeb ? 12 : 8),
+                          SizedBox(height: isWeb ? 12 : 8),
                           Text(
                             '焙煎室に移動するために必要な秒数を設定してください。おすすめタイマーは、この秒数分だけ短く提案されます。',
                             style: TextStyle(
-                              fontSize: kIsWeb ? 14 : 14,
+                              fontSize: isWeb ? 14 : 14,
                               color: themeSettings.fontColor1,
                             ),
                           ),
-                          SizedBox(height: kIsWeb ? 20 : 18),
+                          SizedBox(height: isWeb ? 20 : 18),
                           Row(
                             children: [
                               SizedBox(
-                                width: kIsWeb ? 120 : 100,
+                                width: isWeb ? 120 : 100,
                                 child: TextField(
                                   controller: _recommendedOffsetController,
                                   keyboardType: TextInputType.numberWithOptions(
@@ -606,7 +612,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     signed: false,
                                   ),
                                   style: TextStyle(
-                                    fontSize: kIsWeb ? 16 : 16,
+                                    fontSize: isWeb ? 16 : 16,
                                     color: themeSettings.inputTextColor,
                                   ),
                                   decoration: InputDecoration(
@@ -634,8 +640,8 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                     ),
                                     isDense: true,
                                     contentPadding: EdgeInsets.symmetric(
-                                      horizontal: kIsWeb ? 16 : 14,
-                                      vertical: kIsWeb ? 16 : 12,
+                                      horizontal: isWeb ? 16 : 14,
+                                      vertical: isWeb ? 16 : 12,
                                     ),
                                   ),
                                   onChanged: (value) {
@@ -660,20 +666,20 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               SizedBox(width: 16),
                               ElevatedButton.icon(
                                 onPressed: _saveRecommendedOffset,
-                                icon: Icon(Icons.save, size: kIsWeb ? 20 : 20),
+                                icon: Icon(Icons.save, size: isWeb ? 20 : 20),
                                 label: Text(
                                   '保存',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: kIsWeb ? 16 : 16,
+                                    fontSize: isWeb ? 16 : 16,
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: themeSettings.appButtonColor,
                                   foregroundColor: themeSettings.fontColor2,
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: kIsWeb ? 24 : 24,
-                                    vertical: kIsWeb ? 16 : 14,
+                                    horizontal: isWeb ? 24 : 24,
+                                    vertical: isWeb ? 16 : 14,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
@@ -683,9 +689,9 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: kIsWeb ? 24 : 16),
+                          SizedBox(height: isWeb ? 24 : 16),
                           Container(
-                            padding: EdgeInsets.all(kIsWeb ? 16 : 12),
+                            padding: EdgeInsets.all(isWeb ? 16 : 12),
                             decoration: BoxDecoration(
                               color: Colors.orange.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(8),
@@ -696,14 +702,14 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                                 Icon(
                                   Icons.info_outline,
                                   color: Colors.orange,
-                                  size: kIsWeb ? 20 : 20,
+                                  size: isWeb ? 20 : 20,
                                 ),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     '【おすすめ焙煎タイマーとは】\n過去の記録から平均焙煎時間を計算し、「焙煎室に行くまでの時間」を引いた値を自動でタイマーに設定します。',
                                     style: TextStyle(
-                                      fontSize: kIsWeb ? 14 : 14,
+                                      fontSize: isWeb ? 14 : 14,
                                       color: themeSettings.fontColor1,
                                     ),
                                   ),
@@ -711,7 +717,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               ],
                             ),
                           ),
-                          SizedBox(height: kIsWeb ? 32 : 32),
+                          SizedBox(height: isWeb ? 32 : 32),
                         ],
                       ),
                     ),

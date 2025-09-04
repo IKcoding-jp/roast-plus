@@ -31,24 +31,21 @@ class SecureAuthService {
 
       final provider = GoogleAuthProvider();
       // 可能ならアカウント選択を促す
-      provider.setCustomParameters({'prompt': 'select_account'});
+      provider.setCustomParameters({
+        'prompt': 'select_account',
+        'hd': '', // ドメイン制限を無効化
+        'include_granted_scopes': 'true',
+        'access_type': 'offline', // Chrome用の追加パラメータ
+      });
 
       late final UserCredential userCredential;
       if (kIsWeb) {
-        // Web版ではポップアップ方式を試行し、失敗した場合はリダイレクト方式にフォールバック
-        try {
-          developer.log('Web版: ポップアップ方式でGoogleサインインを試行', name: _logName);
-          userCredential = await _auth.signInWithPopup(provider);
-          developer.log('Web版: ポップアップ方式でサインイン成功', name: _logName);
-        } catch (popupError) {
-          developer.log(
-            'Web版: ポップアップ方式失敗、リダイレクト方式にフォールバック: $popupError',
-            name: _logName,
-          );
-          await _auth.signInWithRedirect(provider);
-          developer.log('Web版: リダイレクトが開始されました', name: _logName);
-          return null;
-        }
+        // Web版ではポップアップ方式を使用（localhost開発用）
+        developer.log('Web版: ポップアップ方式でGoogleサインインを試行', name: _logName);
+        developer.log('Web版: 現在のURL: ${Uri.base}', name: _logName);
+        developer.log('Web版: プロバイダーID: ${provider.providerId}', name: _logName);
+        userCredential = await _auth.signInWithPopup(provider);
+        developer.log('Web版: ポップアップ方式でサインイン成功', name: _logName);
       } else {
         developer.log('ネイティブ版: signInWithProviderを実行', name: _logName);
         userCredential = await _auth.signInWithProvider(provider);
@@ -89,7 +86,9 @@ class SecureAuthService {
 
         if (e.toString().contains('auth/unauthorized-domain')) {
           developer.log('Web版: 未承認ドメインエラー', name: _logName);
-          throw Exception('このドメインは認証に使用できません。Firebase Consoleでドメインを追加してください。');
+          throw Exception(
+            'このドメインは認証に使用できません。Firebase Consoleでlocalhostドメインを追加してください。',
+          );
         }
 
         if (e.toString().contains('auth/operation-not-allowed')) {
@@ -97,6 +96,12 @@ class SecureAuthService {
           throw Exception(
             'Google認証が有効になっていません。Firebase ConsoleでGoogle認証を有効にしてください。',
           );
+        }
+
+        if (e.toString().contains('frame-ancestors') ||
+            e.toString().contains('CSP')) {
+          developer.log('Web版: CSPエラーが検出されました', name: _logName);
+          throw Exception('セキュリティポリシーの問題が発生しました。ページを再読み込みしてから再度お試しください。');
         }
 
         if (e.toString().contains('auth/network-request-failed')) {
@@ -391,11 +396,22 @@ class SecureAuthService {
       await SecureStorageService.clearAllSecureData();
 
       final provider = GoogleAuthProvider();
-      provider.setCustomParameters({'prompt': 'select_account'});
+      provider.setCustomParameters({
+        'prompt': 'select_account',
+        'hd': '', // ドメイン制限を無効化
+        'include_granted_scopes': 'true',
+      });
 
       late final UserCredential userCredential;
       if (kIsWeb) {
-        userCredential = await _auth.signInWithPopup(provider);
+        // Web版ではリダイレクト方式を優先使用（CSP問題を回避）
+        try {
+          await _auth.signInWithRedirect(provider);
+          return null; // リダイレクトが開始されたので処理を終了
+        } catch (redirectError) {
+          // リダイレクトが失敗した場合はポップアップ方式にフォールバック
+          userCredential = await _auth.signInWithPopup(provider);
+        }
       } else {
         userCredential = await _auth.signInWithProvider(provider);
       }
@@ -426,7 +442,11 @@ class SecureAuthService {
       }
 
       final provider = GoogleAuthProvider();
-      provider.setCustomParameters({'prompt': 'select_account'});
+      provider.setCustomParameters({
+        'prompt': 'select_account',
+        'hd': '', // ドメイン制限を無効化
+        'include_granted_scopes': 'true',
+      });
 
       await _auth.signInWithRedirect(provider);
       developer.log('Web版: リダイレクトが開始されました', name: _logName);
