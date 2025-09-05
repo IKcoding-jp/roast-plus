@@ -14,6 +14,17 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+    
+    // すべてのサブプロジェクトでJava警告を抑制
+    afterEvaluate {
+        tasks.withType<JavaCompile> {
+            options.compilerArgs.addAll(listOf(
+                "-Xlint:-options",
+                "-Xlint:-deprecation", 
+                "-Xlint:-unchecked"
+            ))
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {

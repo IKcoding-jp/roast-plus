@@ -584,14 +584,14 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                     .elevatedButtonTheme
                                     .style
                                     ?.backgroundColor
-                                    ?.resolve(<MaterialState>{}) ??
+                                    ?.resolve(<WidgetState>{}) ??
                                 Theme.of(context).colorScheme.primary,
                             foregroundColor:
                                 Theme.of(context)
                                     .elevatedButtonTheme
                                     .style
                                     ?.foregroundColor
-                                    ?.resolve(<MaterialState>{}) ??
+                                    ?.resolve(<WidgetState>{}) ??
                                 Colors.white,
                             padding: EdgeInsets.symmetric(vertical: 15),
                             shape: RoundedRectangleBorder(

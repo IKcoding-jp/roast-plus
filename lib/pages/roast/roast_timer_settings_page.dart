@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../../services/roast_timer_settings_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';

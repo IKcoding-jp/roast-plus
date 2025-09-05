@@ -30,7 +30,11 @@ android {
 
     // Java 8の警告を抑制
     tasks.withType<JavaCompile> {
-        options.compilerArgs.add("-Xlint:-options")
+        options.compilerArgs.addAll(listOf(
+            "-Xlint:-options",
+            "-Xlint:-deprecation",
+            "-Xlint:-unchecked"
+        ))
     }
 
     // 署名設定
