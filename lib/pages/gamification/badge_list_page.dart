@@ -974,7 +974,12 @@ class _BadgeCardState extends State<BadgeCard>
                     end: Alignment.bottomRight,
                   )
                 : LinearGradient(
-                    colors: [Colors.grey.shade50, Colors.grey.shade100],
+                    colors: [
+                      widget.themeSettings.cardBackgroundColor.withValues(
+                        alpha: 0.8,
+                      ),
+                      widget.themeSettings.cardBackgroundColor,
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -991,7 +996,7 @@ class _BadgeCardState extends State<BadgeCard>
             border: Border.all(
               color: widget.isEarned
                   ? widget.condition.color.withValues(alpha: 0.3)
-                  : Colors.grey.shade300,
+                  : widget.themeSettings.borderColor.withValues(alpha: 0.3),
               width: 1.5,
             ),
           ),
@@ -1027,8 +1032,10 @@ class _BadgeCardState extends State<BadgeCard>
                                 )
                               : LinearGradient(
                                   colors: [
-                                    Colors.grey.shade300,
-                                    Colors.grey.shade500,
+                                    widget.themeSettings.borderColor.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    widget.themeSettings.borderColor,
                                   ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
@@ -1072,7 +1079,8 @@ class _BadgeCardState extends State<BadgeCard>
                           height: widget.isWeb ? 80 : 90,
                           child: CircularProgressIndicator(
                             value: widget.progress,
-                            backgroundColor: Colors.grey.shade200,
+                            backgroundColor: widget.themeSettings.borderColor
+                                .withValues(alpha: 0.3),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               widget.condition.color,
                             ),
@@ -1092,7 +1100,11 @@ class _BadgeCardState extends State<BadgeCard>
                   child: Text(
                     widget.condition.name,
                     style: TextStyle(
-                      color: widget.isEarned ? Colors.black87 : Colors.black54,
+                      color: widget.isEarned
+                          ? widget.themeSettings.fontColor1
+                          : widget.themeSettings.fontColor1.withValues(
+                              alpha: 0.6,
+                            ),
                       fontSize:
                           (widget.isWeb ? 14 : 14) *
                           widget.themeSettings.fontSizeScale,
@@ -1167,6 +1179,7 @@ class _BadgeCardState extends State<BadgeCard>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: widget.themeSettings.dialogBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -1181,7 +1194,12 @@ class _BadgeCardState extends State<BadgeCard>
                           widget.condition.color.withValues(alpha: 0.8),
                           widget.condition.color,
                         ]
-                      : [Colors.grey.shade400, Colors.grey.shade600],
+                      : [
+                          widget.themeSettings.borderColor.withValues(
+                            alpha: 0.6,
+                          ),
+                          widget.themeSettings.borderColor,
+                        ],
                 ),
               ),
               child: Icon(
@@ -1200,6 +1218,7 @@ class _BadgeCardState extends State<BadgeCard>
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontFamily: widget.themeSettings.fontFamily,
+                  color: widget.themeSettings.dialogTextColor,
                 ),
               ),
             ),
@@ -1213,14 +1232,17 @@ class _BadgeCardState extends State<BadgeCard>
               '達成条件',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade700,
+                color: widget.themeSettings.dialogTextColor,
                 fontFamily: widget.themeSettings.fontFamily,
               ),
             ),
             SizedBox(height: 4),
             Text(
               widget.description,
-              style: TextStyle(fontFamily: widget.themeSettings.fontFamily),
+              style: TextStyle(
+                fontFamily: widget.themeSettings.fontFamily,
+                color: widget.themeSettings.dialogTextColor,
+              ),
             ),
             if (!widget.isEarned) ...[
               SizedBox(height: 16),
@@ -1228,14 +1250,16 @@ class _BadgeCardState extends State<BadgeCard>
                 '進捗状況',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade700,
+                  color: widget.themeSettings.dialogTextColor,
                   fontFamily: widget.themeSettings.fontFamily,
                 ),
               ),
               SizedBox(height: 8),
               LinearProgressIndicator(
                 value: widget.progress,
-                backgroundColor: Colors.grey.shade300,
+                backgroundColor: widget.themeSettings.borderColor.withValues(
+                  alpha: 0.3,
+                ),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   widget.condition.color,
                 ),

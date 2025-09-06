@@ -38,7 +38,8 @@ class RoastTimerPage extends StatefulWidget {
   State<RoastTimerPage> createState() => _RoastTimerPageState();
 }
 
-class _RoastTimerPageState extends State<RoastTimerPage> {
+class _RoastTimerPageState extends State<RoastTimerPage>
+    with WidgetsBindingObserver {
   Timer? _timer;
   int _remainingSeconds = 0;
   int _totalSeconds = 0;
@@ -202,14 +203,8 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     }
     _loadRecommendOptions();
 
-    // アプリのライフサイクル監視を追加
-    SystemChannels.lifecycle.setMessageHandler((msg) async {
-      if (msg == AppLifecycleState.resumed.toString()) {
-        // アプリが復帰した時にタイマー状態をチェック
-        _checkTimerStateOnResume();
-      }
-      return null;
-    });
+    // アプリのライフサイクル監視を追加（このページがアクティブな時のみ）
+    WidgetsBinding.instance.addObserver(this);
   }
 
   // 設定を初期化時に一度だけ読み込み
@@ -265,6 +260,15 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     );
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // アプリが復帰した時にタイマー状態をチェック
+      _checkTimerStateOnResume();
+    }
+  }
+
   // アプリ復帰時のタイマー状態チェック
   void _checkTimerStateOnResume() async {
     if (!mounted) return;
@@ -291,6 +295,19 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
       if (!mounted) return;
       if (ModalRoute.of(context)?.isCurrent != true) {
         debugPrint('RoastTimerPageが最前面でないため、完了ダイアログを表示しません');
+        return;
+      }
+
+      // 現在のページがRoastTimerPageかどうかを確認
+      final currentRoute = ModalRoute.of(context);
+      if (currentRoute?.settings.name != '/roast_timer') {
+        debugPrint('現在のページがRoastTimerPageでないため、完了ダイアログを表示しません');
+        return;
+      }
+
+      // 現在のウィジェットがRoastTimerPageかどうかを確認
+      if (widget.runtimeType != RoastTimerPage) {
+        debugPrint('現在のウィジェットがRoastTimerPageでないため、完了ダイアログを表示しません');
         return;
       }
       // 完了ダイアログを表示
@@ -757,6 +774,9 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
 
   @override
   void dispose() {
+    // ライフサイクルオブザーバーを削除
+    WidgetsBinding.instance.removeObserver(this);
+
     _timer?.cancel();
     try {
       _audioPlayer.dispose();

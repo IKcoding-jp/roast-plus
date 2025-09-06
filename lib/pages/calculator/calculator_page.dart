@@ -224,6 +224,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
         constraints: BoxConstraints(maxWidth: 500, maxHeight: 800),
         child: Card(
           elevation: 8,
+          color: themeSettings.cardBackgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),

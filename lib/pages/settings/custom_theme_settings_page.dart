@@ -15,6 +15,13 @@ class CustomThemeSettingsPage extends StatefulWidget {
 
 class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
   @override
+  void dispose() {
+    // デバッグログ: ページが破棄されることを確認
+    debugPrint('カスタムテーマ設定ページが破棄されました');
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
     return Scaffold(
@@ -60,17 +67,26 @@ class _CustomThemeSettingsPageState extends State<CustomThemeSettingsPage> {
           // 寄付者は従来UI
           return Container(
             color: themeSettings.backgroundColor,
-            padding: const EdgeInsets.all(16),
-            child: ListView(
-              children: [
-                _buildBasicColorsSection(context, themeSettings),
-                const SizedBox(height: 24),
-                _buildTextColorsSection(context, themeSettings),
-                const SizedBox(height: 24),
-                _buildUIColorsSection(context, themeSettings),
-                const SizedBox(height: 24),
-                _buildSaveButton(context, themeSettings),
-              ],
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 600, // Web版での最大幅を制限
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ListView(
+                    children: [
+                      _buildBasicColorsSection(context, themeSettings),
+                      const SizedBox(height: 24),
+                      _buildTextColorsSection(context, themeSettings),
+                      const SizedBox(height: 24),
+                      _buildUIColorsSection(context, themeSettings),
+                      const SizedBox(height: 24),
+                      _buildSaveButton(context, themeSettings),
+                    ],
+                  ),
+                ),
+              ),
             ),
           );
         },
@@ -588,158 +604,168 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: themeSettings.cardBackgroundColor,
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        height: MediaQuery.of(context).size.height * 0.8,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // タイトル
-            Text(
-              '${widget.label}の色を選択',
-              style: TextStyle(
-                color: themeSettings.fontColor1,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // 現在の色と選択中の色の比較
-            Row(
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 700, // Web版での最大幅を制限（カラーピッカー用に拡張）
+        ),
+        child: Dialog(
+          backgroundColor: themeSettings.cardBackgroundColor,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.85,
+            height: MediaQuery.of(context).size.height * 0.75,
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(
-                        '現在の色',
-                        style: TextStyle(
-                          color: themeSettings.fontColor1,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: widget.initialColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: themeSettings.fontColor1.withValues(
-                              alpha: 0.3,
-                            ),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Builder(
-                        builder: (_) {
-                          final int r =
-                              ((widget.initialColor.r * 255.0).round() & 0xff);
-                          final int g =
-                              ((widget.initialColor.g * 255.0).round() & 0xff);
-                          final int b =
-                              ((widget.initialColor.b * 255.0).round() & 0xff);
-                          final hex =
-                              '#${r.toRadixString(16).padLeft(2, '0').toUpperCase()}${g.toRadixString(16).padLeft(2, '0').toUpperCase()}${b.toRadixString(16).padLeft(2, '0').toUpperCase()}';
-                          return Text(
-                            hex,
-                            style: TextStyle(
-                              color: themeSettings.fontColor1,
-                              fontSize: 10,
-                              fontFamily: 'monospace',
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                // タイトル
+                Text(
+                  '${widget.label}の色を選択',
+                  style: TextStyle(
+                    color: themeSettings.fontColor1,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(
-                        '選択中の色',
-                        style: TextStyle(
-                          color: themeSettings.fontColor1,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: _color,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: themeSettings.fontColor1.withValues(
-                              alpha: 0.3,
-                            ),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Builder(
-                        builder: (_) {
-                          final int r = ((_color.r * 255.0).round() & 0xff);
-                          final int g = ((_color.g * 255.0).round() & 0xff);
-                          final int b = ((_color.b * 255.0).round() & 0xff);
-                          final hex =
-                              '#${r.toRadixString(16).padLeft(2, '0').toUpperCase()}${g.toRadixString(16).padLeft(2, '0').toUpperCase()}${b.toRadixString(16).padLeft(2, '0').toUpperCase()}';
-                          return Text(
-                            hex,
+                const SizedBox(height: 16),
+                // 現在の色と選択中の色の比較
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            '現在の色',
                             style: TextStyle(
                               color: themeSettings.fontColor1,
-                              fontSize: 10,
-                              fontFamily: 'monospace',
+                              fontSize: 12,
                             ),
-                          );
-                        },
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: widget.initialColor,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: themeSettings.fontColor1.withValues(
+                                  alpha: 0.3,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Builder(
+                            builder: (_) {
+                              final int r =
+                                  ((widget.initialColor.r * 255.0).round() &
+                                  0xff);
+                              final int g =
+                                  ((widget.initialColor.g * 255.0).round() &
+                                  0xff);
+                              final int b =
+                                  ((widget.initialColor.b * 255.0).round() &
+                                  0xff);
+                              final hex =
+                                  '#${r.toRadixString(16).padLeft(2, '0').toUpperCase()}${g.toRadixString(16).padLeft(2, '0').toUpperCase()}${b.toRadixString(16).padLeft(2, '0').toUpperCase()}';
+                              return Text(
+                                hex,
+                                style: TextStyle(
+                                  color: themeSettings.fontColor1,
+                                  fontSize: 10,
+                                  fontFamily: 'monospace',
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            '選択中の色',
+                            style: TextStyle(
+                              color: themeSettings.fontColor1,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: _color,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: themeSettings.fontColor1.withValues(
+                                  alpha: 0.3,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Builder(
+                            builder: (_) {
+                              final int r = ((_color.r * 255.0).round() & 0xff);
+                              final int g = ((_color.g * 255.0).round() & 0xff);
+                              final int b = ((_color.b * 255.0).round() & 0xff);
+                              final hex =
+                                  '#${r.toRadixString(16).padLeft(2, '0').toUpperCase()}${g.toRadixString(16).padLeft(2, '0').toUpperCase()}${b.toRadixString(16).padLeft(2, '0').toUpperCase()}';
+                              return Text(
+                                hex,
+                                style: TextStyle(
+                                  color: themeSettings.fontColor1,
+                                  fontSize: 10,
+                                  fontFamily: 'monospace',
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // 色選択器（残りのスペースをすべて使用）
+                Expanded(
+                  child: MaterialPicker(
+                    pickerColor: _color,
+                    onColorChanged: (c) => setState(() => _color = c),
+                    enableLabel: false,
                   ),
+                ),
+                const SizedBox(height: 16),
+                // ボタン
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: themeSettings.fontColor1,
+                      ),
+                      child: const Text('キャンセル'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, _color),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeSettings.appButtonColor,
+                        foregroundColor: themeSettings.fontColor2,
+                      ),
+                      child: const Text('決定'),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // 色選択器（残りのスペースをすべて使用）
-            Expanded(
-              child: MaterialPicker(
-                pickerColor: _color,
-                onColorChanged: (c) => setState(() => _color = c),
-                enableLabel: false,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // ボタン
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: TextButton.styleFrom(
-                    foregroundColor: themeSettings.fontColor1,
-                  ),
-                  child: const Text('キャンセル'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context, _color),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: themeSettings.appButtonColor,
-                    foregroundColor: themeSettings.fontColor2,
-                  ),
-                  child: const Text('決定'),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );

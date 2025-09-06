@@ -482,6 +482,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
 
     return Card(
       elevation: 3,
+      color: themeSettings.cardBackgroundColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: canEdit && groupProvider.currentGroup != null
@@ -786,6 +787,7 @@ class _WorkProgressPageState extends State<WorkProgressPage>
         return Card(
           margin: EdgeInsets.only(bottom: 12),
           elevation: 4,
+          color: themeSettings.cardBackgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -1074,14 +1076,14 @@ class _WorkProgressPageState extends State<WorkProgressPage>
                     margin: EdgeInsets.only(left: 12),
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade100,
+                      color: themeSettings.iconColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.shade400),
+                      border: Border.all(color: themeSettings.iconColor),
                     ),
                     child: Icon(
                       Icons.groups,
                       size: 18,
-                      color: Colors.blue.shade700,
+                      color: themeSettings.iconColor,
                     ),
                   );
                 } else {

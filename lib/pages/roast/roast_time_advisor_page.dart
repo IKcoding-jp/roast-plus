@@ -4,6 +4,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:roastplus/pages/roast/roast_timer_settings_page.dart';
 import 'package:roastplus/pages/roast/roast_record_page.dart';
 import '../../services/user_settings_firestore_service.dart';
+import 'package:provider/provider.dart';
+import '../../models/theme_settings.dart';
 
 // ------ タイマー・ページ遷移管理 ------
 enum RoastMode { idle, preheating, roasting, inputManualTime, inputRecommended }
@@ -180,11 +182,22 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(_mode == RoastMode.preheating ? '予熱完了！' : 'もうすぐ焙煎が完了します。'),
+        backgroundColor: Provider.of<ThemeSettings>(
+          context,
+        ).dialogBackgroundColor,
+        title: Text(
+          _mode == RoastMode.preheating ? '予熱完了！' : 'もうすぐ焙煎が完了します。',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          ),
+        ),
         content: Text(
           _mode == RoastMode.preheating
               ? '用意した豆を持って焙煎室に行きましょう。'
               : 'タッパーと木べらを持って焙煎室に行きましょう。',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          ),
         ),
         actions: [
           TextButton(
@@ -211,8 +224,21 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('連続焙煎しますか？'),
-        content: Text('焙煎機が温かいうちに次の焙煎が可能です。'),
+        backgroundColor: Provider.of<ThemeSettings>(
+          context,
+        ).dialogBackgroundColor,
+        title: Text(
+          '連続焙煎しますか？',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          ),
+        ),
+        content: Text(
+          '焙煎機が温かいうちに次の焙煎が可能です。',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -240,8 +266,21 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('お疲れ様でした！'),
-        content: Text('機械をアフターパージに設定してください。'),
+        backgroundColor: Provider.of<ThemeSettings>(
+          context,
+        ).dialogBackgroundColor,
+        title: Text(
+          'お疲れ様でした！',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          ),
+        ),
+        content: Text(
+          '機械をアフターパージに設定してください。',
+          style: TextStyle(
+            color: Provider.of<ThemeSettings>(context).dialogTextColor,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -326,23 +365,31 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                       SizedBox(height: 24),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(
-                              0xFF795548,
-                            ).withValues(alpha: 0.3),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).borderColor,
                           ),
                         ),
                         child: TextField(
                           controller: _manualMinuteController,
                           keyboardType: TextInputType.number,
+                          style: TextStyle(color: Colors.black),
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Icons.timer,
                               color: Color(0xFF795548),
                             ),
-                            labelText: '分数を入力',
+                            hintText: '分数を入力',
+                            filled: true,
+                            fillColor: Provider.of<ThemeSettings>(
+                              context,
+                            ).inputBackgroundColor,
+                            hintStyle: TextStyle(color: Colors.black),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
@@ -459,12 +506,14 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                       // 豆の種類プルダウン
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(
-                              0xFF795548,
-                            ).withValues(alpha: 0.3),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).borderColor,
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -501,12 +550,14 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                       // 重さプルダウン
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(
-                              0xFF795548,
-                            ).withValues(alpha: 0.3),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).borderColor,
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -542,10 +593,14 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                       // 煎り度プルダウン
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).inputBackgroundColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Color(0xFF795548).withValues(alpha: 0.3),
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).borderColor,
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
@@ -628,11 +683,26 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                             final confirmed = await showDialog<bool>(
                               context: context,
                               builder: (_) => AlertDialog(
-                                title: Text('おすすめ焙煎時間'),
+                                backgroundColor: Provider.of<ThemeSettings>(
+                                  context,
+                                ).dialogBackgroundColor,
+                                title: Text(
+                                  'おすすめ焙煎時間',
+                                  style: TextStyle(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).dialogTextColor,
+                                  ),
+                                ),
                                 content: Text(
                                   '平均焙煎時間: ${format(avgSeconds)}\n'
                                   'おすすめタイマー: ${format(setSeconds)}（平均−60秒）\n\n'
                                   'この時間でタイマーを開始しますか？',
+                                  style: TextStyle(
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).dialogTextColor,
+                                  ),
                                 ),
                                 actions: [
                                   TextButton(

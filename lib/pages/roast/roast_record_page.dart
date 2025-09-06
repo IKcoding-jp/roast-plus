@@ -77,14 +77,14 @@ class _RoastRecordPageState extends State<RoastRecordPage> {
     required String? roastLevel,
     required Function(String?) onRoastLevelChanged,
   }) {
-    final cardColor = Provider.of<ThemeSettings>(context).cardBackgroundColor;
-    final accentColor = Provider.of<ThemeSettings>(context).fontColor1;
-    final iconColor = Provider.of<ThemeSettings>(context).iconColor;
+    final themeSettings = Provider.of<ThemeSettings>(context);
+    final accentColor = themeSettings.fontColor1;
+    final iconColor = themeSettings.iconColor;
 
     return Card(
       elevation: 6,
+      color: themeSettings.cardBackgroundColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: cardColor,
       child: Padding(
         padding: EdgeInsets.all(kIsWeb ? 28.0 : 20.0),
         child: Column(

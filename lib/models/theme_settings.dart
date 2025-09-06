@@ -327,7 +327,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationTextColor': Color(0xFFFFFFFF), // ボトムナビゲーションの文字色
       'dialogBackgroundColor': Color(0xFF2A2A2A), // ダイアログの背景色
       'dialogTextColor': Color(0xFFFFFFFF), // ダイアログの文字色
-      'inputTextColor': Color(0xFFFFFFFF), // テキスト入力欄の文字色
+      'inputTextColor': Color(0xFF000000), // テキスト入力欄の文字色
       'borderColor': Color(0xFF424242), // 境界線の色
       'bottomNavigationSelectedColor': Color(0xFF81C784), // ボトムナビゲーション選択時の色
       'bottomNavigationUnselectedColor': Color(0xFF424242), // ボトムナビゲーション非選択時の色

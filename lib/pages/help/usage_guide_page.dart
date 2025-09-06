@@ -35,7 +35,7 @@ class _DetailPage extends StatelessWidget {
           padding: EdgeInsets.all(16),
           child: Card(
             elevation: 4,
-            color: Colors.white,
+            color: themeSettings.cardBackgroundColor,
             child: Padding(
               padding: EdgeInsets.all(20),
               child: Column(
@@ -246,7 +246,9 @@ class _UsageGuidePageState extends State<UsageGuidePage>
         child: ListTile(
           leading: Icon(
             icon,
-            color: isSelected ? Colors.white : themeSettings.iconColor,
+            color: isSelected
+                ? themeSettings.fontColor2
+                : themeSettings.iconColor,
             size: 24,
           ),
           title: Text(
@@ -254,7 +256,9 @@ class _UsageGuidePageState extends State<UsageGuidePage>
             style: TextStyle(
               fontSize: 16 * themeSettings.fontSizeScale,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? Colors.white : themeSettings.fontColor1,
+              color: isSelected
+                  ? themeSettings.fontColor2
+                  : themeSettings.fontColor1,
               fontFamily: themeSettings.fontFamily,
             ),
           ),

@@ -161,6 +161,7 @@ class TodoPageState extends State<TodoPage>
               Expanded(
                 child: Card(
                   elevation: 8,
+                  color: themeSettings.cardBackgroundColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -211,10 +212,11 @@ class TodoPageState extends State<TodoPage>
                 ),
               ),
               SizedBox(width: 24),
-              
+
               Expanded(
                 child: Card(
                   elevation: 8,
+                  color: themeSettings.cardBackgroundColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -222,7 +224,7 @@ class TodoPageState extends State<TodoPage>
                     padding: EdgeInsets.all(24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [                      
+                      children: [
                         Row(
                           children: [
                             Icon(
@@ -242,7 +244,7 @@ class TodoPageState extends State<TodoPage>
                             ),
                           ],
                         ),
-                        SizedBox(height: 16),                       
+                        SizedBox(height: 16),
                         Expanded(child: TodoListTab(key: _todoListTabKey)),
                       ],
                     ),

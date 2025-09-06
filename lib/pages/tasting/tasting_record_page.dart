@@ -207,6 +207,7 @@ class _TastingRecordPageState extends State<TastingRecordPage> {
                     return Card(
                       margin: EdgeInsets.only(bottom: 12),
                       elevation: 4,
+                      color: themeSettings.cardBackgroundColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -340,6 +341,7 @@ class _TastingRecordPageState extends State<TastingRecordPage> {
                 return Card(
                   margin: EdgeInsets.only(bottom: 12),
                   elevation: 4,
+                  color: themeSettings.cardBackgroundColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
