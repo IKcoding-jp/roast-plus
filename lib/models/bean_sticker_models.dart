@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/app_settings_firestore_service.dart';
 import 'group_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/user_settings_firestore_service.dart';
 import 'dart:developer' as developer;
 
 class BeanSticker {
@@ -60,7 +59,6 @@ class BeanSticker {
 class BeanStickerProvider extends ChangeNotifier {
   List<BeanSticker> _beanStickers = [];
   bool _isLoading = false;
-  static const String _storageKey = 'bean_stickers';
 
   List<BeanSticker> get beanStickers => _beanStickers;
   bool get isLoading => _isLoading;
@@ -96,9 +94,12 @@ class BeanStickerProvider extends ChangeNotifier {
   }
 
   Future<void> loadBeanStickers({String? groupId}) async {
-    developer.log('Loading bean stickers...', name: 'BeanStickerProvider');
+    developer.log(
+      'Loading bean stickers... groupId: $groupId',
+      name: 'BeanStickerProvider',
+    );
     _isLoading = true;
-    // notifyListeners();
+    notifyListeners();
 
     try {
       List<dynamic>? jsonList;
@@ -110,12 +111,15 @@ class BeanStickerProvider extends ChangeNotifier {
       } else {
         // 個人用API
         try {
-          final jsonString = await UserSettingsFirestoreService.getSetting(
-            _storageKey,
+          developer.log(
+            'AppSettingsFirestoreServiceから豆ステッカーを読み込み中...',
+            name: 'BeanStickerProvider',
           );
-          if (jsonString != null) {
-            jsonList = jsonString;
-          }
+          jsonList = await AppSettingsFirestoreService.getBeanStickers();
+          developer.log(
+            'AppSettingsFirestoreServiceからの結果: $jsonList',
+            name: 'BeanStickerProvider',
+          );
         } catch (e) {
           developer.log(
             'Firebaseからの豆ステッカー読み込みエラー: $e',
@@ -125,6 +129,10 @@ class BeanStickerProvider extends ChangeNotifier {
       }
 
       if (jsonList != null) {
+        developer.log(
+          'jsonList is not null, length: ${jsonList.length}',
+          name: 'BeanStickerProvider',
+        );
         _beanStickers = jsonList
             .map((json) => BeanSticker.fromMap(json))
             .toList();
@@ -150,7 +158,7 @@ class BeanStickerProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       developer.log('Loading completed', name: 'BeanStickerProvider');
-      // notifyListeners()を無効化
+      notifyListeners();
     }
   }
 
@@ -160,12 +168,11 @@ class BeanStickerProvider extends ChangeNotifier {
         'Converting bean stickers to JSON...',
         name: 'BeanStickerProvider',
       );
-      final jsonString = _beanStickers.map((bs) => bs.toMap()).toList();
       developer.log(
-        'Saving to Firebase with key: $_storageKey',
+        'Saving to Firebase with AppSettingsFirestoreService',
         name: 'BeanStickerProvider',
       );
-      await UserSettingsFirestoreService.saveSetting(_storageKey, jsonString);
+      await AppSettingsFirestoreService.saveBeanStickers(_beanStickers);
       developer.log(
         'Successfully saved to Firebase',
         name: 'BeanStickerProvider',
@@ -183,12 +190,14 @@ class BeanStickerProvider extends ChangeNotifier {
     try {
       if (groupId != null && groupId.isNotEmpty) {
         // グループ用API
+        developer.log('グループ用APIで保存: $groupId', name: 'BeanStickerProvider');
         await AppSettingsFirestoreService.saveGroupBeanStickers(
           groupId,
           _beanStickers,
         );
       } else {
         // 個人用API
+        developer.log('個人用APIで保存', name: 'BeanStickerProvider');
         await _saveToStorage();
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
@@ -207,7 +216,10 @@ class BeanStickerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> addBeanSticker(BeanSticker beanSticker) async {
+  Future<void> addBeanSticker(
+    BeanSticker beanSticker, {
+    String? groupId,
+  }) async {
     try {
       developer.log(
         'Adding bean sticker:  ${beanSticker.beanName}',
@@ -241,22 +253,30 @@ class BeanStickerProvider extends ChangeNotifier {
         _beanStickers.insert(0, newBeanSticker);
       }
 
-      developer.log('Saving to storage...', name: 'BeanStickerProvider');
-      await _saveToStorage();
+      // グループモードかどうかで保存方法を分岐
+      if (groupId != null && groupId.isNotEmpty) {
+        developer.log('グループモードで保存: $groupId', name: 'BeanStickerProvider');
+        await AppSettingsFirestoreService.saveGroupBeanStickers(
+          groupId,
+          _beanStickers,
+        );
+      } else {
+        developer.log('個人モードで保存', name: 'BeanStickerProvider');
+        await _saveToStorage();
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final groupProvider = GroupProvider();
+          if (groupProvider.groups.isEmpty) {
+            await AppSettingsFirestoreService.saveBeanStickers(_beanStickers);
+          }
+        }
+      }
+
       developer.log(
         'Bean sticker operation completed successfully',
         name: 'BeanStickerProvider',
       );
-
-      // Firestoreにも保存（グループ未参加時のみ）
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final groupProvider = GroupProvider();
-        if (groupProvider.groups.isEmpty) {
-          await AppSettingsFirestoreService.saveBeanStickers(_beanStickers);
-        }
-      }
-      // notifyListeners()を無効化
+      notifyListeners();
     } catch (e) {
       developer.log(
         'Error adding bean sticker: $e',
@@ -266,23 +286,34 @@ class BeanStickerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateBeanSticker(BeanSticker beanSticker) async {
+  Future<void> updateBeanSticker(
+    BeanSticker beanSticker, {
+    String? groupId,
+  }) async {
     try {
       final index = _beanStickers.indexWhere(
         (sticker) => sticker.id == beanSticker.id,
       );
       if (index != -1) {
         _beanStickers[index] = beanSticker.copyWith(updatedAt: DateTime.now());
-        await _saveToStorage();
-        // Firestoreにも保存（グループ未参加時のみ）
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          final groupProvider = GroupProvider();
-          if (groupProvider.groups.isEmpty) {
-            await AppSettingsFirestoreService.saveBeanStickers(_beanStickers);
+
+        // グループモードかどうかで保存方法を分岐
+        if (groupId != null && groupId.isNotEmpty) {
+          await AppSettingsFirestoreService.saveGroupBeanStickers(
+            groupId,
+            _beanStickers,
+          );
+        } else {
+          await _saveToStorage();
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            final groupProvider = GroupProvider();
+            if (groupProvider.groups.isEmpty) {
+              await AppSettingsFirestoreService.saveBeanStickers(_beanStickers);
+            }
           }
         }
-        // notifyListeners()を無効化
+        notifyListeners();
       }
     } catch (e) {
       developer.log(
@@ -293,19 +324,27 @@ class BeanStickerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteBeanSticker(String id) async {
+  Future<void> deleteBeanSticker(String id, {String? groupId}) async {
     try {
       _beanStickers.removeWhere((sticker) => sticker.id == id);
-      await _saveToStorage();
-      // Firestoreにも保存（グループ未参加時のみ）
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final groupProvider = GroupProvider();
-        if (groupProvider.groups.isEmpty) {
-          await AppSettingsFirestoreService.saveBeanStickers(_beanStickers);
+
+      // グループモードかどうかで保存方法を分岐
+      if (groupId != null && groupId.isNotEmpty) {
+        await AppSettingsFirestoreService.saveGroupBeanStickers(
+          groupId,
+          _beanStickers,
+        );
+      } else {
+        await _saveToStorage();
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final groupProvider = GroupProvider();
+          if (groupProvider.groups.isEmpty) {
+            await AppSettingsFirestoreService.saveBeanStickers(_beanStickers);
+          }
         }
       }
-      // notifyListeners()を無効化
+      notifyListeners();
     } catch (e) {
       developer.log(
         'Error deleting bean sticker: $e',
@@ -324,7 +363,7 @@ class BeanStickerProvider extends ChangeNotifier {
             beanName.toLowerCase().trim(),
       );
       await _saveToStorage();
-      // notifyListeners()を無効化
+      notifyListeners();
     } catch (e) {
       developer.log(
         'Error deleting bean sticker by name: $e',

@@ -245,6 +245,11 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                     if (beanName.isNotEmpty) {
                       try {
                         final provider = context.read<BeanStickerProvider>();
+                        final groupProvider = context.read<GroupProvider>();
+                        final groupId = groupProvider.groups.isNotEmpty
+                            ? groupProvider.groups.first.id
+                            : null;
+
                         if (_editingSticker != null) {
                           // 編集
                           await provider.updateBeanSticker(
@@ -252,6 +257,7 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                               beanName: beanName,
                               stickerColor: dialogSelectedColor,
                             ),
+                            groupId: groupId,
                           );
                         } else {
                           // 新規追加
@@ -263,12 +269,26 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                               createdAt: DateTime.now(),
                               updatedAt: DateTime.now(),
                             ),
+                            groupId: groupId,
                           );
                         }
                         navigator.pop();
                         // データを再読み込み
                         if (!mounted) return;
-                        await _loadBeanStickers();
+                        print(
+                          '再読み込み開始 - グループ数: ${groupProvider.groups.length}',
+                        );
+                        if (groupProvider.groups.isNotEmpty) {
+                          print(
+                            'グループモードで再読み込み: ${groupProvider.groups.first.id}',
+                          );
+                          await _loadBeanStickers(
+                            groupId: groupProvider.groups.first.id,
+                          );
+                        } else {
+                          print('個人モードで再読み込み');
+                          await _loadBeanStickers();
+                        }
                       } catch (e) {
                         // 豆ステッカー保存エラー
                         messenger.showSnackBar(
@@ -329,11 +349,24 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
               final messenger = ScaffoldMessenger.of(context);
               try {
                 final provider = context.read<BeanStickerProvider>();
-                await provider.deleteBeanSticker(sticker.id);
+                final groupProvider = context.read<GroupProvider>();
+                final groupId = groupProvider.groups.isNotEmpty
+                    ? groupProvider.groups.first.id
+                    : null;
+                await provider.deleteBeanSticker(sticker.id, groupId: groupId);
                 navigator.pop();
                 // データを再読み込み
                 if (!mounted) return;
-                await _loadBeanStickers();
+                print('削除後再読み込み開始 - グループ数: ${groupProvider.groups.length}');
+                if (groupProvider.groups.isNotEmpty) {
+                  print('グループモードで再読み込み: ${groupProvider.groups.first.id}');
+                  await _loadBeanStickers(
+                    groupId: groupProvider.groups.first.id,
+                  );
+                } else {
+                  print('個人モードで再読み込み');
+                  await _loadBeanStickers();
+                }
               } catch (e) {
                 // 豆ステッカー削除エラー
                 messenger.showSnackBar(

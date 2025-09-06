@@ -226,6 +226,48 @@ class AppSettingsFirestoreService {
     }
   }
 
+  /// 豆のシール設定を取得
+  static Future<List?> getBeanStickers() async {
+    if (_uid == null) throw Exception('未ログイン');
+    try {
+      developer.log('豆のシール設定を取得中...', name: 'AppSettingsFirestoreService');
+      final doc = await _firestore
+          .collection('users')
+          .doc(_uid)
+          .collection('settings')
+          .doc('bean_stickers')
+          .get();
+      developer.log(
+        'ドキュメント存在確認: ${doc.exists}',
+        name: 'AppSettingsFirestoreService',
+      );
+      if (!doc.exists) {
+        developer.log(
+          '豆のシール設定ドキュメントが存在しません',
+          name: 'AppSettingsFirestoreService',
+        );
+        return null;
+      }
+      final data = doc.data();
+      developer.log('ドキュメントデータ: $data', name: 'AppSettingsFirestoreService');
+      if (data == null || data['beanStickers'] == null) {
+        developer.log(
+          'beanStickersフィールドが存在しません',
+          name: 'AppSettingsFirestoreService',
+        );
+        return null;
+      }
+      developer.log(
+        '豆のシール設定取得成功: ${data['beanStickers']}',
+        name: 'AppSettingsFirestoreService',
+      );
+      return data['beanStickers'];
+    } catch (e) {
+      developer.log('豆のシール設定取得エラー: $e', name: 'AppSettingsFirestoreService');
+      return null;
+    }
+  }
+
   /// グループの豆のシール設定を保存
   static Future<void> saveGroupBeanStickers(
     String groupId,
