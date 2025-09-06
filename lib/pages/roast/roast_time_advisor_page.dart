@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:roastplus/pages/roast/roast_timer_settings_page.dart';
@@ -6,6 +7,7 @@ import 'package:roastplus/pages/roast/roast_record_page.dart';
 import '../../services/user_settings_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/theme_settings.dart';
+import '../../utils/text_input_utils.dart';
 
 // ------ タイマー・ページ遷移管理 ------
 enum RoastMode { idle, preheating, roasting, inputManualTime, inputRecommended }
@@ -27,6 +29,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
   final TextEditingController _manualMinuteController = TextEditingController();
   final TextEditingController _beanController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
+  final FocusNode _manualMinuteFocusNode = FocusNode();
 
   String _recommendErrorText = '';
 
@@ -324,6 +327,7 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
     _manualMinuteController.dispose();
     _beanController.dispose();
     _weightController.dispose();
+    _manualMinuteFocusNode.dispose();
     super.dispose();
   }
 
@@ -377,7 +381,46 @@ class _RoastTimerPageState extends State<RoastTimerPage> {
                         ),
                         child: TextField(
                           controller: _manualMinuteController,
-                          keyboardType: TextInputType.number,
+                          focusNode: _manualMinuteFocusNode,
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: false,
+                            signed: false,
+                          ),
+                          textInputAction: TextInputAction.done,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9０-９]'),
+                            ),
+                          ],
+                          onTap: () {
+                            // IMEを半角モードに強制設定
+                            SystemChannels.textInput
+                                .invokeMethod('TextInput.setInputType', {
+                                  'inputType': 'TextInputType.number',
+                                  'inputAction': 'TextInputAction.done',
+                                });
+                          },
+                          onChanged: (value) {
+                            // 全角数字を半角数字に変換
+                            String convertedValue =
+                                TextInputUtils.convertFullWidthToHalfWidth(
+                                  value,
+                                );
+
+                            // 数字以外の文字を除去
+                            convertedValue = convertedValue.replaceAll(
+                              RegExp(r'[^0-9]'),
+                              '',
+                            );
+
+                            if (convertedValue != value) {
+                              _manualMinuteController.text = convertedValue;
+                              _manualMinuteController.selection =
+                                  TextSelection.fromPosition(
+                                    TextPosition(offset: convertedValue.length),
+                                  );
+                            }
+                          },
                           style: TextStyle(color: Colors.black),
                           decoration: InputDecoration(
                             prefixIcon: Icon(
