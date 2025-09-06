@@ -234,153 +234,121 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
       body: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: _loading
-                ? Center(child: CircularProgressIndicator())
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        color: Provider.of<ThemeSettings>(
-                          context,
-                        ).cardBackgroundColor,
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_userName != null &&
-                                  _loginProvider != null) ...[
-                                Row(
-                                  children: [
-                                    _userPhotoUrl != null
-                                        ? CircleAvatar(
-                                            radius: 32,
-                                            backgroundImage: NetworkImage(
-                                              _userPhotoUrl!,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 600, // Web版での最大幅を制限
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: _loading
+                  ? Center(child: CircularProgressIndicator())
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).cardBackgroundColor,
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_userName != null &&
+                                    _loginProvider != null) ...[
+                                  Row(
+                                    children: [
+                                      _userPhotoUrl != null
+                                          ? CircleAvatar(
+                                              radius: 32,
+                                              backgroundImage: NetworkImage(
+                                                _userPhotoUrl!,
+                                              ),
+                                            )
+                                          : Icon(
+                                              Icons.account_circle,
+                                              size: 64,
+                                              color: Provider.of<ThemeSettings>(
+                                                context,
+                                              ).iconColor,
                                             ),
-                                          )
-                                        : Icon(
-                                            Icons.account_circle,
-                                            size: 64,
-                                            color: Provider.of<ThemeSettings>(
-                                              context,
-                                            ).iconColor,
-                                          ),
-                                    SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          // ユーザー名と編集ボタン
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  _userName!,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 18,
+                                      SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // ユーザー名と編集ボタン
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    _userName!,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 18,
+                                                      color:
+                                                          Provider.of<
+                                                                ThemeSettings
+                                                              >(context)
+                                                              .fontColor1,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 4),
+                                                IconButton(
+                                                  icon: Icon(
+                                                    Icons.edit,
+                                                    size: 18,
                                                     color:
                                                         Provider.of<
                                                               ThemeSettings
                                                             >(context)
-                                                            .fontColor1,
+                                                            .iconColor,
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                  tooltip: '表示名を編集',
+                                                  onPressed: _editDisplayName,
                                                 ),
-                                              ),
-                                              SizedBox(width: 4),
-                                              IconButton(
-                                                icon: Icon(
-                                                  Icons.edit,
-                                                  size: 18,
-                                                  color:
-                                                      Provider.of<
-                                                            ThemeSettings
-                                                          >(context)
-                                                          .iconColor,
-                                                ),
-                                                tooltip: '表示名を編集',
-                                                onPressed: _editDisplayName,
-                                              ),
-                                            ],
-                                          ),
-                                          Text(
-                                            'ログイン済み',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor1,
+                                              ],
                                             ),
-                                          ),
-                                          SizedBox(height: 8),
-                                          // バッジ類をログイン済みの下に配置
-                                          Row(
-                                            children: [
-                                              if (_userEmail ==
-                                                  'kensaku.ikeda04@gmail.com')
-                                                Container(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 2,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.blue,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    '開発者',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ),
-                                              if (_userEmail ==
-                                                  'kensaku.ikeda04@gmail.com')
-                                                SizedBox(width: 8),
-                                              FutureBuilder<bool>(
-                                                future: isDonorUser(),
-                                                builder: (context, snapshot) {
-                                                  if (_userEmail ==
-                                                      'kensaku.ikeda04@gmail.com') {
-                                                    return SizedBox.shrink();
-                                                  }
-                                                  if (snapshot.connectionState !=
-                                                          ConnectionState
-                                                              .done ||
-                                                      snapshot.data != true) {
-                                                    return SizedBox.shrink();
-                                                  }
-                                                  return Container(
+                                            Text(
+                                              'ログイン済み',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    Provider.of<ThemeSettings>(
+                                                      context,
+                                                    ).fontColor1,
+                                              ),
+                                            ),
+                                            SizedBox(height: 8),
+                                            // バッジ類をログイン済みの下に配置
+                                            Row(
+                                              children: [
+                                                if (_userEmail ==
+                                                    'kensaku.ikeda04@gmail.com')
+                                                  Container(
                                                     padding:
                                                         EdgeInsets.symmetric(
                                                           horizontal: 8,
                                                           vertical: 2,
                                                         ),
                                                     decoration: BoxDecoration(
-                                                      color: Colors.amber,
+                                                      color: Colors.blue,
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                             12,
                                                           ),
                                                     ),
                                                     child: Text(
-                                                      '寄付者',
+                                                      '開発者',
                                                       style: TextStyle(
                                                         color: Colors.white,
                                                         fontWeight:
@@ -388,317 +356,367 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                                         fontSize: 12,
                                                       ),
                                                     ),
-                                                  );
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+                                                  ),
+                                                if (_userEmail ==
+                                                    'kensaku.ikeda04@gmail.com')
+                                                  SizedBox(width: 8),
+                                                FutureBuilder<bool>(
+                                                  future: isDonorUser(),
+                                                  builder: (context, snapshot) {
+                                                    if (_userEmail ==
+                                                        'kensaku.ikeda04@gmail.com') {
+                                                      return SizedBox.shrink();
+                                                    }
+                                                    if (snapshot.connectionState !=
+                                                            ConnectionState
+                                                                .done ||
+                                                        snapshot.data != true) {
+                                                      return SizedBox.shrink();
+                                                    }
+                                                    return Container(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 2,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.amber,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              12,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        '寄付者',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 24),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    icon: Icon(
-                                      Icons.logout,
-                                      color:
-                                          Theme.of(context)
-                                              .elevatedButtonTheme
-                                              .style
-                                              ?.foregroundColor
-                                              ?.resolve({}) ??
-                                          Colors.white,
-                                    ),
-                                    label: Text('ログアウト'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          Theme.of(context)
-                                              .elevatedButtonTheme
-                                              .style
-                                              ?.backgroundColor
-                                              ?.resolve({}) ??
-                                          Theme.of(context).colorScheme.primary,
-                                      foregroundColor:
-                                          Theme.of(context)
-                                              .elevatedButtonTheme
-                                              .style
-                                              ?.foregroundColor
-                                              ?.resolve({}) ??
-                                          Colors.white,
-                                      elevation: 2,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                                    ],
+                                  ),
+                                  SizedBox(height: 24),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      icon: Icon(
+                                        Icons.logout,
+                                        color:
+                                            Theme.of(context)
+                                                .elevatedButtonTheme
+                                                .style
+                                                ?.foregroundColor
+                                                ?.resolve({}) ??
+                                            Colors.white,
                                       ),
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                    ),
-                                    onPressed: _loading
-                                        ? null
-                                        : () async {
-                                            // 非同期ギャップ後にBuildContextを使わないよう、先に取得
-                                            final navigator = Navigator.of(
+                                      label: Text('ログアウト'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Theme.of(context)
+                                                .elevatedButtonTheme
+                                                .style
+                                                ?.backgroundColor
+                                                ?.resolve({}) ??
+                                            Theme.of(
                                               context,
-                                            );
-                                            final scaffoldMessenger =
-                                                ScaffoldMessenger.of(context);
-                                            setState(() => _loading = true);
-                                            try {
-                                              // GroupProviderの情報をクリア
+                                            ).colorScheme.primary,
+                                        foregroundColor:
+                                            Theme.of(context)
+                                                .elevatedButtonTheme
+                                                .style
+                                                ?.foregroundColor
+                                                ?.resolve({}) ??
+                                            Colors.white,
+                                        elevation: 2,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                      ),
+                                      onPressed: _loading
+                                          ? null
+                                          : () async {
+                                              // 非同期ギャップ後にBuildContextを使わないよう、先に取得
+                                              final navigator = Navigator.of(
+                                                context,
+                                              );
+                                              final scaffoldMessenger =
+                                                  ScaffoldMessenger.of(context);
+                                              setState(() => _loading = true);
+                                              try {
+                                                // GroupProviderの情報をクリア
+                                                final groupProvider =
+                                                    Provider.of<GroupProvider>(
+                                                      context,
+                                                      listen: false,
+                                                    );
+                                                groupProvider.clearOnLogout();
+
+                                                final gamificationProvider =
+                                                    Provider.of<
+                                                      GamificationProvider
+                                                    >(context, listen: false);
+                                                gamificationProvider
+                                                    .clearOnLogout();
+
+                                                final dashboardStatsProvider =
+                                                    Provider.of<
+                                                      DashboardStatsProvider
+                                                    >(context, listen: false);
+                                                dashboardStatsProvider
+                                                    .clearOnLogout();
+
+                                                // GoogleSignIn は使用しない（FirebaseAuth のみでサインアウト）
+                                                await FirebaseAuth.instance
+                                                    .signOut();
+                                                if (!mounted) return;
+                                                setState(() {
+                                                  _userName = null;
+                                                  _loginProvider = null;
+                                                  _userPhotoUrl = null;
+                                                });
+                                                // 設定画面を閉じてホームに戻る（AuthGateが即座にログイン画面を表示）
+                                                navigator.popUntil(
+                                                  (route) => route.isFirst,
+                                                );
+                                              } catch (e) {
+                                                scaffoldMessenger.showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'ログアウト失敗: $e',
+                                                    ),
+                                                  ),
+                                                );
+                                              } finally {
+                                                if (mounted) {
+                                                  setState(
+                                                    () => _loading = false,
+                                                  );
+                                                }
+                                              }
+                                            },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      icon: Icon(
+                                        Icons.delete_forever,
+                                        color: Colors.red,
+                                      ),
+                                      label: Text('アカウントデータ全削除'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: Colors.red,
+                                        elevation: 2,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        side: BorderSide(color: Colors.red),
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                      ),
+                                      onPressed: _loading
+                                          ? null
+                                          : () async {
+                                              // 非同期ギャップ後にBuildContextを使わないよう、先に取得
+                                              final navigator = Navigator.of(
+                                                context,
+                                              );
+                                              final scaffoldMessenger =
+                                                  ScaffoldMessenger.of(context);
+                                              // 非同期前に利用するProviderも先に取得
                                               final groupProvider =
                                                   Provider.of<GroupProvider>(
                                                     context,
                                                     listen: false,
                                                   );
-                                              groupProvider.clearOnLogout();
-
                                               final gamificationProvider =
                                                   Provider.of<
                                                     GamificationProvider
                                                   >(context, listen: false);
-                                              gamificationProvider
-                                                  .clearOnLogout();
-
                                               final dashboardStatsProvider =
                                                   Provider.of<
                                                     DashboardStatsProvider
                                                   >(context, listen: false);
-                                              dashboardStatsProvider
-                                                  .clearOnLogout();
-
-                                              // GoogleSignIn は使用しない（FirebaseAuth のみでサインアウト）
-                                              await FirebaseAuth.instance
-                                                  .signOut();
-                                              if (!mounted) return;
-                                              setState(() {
-                                                _userName = null;
-                                                _loginProvider = null;
-                                                _userPhotoUrl = null;
-                                              });
-                                              // 設定画面を閉じてホームに戻る（AuthGateが即座にログイン画面を表示）
-                                              navigator.popUntil(
-                                                (route) => route.isFirst,
-                                              );
-                                            } catch (e) {
-                                              scaffoldMessenger.showSnackBar(
-                                                SnackBar(
-                                                  content: Text('ログアウト失敗: $e'),
+                                              final confirm = await showDialog<bool>(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  title: Text('本当に削除しますか？'),
+                                                  content: Text(
+                                                    'アカウントに保存された全てのデータ（グループデータを除く）を完全に削除します。\nこの操作は元に戻せません。',
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                            context,
+                                                            false,
+                                                          ),
+                                                      child: Text('キャンセル'),
+                                                    ),
+                                                    ElevatedButton(
+                                                      style:
+                                                          ElevatedButton.styleFrom(
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                            foregroundColor:
+                                                                Colors.white,
+                                                          ),
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                            context,
+                                                            true,
+                                                          ),
+                                                      child: Text('削除する'),
+                                                    ),
+                                                  ],
                                                 ),
                                               );
-                                            } finally {
-                                              if (mounted) {
-                                                setState(
-                                                  () => _loading = false,
+                                              if (confirm != true) return;
+                                              setState(() => _loading = true);
+                                              try {
+                                                groupProvider.clearOnLogout();
+
+                                                gamificationProvider
+                                                    .clearOnLogout();
+
+                                                dashboardStatsProvider
+                                                    .clearOnLogout();
+
+                                                // Firestoreデータ削除
+                                                await DataSyncService.deleteAllUserData();
+                                                // ローカルデータ削除
+                                                // 注: UserSettingsFirestoreServiceにはclearAllSettingsメソッドがないため、
+                                                // 個別に削除するか、暗号化されたローカルストレージを使用
+                                                await EncryptedLocalStorageService.clear();
+                                                // サインアウト（FirebaseAuth のみ）
+                                                await FirebaseAuth.instance
+                                                    .signOut();
+                                                if (!mounted) return;
+                                                setState(() {
+                                                  _userName = null;
+                                                  _loginProvider = null;
+                                                  _userPhotoUrl = null;
+                                                });
+                                                navigator.popUntil(
+                                                  (route) => route.isFirst,
                                                 );
+                                                scaffoldMessenger.showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'アカウントデータを削除しました',
+                                                    ),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              } catch (e) {
+                                                scaffoldMessenger.showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      '削除に失敗しました: $e',
+                                                    ),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
+                                              } finally {
+                                                if (mounted) {
+                                                  setState(
+                                                    () => _loading = false,
+                                                  );
+                                                }
                                               }
-                                            }
-                                          },
+                                            },
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    icon: Icon(
-                                      Icons.delete_forever,
-                                      color: Colors.red,
-                                    ),
-                                    label: Text('アカウントデータ全削除'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: Colors.red,
-                                      elevation: 2,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                                ],
+                                if (_userName == null) ...[
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.account_circle,
+                                        size: 48,
+                                        color: Provider.of<ThemeSettings>(
+                                          context,
+                                        ).iconColor,
                                       ),
-                                      side: BorderSide(color: Colors.red),
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                    ),
-                                    onPressed: _loading
-                                        ? null
-                                        : () async {
-                                            // 非同期ギャップ後にBuildContextを使わないよう、先に取得
-                                            final navigator = Navigator.of(
+                                      SizedBox(width: 16),
+                                      Expanded(
+                                        child: Text(
+                                          '未ログイン',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Provider.of<ThemeSettings>(
                                               context,
-                                            );
-                                            final scaffoldMessenger =
-                                                ScaffoldMessenger.of(context);
-                                            // 非同期前に利用するProviderも先に取得
-                                            final groupProvider =
-                                                Provider.of<GroupProvider>(
-                                                  context,
-                                                  listen: false,
-                                                );
-                                            final gamificationProvider =
-                                                Provider.of<
-                                                  GamificationProvider
-                                                >(context, listen: false);
-                                            final dashboardStatsProvider =
-                                                Provider.of<
-                                                  DashboardStatsProvider
-                                                >(context, listen: false);
-                                            final confirm = await showDialog<bool>(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: Text('本当に削除しますか？'),
-                                                content: Text(
-                                                  'アカウントに保存された全てのデータ（グループデータを除く）を完全に削除します。\nこの操作は元に戻せません。',
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                          context,
-                                                          false,
-                                                        ),
-                                                    child: Text('キャンセル'),
-                                                  ),
-                                                  ElevatedButton(
-                                                    style:
-                                                        ElevatedButton.styleFrom(
-                                                          backgroundColor:
-                                                              Colors.red,
-                                                          foregroundColor:
-                                                              Colors.white,
-                                                        ),
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                          context,
-                                                          true,
-                                                        ),
-                                                    child: Text('削除する'),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                            if (confirm != true) return;
-                                            setState(() => _loading = true);
-                                            try {
-                                              groupProvider.clearOnLogout();
-
-                                              gamificationProvider
-                                                  .clearOnLogout();
-
-                                              dashboardStatsProvider
-                                                  .clearOnLogout();
-
-                                              // Firestoreデータ削除
-                                              await DataSyncService.deleteAllUserData();
-                                              // ローカルデータ削除
-                                              // 注: UserSettingsFirestoreServiceにはclearAllSettingsメソッドがないため、
-                                              // 個別に削除するか、暗号化されたローカルストレージを使用
-                                              await EncryptedLocalStorageService.clear();
-                                              // サインアウト（FirebaseAuth のみ）
-                                              await FirebaseAuth.instance
-                                                  .signOut();
-                                              if (!mounted) return;
-                                              setState(() {
-                                                _userName = null;
-                                                _loginProvider = null;
-                                                _userPhotoUrl = null;
-                                              });
-                                              navigator.popUntil(
-                                                (route) => route.isFirst,
-                                              );
-                                              scaffoldMessenger.showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'アカウントデータを削除しました',
-                                                  ),
-                                                  backgroundColor: Colors.red,
-                                                ),
-                                              );
-                                            } catch (e) {
-                                              scaffoldMessenger.showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    '削除に失敗しました: $e',
-                                                  ),
-                                                  backgroundColor: Colors.red,
-                                                ),
-                                              );
-                                            } finally {
-                                              if (mounted) {
-                                                setState(
-                                                  () => _loading = false,
-                                                );
-                                              }
-                                            }
-                                          },
-                                  ),
-                                ),
-                              ],
-                              if (_userName == null) ...[
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.account_circle,
-                                      size: 48,
-                                      color: Provider.of<ThemeSettings>(
-                                        context,
-                                      ).iconColor,
-                                    ),
-                                    SizedBox(width: 16),
-                                    Expanded(
-                                      child: Text(
-                                        '未ログイン',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Provider.of<ThemeSettings>(
-                                            context,
-                                          ).fontColor1,
-                                          fontSize: 16,
+                                            ).fontColor1,
+                                            fontSize: 16,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 24),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    icon: Image.asset(
-                                      'assets/google_logo.png',
-                                      height: 24,
-                                    ),
-                                    label: Text('Googleでログイン'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor:
-                                          Provider.of<ThemeSettings>(
-                                            context,
-                                          ).fontColor1,
-                                      elevation: 2,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        side: BorderSide(
-                                          color: Provider.of<ThemeSettings>(
-                                            context,
-                                          ).fontColor1,
-                                          width: 1,
+                                    ],
+                                  ),
+                                  SizedBox(height: 24),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      icon: Image.asset(
+                                        'assets/google_logo.png',
+                                        height: 24,
+                                      ),
+                                      label: Text('Googleでログイン'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor:
+                                            Provider.of<ThemeSettings>(
+                                              context,
+                                            ).fontColor1,
+                                        elevation: 2,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          side: BorderSide(
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).fontColor1,
+                                            width: 1,
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 14,
                                         ),
                                       ),
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
+                                      onPressed: _loading
+                                          ? null
+                                          : _signInWithGoogle,
                                     ),
-                                    onPressed: _loading
-                                        ? null
-                                        : _signInWithGoogle,
                                   ),
-                                ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),
