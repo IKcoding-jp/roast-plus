@@ -327,15 +327,22 @@ class _SoundSettingsPageState extends State<SoundSettingsPage> {
           color: themeSettings.backgroundColor,
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _buildTimerSoundSection(themeSettings),
-                    const SizedBox(height: 24),
-                    _buildNotificationSoundSection(themeSettings),
-                    const SizedBox(height: 24),
-                    _buildVolumeSection(themeSettings),
-                  ],
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: 600, // Web版での最大幅を制限
+                    ),
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        _buildTimerSoundSection(themeSettings),
+                        const SizedBox(height: 24),
+                        _buildNotificationSoundSection(themeSettings),
+                        const SizedBox(height: 24),
+                        _buildVolumeSection(themeSettings),
+                      ],
+                    ),
+                  ),
                 ),
         ),
       ),
