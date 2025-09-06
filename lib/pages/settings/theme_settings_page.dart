@@ -98,18 +98,27 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
           ? Center(child: CircularProgressIndicator())
           : Container(
               color: themeSettings.backgroundColor,
-              padding: const EdgeInsets.all(16),
-              child: ListView(
-                children: [
-                  _buildPresetSection(context, themeSettings),
-                  if (_isDonorUser == true) ...[
-                    const SizedBox(height: 24),
-                    _buildCustomThemesSection(context, themeSettings),
-                  ] else ...[
-                    const SizedBox(height: 24),
-                    _buildDonationSection(context, themeSettings),
-                  ],
-                ],
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: 600, // Web版での最大幅を制限
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: ListView(
+                      children: [
+                        _buildPresetSection(context, themeSettings),
+                        if (_isDonorUser == true) ...[
+                          const SizedBox(height: 24),
+                          _buildCustomThemesSection(context, themeSettings),
+                        ] else ...[
+                          const SizedBox(height: 24),
+                          _buildDonationSection(context, themeSettings),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
     );

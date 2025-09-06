@@ -221,152 +221,164 @@ class _PasscodeLockSettingsPageState extends State<PasscodeLockSettingsPage> {
       appBar: AppBar(title: Text('パスコードロック設定')),
       body: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_isLockEnabled) ...[
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  color: Provider.of<ThemeSettings>(
-                    context,
-                  ).cardBackgroundColor,
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 600, // Web版での最大幅を制限
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_isLockEnabled) ...[
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      color: Provider.of<ThemeSettings>(
+                        context,
+                      ).cardBackgroundColor,
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.lock, color: Colors.green, size: 24),
-                            SizedBox(width: 8),
+                            Row(
+                              children: [
+                                Icon(Icons.lock, color: Colors.green, size: 24),
+                                SizedBox(width: 8),
+                                Text(
+                                  'パスコードロックが有効です',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Provider.of<ThemeSettings>(
+                                      context,
+                                    ).fontColor1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 12),
                             Text(
-                              'パスコードロックが有効です',
+                              'アプリを開く際にパスコードの入力が必要です',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 14,
+                                color: Provider.of<ThemeSettings>(
+                                  context,
+                                ).fontColor1,
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: Icon(Icons.lock_open),
+                                label: Text('パスコードロックを無効にする'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _isSaving
+                                    ? null
+                                    : _requestDisableLock,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      color: Provider.of<ThemeSettings>(
+                        context,
+                      ).cardBackgroundColor,
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'パスコードを設定',
+                              style: TextStyle(
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Provider.of<ThemeSettings>(
                                   context,
                                 ).fontColor1,
                               ),
                             ),
+                            SizedBox(height: 16),
+                            TextField(
+                              controller: _passcodeController,
+                              keyboardType: TextInputType.numberWithOptions(
+                                decimal: false,
+                                signed: false,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: 'パスコード（4桁）',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              maxLength: 4,
+                            ),
+                            SizedBox(height: 12),
+                            TextField(
+                              controller: _confirmController,
+                              keyboardType: TextInputType.numberWithOptions(
+                                decimal: false,
+                                signed: false,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: 'パスコード確認',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              maxLength: 4,
+                            ),
+                            if (_error != null) ...[
+                              SizedBox(height: 8),
+                              Text(
+                                _error!,
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                            SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: Icon(Icons.lock),
+                                label: Text('パスコードを設定'),
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _isSaving ? null : _savePasscode,
+                              ),
+                            ),
                           ],
                         ),
-                        SizedBox(height: 12),
-                        Text(
-                          'アプリを開く際にパスコードの入力が必要です',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Provider.of<ThemeSettings>(
-                              context,
-                            ).fontColor1,
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            icon: Icon(Icons.lock_open),
-                            label: Text('パスコードロックを無効にする'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: _isSaving ? null : _requestDisableLock,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              ] else ...[
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  color: Provider.of<ThemeSettings>(
-                    context,
-                  ).cardBackgroundColor,
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'パスコードを設定',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Provider.of<ThemeSettings>(
-                              context,
-                            ).fontColor1,
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        TextField(
-                          controller: _passcodeController,
-                          keyboardType: TextInputType.numberWithOptions(
-                            decimal: false,
-                            signed: false,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: 'パスコード（4桁）',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          maxLength: 4,
-                        ),
-                        SizedBox(height: 12),
-                        TextField(
-                          controller: _confirmController,
-                          keyboardType: TextInputType.numberWithOptions(
-                            decimal: false,
-                            signed: false,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: 'パスコード確認',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          maxLength: 4,
-                        ),
-                        if (_error != null) ...[
-                          SizedBox(height: 8),
-                          Text(
-                            _error!,
-                            style: TextStyle(color: Colors.red, fontSize: 14),
-                          ),
-                        ],
-                        SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            icon: Icon(Icons.lock),
-                            label: Text('パスコードを設定'),
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: _isSaving ? null : _savePasscode,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
