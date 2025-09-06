@@ -367,8 +367,12 @@ class _BadgeListPageState extends State<BadgeListPage>
     return Container(
       padding: EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: themeSettings.cardBackgroundColor,
+        color: themeSettings.backgroundColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: themeSettings.iconColor.withValues(alpha: 0.2),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -389,7 +393,7 @@ class _BadgeListPageState extends State<BadgeListPage>
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: themeSettings.fontColor1,
+                    color: Colors.black87,
                     fontFamily: themeSettings.fontFamily,
                   ),
                 ),
@@ -398,7 +402,7 @@ class _BadgeListPageState extends State<BadgeListPage>
                   'チームの成果を確認しましょう',
                   style: TextStyle(
                     fontSize: 16,
-                    color: themeSettings.fontColor2,
+                    color: Colors.black54,
                     fontFamily: themeSettings.fontFamily,
                   ),
                 ),
@@ -447,11 +451,18 @@ class _BadgeListPageState extends State<BadgeListPage>
                   height: 120,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: themeSettings.backgroundColor,
+                    color: themeSettings.cardBackgroundColor,
                     border: Border.all(
-                      color: themeSettings.iconColor.withValues(alpha: 0.2),
+                      color: themeSettings.iconColor.withValues(alpha: 0.3),
                       width: 8,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
                 ),
                 // 進捗サークル
@@ -476,7 +487,7 @@ class _BadgeListPageState extends State<BadgeListPage>
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: themeSettings.fontColor1,
+                        color: Colors.black87,
                         fontFamily: themeSettings.fontFamily,
                       ),
                     ),
@@ -484,7 +495,7 @@ class _BadgeListPageState extends State<BadgeListPage>
                       '完了',
                       style: TextStyle(
                         fontSize: 12,
-                        color: themeSettings.fontColor2,
+                        color: Colors.black54,
                         fontFamily: themeSettings.fontFamily,
                       ),
                     ),
@@ -508,9 +519,16 @@ class _BadgeListPageState extends State<BadgeListPage>
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: themeSettings.cardBackgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -525,7 +543,7 @@ class _BadgeListPageState extends State<BadgeListPage>
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: color,
+                  color: Colors.black87,
                   fontFamily: themeSettings.fontFamily,
                 ),
               ),
@@ -533,7 +551,7 @@ class _BadgeListPageState extends State<BadgeListPage>
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: themeSettings.fontColor2,
+                  color: Colors.black54,
                   fontFamily: themeSettings.fontFamily,
                 ),
               ),
@@ -1202,8 +1220,8 @@ class _BadgeCardState extends State<BadgeCard>
                     children: [
                       // グラデーション背景
                       Container(
-                        width: widget.isWeb ? 60 : 80,
-                        height: widget.isWeb ? 60 : 80,
+                        width: widget.isWeb ? 70 : 80,
+                        height: widget.isWeb ? 70 : 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: widget.isEarned
@@ -1257,14 +1275,14 @@ class _BadgeCardState extends State<BadgeCard>
                                     .star // デフォルトアイコンを使用
                               : Icons.lock,
                           color: Colors.white,
-                          size: widget.isWeb ? 24 : 40,
+                          size: widget.isWeb ? 28 : 40,
                         ),
                       ),
                       // 進捗リング（未獲得の場合）
                       if (!widget.isEarned)
                         SizedBox(
-                          width: widget.isWeb ? 70 : 90,
-                          height: widget.isWeb ? 70 : 90,
+                          width: widget.isWeb ? 80 : 90,
+                          height: widget.isWeb ? 80 : 90,
                           child: CircularProgressIndicator(
                             value: widget.progress,
                             backgroundColor: Colors.grey.shade200,
@@ -1287,17 +1305,15 @@ class _BadgeCardState extends State<BadgeCard>
                   child: Text(
                     widget.condition.name,
                     style: TextStyle(
-                      color: widget.isEarned
-                          ? widget.themeSettings.fontColor1
-                          : Colors.grey.shade600,
+                      color: widget.isEarned ? Colors.black87 : Colors.black54,
                       fontSize:
-                          (widget.isWeb ? 10 : 14) *
+                          (widget.isWeb ? 14 : 14) *
                           widget.themeSettings.fontSizeScale,
                       fontWeight: FontWeight.bold,
                       fontFamily: widget.themeSettings.fontFamily,
                     ),
                     textAlign: TextAlign.center,
-                    maxLines: widget.isWeb ? 1 : 2,
+                    maxLines: widget.isWeb ? 2 : 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -1331,9 +1347,9 @@ class _BadgeCardState extends State<BadgeCard>
                     style: TextStyle(
                       color: widget.condition.color,
                       fontSize:
-                          (widget.isWeb ? 8 : 12) *
+                          (widget.isWeb ? 12 : 12) *
                           widget.themeSettings.fontSizeScale,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                       fontFamily: widget.themeSettings.fontFamily,
                     ),
                   ),
@@ -1344,9 +1360,9 @@ class _BadgeCardState extends State<BadgeCard>
                   Text(
                     '${widget.earnedBadge!.earnedAt.month}/${widget.earnedBadge!.earnedAt.day} 獲得',
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: Colors.black54,
                       fontSize:
-                          (widget.isWeb ? 8 : 10) *
+                          (widget.isWeb ? 10 : 10) *
                           widget.themeSettings.fontSizeScale,
                       fontFamily: widget.themeSettings.fontFamily,
                     ),
