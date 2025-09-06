@@ -119,164 +119,179 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: Provider.of<ThemeSettings>(
-            context,
-          ).dialogBackgroundColor,
-          titleTextStyle: TextStyle(
-            color: Provider.of<ThemeSettings>(context).dialogTextColor,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-          contentTextStyle: TextStyle(
-            color: Provider.of<ThemeSettings>(context).dialogTextColor,
-            fontSize: 16,
-          ),
-          title: Text(sticker == null ? '豆のシールを追加' : '豆のシールを編集'),
-          content: ConstrainedBox(
+        builder: (context, setDialogState) => Center(
+          child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.6,
+              maxWidth: 500, // Web版での最大幅を制限
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _beanNameController,
-                    decoration: InputDecoration(
-                      labelText: '豆の名前',
-                      labelStyle: TextStyle(
-                        color: Provider.of<ThemeSettings>(
-                          context,
-                        ).dialogTextColor,
-                      ),
-                      border: OutlineInputBorder(),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Provider.of<ThemeSettings>(context).iconColor,
-                        ),
-                      ),
-                    ),
-                    style: TextStyle(
-                      color: Provider.of<ThemeSettings>(
-                        context,
-                      ).dialogTextColor,
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    'シールの色を選択',
-                    style: TextStyle(
-                      color: Provider.of<ThemeSettings>(
-                        context,
-                      ).dialogTextColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _colorOptions.map((color) {
-                      final isSelected = color == dialogSelectedColor;
-                      return GestureDetector(
-                        onTap: () {
-                          setDialogState(() {
-                            dialogSelectedColor = color;
-                          });
-                        },
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: isSelected
-                                ? Border.all(color: Colors.white, width: 3)
-                                : null,
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                      color: color.withValues(alpha: 0.5),
-                                      blurRadius: 8,
-                                      spreadRadius: 2,
-                                    ),
-                                  ]
-                                : null,
+            child: AlertDialog(
+              backgroundColor: Provider.of<ThemeSettings>(
+                context,
+              ).dialogBackgroundColor,
+              titleTextStyle: TextStyle(
+                color: Provider.of<ThemeSettings>(context).dialogTextColor,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              contentTextStyle: TextStyle(
+                color: Provider.of<ThemeSettings>(context).dialogTextColor,
+                fontSize: 16,
+              ),
+              title: Text(sticker == null ? '豆のシールを追加' : '豆のシールを編集'),
+              content: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.6,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _beanNameController,
+                        decoration: InputDecoration(
+                          labelText: '豆の名前',
+                          labelStyle: TextStyle(
+                            color: Provider.of<ThemeSettings>(
+                              context,
+                            ).dialogTextColor,
                           ),
-                          child: isSelected
-                              ? Icon(Icons.check, color: Colors.white, size: 20)
-                              : null,
+                          border: OutlineInputBorder(),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).iconColor,
+                            ),
+                          ),
                         ),
-                      );
-                    }).toList(),
+                        style: TextStyle(
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).dialogTextColor,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        'シールの色を選択',
+                        style: TextStyle(
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).dialogTextColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _colorOptions.map((color) {
+                          final isSelected = color == dialogSelectedColor;
+                          return GestureDetector(
+                            onTap: () {
+                              setDialogState(() {
+                                dialogSelectedColor = color;
+                              });
+                            },
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: isSelected
+                                    ? Border.all(color: Colors.white, width: 3)
+                                    : null,
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: color.withValues(alpha: 0.5),
+                                          blurRadius: 8,
+                                          spreadRadius: 2,
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: isSelected
+                                  ? Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 20,
+                                    )
+                                  : null,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              style: TextButton.styleFrom(
-                foregroundColor: Provider.of<ThemeSettings>(context).fontColor1,
-              ),
-              child: Text('キャンセル'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final beanName = _beanNameController.text.trim();
-                final messenger = ScaffoldMessenger.of(context);
-                final navigator = Navigator.of(context);
-                if (beanName.isNotEmpty) {
-                  try {
-                    final provider = context.read<BeanStickerProvider>();
-                    if (_editingSticker != null) {
-                      // 編集
-                      await provider.updateBeanSticker(
-                        _editingSticker!.copyWith(
-                          beanName: beanName,
-                          stickerColor: dialogSelectedColor,
-                        ),
-                      );
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Provider.of<ThemeSettings>(
+                      context,
+                    ).fontColor1,
+                  ),
+                  child: Text('キャンセル'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final beanName = _beanNameController.text.trim();
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
+                    if (beanName.isNotEmpty) {
+                      try {
+                        final provider = context.read<BeanStickerProvider>();
+                        if (_editingSticker != null) {
+                          // 編集
+                          await provider.updateBeanSticker(
+                            _editingSticker!.copyWith(
+                              beanName: beanName,
+                              stickerColor: dialogSelectedColor,
+                            ),
+                          );
+                        } else {
+                          // 新規追加
+                          await provider.addBeanSticker(
+                            BeanSticker(
+                              id: '',
+                              beanName: beanName,
+                              stickerColor: dialogSelectedColor,
+                              createdAt: DateTime.now(),
+                              updatedAt: DateTime.now(),
+                            ),
+                          );
+                        }
+                        navigator.pop();
+                        // データを再読み込み
+                        if (!mounted) return;
+                        await _loadBeanStickers();
+                      } catch (e) {
+                        // 豆ステッカー保存エラー
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('保存に失敗しました: $e')),
+                        );
+                      }
                     } else {
-                      // 新規追加
-                      await provider.addBeanSticker(
-                        BeanSticker(
-                          id: '',
-                          beanName: beanName,
-                          stickerColor: dialogSelectedColor,
-                          createdAt: DateTime.now(),
-                          updatedAt: DateTime.now(),
-                        ),
+                      messenger.showSnackBar(
+                        SnackBar(content: Text('豆の名前を入力してください')),
                       );
                     }
-                    navigator.pop();
-                    // データを再読み込み
-                    if (!mounted) return;
-                    await _loadBeanStickers();
-                  } catch (e) {
-                    // 豆ステッカー保存エラー
-                    messenger.showSnackBar(
-                      SnackBar(content: Text('保存に失敗しました: $e')),
-                    );
-                  }
-                } else {
-                  messenger.showSnackBar(
-                    SnackBar(content: Text('豆の名前を入力してください')),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Provider.of<ThemeSettings>(
-                  context,
-                ).buttonColor,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(_editingSticker == null ? '追加' : '更新'),
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Provider.of<ThemeSettings>(
+                      context,
+                    ).buttonColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(_editingSticker == null ? '追加' : '更新'),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -376,147 +391,158 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // 説明文
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(16),
-                  color: Provider.of<ThemeSettings>(
-                    context,
-                  ).cardBackgroundColor,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '豆の種類ごとに色のついた丸シールを設定できます',
-                        style: TextStyle(
-                          color: Provider.of<ThemeSettings>(context).fontColor1,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '設定したシールは、焙煎記録や作業状況記録などで豆の名前の横に表示されます',
-                        style: TextStyle(
-                          color: Provider.of<ThemeSettings>(
-                            context,
-                          ).fontColor1.withValues(alpha: 0.8),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
+          : Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 600, // Web版での最大幅を制限
                 ),
-
-                // シール一覧
-                Expanded(
-                  child: _beanStickers.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.label_outline,
-                                size: 64,
-                                color: Provider.of<ThemeSettings>(
-                                  context,
-                                ).fontColor1.withValues(alpha: 0.5),
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'シール設定がありません',
-                                style: TextStyle(
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).fontColor1.withValues(alpha: 0.7),
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                '下のボタンから豆のシールを追加してください',
-                                style: TextStyle(
-                                  color: Provider.of<ThemeSettings>(
-                                    context,
-                                  ).fontColor1.withValues(alpha: 0.5),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.all(16),
-                          itemCount: _beanStickers.length,
-                          itemBuilder: (context, index) {
-                            final sticker = _beanStickers[index];
-                            return Card(
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                child: Column(
+                  children: [
+                    // 説明文
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(16),
+                      color: Provider.of<ThemeSettings>(
+                        context,
+                      ).cardBackgroundColor,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '豆の種類ごとに色のついた丸シールを設定できます',
+                            style: TextStyle(
                               color: Provider.of<ThemeSettings>(
                                 context,
-                              ).cardBackgroundColor,
-                              margin: EdgeInsets.only(bottom: 12),
-                              child: ListTile(
-                                leading: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: sticker.stickerColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                title: Text(
-                                  sticker.beanName,
-                                  style: TextStyle(
+                              ).fontColor1,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '設定したシールは、焙煎記録や作業状況記録などで豆の名前の横に表示されます',
+                            style: TextStyle(
+                              color: Provider.of<ThemeSettings>(
+                                context,
+                              ).fontColor1.withValues(alpha: 0.8),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // シール一覧
+                    Expanded(
+                      child: _beanStickers.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.label_outline,
+                                    size: 64,
                                     color: Provider.of<ThemeSettings>(
                                       context,
-                                    ).fontColor1,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                    ).fontColor1.withValues(alpha: 0.5),
                                   ),
-                                ),
-                                // subtitle: Text(
-                                //   '例：●${sticker.beanName}',
-                                //   style: TextStyle(
-                                //     color: Provider.of<ThemeSettings>(
-                                //       context,
-                                //     ).fontColor1.withOpacity(0.7),
-                                //     fontSize: 14,
-                                //   ),
-                                // ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.edit,
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'シール設定がありません',
+                                    style: TextStyle(
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1.withValues(alpha: 0.7),
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    '下のボタンから豆のシールを追加してください',
+                                    style: TextStyle(
+                                      color: Provider.of<ThemeSettings>(
+                                        context,
+                                      ).fontColor1.withValues(alpha: 0.5),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: EdgeInsets.all(16),
+                              itemCount: _beanStickers.length,
+                              itemBuilder: (context, index) {
+                                final sticker = _beanStickers[index];
+                                return Card(
+                                  elevation: 4,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  color: Provider.of<ThemeSettings>(
+                                    context,
+                                  ).cardBackgroundColor,
+                                  margin: EdgeInsets.only(bottom: 12),
+                                  child: ListTile(
+                                    leading: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: sticker.stickerColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      sticker.beanName,
+                                      style: TextStyle(
                                         color: Provider.of<ThemeSettings>(
                                           context,
-                                        ).iconColor,
+                                        ).fontColor1,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
                                       ),
-                                      onPressed: () =>
-                                          _showAddEditDialog(sticker: sticker),
                                     ),
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.delete,
-                                        color: Colors.red,
-                                      ),
-                                      onPressed: () => _deleteSticker(sticker),
+                                    // subtitle: Text(
+                                    //   '例：●${sticker.beanName}',
+                                    //   style: TextStyle(
+                                    //     color: Provider.of<ThemeSettings>(
+                                    //       context,
+                                    //     ).fontColor1.withOpacity(0.7),
+                                    //     fontSize: 14,
+                                    //   ),
+                                    // ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.edit,
+                                            color: Provider.of<ThemeSettings>(
+                                              context,
+                                            ).iconColor,
+                                          ),
+                                          onPressed: () => _showAddEditDialog(
+                                            sticker: sticker,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.delete,
+                                            color: Colors.red,
+                                          ),
+                                          onPressed: () =>
+                                              _deleteSticker(sticker),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditDialog(),
