@@ -133,238 +133,247 @@ class _DonationPageState extends State<DonationPage> {
       appBar: AppBar(title: Text('寄付で応援する')),
       body: Container(
         color: theme.scaffoldBackgroundColor,
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            // 開発者メッセージ
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              color: theme.cardColor,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.volunteer_activism,
-                          color: Colors.amber,
-                          size: 32,
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          '開発者からのメッセージ',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'このアプリは、BYSNで実際に働いている従業員が作っている非公式アプリです。寄付で応援していただけるととても励みになります。\n開発に役立てて今後もより良いアプリにしていきますので、どうぞよろしくお願いします！',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 600, // Web版での最大幅を制限
             ),
-            SizedBox(height: 24),
-            // 金額選択・寄付UI
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              color: theme.cardColor,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '寄付金額を選択してください（300円から）',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      children: _amountOptions
-                          .map(
-                            (amount) => ChoiceChip(
-                              label: Text('¥$amount'),
-                              selected: _selectedAmount == amount,
-                              onSelected: (selected) {
-                                setState(() {
-                                  _selectedAmount = selected ? amount : null;
-                                  _customAmountController.clear();
-                                });
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    SizedBox(height: 16),
-                    Row(
+            child: ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                // 開発者メッセージ
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  color: theme.cardColor,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _customAmountController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'その他の金額（300円以上）',
-                              border: OutlineInputBorder(),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.volunteer_activism,
+                              color: Colors.amber,
+                              size: 32,
                             ),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedAmount = null;
-                              });
-                            },
+                            SizedBox(width: 12),
+                            Text(
+                              '開発者からのメッセージ',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'このアプリは、BYSNで実際に働いている従業員が作っている非公式アプリです。寄付で応援していただけるととても励みになります。\n開発に役立てて今後もより良いアプリにしていきますので、どうぞよろしくお願いします！',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: theme.textTheme.bodyMedium?.color,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 32),
-                    Center(
-                      child: ElevatedButton.icon(
-                        icon: Icon(
-                          Icons.volunteer_activism,
-                          color: Colors.white,
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () {
-                          int? amount =
-                              _selectedAmount ??
-                              int.tryParse(_customAmountController.text);
-                          if (amount == null || amount < 300) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('300円以上の金額を入力してください')),
-                            );
-                            return;
-                          }
-                          _onDonate();
-                        },
-                        label: Text(
-                          '寄付する',
+                  ),
+                ),
+                SizedBox(height: 24),
+                // 金額選択・寄付UI
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  color: theme.cardColor,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '寄付金額を選択してください（300円から）',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
-                      ),
-                    ),
-                    SizedBox(height: 24),
-                    Card(
-                      elevation: 0,
-                      color: Colors.amber[50],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        SizedBox(height: 16),
+                        Wrap(
+                          spacing: 12,
+                          children: _amountOptions
+                              .map(
+                                (amount) => ChoiceChip(
+                                  label: Text('¥$amount'),
+                                  selected: _selectedAmount == amount,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      _selectedAmount = selected
+                                          ? amount
+                                          : null;
+                                      _customAmountController.clear();
+                                    });
+                                  },
+                                ),
+                              )
+                              .toList(),
+                        ),
+                        SizedBox(height: 16),
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.emoji_events,
-                                  color: Colors.amber,
-                                  size: 28,
+                            Expanded(
+                              child: TextField(
+                                controller: _customAmountController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'その他の金額（300円以上）',
+                                  border: OutlineInputBorder(),
                                 ),
-                                SizedBox(width: 8),
-                                Text(
-                                  '寄付者特典',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Colors.amber[900],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 12),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.block,
-                                  color: Colors.redAccent,
-                                  size: 22,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '広告が永久に非表示',
-                                    style: TextStyle(fontSize: 15),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 8),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.palette,
-                                  color: Colors.blueAccent,
-                                  size: 22,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '22種類のカラーテーマが開放',
-                                    style: TextStyle(fontSize: 15),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 8),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.font_download,
-                                  color: Colors.green,
-                                  size: 22,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '5種類のフォントが開放',
-                                    style: TextStyle(fontSize: 15),
-                                  ),
-                                ),
-                              ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedAmount = null;
+                                  });
+                                },
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                        SizedBox(height: 32),
+                        Center(
+                          child: ElevatedButton.icon(
+                            icon: Icon(
+                              Icons.volunteer_activism,
+                              color: Colors.white,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              int? amount =
+                                  _selectedAmount ??
+                                  int.tryParse(_customAmountController.text);
+                              if (amount == null || amount < 300) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('300円以上の金額を入力してください')),
+                                );
+                                return;
+                              }
+                              _onDonate();
+                            },
+                            label: Text(
+                              '寄付する',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 24),
+                        Card(
+                          elevation: 0,
+                          color: Colors.amber[50],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.emoji_events,
+                                      color: Colors.amber,
+                                      size: 28,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      '寄付者特典',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.amber[900],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 12),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.block,
+                                      color: Colors.redAccent,
+                                      size: 22,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '広告が永久に非表示',
+                                        style: TextStyle(fontSize: 15),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.palette,
+                                      color: Colors.blueAccent,
+                                      size: 22,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '22種類のカラーテーマが開放',
+                                        style: TextStyle(fontSize: 15),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.font_download,
+                                      color: Colors.green,
+                                      size: 22,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '5種類のフォントが開放',
+                                        style: TextStyle(fontSize: 15),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
