@@ -2454,257 +2454,288 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          elevation: 8,
-          backgroundColor: Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // 上部に大きなアイコンと名前
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: roleColor.withValues(alpha: 0.12),
-                  child: profileImageUrl != null
-                      ? ClipOval(
-                          child: Image.network(
-                            profileImageUrl,
-                            width: 64,
-                            height: 64,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              // 画像読み込みエラー時、Gmailアカウントの場合はGoogleプロフィール画像を試す
-                              if (member.email.contains('@gmail.com') ||
-                                  member.email.contains('@googlemail.com')) {
-                                final emailHash = member.email
-                                    .toLowerCase()
-                                    .trim();
-                                final googleUrl =
-                                    'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
-                                return ClipOval(
-                                  child: Image.network(
-                                    googleUrl,
-                                    width: 64,
-                                    height: 64,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error2, stackTrace2) {
-                                          // Googleプロフィール画像も失敗した場合はデフォルトアイコンを表示
-                                          return Container(
-                                            width: 64,
-                                            height: 64,
-                                            decoration: BoxDecoration(
-                                              color: roleColor.withValues(
-                                                alpha: 0.12,
-                                              ),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                member.displayName.isNotEmpty
-                                                    ? member.displayName[0]
-                                                          .toUpperCase()
-                                                    : '?',
-                                                style: TextStyle(
-                                                  fontSize: 28,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: roleColor,
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                  ),
-                                );
-                              }
-                              // Gmailアカウントでない場合はデフォルトアイコンを表示
-                              return Container(
+        return Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 500, // Web版での最大幅を制限
+            ),
+            child: Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              elevation: 8,
+              backgroundColor: Provider.of<ThemeSettings>(
+                context,
+              ).dialogBackgroundColor,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 28,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // 上部に大きなアイコンと名前
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: roleColor.withValues(alpha: 0.12),
+                      child: profileImageUrl != null
+                          ? ClipOval(
+                              child: Image.network(
+                                profileImageUrl,
                                 width: 64,
                                 height: 64,
-                                decoration: BoxDecoration(
-                                  color: roleColor.withValues(alpha: 0.12),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    member.displayName.isNotEmpty
-                                        ? member.displayName[0].toUpperCase()
-                                        : '?',
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: roleColor,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  // 画像読み込みエラー時、Gmailアカウントの場合はGoogleプロフィール画像を試す
+                                  if (member.email.contains('@gmail.com') ||
+                                      member.email.contains(
+                                        '@googlemail.com',
+                                      )) {
+                                    final emailHash = member.email
+                                        .toLowerCase()
+                                        .trim();
+                                    final googleUrl =
+                                        'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
+                                    return ClipOval(
+                                      child: Image.network(
+                                        googleUrl,
+                                        width: 64,
+                                        height: 64,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error2, stackTrace2) {
+                                              // Googleプロフィール画像も失敗した場合はデフォルトアイコンを表示
+                                              return Container(
+                                                width: 64,
+                                                height: 64,
+                                                decoration: BoxDecoration(
+                                                  color: roleColor.withValues(
+                                                    alpha: 0.12,
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    member
+                                                            .displayName
+                                                            .isNotEmpty
+                                                        ? member.displayName[0]
+                                                              .toUpperCase()
+                                                        : '?',
+                                                    style: TextStyle(
+                                                      fontSize: 28,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: roleColor,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                      ),
+                                    );
+                                  }
+                                  // Gmailアカウントでない場合はデフォルトアイコンを表示
+                                  return Container(
+                                    width: 64,
+                                    height: 64,
+                                    decoration: BoxDecoration(
+                                      color: roleColor.withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
                                     ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                      : Text(
-                          member.displayName.isNotEmpty
-                              ? member.displayName[0].toUpperCase()
-                              : '?',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
+                                    child: Center(
+                                      child: Text(
+                                        member.displayName.isNotEmpty
+                                            ? member.displayName[0]
+                                                  .toUpperCase()
+                                            : '?',
+                                        style: TextStyle(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                          color: roleColor,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : Text(
+                              member.displayName.isNotEmpty
+                                  ? member.displayName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: roleColor,
+                              ),
+                            ),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      member.displayName,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Provider.of<ThemeSettings>(
+                          context,
+                        ).dialogTextColor,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    // 役割バッジ
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: roleColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isTargetAdmin
+                                ? Icons.admin_panel_settings
+                                : isTargetLeader
+                                ? Icons.star
+                                : Icons.person,
                             color: roleColor,
+                            size: 18,
                           ),
-                        ),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  member.displayName,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                SizedBox(height: 8),
-                // 役割バッジ
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: roleColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isTargetAdmin
-                            ? Icons.admin_panel_settings
-                            : isTargetLeader
-                            ? Icons.star
-                            : Icons.person,
-                        color: roleColor,
-                        size: 18,
+                          SizedBox(width: 6),
+                          Text(
+                            roleText,
+                            style: TextStyle(
+                              color: roleColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 6),
+                    ),
+                    SizedBox(height: 18),
+                    // 説明文
+                    Text(
+                      'このメンバーの役割を変更できます。\n管理者権限を渡すと、あなたはメンバーになります。',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Provider.of<ThemeSettings>(
+                          context,
+                        ).dialogTextColor.withValues(alpha: 0.7),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 18),
+                    // ボタン群
+                    if (isCurrentUserAdmin && !isTargetAdmin)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: _roleActionButton(
+                              icon: Icons.admin_panel_settings,
+                              label: '管理者権限を渡す',
+                              color: Colors.red,
+                              onPressed: () async {
+                                Navigator.of(context).pop();
+                                await _transferAdminRole(member, group);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    SizedBox(height: 8),
+                    if (isCurrentUserAdmin &&
+                        (!isTargetLeader || !isTargetMember))
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (!isTargetLeader)
+                            Expanded(
+                              child: _roleActionButton(
+                                icon: Icons.star,
+                                label: 'リーダーにする',
+                                color: Colors.orange,
+                                onPressed: () async {
+                                  Navigator.of(context).pop();
+                                  await _changeMemberRole(
+                                    member,
+                                    group,
+                                    GroupRole.leader,
+                                  );
+                                },
+                              ),
+                            ),
+                          if (!isTargetMember)
+                            Expanded(
+                              child: _roleActionButton(
+                                icon: Icons.person,
+                                label: 'メンバーにする',
+                                color: Colors.blue,
+                                onPressed: () async {
+                                  Navigator.of(context).pop();
+                                  await _changeMemberRole(
+                                    member,
+                                    group,
+                                    GroupRole.member,
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                    SizedBox(height: 16),
+                    // 脱退させるボタン（管理者のみ表示、自分以外のメンバーに対して）
+                    if (isCurrentUserAdmin && member.uid != user.uid)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: _roleActionButton(
+                              icon: Icons.person_remove,
+                              label: '脱退させる',
+                              color: Colors.red,
+                              onPressed: () async {
+                                Navigator.of(context).pop();
+                                await _removeMember(member, group);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    SizedBox(height: 16),
+                    // 注意書き
+                    if (isCurrentUserAdmin && !isTargetAdmin)
                       Text(
-                        roleText,
+                        '※ この操作は元に戻せません',
                         style: TextStyle(
-                          color: roleColor,
+                          color: Colors.redAccent,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 18),
-                // 説明文
-                Text(
-                  'このメンバーの役割を変更できます。\n管理者権限を渡すと、あなたはメンバーになります。',
-                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 18),
-                // ボタン群
-                if (isCurrentUserAdmin && !isTargetAdmin)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: _roleActionButton(
-                          icon: Icons.admin_panel_settings,
-                          label: '管理者権限を渡す',
-                          color: Colors.red,
-                          onPressed: () async {
-                            Navigator.of(context).pop();
-                            await _transferAdminRole(member, group);
-                          },
+                    SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(
+                        '閉じる',
+                        style: TextStyle(
+                          color: Provider.of<ThemeSettings>(
+                            context,
+                          ).dialogTextColor,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  ),
-                SizedBox(height: 8),
-                if (isCurrentUserAdmin && (!isTargetLeader || !isTargetMember))
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (!isTargetLeader)
-                        Expanded(
-                          child: _roleActionButton(
-                            icon: Icons.star,
-                            label: 'リーダーにする',
-                            color: Colors.orange,
-                            onPressed: () async {
-                              Navigator.of(context).pop();
-                              await _changeMemberRole(
-                                member,
-                                group,
-                                GroupRole.leader,
-                              );
-                            },
-                          ),
-                        ),
-                      if (!isTargetMember)
-                        Expanded(
-                          child: _roleActionButton(
-                            icon: Icons.person,
-                            label: 'メンバーにする',
-                            color: Colors.blue,
-                            onPressed: () async {
-                              Navigator.of(context).pop();
-                              await _changeMemberRole(
-                                member,
-                                group,
-                                GroupRole.member,
-                              );
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                SizedBox(height: 16),
-                // 脱退させるボタン（管理者のみ表示、自分以外のメンバーに対して）
-                if (isCurrentUserAdmin && member.uid != user.uid)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: _roleActionButton(
-                          icon: Icons.person_remove,
-                          label: '脱退させる',
-                          color: Colors.red,
-                          onPressed: () async {
-                            Navigator.of(context).pop();
-                            await _removeMember(member, group);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                SizedBox(height: 16),
-                // 注意書き
-                if (isCurrentUserAdmin && !isTargetAdmin)
-                  Text(
-                    '※ この操作は元に戻せません',
-                    style: TextStyle(
-                      color: Colors.redAccent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    '閉じる',
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
