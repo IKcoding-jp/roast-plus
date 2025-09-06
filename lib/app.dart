@@ -361,6 +361,7 @@ class FirstLoginWrapper extends StatefulWidget {
 class _FirstLoginWrapperState extends State<FirstLoginWrapper> {
   bool _isChecking = true;
   bool _isFirstLogin = false;
+  bool _hasCheckedOnce = false;
 
   @override
   void initState() {
@@ -370,19 +371,39 @@ class _FirstLoginWrapperState extends State<FirstLoginWrapper> {
 
   Future<void> _checkFirstLogin() async {
     try {
+      debugPrint('FirstLoginWrapper: 初回ログインチェック開始');
+
+      // Web版では少し待機してからチェックを開始
+      if (kIsWeb) {
+        await Future.delayed(Duration(milliseconds: 200));
+      }
+
       final isFirstLogin = await FirstLoginService.isFirstLogin();
+      debugPrint('FirstLoginWrapper: 初回ログイン判定結果: $isFirstLogin');
+
       if (mounted) {
         setState(() {
           _isFirstLogin = isFirstLogin;
           _isChecking = false;
+          _hasCheckedOnce = true;
         });
       }
     } catch (e) {
-      debugPrint('初回ログインチェックでエラーが発生: $e');
+      debugPrint('FirstLoginWrapper: 初回ログインチェックでエラーが発生: $e');
+
+      // Web版での接続エラーの場合は、一度だけ再試行
+      if (kIsWeb && !_hasCheckedOnce) {
+        debugPrint('FirstLoginWrapper: Web版での接続エラーのため再試行');
+        await Future.delayed(Duration(milliseconds: 1000));
+        _checkFirstLogin();
+        return;
+      }
+
       if (mounted) {
         setState(() {
-          _isFirstLogin = false;
+          _isFirstLogin = false; // エラーの場合は初回ログインではないと判定
           _isChecking = false;
+          _hasCheckedOnce = true;
         });
       }
     }
@@ -422,10 +443,24 @@ class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
     // GroupProviderの初期化を開始（一度だけ）
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final groupProvider = Provider.of<GroupProvider>(context, listen: false);
-      // データがなく、読み込み中でもない場合のみ初期化
-      if (groupProvider.groups.isEmpty && !groupProvider.loading) {
-        await groupProvider.loadUserGroups();
+
+      // Web版では初期化処理をより慎重に行う
+      if (kIsWeb) {
+        // Web版では少し待機してから初期化を開始
+        await Future.delayed(Duration(milliseconds: 100));
       }
+
+      // データがなく、読み込み中でもない場合のみ初期化
+      if (groupProvider.groups.isEmpty &&
+          !groupProvider.loading &&
+          !groupProvider.initialized) {
+        debugPrint('GroupRequiredWrapper: グループデータの初期化を開始');
+        await groupProvider.loadUserGroups();
+        debugPrint('GroupRequiredWrapper: グループデータの初期化完了');
+      } else if (groupProvider.initialized) {
+        debugPrint('GroupRequiredWrapper: グループデータは既に初期化済み');
+      }
+
       // 初期化完了フラグを設定
       if (mounted) {
         setState(() {
@@ -448,15 +483,20 @@ class _GroupRequiredWrapperState extends State<GroupRequiredWrapper> {
         if (!_isInitialized ||
             groupProvider.loading ||
             !groupProvider.initialized) {
+          debugPrint(
+            'GroupRequiredWrapper: ローディング画面を表示中 - initialized: ${groupProvider.initialized}, loading: ${groupProvider.loading}, hasGroup: ${groupProvider.hasGroup}',
+          );
           return const LoadingScreen(title: 'Loading...');
         }
 
         // グループに参加していない場合はグループ参加ページを表示
         if (!groupProvider.hasGroup) {
+          debugPrint('GroupRequiredWrapper: グループ未参加 - GroupRequiredPageを表示');
           return const GroupRequiredPage();
         }
 
         // グループに参加している場合はメイン画面を表示
+        debugPrint('GroupRequiredWrapper: グループ参加済み - メイン画面を表示');
         // データ同期は後で自動的に実行されるため、ここでは実行しない
         return widget.child;
       },
@@ -610,6 +650,7 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                 SizedBox(height: 24),
                 if (_error != null)
                   Container(
+                    width: kIsWeb ? 400 : double.infinity,
                     padding: const EdgeInsets.all(12),
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
@@ -624,31 +665,51 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                         width: 1,
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _error!.contains('開始')
-                              ? Icons.info_outline
-                              : Icons.error_outline,
-                          color: _error!.contains('開始')
-                              ? Colors.blue
-                              : Colors.red,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _error!,
-                            style: TextStyle(
-                              color: _error!.contains('開始')
-                                  ? Colors.blue
-                                  : Colors.red,
-                              fontSize: 14,
-                            ),
+                    child: kIsWeb && _error!.contains('開始')
+                        ? Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.blue,
+                                size: 20,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _error!,
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Icon(
+                                _error!.contains('開始')
+                                    ? Icons.info_outline
+                                    : Icons.error_outline,
+                                color: _error!.contains('開始')
+                                    ? Colors.blue
+                                    : Colors.red,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: TextStyle(
+                                    color: _error!.contains('開始')
+                                        ? Colors.blue
+                                        : Colors.red,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 _loading
                     ? Column(

@@ -269,6 +269,25 @@ class GroupFirestoreService {
     return _retryOperation(() async {
       if (_uid == null || _uid!.isEmpty) throw Exception('未ログイン');
 
+      developer.log('ユーザーグループ取得開始', name: 'GroupFirestoreService');
+      developer.log('ユーザーID: $_uid', name: 'GroupFirestoreService');
+
+      // Web版ではFirestoreの初期化を確実に行う
+      if (kIsWeb) {
+        try {
+          await _firestore.enableNetwork();
+          developer.log(
+            'Web版: Firestoreネットワーク有効化完了',
+            name: 'GroupFirestoreService',
+          );
+        } catch (e) {
+          developer.log(
+            'Web版: Firestoreネットワーク有効化エラー: $e',
+            name: 'GroupFirestoreService',
+          );
+        }
+      }
+
       final userGroupsSnapshot = await _firestore
           .collection('users')
           .doc(_uid)
@@ -276,26 +295,45 @@ class GroupFirestoreService {
           .get()
           .timeout(_timeout);
 
+      developer.log(
+        'ユーザーグループドキュメント数: ${userGroupsSnapshot.docs.length}',
+        name: 'GroupFirestoreService',
+      );
+
       if (userGroupsSnapshot.docs.isEmpty) {
+        developer.log('ユーザーグループが存在しません', name: 'GroupFirestoreService');
         return [];
       }
 
       // 並列でグループ情報を取得（読み込み時間を短縮）
       final futures = userGroupsSnapshot.docs.map((doc) async {
         final groupId = doc.data()['groupId'] as String;
+        developer.log('グループ情報取得中: $groupId', name: 'GroupFirestoreService');
+
         final groupDoc = await _firestore
             .collection('groups')
             .doc(groupId)
             .get()
             .timeout(_timeout);
         if (groupDoc.exists) {
+          developer.log('グループ情報取得成功: $groupId', name: 'GroupFirestoreService');
           return Group.fromJson(groupDoc.data()!);
+        } else {
+          developer.log(
+            'グループドキュメントが存在しません: $groupId',
+            name: 'GroupFirestoreService',
+          );
         }
         return null;
       });
 
       final results = await Future.wait(futures);
-      return results.whereType<Group>().toList();
+      final groups = results.whereType<Group>().toList();
+      developer.log(
+        '取得したグループ数: ${groups.length}',
+        name: 'GroupFirestoreService',
+      );
+      return groups;
     });
   }
 

@@ -32,7 +32,26 @@ service cloud.firestore {
     // ユーザーコレクションのルール
     match /users/{userId} {
       // ユーザードキュメント自体へのアクセス
+      // 初回ログイン時の表示名設定も許可（create, update, set操作）
       allow read, write: if isOwner(userId);
+      
+      // 初回ログイン時の表示名設定を確実に許可
+      // ユーザーが自分のドキュメントを作成・更新する場合
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Web版でのタイムアウト問題を解決するため、より具体的な権限を設定
+      // 表示名設定に必要なフィールドの書き込みを明示的に許可
+      allow create: if isAuthenticated() && 
+        request.auth.uid == userId &&
+        request.resource.data.keys().hasAll(['displayName', 'email']) &&
+        request.resource.data.displayName is string &&
+        request.resource.data.email is string;
+      
+      allow update: if isAuthenticated() && 
+        request.auth.uid == userId &&
+        // 表示名の更新を許可
+        (request.resource.data.displayName is string || 
+         resource.data.displayName is string);
       
       // ユーザーのサブコレクションへのアクセス
       match /{collection}/{document=**} {

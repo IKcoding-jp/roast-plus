@@ -546,7 +546,7 @@ class _SequentialBadgeCelebrationDialogState
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '${_currentBadgeIndex + 1}/${widget.badges.length}',
+                            '${_isShowingBadge ? _currentBadgeIndex + 1 : _currentBadgeIndex}/${widget.badges.length}',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

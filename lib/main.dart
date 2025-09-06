@@ -30,7 +30,6 @@ import 'utils/web_compatibility.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -38,6 +37,11 @@ void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
     developer.log('WidgetsFlutterBinding初期化完了', name: 'Main');
+
+    // Web版でのデバッグサービスエラーを防ぐための保護
+    if (kIsWeb) {
+      developer.log('Web版: デバッグサービスエラー保護を有効化', name: 'Main');
+    }
 
     // Web互換性の初期化
     if (WebCompatibility.isWeb) {
@@ -56,16 +60,21 @@ void main() async {
 
     // Web版ではリダイレクト結果をチェック
     if (kIsWeb) {
-      await PerformanceMonitor.measureAsync(
-        'Web版リダイレクト結果チェック',
-        _checkWebRedirectResult,
-      );
-      // リダイレクト結果チェック後に現在のユーザーをログ
       try {
-        final currentUser = fb_auth.FirebaseAuth.instance.currentUser;
-        developer.log('Web版: 現在のユーザー: ${currentUser?.email}', name: 'Main');
+        await PerformanceMonitor.measureAsync(
+          'Web版リダイレクト結果チェック',
+          _checkWebRedirectResult,
+        );
+        // リダイレクト結果チェック後に現在のユーザーをログ
+        try {
+          final currentUser = fb_auth.FirebaseAuth.instance.currentUser;
+          developer.log('Web版: 現在のユーザー: ${currentUser?.email}', name: 'Main');
+        } catch (e) {
+          developer.log('Web版: 現在ユーザー確認でエラー: $e', name: 'Main');
+        }
       } catch (e) {
-        developer.log('Web版: 現在ユーザー確認でエラー: $e', name: 'Main');
+        developer.log('Web版: リダイレクト結果チェックでエラー: $e', name: 'Main');
+        // Web版ではエラーがあってもアプリを継続
       }
     }
 
@@ -245,11 +254,18 @@ Future<void> _initializeFirebase() async {
           developer.log('Web版: 永続化設定に失敗: $persistError', name: 'Main');
         }
 
-        // Web版でFirestoreの初期化を確実に行う
+        // Web版でFirestoreの初期化を確実に行う（ネットワーク有効化はスキップ）
         try {
-          final firestore = FirebaseFirestore.instance;
-          await firestore.enableNetwork();
-          developer.log('Web版: Firestoreネットワーク有効化完了', name: 'Main');
+          // Web版ではenableNetwork()をスキップ（デバッグサービスエラーの原因）
+          developer.log(
+            'Web版: Firestoreインスタンス取得完了（ネットワーク有効化はスキップ）',
+            name: 'Main',
+          );
+
+          // Web版ではFirestoreの初期化を待つ
+          developer.log('Web版: Firestore初期化待機中', name: 'Main');
+          await Future.delayed(Duration(milliseconds: 500));
+          developer.log('Web版: Firestore初期化待機完了', name: 'Main');
         } catch (firestoreError) {
           developer.log('Web版: Firestore初期化エラー: $firestoreError', name: 'Main');
         }

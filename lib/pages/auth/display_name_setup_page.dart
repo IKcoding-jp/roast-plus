@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/theme_settings.dart';
 import '../../services/first_login_service.dart';
 import '../../services/secure_auth_service.dart';
@@ -78,8 +79,11 @@ class _DisplayNameSetupPageState extends State<DisplayNameSetupPage> {
             ),
           );
 
-          // 少し待ってから次の画面に遷移
-          await Future.delayed(Duration(milliseconds: 500));
+          // Web版ではより長い待機時間を設けてFirestoreの同期を確実にする
+          final waitTime = kIsWeb
+              ? Duration(milliseconds: 1000)
+              : Duration(milliseconds: 500);
+          await Future.delayed(waitTime);
 
           if (mounted) {
             // グループ参加チェック画面に遷移
@@ -87,15 +91,29 @@ class _DisplayNameSetupPageState extends State<DisplayNameSetupPage> {
           }
         }
       } else {
-        setState(() {
-          _error = '表示名の設定に失敗しました。もう一度お試しください。';
-        });
+        if (mounted) {
+          setState(() {
+            _error = '表示名の設定に失敗しました。もう一度お試しください。';
+          });
+        }
       }
     } catch (e) {
       developer.log('表示名設定でエラーが発生: $e', name: 'DisplayNameSetup');
-      setState(() {
-        _error = 'エラーが発生しました: $e';
-      });
+      if (mounted) {
+        setState(() {
+          // エラーメッセージをユーザーフレンドリーに調整
+          if (e.toString().contains('TimeoutException')) {
+            _error = '接続がタイムアウトしました。ネットワーク接続を確認してからもう一度お試しください。';
+          } else if (e.toString().contains('INTERNAL ASSERTION FAILED')) {
+            _error = 'システムエラーが発生しました。ページを再読み込みしてからもう一度お試しください。';
+          } else if (e.toString().contains('network') ||
+              e.toString().contains('timeout')) {
+            _error = 'ネットワークエラーが発生しました。インターネット接続を確認してからもう一度お試しください。';
+          } else {
+            _error = '表示名の設定に失敗しました。もう一度お試しください。';
+          }
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {

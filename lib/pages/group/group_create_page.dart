@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/group_provider.dart';
 import '../../models/theme_settings.dart';
 
@@ -104,8 +105,11 @@ class _GroupCreatePageState extends State<GroupCreatePage> {
           SnackBar(content: Text('グループを作成しました'), backgroundColor: Colors.green),
         );
 
-        // 少し待ってからホーム画面に遷移（初期化処理の完了を待つ）
-        await Future.delayed(Duration(milliseconds: 3000));
+        // Web版ではより長い待機時間を設けてFirestoreの同期を確実にする
+        final waitTime = kIsWeb
+            ? Duration(milliseconds: 2000)
+            : Duration(milliseconds: 1000);
+        await Future.delayed(waitTime);
 
         if (mounted) {
           developer.log('ホーム画面遷移開始', name: 'GroupCreatePage');

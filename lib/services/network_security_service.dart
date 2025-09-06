@@ -21,6 +21,12 @@ class NetworkSecurityService {
 
   /// ネットワークセキュリティを初期化
   static Future<void> initialize() async {
+    // Web版では初期化をスキップ
+    if (kIsWeb) {
+      developer.log('Web版: NetworkSecurityService初期化をスキップ', name: _logName);
+      return;
+    }
+
     try {
       developer.log('ネットワークセキュリティサービスを初期化', name: _logName);
 
@@ -250,6 +256,11 @@ class NetworkSecurityService {
     Map<String, String>? headers,
     dynamic body,
   }) async {
+    // Web版ではHTTPリクエストをスキップ
+    if (kIsWeb) {
+      developer.log('Web版: secureHttpRequestをスキップ', name: _logName);
+      throw UnsupportedError('Web版ではsecureHttpRequestはサポートされていません');
+    }
     try {
       final uri = Uri.parse(url);
 
@@ -275,7 +286,11 @@ class NetworkSecurityService {
 
       // ヘッダーの設定
       headers?.forEach((key, value) {
-        request.headers.set(key, value);
+        try {
+          request.headers.set(key, value);
+        } catch (e) {
+          developer.log('ヘッダー設定エラー: $key = $value, エラー: $e', name: _logName);
+        }
       });
 
       // ボディの送信
@@ -317,8 +332,21 @@ class NetworkSecurityService {
     }
   }
 
-  /// ネットワークセキュリティレポートの生成
+  /// ネットワークセキュリティレポートの生成（Web版対応）
   static Future<Map<String, dynamic>> generateNetworkSecurityReport() async {
+    // Web版ではダミーレポートを返す
+    if (kIsWeb) {
+      developer.log('Web版: ダミーのネットワークセキュリティレポートを返す', name: _logName);
+      return {
+        'platform': 'web',
+        'isSecure': true,
+        'violations': [],
+        'lastCheck': DateTime.now().toIso8601String(),
+        'message': 'Web版ではネットワークセキュリティレポートは利用できません',
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+    }
+
     try {
       final user = _auth.currentUser;
       if (user == null) return {};

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'group_models.dart';
 import 'group_gamification_models.dart';
 import '../services/group_firestore_service.dart';
@@ -169,6 +171,7 @@ class GroupProvider extends ChangeNotifier {
 
     try {
       // グループ作成開始
+      developer.log('グループ作成開始', name: 'GroupProvider');
 
       // グループ削除フラグをリセット
       _showGroupDeletedPage = false;
@@ -179,12 +182,17 @@ class GroupProvider extends ChangeNotifier {
       );
 
       // Firestoreでのグループ作成完了
+      developer.log('Firestoreでのグループ作成完了', name: 'GroupProvider');
 
       _groups.clear(); // 他のグループがあれば削除
       _groups.add(newGroup);
       _currentGroup = newGroup; // 新しいグループをcurrentGroupに設定
 
+      // 初期化完了フラグを設定（重要：Web版での永続化を確実にするため）
+      _initialized = true;
+
       // ローカル状態の更新完了
+      developer.log('ローカル状態の更新完了', name: 'GroupProvider');
 
       // グループ作成フラグを設定
       _showGroupCreationCelebration = true;
@@ -192,6 +200,14 @@ class GroupProvider extends ChangeNotifier {
 
       _safeNotifyListeners();
       // グループ作成完了
+      developer.log('グループ作成完了', name: 'GroupProvider');
+
+      // Web版では追加の待機時間を設けてFirestoreの同期を確実にする
+      if (kIsWeb) {
+        developer.log('Web版: Firestore同期のため待機中', name: 'GroupProvider');
+        await Future.delayed(Duration(milliseconds: 500));
+        developer.log('Web版: 待機完了', name: 'GroupProvider');
+      }
 
       // グループ作成成功後の処理を非同期で実行（軽量化）
       _postGroupCreationSuccess(newGroup.id);
@@ -199,6 +215,7 @@ class GroupProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       // グループ作成エラー
+      developer.log('グループ作成エラー: $e', name: 'GroupProvider');
       if (e.toString().contains('未ログイン')) {
         _setError('ログインすることで、グループ機能を使うことができます');
       } else {
