@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/tasting_models.dart';
 import '../../models/theme_settings.dart';
@@ -17,100 +18,6 @@ class TastingRecordPage extends StatefulWidget {
 }
 
 class _TastingRecordPageState extends State<TastingRecordPage> {
-  String? _lastGroupId;
-  bool _hasInitialized = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _subscribeToSessions();
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final groupProvider = context.read<GroupProvider>();
-    final currentGroupId = groupProvider.hasGroup
-        ? groupProvider.currentGroup!.id
-        : null;
-
-    // グループIDが変更された場合のみ再購読
-    if (_lastGroupId != currentGroupId) {
-      _lastGroupId = currentGroupId;
-      if (_hasInitialized) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _subscribeToSessions();
-        });
-      }
-    }
-  }
-
-  void _subscribeToSessions() {
-    final groupProvider = context.read<GroupProvider>();
-    final tastingProvider = context.read<TastingProvider>();
-
-    if (groupProvider.hasGroup) {
-      final groupId = groupProvider.currentGroup!.id;
-      debugPrint('試飲記録ページ: セッション購読開始 - groupId: $groupId');
-      tastingProvider.subscribeGroupTastingSessions(groupId);
-    } else {
-      debugPrint('試飲記録ページ: グループが選択されていないため、個人記録を読み込み');
-      tastingProvider.subscribeTastingRecords();
-    }
-    _hasInitialized = true;
-  }
-
-  Future<void> _deleteSession(String sessionId, String beanName) async {
-    final groupProvider = context.read<GroupProvider>();
-    final tastingProvider = context.read<TastingProvider>();
-
-    if (!groupProvider.hasGroup) return;
-
-    final groupId = groupProvider.currentGroup!.id;
-
-    // 確認ダイアログを表示
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('セッションを削除'),
-        content: Text('「$beanName」のセッションを削除しますか？\n\nこの操作は取り消せません。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('キャンセル'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text('削除'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      await tastingProvider.deleteSession(groupId, sessionId);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('セッションを削除しました')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('削除に失敗しました: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
@@ -120,6 +27,39 @@ class _TastingRecordPageState extends State<TastingRecordPage> {
         title: Text('試飲記録'),
         backgroundColor: themeSettings.appBarColor,
         foregroundColor: themeSettings.appBarTextColor,
+        actions: [
+          Consumer<GroupProvider>(
+            builder: (context, groupProvider, child) {
+              if (!groupProvider.hasGroup) {
+                return SizedBox.shrink();
+              }
+              return PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'group') {
+                    // グループ設定画面に遷移
+                    Navigator.pushNamed(context, '/group_settings');
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'group',
+                    child: Row(
+                      children: [
+                        Icon(Icons.group),
+                        SizedBox(width: 8),
+                        Text('グループ設定'),
+                      ],
+                    ),
+                  ),
+                ],
+                child: Container(
+                  margin: EdgeInsets.only(right: 16),
+                  child: Icon(Icons.more_vert),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<TastingProvider>(
         builder: (context, tastingProvider, child) {
@@ -267,22 +207,6 @@ class _TastingRecordPageState extends State<TastingRecordPage> {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  IconButton(
-                                    onPressed: () =>
-                                        _deleteSession(s.id, s.beanName),
-                                    icon: Icon(
-                                      Icons.delete_outline,
-                                      color: Colors.red.withValues(alpha: 0.7),
-                                      size: 20,
-                                    ),
-                                    tooltip: 'セッションを削除',
-                                    constraints: BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
-                                    ),
-                                    padding: EdgeInsets.all(4),
                                   ),
                                 ],
                               ),

@@ -2485,14 +2485,14 @@ class _MemberCardState extends State<MemberCard> {
           cardColor = Colors.white; // 白カード（出勤）
           textColor = Colors.black;
           borderColor = isMyCard
-              ? Colors.lightBlue.shade400
+              ? Provider.of<ThemeSettings>(context).iconColor
               : Colors.grey.shade400;
           break;
         case AttendanceStatus.absent:
           cardColor = Colors.red.shade600; // 赤カード（退勤）
           textColor = Colors.white;
           borderColor = isMyCard
-              ? Colors.lightBlue.shade400
+              ? Provider.of<ThemeSettings>(context).iconColor
               : Colors.red.shade700;
           break;
       }

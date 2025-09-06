@@ -97,9 +97,16 @@ class TastingFirestoreService {
     if (_uid == null) throw Exception('未ログイン');
 
     try {
+      developer.log('試飲記録保存開始: ${record.id}', name: _logName);
+
       final recordData = record.toMap();
       recordData['userId'] = _uid;
       recordData['updatedAt'] = DateTime.now().toIso8601String();
+
+      developer.log(
+        '試飲記録データ準備完了: ${recordData.keys.join(', ')}',
+        name: _logName,
+      );
 
       await _firestore
           .collection('users')
@@ -108,10 +115,13 @@ class TastingFirestoreService {
           .doc(record.id)
           .set(recordData);
 
+      developer.log('試飲記録保存完了: ${record.id}', name: _logName);
+
       // 自動同期を実行
       await AutoSyncService.triggerAutoSyncForDataType('tasting_records');
     } catch (e, st) {
       _logError('テイスティング記録保存エラー', e, st);
+      developer.log('試飲記録保存エラー詳細: $e', name: _logName);
       rethrow;
     }
   }
@@ -194,9 +204,19 @@ class TastingFirestoreService {
     if (_uid == null) throw Exception('未ログイン');
 
     try {
+      developer.log(
+        'グループ試飲記録保存開始: ${record.id} (グループ: $groupId)',
+        name: _logName,
+      );
+
       final recordData = record.toMap();
       recordData['userId'] = _uid;
       recordData['updatedAt'] = DateTime.now().toIso8601String();
+
+      developer.log(
+        'グループ試飲記録データ準備完了: ${recordData.keys.join(', ')}',
+        name: _logName,
+      );
 
       await _firestore
           .collection('groups')
@@ -204,8 +224,11 @@ class TastingFirestoreService {
           .collection('tasting_records')
           .doc(record.id)
           .set(recordData);
+
+      developer.log('グループ試飲記録保存完了: ${record.id}', name: _logName);
     } catch (e, st) {
       _logError('グループテイスティング記録保存エラー', e, st);
+      developer.log('グループ試飲記録保存エラー詳細: $e', name: _logName);
       rethrow;
     }
   }
@@ -393,92 +416,110 @@ class TastingFirestoreService {
     final sessionRef = _sessionDoc(groupId, sessionId);
     final nowIso = DateTime.now().toIso8601String();
 
-    await _firestore.runTransaction((txn) async {
-      final entryRef = entriesRef.doc(uid);
-      final entrySnap = await txn.get(entryRef);
-      final sessionSnap = await txn.get(sessionRef);
+    try {
+      developer.log(
+        '試飲エントリ保存開始: グループ=$groupId, セッション=$sessionId, ユーザー=$uid',
+        name: _logName,
+      );
+      developer.log('エントリデータ: ${entry.toMap()}', name: _logName);
 
-      // 現在の合計と件数を取得（存在しない場合は0）
-      int currentCount = (sessionSnap.data()?['entriesCount'] ?? 0);
-      double sumBit = ((sessionSnap.data()?['sumBitterness'] ?? 0) as num)
-          .toDouble();
-      double sumAci = ((sessionSnap.data()?['sumAcidity'] ?? 0) as num)
-          .toDouble();
-      double sumBody = ((sessionSnap.data()?['sumBody'] ?? 0) as num)
-          .toDouble();
-      double sumSw = ((sessionSnap.data()?['sumSweetness'] ?? 0) as num)
-          .toDouble();
-      double sumAroma = ((sessionSnap.data()?['sumAroma'] ?? 0) as num)
-          .toDouble();
-      double sumOv = ((sessionSnap.data()?['sumOverall'] ?? 0) as num)
-          .toDouble();
+      await _firestore.runTransaction((txn) async {
+        final entryRef = entriesRef.doc(uid);
+        final entrySnap = await txn.get(entryRef);
+        final sessionSnap = await txn.get(sessionRef);
 
-      // 既存エントリとの差分
-      double oldBit = 0,
-          oldAci = 0,
-          oldBody = 0,
-          oldSw = 0,
-          oldAroma = 0,
-          oldOv = 0;
-      bool existed = entrySnap.exists;
-      if (existed) {
-        final m = entrySnap.data()!;
-        double d(dynamic v) => v is int ? v.toDouble() : (v as num).toDouble();
-        oldBit = _clamp(d(m['bitterness'] ?? 3));
-        oldAci = _clamp(d(m['acidity'] ?? 3));
-        oldBody = _clamp(d(m['body'] ?? 3));
-        oldSw = _clamp(d(m['sweetness'] ?? 3));
-        oldAroma = _clamp(d(m['aroma'] ?? 3));
-        oldOv = _clamp(d(m['overall'] ?? m['overallRating'] ?? 3));
-      }
+        // 現在の合計と件数を取得（存在しない場合は0）
+        int currentCount = (sessionSnap.data()?['entriesCount'] ?? 0);
+        double sumBit = ((sessionSnap.data()?['sumBitterness'] ?? 0) as num)
+            .toDouble();
+        double sumAci = ((sessionSnap.data()?['sumAcidity'] ?? 0) as num)
+            .toDouble();
+        double sumBody = ((sessionSnap.data()?['sumBody'] ?? 0) as num)
+            .toDouble();
+        double sumSw = ((sessionSnap.data()?['sumSweetness'] ?? 0) as num)
+            .toDouble();
+        double sumAroma = ((sessionSnap.data()?['sumAroma'] ?? 0) as num)
+            .toDouble();
+        double sumOv = ((sessionSnap.data()?['sumOverall'] ?? 0) as num)
+            .toDouble();
 
-      final newBit = _clamp(entry.bitterness);
-      final newAci = _clamp(entry.acidity);
-      final newBody = _clamp(entry.body);
-      final newSw = _clamp(entry.sweetness);
-      final newAroma = _clamp(entry.aroma);
-      final newOv = _clamp(entry.overall);
+        // 既存エントリとの差分
+        double oldBit = 0,
+            oldAci = 0,
+            oldBody = 0,
+            oldSw = 0,
+            oldAroma = 0,
+            oldOv = 0;
+        bool existed = entrySnap.exists;
+        if (existed) {
+          final m = entrySnap.data()!;
+          double d(dynamic v) =>
+              v is int ? v.toDouble() : (v as num).toDouble();
+          oldBit = _clamp(d(m['bitterness'] ?? 3));
+          oldAci = _clamp(d(m['acidity'] ?? 3));
+          oldBody = _clamp(d(m['body'] ?? 3));
+          oldSw = _clamp(d(m['sweetness'] ?? 3));
+          oldAroma = _clamp(d(m['aroma'] ?? 3));
+          oldOv = _clamp(d(m['overall'] ?? m['overallRating'] ?? 3));
+        }
 
-      // 件数更新
-      final nextCount = existed ? currentCount : currentCount + 1;
+        final newBit = _clamp(entry.bitterness);
+        final newAci = _clamp(entry.acidity);
+        final newBody = _clamp(entry.body);
+        final newSw = _clamp(entry.sweetness);
+        final newAroma = _clamp(entry.aroma);
+        final newOv = _clamp(entry.overall);
 
-      // 合計更新
-      sumBit = sumBit - oldBit + newBit;
-      sumAci = sumAci - oldAci + newAci;
-      sumBody = sumBody - oldBody + newBody;
-      sumSw = sumSw - oldSw + newSw;
-      sumAroma = sumAroma - oldAroma + newAroma;
-      sumOv = sumOv - oldOv + newOv;
+        // 件数更新
+        final nextCount = existed ? currentCount : currentCount + 1;
 
-      // エントリ保存
-      final toSave = {
-        ...entry.copyWith(id: uid, userId: uid).toMap(),
-        'updatedAt': nowIso,
-        if (!existed) 'createdAt': nowIso,
-      };
-      txn.set(entryRef, toSave);
+        // 合計更新
+        sumBit = sumBit - oldBit + newBit;
+        sumAci = sumAci - oldAci + newAci;
+        sumBody = sumBody - oldBody + newBody;
+        sumSw = sumSw - oldSw + newSw;
+        sumAroma = sumAroma - oldAroma + newAroma;
+        sumOv = sumOv - oldOv + newOv;
 
-      double avg(double s) =>
-          nextCount == 0 ? 0 : double.parse((s / nextCount).toStringAsFixed(2));
-      txn.set(sessionRef, {
-        'entriesCount': nextCount,
-        'sumBitterness': double.parse(sumBit.toStringAsFixed(2)),
-        'sumAcidity': double.parse(sumAci.toStringAsFixed(2)),
-        'sumBody': double.parse(sumBody.toStringAsFixed(2)),
-        'sumSweetness': double.parse(sumSw.toStringAsFixed(2)),
-        'sumAroma': double.parse(sumAroma.toStringAsFixed(2)),
-        'sumOverall': double.parse(sumOv.toStringAsFixed(2)),
-        'avgBitterness': avg(sumBit),
-        'avgAcidity': avg(sumAci),
-        'avgBody': avg(sumBody),
-        'avgSweetness': avg(sumSw),
-        'avgAroma': avg(sumAroma),
-        'avgOverall': avg(sumOv),
-        'updatedAt': nowIso,
-      }, SetOptions(merge: true));
-    });
+        // エントリ保存
+        final toSave = {
+          ...entry.copyWith(id: uid, userId: uid).toMap(),
+          'updatedAt': nowIso,
+          if (!existed) 'createdAt': nowIso,
+        };
+        txn.set(entryRef, toSave);
 
-    await AutoSyncService.triggerAutoSyncForDataType('tasting_sessions');
+        double avg(double s) => nextCount == 0
+            ? 0
+            : double.parse((s / nextCount).toStringAsFixed(2));
+        txn.set(sessionRef, {
+          'entriesCount': nextCount,
+          'sumBitterness': double.parse(sumBit.toStringAsFixed(2)),
+          'sumAcidity': double.parse(sumAci.toStringAsFixed(2)),
+          'sumBody': double.parse(sumBody.toStringAsFixed(2)),
+          'sumSweetness': double.parse(sumSw.toStringAsFixed(2)),
+          'sumAroma': double.parse(sumAroma.toStringAsFixed(2)),
+          'sumOverall': double.parse(sumOv.toStringAsFixed(2)),
+          'avgBitterness': avg(sumBit),
+          'avgAcidity': avg(sumAci),
+          'avgBody': avg(sumBody),
+          'avgSweetness': avg(sumSw),
+          'avgAroma': avg(sumAroma),
+          'avgOverall': avg(sumOv),
+          'updatedAt': nowIso,
+        }, SetOptions(merge: true));
+      });
+
+      developer.log(
+        '試飲エントリ保存完了: グループ=$groupId, セッション=$sessionId',
+        name: _logName,
+      );
+      await AutoSyncService.triggerAutoSyncForDataType('tasting_sessions');
+    } catch (e, st) {
+      _logError('試飲エントリ保存エラー', e, st);
+      developer.log('試飲エントリ保存エラー詳細: $e', name: _logName);
+      rethrow;
+    }
   }
 
   static Future<void> deleteEntry(
@@ -549,5 +590,46 @@ class TastingFirestoreService {
         'updatedAt': nowIso,
       }, SetOptions(merge: true));
     });
+  }
+
+  /// セッション全体を削除（エントリも含む）
+  static Future<void> deleteSession(String groupId, String sessionId) async {
+    try {
+      developer.log(
+        'セッション削除開始: グループ=$groupId, セッション=$sessionId',
+        name: _logName,
+      );
+
+      // セッションとそのエントリを削除
+      await _firestore.runTransaction((txn) async {
+        final sessionRef = _sessionDoc(groupId, sessionId);
+        final entriesRef = _entriesCol(groupId, sessionId);
+
+        // セッションの存在確認
+        final sessionSnap = await txn.get(sessionRef);
+        if (!sessionSnap.exists) {
+          throw Exception('セッションが見つかりません');
+        }
+
+        // エントリをすべて削除
+        final entriesSnap = await entriesRef.get();
+        for (final doc in entriesSnap.docs) {
+          txn.delete(doc.reference);
+        }
+
+        // セッションを削除
+        txn.delete(sessionRef);
+      });
+
+      developer.log(
+        'セッション削除完了: グループ=$groupId, セッション=$sessionId',
+        name: _logName,
+      );
+      await AutoSyncService.triggerAutoSyncForDataType('tasting_sessions');
+    } catch (e, st) {
+      _logError('セッション削除エラー', e, st);
+      developer.log('セッション削除エラー詳細: $e', name: _logName);
+      rethrow;
+    }
   }
 }

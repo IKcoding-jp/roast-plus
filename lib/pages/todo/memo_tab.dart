@@ -218,24 +218,22 @@ class _MemoTabState extends State<MemoTab> {
               minLines: 3,
             ),
             SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _canEditMemos ? _saveMemo : null,
-                  icon: Icon(Icons.save, size: 18),
-                  label: Text('保存'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: themeSettings.appButtonColor,
-                    foregroundColor: themeSettings.fontColor2,
-                    textStyle: const TextStyle(fontSize: 16),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _canEditMemos ? _saveMemo : null,
+                icon: Icon(Icons.save, size: 18),
+                label: Text('保存'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: themeSettings.appButtonColor,
+                  foregroundColor: themeSettings.fontColor2,
+                  textStyle: const TextStyle(fontSize: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              ],
+              ),
             ),
           ],
         ),

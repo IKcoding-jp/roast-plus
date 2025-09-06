@@ -68,12 +68,25 @@ class _TastingSessionDetailPageState extends State<TastingSessionDetailPage> {
   }
 
   Future<void> _ensureSession() async {
-    if (_sessionId != null) return;
-    if (!_formKey.currentState!.validate()) return;
+    debugPrint('_ensureSession 開始');
+    if (_sessionId != null) {
+      debugPrint('_ensureSession: セッションIDが既に存在: $_sessionId');
+      return;
+    }
+    if (!_formKey.currentState!.validate()) {
+      debugPrint('_ensureSession: フォームバリデーション失敗');
+      return;
+    }
     final groupProvider = context.read<GroupProvider>();
-    if (!groupProvider.hasGroup) return;
+    if (!groupProvider.hasGroup) {
+      debugPrint('_ensureSession: グループが選択されていない');
+      return;
+    }
     final groupId = groupProvider.currentGroup!.id;
     final tastingProvider = context.read<TastingProvider>();
+    debugPrint(
+      '_ensureSession: セッション作成開始 - groupId: $groupId, beanName: ${_beanCtrl.text.trim()}, roastLevel: $_roastLevel',
+    );
     setState(() => _creating = true);
     try {
       final session = await TastingFirestoreService.createOrGetSession(
@@ -81,8 +94,11 @@ class _TastingSessionDetailPageState extends State<TastingSessionDetailPage> {
         _beanCtrl.text.trim(),
         _roastLevel,
       );
+      debugPrint('_ensureSession: セッション作成完了 - sessionId: ${session.id}');
       setState(() => _sessionId = session.id);
       tastingProvider.loadEntries(groupId, session.id);
+    } catch (e) {
+      debugPrint('_ensureSession: セッション作成エラー: $e');
     } finally {
       if (mounted) setState(() => _creating = false);
     }
@@ -108,10 +124,21 @@ class _TastingSessionDetailPageState extends State<TastingSessionDetailPage> {
   }
 
   Future<void> _saveMyEntry() async {
+    debugPrint('_saveMyEntry 開始');
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || _sessionId == null) return;
+    if (uid == null) {
+      debugPrint('_saveMyEntry: uidがnull');
+      return;
+    }
+    if (_sessionId == null) {
+      debugPrint('_saveMyEntry: _sessionIdがnull');
+      return;
+    }
     final groupProvider = context.read<GroupProvider>();
     final groupId = groupProvider.currentGroup!.id;
+    debugPrint(
+      '_saveMyEntry: 保存開始 - groupId: $groupId, sessionId: $_sessionId, uid: $uid',
+    );
     final entry = TastingEntry(
       id: uid,
       userId: uid,
@@ -125,22 +152,46 @@ class _TastingSessionDetailPageState extends State<TastingSessionDetailPage> {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    await TastingFirestoreService.upsertEntry(groupId, _sessionId!, entry);
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('保存しました')));
+
+    try {
+      await TastingFirestoreService.upsertEntry(groupId, _sessionId!, entry);
+      debugPrint('_saveMyEntry: 保存完了');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('保存しました')));
+    } catch (e) {
+      debugPrint('_saveMyEntry: 保存エラー: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('保存に失敗しました: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _deleteMyEntry() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || _sessionId == null) return;
     final groupId = context.read<GroupProvider>().currentGroup!.id;
-    await TastingFirestoreService.deleteEntry(groupId, _sessionId!, uid);
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('削除しました')));
+
+    try {
+      await TastingFirestoreService.deleteEntry(groupId, _sessionId!, uid);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('削除しました')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('削除に失敗しました: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -150,6 +201,13 @@ class _TastingSessionDetailPageState extends State<TastingSessionDetailPage> {
     final tastingProvider = Provider.of<TastingProvider>(context);
     final hasGroup = groupProvider.hasGroup;
     final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    // デバッグログ: Web版での状態確認
+    debugPrint('試飲セッション詳細ページ - Web版デバッグ:');
+    debugPrint('  _sessionId: $_sessionId');
+    debugPrint('  hasGroup: $hasGroup');
+    debugPrint('  uid: $uid');
+    debugPrint('  sessions count: ${tastingProvider.sessions.length}');
 
     final session = (_sessionId == null)
         ? null
@@ -205,22 +263,32 @@ class _TastingSessionDetailPageState extends State<TastingSessionDetailPage> {
       ),
       body: !hasGroup
           ? Center(child: Text('グループが選択されていません'))
-          : SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_sessionId == null)
-                    _buildCreateSessionCard(theme)
-                  else
-                    _buildSessionStatsCard(theme, session!),
-                  SizedBox(height: 16),
-                  if (_sessionId != null) _buildMembersList(theme),
-                  SizedBox(height: 16),
-                  if (_sessionId != null) _buildMyEntryForm(theme),
-                  SizedBox(height: 16),
-                ],
+          : Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width > 600
+                        ? 600
+                        : double.infinity,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_sessionId == null)
+                        _buildCreateSessionCard(theme)
+                      else
+                        _buildSessionStatsCard(theme, session!),
+                      SizedBox(height: 16),
+                      if (_sessionId != null) _buildMembersList(theme),
+                      SizedBox(height: 16),
+                      if (_sessionId != null) _buildMyEntryForm(theme),
+                      SizedBox(height: 16),
+                    ],
+                  ),
+                ),
               ),
             ),
     );
@@ -451,6 +519,14 @@ class _TastingSessionDetailPageState extends State<TastingSessionDetailPage> {
           );
 
     final isEditing = mine != null && entries.any((e) => e.userId == uid);
+
+    // デバッグログ: 保存ボタン表示条件の確認
+    debugPrint('_buildMyEntryForm - デバッグ:');
+    debugPrint('  _sessionId: $_sessionId');
+    debugPrint('  uid: $uid');
+    debugPrint('  entries count: ${entries.length}');
+    debugPrint('  mine: $mine');
+    debugPrint('  isEditing: $isEditing');
 
     return Card(
       elevation: 2,

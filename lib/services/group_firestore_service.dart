@@ -241,19 +241,28 @@ class GroupFirestoreService {
 
         // ユーザーのグループ参加情報も保存
         developer.log('ユーザーグループ情報保存開始', name: 'GroupFirestoreService');
-        await _firestore
-            .collection('users')
-            .doc(_uid)
-            .collection('userGroups')
-            .doc(groupId)
-            .set({
-              'groupId': groupId,
-              'groupName': name,
-              'role': GroupRole.admin.name,
-              'joinedAt': now.toIso8601String(),
-            })
-            .timeout(_timeout);
-        developer.log('ユーザーグループ情報保存完了', name: 'GroupFirestoreService');
+        try {
+          await _firestore
+              .collection('users')
+              .doc(_uid)
+              .collection('userGroups')
+              .doc(groupId)
+              .set({
+                'groupId': groupId,
+                'groupName': name,
+                'role': GroupRole.admin.name,
+                'joinedAt': now.toIso8601String(),
+              })
+              .timeout(_timeout);
+          developer.log('ユーザーグループ情報保存完了', name: 'GroupFirestoreService');
+        } catch (e) {
+          developer.log(
+            'ユーザーグループ情報保存エラー: $e',
+            name: 'GroupFirestoreService',
+            error: e,
+          );
+          rethrow;
+        }
 
         developer.log('グループ作成完了', name: 'GroupFirestoreService');
         return group;
@@ -275,16 +284,25 @@ class GroupFirestoreService {
       // Web版ではFirestoreの初期化を確実に行う
       if (kIsWeb) {
         try {
+          // まず現在の接続をクリーンアップ
+          await _firestore.disableNetwork();
+          await Future.delayed(Duration(milliseconds: 500));
+
+          // ネットワークを再有効化
           await _firestore.enableNetwork();
           developer.log(
-            'Web版: Firestoreネットワーク有効化完了',
+            'Web版: Firestoreネットワーク再有効化完了',
             name: 'GroupFirestoreService',
           );
+
+          // 少し待機して接続を安定させる
+          await Future.delayed(Duration(milliseconds: 1000));
         } catch (e) {
           developer.log(
             'Web版: Firestoreネットワーク有効化エラー: $e',
             name: 'GroupFirestoreService',
           );
+          // エラーが発生しても続行
         }
       }
 
@@ -743,17 +761,28 @@ class GroupFirestoreService {
         .update(updatedGroup.toJson());
 
     // ユーザーのグループ参加情報を保存
-    await _firestore
-        .collection('users')
-        .doc(_uid)
-        .collection('userGroups')
-        .doc(group.id)
-        .set({
-          'groupId': group.id,
-          'groupName': group.name,
-          'role': GroupRole.member.name,
-          'joinedAt': DateTime.now().toIso8601String(),
-        });
+    try {
+      developer.log('グループ参加情報保存開始: ${group.id}', name: 'GroupFirestoreService');
+      await _firestore
+          .collection('users')
+          .doc(_uid)
+          .collection('userGroups')
+          .doc(group.id)
+          .set({
+            'groupId': group.id,
+            'groupName': group.name,
+            'role': GroupRole.member.name,
+            'joinedAt': DateTime.now().toIso8601String(),
+          });
+      developer.log('グループ参加情報保存完了: ${group.id}', name: 'GroupFirestoreService');
+    } catch (e) {
+      developer.log(
+        'グループ参加情報保存エラー: $e',
+        name: 'GroupFirestoreService',
+        error: e,
+      );
+      rethrow;
+    }
 
     developer.log(
       '招待コード参加完了 - グループID: ${group.id}, メンバー数: ${updatedGroup.members.length}',
@@ -829,17 +858,28 @@ class GroupFirestoreService {
         .update(updatedGroup.toJson());
 
     // ユーザーのグループ参加情報を保存
-    await _firestore
-        .collection('users')
-        .doc(_uid)
-        .collection('userGroups')
-        .doc(group.id)
-        .set({
-          'groupId': group.id,
-          'groupName': group.name,
-          'role': GroupRole.member.name,
-          'joinedAt': DateTime.now().toIso8601String(),
-        });
+    try {
+      developer.log('グループ参加情報保存開始: ${group.id}', name: 'GroupFirestoreService');
+      await _firestore
+          .collection('users')
+          .doc(_uid)
+          .collection('userGroups')
+          .doc(group.id)
+          .set({
+            'groupId': group.id,
+            'groupName': group.name,
+            'role': GroupRole.member.name,
+            'joinedAt': DateTime.now().toIso8601String(),
+          });
+      developer.log('グループ参加情報保存完了: ${group.id}', name: 'GroupFirestoreService');
+    } catch (e) {
+      developer.log(
+        'グループ参加情報保存エラー: $e',
+        name: 'GroupFirestoreService',
+        error: e,
+      );
+      rethrow;
+    }
   }
 
   /// 招待を拒否

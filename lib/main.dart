@@ -216,6 +216,17 @@ Future<void> _initializeSystemSettings() async {
       return;
     }
 
+    // INTERNAL ASSERTION FAILEDエラーのログを強化
+    if (details.exception.toString().contains('INTERNAL ASSERTION FAILED')) {
+      developer.log(
+        '重大なFirestoreエラー検出: INTERNAL ASSERTION FAILED',
+        name: 'Main',
+        error: details.exception,
+        stackTrace: details.stack,
+      );
+      developer.log('Firestore接続のリセットを推奨します', name: 'Main');
+    }
+
     // その他のエラーは通常通り処理
     FlutterError.presentError(details);
   };

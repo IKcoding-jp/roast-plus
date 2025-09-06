@@ -27,9 +27,6 @@ class _SchedulePageState extends State<SchedulePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
     _loadRoastBreakTimes();
   }
 
@@ -126,12 +123,22 @@ class _SchedulePageState extends State<SchedulePage>
             backgroundColor: themeSettings.appBarColor,
             iconTheme: IconThemeData(color: themeSettings.iconColor),
             actions: [
-              // 時間ラベル編集ボタンをAppBarに追加（Web版では非表示）
+              // 時間ラベル編集ボタンをAppBarに追加（Web版では非表示、本日のスケジュールタブの時のみ表示）
               if (!kIsWeb)
-                IconButton(
-                  icon: Icon(Icons.label, color: themeSettings.iconColor),
-                  onPressed: _openTimeLabelEdit,
-                  tooltip: '時間ラベルを編集',
+                AnimatedBuilder(
+                  animation: _tabController,
+                  builder: (context, child) {
+                    return _tabController.index == 0
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.label,
+                              color: themeSettings.iconColor,
+                            ),
+                            onPressed: _openTimeLabelEdit,
+                            tooltip: '時間ラベルを編集',
+                          )
+                        : SizedBox.shrink();
+                  },
                 ),
             ],
             bottom: kIsWeb

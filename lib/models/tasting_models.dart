@@ -441,29 +441,59 @@ class TastingProvider extends ChangeNotifier {
     _tastingStreamSub?.cancel();
     _isLoading = true;
     notifyListeners();
-    Stream<List<TastingRecord>> stream;
-    if (groupId != null && groupId.isNotEmpty) {
-      stream = TastingFirestoreService.getGroupTastingRecordsStream(groupId);
-    } else {
-      stream = TastingFirestoreService.getTastingRecordsStream();
+
+    int retryCount = 0;
+    const maxRetries = 3;
+
+    void _subscribe() {
+      Stream<List<TastingRecord>> stream;
+      if (groupId != null && groupId.isNotEmpty) {
+        stream = TastingFirestoreService.getGroupTastingRecordsStream(groupId);
+      } else {
+        stream = TastingFirestoreService.getTastingRecordsStream();
+      }
+
+      _tastingStreamSub = stream.listen(
+        (records) {
+          _tastingRecords = List.from(records);
+          _isLoading = false;
+          notifyListeners();
+          // 成功したらリトライカウントをリセット
+          retryCount = 0;
+        },
+        onError: (e, st) {
+          developer.log(
+            'テイスティング記録ストリーム購読エラー',
+            name: 'TastingProvider',
+            error: e,
+            stackTrace: st,
+          );
+
+          // INTERNAL ASSERTION FAILEDエラーの場合、再接続を試みる
+          if (e.toString().contains('INTERNAL ASSERTION FAILED') &&
+              retryCount < maxRetries) {
+            retryCount++;
+            developer.log(
+              'INTERNAL ASSERTION FAILED検出、ストリーム再購読を試行します (${retryCount}/${maxRetries})',
+              name: 'TastingProvider',
+            );
+
+            _isLoading = true;
+            notifyListeners();
+
+            // 少し待機してから再購読
+            Future.delayed(Duration(seconds: retryCount), () {
+              _subscribe();
+            });
+          } else {
+            _isLoading = false;
+            notifyListeners();
+          }
+        },
+      );
     }
-    _tastingStreamSub = stream.listen(
-      (records) {
-        _tastingRecords = List.from(records);
-        _isLoading = false;
-        notifyListeners();
-      },
-      onError: (e, st) {
-        developer.log(
-          'テイスティング記録ストリーム購読エラー',
-          name: 'TastingProvider',
-          error: e,
-          stackTrace: st,
-        );
-        _isLoading = false;
-        notifyListeners();
-      },
-    );
+
+    _subscribe();
   }
 
   /// グループのテイスティングセッションを購読
@@ -471,48 +501,104 @@ class TastingProvider extends ChangeNotifier {
     _sessionsSub?.cancel();
     _isLoading = true;
     notifyListeners();
-    _sessionsSub =
-        TastingFirestoreService.getGroupTastingSessionsStream(groupId).listen(
-          (list) {
-            _sessions = List.from(list);
-            _isLoading = false;
-            notifyListeners();
-          },
-          onError: (e, st) {
-            developer.log(
-              'セッション購読エラー',
-              name: 'TastingProvider',
-              error: e,
-              stackTrace: st,
-            );
-            _isLoading = false;
-            notifyListeners();
-          },
-        );
+
+    int retryCount = 0;
+    const maxRetries = 3;
+
+    void _subscribe() {
+      _sessionsSub =
+          TastingFirestoreService.getGroupTastingSessionsStream(groupId).listen(
+            (list) {
+              _sessions = List.from(list);
+              _isLoading = false;
+              notifyListeners();
+              // 成功したらリトライカウントをリセット
+              retryCount = 0;
+            },
+            onError: (e, st) {
+              developer.log(
+                'セッション購読エラー',
+                name: 'TastingProvider',
+                error: e,
+                stackTrace: st,
+              );
+
+              // INTERNAL ASSERTION FAILEDエラーの場合、再接続を試みる
+              if (e.toString().contains('INTERNAL ASSERTION FAILED') &&
+                  retryCount < maxRetries) {
+                retryCount++;
+                developer.log(
+                  'INTERNAL ASSERTION FAILED検出、セッションストリーム再購読を試行します (${retryCount}/${maxRetries})',
+                  name: 'TastingProvider',
+                );
+
+                _isLoading = true;
+                notifyListeners();
+
+                // 少し待機してから再購読
+                Future.delayed(Duration(seconds: retryCount), () {
+                  _subscribe();
+                });
+              } else {
+                _isLoading = false;
+                notifyListeners();
+              }
+            },
+          );
+    }
+
+    _subscribe();
   }
 
   /// セッションのエントリ一覧を購読（詳細画面入場時）
   void loadEntries(String groupId, String sessionId) {
     // 既存購読をクリア
     _entriesSubs[sessionId]?.cancel();
-    _entriesSubs[sessionId] =
-        TastingFirestoreService.getSessionEntriesStream(
-          groupId,
-          sessionId,
-        ).listen(
-          (entries) {
-            _entriesBySession[sessionId] = entries;
-            notifyListeners();
-          },
-          onError: (e, st) {
-            developer.log(
-              'エントリ購読エラー',
-              name: 'TastingProvider',
-              error: e,
-              stackTrace: st,
-            );
-          },
-        );
+
+    int retryCount = 0;
+    const maxRetries = 3;
+
+    void _subscribe() {
+      _entriesSubs[sessionId] =
+          TastingFirestoreService.getSessionEntriesStream(
+            groupId,
+            sessionId,
+          ).listen(
+            (entries) {
+              _entriesBySession[sessionId] = entries;
+              notifyListeners();
+              // 成功したらリトライカウントをリセット
+              retryCount = 0;
+            },
+            onError: (e, st) {
+              developer.log(
+                'エントリ購読エラー',
+                name: 'TastingProvider',
+                error: e,
+                stackTrace: st,
+              );
+
+              // INTERNAL ASSERTION FAILEDエラーの場合、再接続を試みる
+              if (e.toString().contains('INTERNAL ASSERTION FAILED') &&
+                  retryCount < maxRetries) {
+                retryCount++;
+                developer.log(
+                  'INTERNAL ASSERTION FAILED検出、再接続を試行します (${retryCount}/${maxRetries})',
+                  name: 'TastingProvider',
+                );
+
+                // 少し待機してから再接続
+                Future.delayed(Duration(seconds: retryCount), () {
+                  if (_entriesSubs.containsKey(sessionId)) {
+                    _subscribe();
+                  }
+                });
+              }
+            },
+          );
+    }
+
+    _subscribe();
   }
 
   List<TastingEntry> getEntriesOf(String sessionId) {
@@ -521,6 +607,30 @@ class TastingProvider extends ChangeNotifier {
 
   bool hasMyEntry(String sessionId, String uid) {
     return getEntriesOf(sessionId).any((e) => e.userId == uid);
+  }
+
+  /// セッションを削除
+  Future<void> deleteSession(String groupId, String sessionId) async {
+    try {
+      debugPrint(
+        'TastingProvider: セッション削除開始 - groupId: $groupId, sessionId: $sessionId',
+      );
+      await TastingFirestoreService.deleteSession(groupId, sessionId);
+
+      // ローカルのセッションリストからも削除
+      _sessions.removeWhere((s) => s.id == sessionId);
+
+      // エントリの購読も停止
+      _entriesSubs[sessionId]?.cancel();
+      _entriesSubs.remove(sessionId);
+      _entriesBySession.remove(sessionId);
+
+      notifyListeners();
+      debugPrint('TastingProvider: セッション削除完了');
+    } catch (e) {
+      debugPrint('TastingProvider: セッション削除エラー: $e');
+      rethrow;
+    }
   }
 
   @override

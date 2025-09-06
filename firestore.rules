@@ -57,6 +57,18 @@ service cloud.firestore {
       match /{collection}/{document=**} {
         allow read, write: if isOwner(userId);
       }
+      
+      // 試飲記録コレクションの明示的なルール
+      match /tasting_records/{recordId} {
+        allow read, write: if isOwner(userId);
+        allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      }
+      
+      // ユーザーグループコレクションの明示的なルール
+      match /userGroups/{groupId} {
+        allow read, write: if isOwner(userId);
+        allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      }
     }
 
     // グループコレクションのルール
@@ -131,6 +143,14 @@ service cloud.firestore {
         allow read, write: if isGroupMember(groupId) || 
           (isAuthenticated() && 
            exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+      }
+      
+      // グループ試飲記録コレクションの特別ルール
+      match /tasting_records/{recordId} {
+        allow read: if isGroupMember(groupId);
+        allow create, update, delete: if isAuthenticated() && 
+          request.auth.uid == resource.data.userId && 
+          isGroupMember(groupId);
       }
     }
 

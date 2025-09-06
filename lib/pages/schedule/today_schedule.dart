@@ -47,6 +47,9 @@ class _TodayScheduleState extends State<TodaySchedule>
   bool _isEditing = false; // 入力中フラグを追加
   bool _isInitializing = true; // 初期化中フラグを追加
   String? _currentGroupId; // 現在のグループIDを追跡
+  bool _isProcessing = false; // 処理中フラグを追加（同期競合防止）
+  // 入力確定後に保存するためのデバウンス用タイマー群（ラベル単位）
+  final Map<String, Timer?> _saveDebounceTimers = {};
   // time_labelsの権限は削除 - today_scheduleと一本化
 
   // リスナー関連
@@ -256,6 +259,10 @@ class _TodayScheduleState extends State<TodaySchedule>
     for (final c in _scheduleControllers.values) {
       c.dispose();
     }
+    // デバウンスタイマーを破棄
+    for (final timer in _saveDebounceTimers.values) {
+      timer?.cancel();
+    }
     _scheduleControllers.clear();
 
     super.dispose();
@@ -401,9 +408,10 @@ class _TodayScheduleState extends State<TodaySchedule>
             if (mounted) {
               setState(() {
                 _scheduleLabels = List.from(newLabels);
-                // 削除されたラベルの内容も削除
-                _scheduleContents.removeWhere(
-                  (key, value) => !newLabels.contains(key),
+                // 削除されたラベルの内容は保持（バックアップとして）
+                // 必要に応じて後で削除するが、即座には削除しない
+                debugPrint(
+                  'TodaySchedule: ラベル変更 - 内容は保持: ${_scheduleContents.keys}',
                 );
               });
               _initScheduleControllers();
@@ -457,18 +465,33 @@ class _TodayScheduleState extends State<TodaySchedule>
   }
 
   Future<void> _saveSchedules() async {
+    // 既に処理中の場合はスキップ
+    if (_isProcessing) {
+      debugPrint('TodaySchedule: 既に処理中のため、保存をスキップ');
+      return;
+    }
+
     debugPrint('TodaySchedule: _saveSchedules 開始');
     debugPrint('TodaySchedule: ラベル: $_scheduleLabels');
     debugPrint('TodaySchedule: 内容: $_scheduleContents');
 
-    // 保存中フラグを設定
+    // 処理中フラグを設定
+    _isProcessing = true;
     _isSaving = true;
-    debugPrint('TodaySchedule: _saveSchedulesで保存中フラグを設定: $_isSaving');
+    debugPrint('TodaySchedule: _saveSchedulesで処理中フラグを設定: $_isProcessing');
 
     try {
+      // 現在のラベルに存在しない内容を除外して保存
+      final filteredContents = Map<String, String>.from(_scheduleContents);
+      filteredContents.removeWhere(
+        (key, value) => !_scheduleLabels.contains(key),
+      );
+
+      debugPrint('TodaySchedule: フィルタ後の内容: $filteredContents');
+
       await UserSettingsFirestoreService.saveMultipleSettings({
         'todaySchedule_labels': _scheduleLabels,
-        'todaySchedule_contents': _scheduleContents,
+        'todaySchedule_contents': filteredContents,
       });
 
       if (!mounted) return;
@@ -481,7 +504,7 @@ class _TodayScheduleState extends State<TodaySchedule>
           debugPrint('TodaySchedule: Firestoreに保存開始（リーダーまたはグループ未参加）');
           await schedule_service.ScheduleFirestoreService.saveTodayTodoSchedule(
             labels: _scheduleLabels,
-            contents: _scheduleContents,
+            contents: filteredContents,
           );
           debugPrint('TodaySchedule: Firestoreに保存完了');
 
@@ -506,7 +529,10 @@ class _TodayScheduleState extends State<TodaySchedule>
     } finally {
       // 保存完了後にフラグをリセット
       _isSaving = false;
-      debugPrint('TodaySchedule: _saveSchedulesで保存中フラグをリセット: $_isSaving');
+      _isProcessing = false;
+      debugPrint(
+        'TodaySchedule: _saveSchedulesでフラグをリセット: _isSaving=$_isSaving, _isProcessing=$_isProcessing',
+      );
     }
   }
 
@@ -555,9 +581,18 @@ class _TodayScheduleState extends State<TodaySchedule>
 
   // 時間ラベル保存用のメソッドを追加
   Future<void> _saveTimeLabels(List<String> labels) async {
+    // 既に処理中の場合はスキップ
+    if (_isProcessing) {
+      debugPrint('TodaySchedule: 既に処理中のため、時間ラベル保存をスキップ');
+      return;
+    }
+
     try {
       debugPrint('TodaySchedule: 時間ラベル保存開始: $labels');
       debugPrint('TodaySchedule: 保存するラベル数: ${labels.length}');
+
+      // 処理中フラグを設定
+      _isProcessing = true;
 
       // ローカル保存を最初に実行（確実に保存）
       debugPrint('TodaySchedule: ローカル保存開始');
@@ -576,9 +611,13 @@ class _TodayScheduleState extends State<TodaySchedule>
         try {
           debugPrint('TodaySchedule: 時間ラベルFirestore保存開始（today_scheduleデータタイプ）');
           // 古いtime_labelsの代わりにtoday_scheduleデータタイプを使用
+          // 現在のラベルに存在しない内容を除外
+          final filteredContents = Map<String, String>.from(_scheduleContents);
+          filteredContents.removeWhere((key, value) => !labels.contains(key));
+
           await schedule_service.ScheduleFirestoreService.saveTodayTodoSchedule(
             labels: labels,
-            contents: _scheduleContents,
+            contents: filteredContents,
           );
           debugPrint('TodaySchedule: 時間ラベルFirestore保存完了');
 
@@ -601,6 +640,10 @@ class _TodayScheduleState extends State<TodaySchedule>
       debugPrint('TodaySchedule: 時間ラベル保存エラー: $e');
       // ローカル保存に失敗した場合は例外を再スロー
       rethrow;
+    } finally {
+      // 処理完了後にフラグをリセット
+      _isProcessing = false;
+      debugPrint('TodaySchedule: 時間ラベル保存で処理中フラグをリセット: $_isProcessing');
     }
   }
 
@@ -625,7 +668,7 @@ class _TodayScheduleState extends State<TodaySchedule>
             .doc(docId)
             .snapshots()
             .listen((snapshot) {
-              if (!mounted) return; // mountedチェックを追加
+              if (!mounted || _isProcessing) return; // mountedチェックと処理中チェックを追加
               debugPrint('TodaySchedule: Firestoreからスケジュール変更を検知（個人）');
               if (snapshot.exists && snapshot.data() != null) {
                 final data = snapshot.data()!;
@@ -649,7 +692,7 @@ class _TodayScheduleState extends State<TodaySchedule>
             .doc('timeLabels')
             .snapshots()
             .listen((snapshot) {
-              if (!mounted) return; // mountedチェックを追加
+              if (!mounted || _isProcessing) return; // mountedチェックと処理中チェックを追加
               debugPrint('TodaySchedule: Firestoreから時間ラベル変更を検知（個人）');
               if (snapshot.exists && snapshot.data() != null) {
                 final data = snapshot.data()!;
@@ -1451,14 +1494,44 @@ class _TodayScheduleState extends State<TodaySchedule>
                             textInputAction:
                                 TextInputAction.done, // Enterキーの動作を明示
                             onChanged: (v) {
-                              debugPrint(
-                                'TodaySchedule: スケジュール内容変更検知 - ラベル: ${_scheduleLabels[i]}, 内容: $v',
-                              );
+                              final label = _scheduleLabels[i];
+                              // IME未確定テキスト中は保存しない
+                              if (_scheduleControllers[label]!
+                                  .value
+                                  .composing
+                                  .isValid) {
+                                debugPrint(
+                                  'TodaySchedule: 変換中のため保存スキップ - ラベル: $label, 値: $v',
+                                );
+                              }
+
                               setState(() {
-                                _scheduleContents[_scheduleLabels[i]] = v;
+                                _scheduleContents[label] = v;
                               });
-                              debugPrint('TodaySchedule: スケジュール内容保存開始');
-                              _saveSchedules();
+
+                              // デバウンス保存（最後の入力から一定時間後に保存）
+                              _saveDebounceTimers[label]?.cancel();
+                              _saveDebounceTimers[label] = Timer(
+                                Duration(milliseconds: 600),
+                                () {
+                                  // 変換が終わっているか再確認
+                                  if (!mounted) return;
+                                  final composing = _scheduleControllers[label]!
+                                      .value
+                                      .composing;
+                                  if (composing.isValid) {
+                                    debugPrint(
+                                      'TodaySchedule: まだ変換中のため保存延期 - ラベル: $label',
+                                    );
+                                    return;
+                                  }
+
+                                  debugPrint(
+                                    'TodaySchedule: デバウンス保存実行 - ラベル: $label, 値: ${_scheduleContents[label]}',
+                                  );
+                                  _saveSchedules();
+                                },
+                              );
                             },
                             onTap: () {
                               debugPrint(
@@ -1472,6 +1545,15 @@ class _TodayScheduleState extends State<TodaySchedule>
                               );
                               // 編集完了時（フォーカスが外れた時）のみ入力中フラグをリセット
                               _isEditing = false;
+                              // すぐに最終値を保存
+                              final label = _scheduleLabels[i];
+                              _saveDebounceTimers[label]?.cancel();
+                              _saveDebounceTimers[label] = Timer(
+                                Duration(milliseconds: 50),
+                                () {
+                                  _saveSchedules();
+                                },
+                              );
                             },
                             onSubmitted: (v) {
                               debugPrint(
@@ -1480,6 +1562,14 @@ class _TodayScheduleState extends State<TodaySchedule>
                               // Enterキーで確定した場合はフォーカスを外す
                               FocusScope.of(context).unfocus();
                               _isEditing = false;
+                              final label = _scheduleLabels[i];
+                              _saveDebounceTimers[label]?.cancel();
+                              _saveDebounceTimers[label] = Timer(
+                                Duration(milliseconds: 50),
+                                () {
+                                  _saveSchedules();
+                                },
+                              );
                             },
                             maxLines: 1,
                             style: TextStyle(

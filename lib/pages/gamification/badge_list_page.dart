@@ -204,77 +204,342 @@ class _BadgeListPageState extends State<BadgeListPage>
   }
 
   Widget _buildWebLayout(ThemeSettings themeSettings) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 1200),
-        child: Consumer2<GroupProvider, GamificationProvider>(
-          builder: (context, groupProvider, gamificationProvider, child) {
-            if (!groupProvider.hasGroup) {
-              return Center(
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            themeSettings.backgroundColor,
+            themeSettings.backgroundColor.withValues(alpha: 0.8),
+          ],
+        ),
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 1400),
+          child: Consumer2<GroupProvider, GamificationProvider>(
+            builder: (context, groupProvider, gamificationProvider, child) {
+              if (!groupProvider.hasGroup) {
+                return Center(
+                  child: Container(
+                    padding: EdgeInsets.all(40),
+                    decoration: BoxDecoration(
+                      color: themeSettings.cardBackgroundColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: themeSettings.iconColor.withValues(
+                              alpha: 0.1,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.groups_outlined,
+                            size: 48,
+                            color: themeSettings.iconColor,
+                          ),
+                        ),
+                        SizedBox(height: 24),
+                        Text(
+                          'グループに参加すると\nバッジを確認できます',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: themeSettings.fontColor1,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'チームで協力してバッジを獲得しましょう',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: themeSettings.fontColor2,
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              final groupId = groupProvider.currentGroup!.id;
+
+              // リアルタイムでプロフィールを取得（キャッシュも使用）
+              GroupGamificationProfile? profile = _cachedProfile;
+              profile ??= groupProvider.getGroupGamificationProfile(groupId);
+
+              if (profile == null) {
+                return Center(
+                  child: Container(
+                    padding: EdgeInsets.all(40),
+                    decoration: BoxDecoration(
+                      color: themeSettings.cardBackgroundColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(
+                          color: themeSettings.iconColor,
+                          strokeWidth: 3,
+                        ),
+                        SizedBox(height: 24),
+                        Text(
+                          'バッジデータを読み込み中...',
+                          style: TextStyle(
+                            color: themeSettings.fontColor2,
+                            fontSize: 16,
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return FadeTransition(
+                opacity: _fadeAnimation,
                 child: Column(
+                  children: [
+                    // ヘッダーセクション
+                    _buildWebHeader(profile, themeSettings),
+
+                    SizedBox(height: 32),
+
+                    // カテゴリフィルター
+                    _buildCategoryFilter(themeSettings),
+
+                    SizedBox(height: 24),
+
+                    // バッジグリッド
+                    Expanded(
+                      child: _buildBadgeGrid(
+                        profile,
+                        themeSettings,
+                        isWeb: true,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebHeader(
+    GroupGamificationProfile profile,
+    ThemeSettings themeSettings,
+  ) {
+    final earnedBadges = profile.badges.length;
+    final totalBadges = GroupBadgeConditions.conditions.length;
+    final progressPercentage = totalBadges > 0
+        ? (earnedBadges / totalBadges * 100).round()
+        : 0;
+
+    return Container(
+      padding: EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: themeSettings.cardBackgroundColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // 左側：統計情報
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'バッジコレクション',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: themeSettings.fontColor1,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'チームの成果を確認しましょう',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: themeSettings.fontColor2,
+                    fontFamily: themeSettings.fontFamily,
+                  ),
+                ),
+                SizedBox(height: 24),
+                Row(
+                  children: [
+                    _buildStatCard(
+                      '獲得済み',
+                      earnedBadges.toString(),
+                      Colors.green,
+                      Icons.check_circle,
+                      themeSettings,
+                    ),
+                    SizedBox(width: 16),
+                    _buildStatCard(
+                      '総数',
+                      totalBadges.toString(),
+                      themeSettings.iconColor,
+                      Icons.emoji_events,
+                      themeSettings,
+                    ),
+                    SizedBox(width: 16),
+                    _buildStatCard(
+                      '進捗率',
+                      '$progressPercentage%',
+                      Colors.blue,
+                      Icons.trending_up,
+                      themeSettings,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // 右側：進捗サークル
+          Container(
+            width: 120,
+            height: 120,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 背景サークル
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: themeSettings.backgroundColor,
+                    border: Border.all(
+                      color: themeSettings.iconColor.withValues(alpha: 0.2),
+                      width: 8,
+                    ),
+                  ),
+                ),
+                // 進捗サークル
+                SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: CircularProgressIndicator(
+                    value: progressPercentage / 100,
+                    strokeWidth: 8,
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      themeSettings.iconColor,
+                    ),
+                  ),
+                ),
+                // 中央のテキスト
+                Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.groups_outlined,
-                      size: 64,
-                      color: Colors.grey.shade400,
-                    ),
-                    SizedBox(height: 16),
                     Text(
-                      'グループに参加すると\nバッジを確認できます',
-                      textAlign: TextAlign.center,
+                      '$progressPercentage%',
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade600,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: themeSettings.fontColor1,
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                    Text(
+                      '完了',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: themeSettings.fontColor2,
                         fontFamily: themeSettings.fontFamily,
                       ),
                     ),
                   ],
                 ),
-              );
-            }
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            final groupId = groupProvider.currentGroup!.id;
-
-            // リアルタイムでプロフィールを取得（キャッシュも使用）
-            GroupGamificationProfile? profile = _cachedProfile;
-            profile ??= groupProvider.getGroupGamificationProfile(groupId);
-
-            if (profile == null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: themeSettings.iconColor),
-                    SizedBox(height: 16),
-                    Text(
-                      'Loading...',
-                      style: TextStyle(
-                        color: themeSettings.fontColor2,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+  Widget _buildStatCard(
+    String label,
+    String value,
+    Color color,
+    IconData icon,
+    ThemeSettings themeSettings,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 20),
+          SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  fontFamily: themeSettings.fontFamily,
                 ),
-              );
-            }
-
-            return FadeTransition(
-              opacity: _fadeAnimation,
-              child: Column(
-                children: [
-                  // カテゴリフィルター
-                  _buildCategoryFilter(themeSettings),
-
-                  // バッジグリッド
-                  Expanded(
-                    child: _buildBadgeGrid(profile, themeSettings, isWeb: true),
-                  ),
-                ],
               ),
-            );
-          },
-        ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: themeSettings.fontColor2,
+                  fontFamily: themeSettings.fontFamily,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -353,43 +618,82 @@ class _BadgeListPageState extends State<BadgeListPage>
   /// カテゴリフィルター
   Widget _buildCategoryFilter(ThemeSettings themeSettings) {
     return Container(
-      height: 50,
       margin: EdgeInsets.symmetric(horizontal: 16),
-      child: ListView.builder(
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
-        itemBuilder: (context, index) {
-          final category = _categories.keys.elementAt(index);
-          final label = _categories[category]!;
-          final isSelected = _selectedCategory == category;
+        child: Row(
+          children: _categories.entries.map((entry) {
+            final category = entry.key;
+            final label = entry.value;
+            final isSelected = _selectedCategory == category;
 
-          return Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: FilterChip(
-              label: Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : themeSettings.fontColor1,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  fontFamily: themeSettings.fontFamily,
+            return Container(
+              margin: EdgeInsets.only(right: 12),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedCategory = category;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? themeSettings.iconColor
+                        : themeSettings.cardBackgroundColor,
+                    borderRadius: BorderRadius.circular(25),
+                    border: Border.all(
+                      color: isSelected
+                          ? themeSettings.iconColor
+                          : themeSettings.iconColor.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: themeSettings.iconColor.withValues(
+                                alpha: 0.3,
+                              ),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        Icon(Icons.check_circle, color: Colors.white, size: 16),
+                        SizedBox(width: 8),
+                      ],
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : themeSettings.fontColor1,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          fontSize: 14,
+                          fontFamily: themeSettings.fontFamily,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedCategory = category;
-                });
-              },
-              backgroundColor: themeSettings.cardBackgroundColor,
-              selectedColor: Colors.brown.shade600,
-              checkmarkColor: Colors.white,
-              elevation: isSelected ? 4 : 1,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          );
-        },
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -405,13 +709,13 @@ class _BadgeListPageState extends State<BadgeListPage>
 
     // バッジ一覧を表示
 
-    // WEB版では5列、モバイル版では2列
-    final crossAxisCount = isWeb ? 5 : 2;
-    final childAspectRatio = isWeb ? 0.7 : 0.85;
-    final spacing = isWeb ? 12.0 : 16.0;
+    // WEB版では6列、モバイル版では2列
+    final crossAxisCount = isWeb ? 6 : 2;
+    final childAspectRatio = isWeb ? 0.8 : 0.85;
+    final spacing = isWeb ? 16.0 : 16.0;
 
-    return Padding(
-      padding: EdgeInsets.all(16),
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
         cacheExtent: 1000,
         addAutomaticKeepAlives: false,
@@ -852,27 +1156,42 @@ class _BadgeCardState extends State<BadgeCard>
       scale: _scaleAnimation,
       child: GestureDetector(
         onTap: () => _showBadgeDetails(context),
-        child: Card(
-          elevation: widget.isEarned ? 8 : 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          color: widget.isEarned ? Colors.white : Colors.grey.shade100,
-          child: Container(
-            padding: EdgeInsets.all(widget.isWeb ? 8 : 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: widget.isEarned
-                  ? LinearGradient(
-                      colors: [
-                        widget.condition.color.withValues(alpha: 0.1),
-                        widget.condition.color.withValues(alpha: 0.05),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: widget.isEarned
+                ? LinearGradient(
+                    colors: [
+                      widget.condition.color.withValues(alpha: 0.15),
+                      widget.condition.color.withValues(alpha: 0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : LinearGradient(
+                    colors: [Colors.grey.shade50, Colors.grey.shade100],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            boxShadow: [
+              BoxShadow(
+                color: widget.isEarned
+                    ? widget.condition.color.withValues(alpha: 0.2)
+                    : Colors.black.withValues(alpha: 0.1),
+                blurRadius: widget.isEarned ? 12 : 8,
+                offset: Offset(0, 4),
+                spreadRadius: widget.isEarned ? 1 : 0,
+              ),
+            ],
+            border: Border.all(
+              color: widget.isEarned
+                  ? widget.condition.color.withValues(alpha: 0.3)
+                  : Colors.grey.shade300,
+              width: 1.5,
             ),
+          ),
+          child: Container(
+            padding: EdgeInsets.all(widget.isWeb ? 12 : 16),
             child: Column(
               children: [
                 // バッジアイコン
@@ -883,36 +1202,50 @@ class _BadgeCardState extends State<BadgeCard>
                     children: [
                       // グラデーション背景
                       Container(
-                        width: widget.isWeb ? 50 : 80,
-                        height: widget.isWeb ? 50 : 80,
+                        width: widget.isWeb ? 60 : 80,
+                        height: widget.isWeb ? 60 : 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: widget.isEarned
                               ? LinearGradient(
                                   colors: [
                                     widget.condition.color.withValues(
-                                      alpha: 0.8,
+                                      alpha: 0.9,
                                     ),
                                     widget.condition.color,
+                                    widget.condition.color.withValues(
+                                      alpha: 0.8,
+                                    ),
                                   ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 )
                               : LinearGradient(
                                   colors: [
-                                    Colors.grey.shade400,
-                                    Colors.grey.shade600,
+                                    Colors.grey.shade300,
+                                    Colors.grey.shade500,
                                   ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
                           boxShadow: widget.isEarned
                               ? [
                                   BoxShadow(
                                     color: widget.condition.color.withValues(
-                                      alpha: 0.4,
+                                      alpha: 0.5,
                                     ),
-                                    blurRadius: widget.isWeb ? 10 : 20,
-                                    spreadRadius: widget.isWeb ? 2 : 5,
+                                    blurRadius: widget.isWeb ? 15 : 25,
+                                    spreadRadius: widget.isWeb ? 3 : 5,
+                                    offset: Offset(0, 4),
                                   ),
                                 ]
-                              : [],
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
                         ),
                       ),
                       // アイコン
@@ -930,15 +1263,16 @@ class _BadgeCardState extends State<BadgeCard>
                       // 進捗リング（未獲得の場合）
                       if (!widget.isEarned)
                         SizedBox(
-                          width: widget.isWeb ? 60 : 90,
-                          height: widget.isWeb ? 60 : 90,
+                          width: widget.isWeb ? 70 : 90,
+                          height: widget.isWeb ? 70 : 90,
                           child: CircularProgressIndicator(
                             value: widget.progress,
-                            backgroundColor: Colors.grey.shade300,
+                            backgroundColor: Colors.grey.shade200,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              widget.condition.color.withValues(alpha: 0.7),
+                              widget.condition.color,
                             ),
-                            strokeWidth: widget.isWeb ? 2 : 4,
+                            strokeWidth: widget.isWeb ? 3 : 4,
+                            strokeCap: StrokeCap.round,
                           ),
                         ),
                     ],

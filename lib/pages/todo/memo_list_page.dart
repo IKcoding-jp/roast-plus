@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/theme_settings.dart';
@@ -174,6 +175,146 @@ class _MemoListPageState extends State<MemoListPage> {
     }
   }
 
+  Future<void> _showEditMemoDialog(MemoItem memo) async {
+    final titleController = TextEditingController(text: memo.title);
+    final contentController = TextEditingController(text: memo.content);
+    final themeSettings = Provider.of<ThemeSettings>(context, listen: false);
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'メモを編集',
+          style: TextStyle(
+            fontSize: kIsWeb ? 24 : 20,
+            fontWeight: FontWeight.bold,
+            color: themeSettings.fontColor1,
+            fontFamily: themeSettings.fontFamily,
+          ),
+        ),
+        contentPadding: EdgeInsets.all(kIsWeb ? 32 : 24),
+        content: SizedBox(
+          width: kIsWeb ? 600 : double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: 'タイトル',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: themeSettings.todoColor,
+                        width: 2,
+                      ),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: kIsWeb ? 16 : 12,
+                    ),
+                  ),
+                  style: TextStyle(
+                    color: themeSettings.fontColor1,
+                    fontFamily: themeSettings.fontFamily,
+                    fontSize: kIsWeb ? 18 : 16,
+                  ),
+                ),
+                SizedBox(height: kIsWeb ? 24 : 16),
+                TextField(
+                  controller: contentController,
+                  decoration: InputDecoration(
+                    labelText: '内容',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: themeSettings.todoColor,
+                        width: 2,
+                      ),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: kIsWeb ? 16 : 12,
+                    ),
+                  ),
+                  style: TextStyle(
+                    color: themeSettings.fontColor1,
+                    fontFamily: themeSettings.fontFamily,
+                    fontSize: kIsWeb ? 16 : 14,
+                  ),
+                  maxLines: kIsWeb ? 12 : 8,
+                  minLines: kIsWeb ? 8 : 5,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actionsPadding: EdgeInsets.fromLTRB(
+          kIsWeb ? 32 : 24,
+          0,
+          kIsWeb ? 32 : 24,
+          kIsWeb ? 32 : 24,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(
+                horizontal: kIsWeb ? 24 : 16,
+                vertical: kIsWeb ? 12 : 8,
+              ),
+            ),
+            child: Text(
+              'キャンセル',
+              style: TextStyle(
+                fontSize: kIsWeb ? 16 : 14,
+                fontFamily: themeSettings.fontFamily,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop({
+                'title': titleController.text.trim(),
+                'content': contentController.text.trim(),
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: themeSettings.appButtonColor,
+              foregroundColor: themeSettings.fontColor2,
+              padding: EdgeInsets.symmetric(
+                horizontal: kIsWeb ? 24 : 16,
+                vertical: kIsWeb ? 12 : 8,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              '保存',
+              style: TextStyle(
+                fontSize: kIsWeb ? 16 : 14,
+                fontFamily: themeSettings.fontFamily,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      await _editMemo(memo, result['title']!, result['content']!);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
@@ -257,81 +398,108 @@ class _MemoListPageState extends State<MemoListPage> {
           ),
           color: themeSettings.cardBackgroundColor,
           margin: EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            contentPadding: EdgeInsets.all(16),
-            leading: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: memo.isPinned
-                    ? Colors.orange.withValues(alpha: 0.2)
-                    : themeSettings.iconColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                memo.isPinned ? Icons.push_pin : Icons.note,
-                color: memo.isPinned ? Colors.orange : themeSettings.todoColor,
-                size: 24,
-              ),
-            ),
-            title: Text(
-              memo.title,
-              style: TextStyle(
-                fontSize: (16 * themeSettings.fontSizeScale).clamp(12.0, 24.0),
-                fontWeight: FontWeight.bold,
-                color: themeSettings.fontColor1,
-                fontFamily: themeSettings.fontFamily,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (memo.content.isNotEmpty) ...[
-                  SizedBox(height: 8),
+          child: InkWell(
+            onTap: _canEditMemos ? () => _showEditMemoDialog(memo) : null,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: memo.isPinned
+                              ? Colors.orange.withValues(alpha: 0.2)
+                              : themeSettings.iconColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          memo.isPinned ? Icons.push_pin : Icons.note,
+                          color: memo.isPinned
+                              ? Colors.orange
+                              : themeSettings.todoColor,
+                          size: 24,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          memo.title,
+                          style: TextStyle(
+                            fontSize: (16 * themeSettings.fontSizeScale).clamp(
+                              12.0,
+                              24.0,
+                            ),
+                            fontWeight: FontWeight.bold,
+                            color: themeSettings.fontColor1,
+                            fontFamily: themeSettings.fontFamily,
+                          ),
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.edit,
+                              color: themeSettings.todoColor,
+                            ),
+                            onPressed: _canEditMemos
+                                ? () => _showEditMemoDialog(memo)
+                                : null,
+                            tooltip: '編集',
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              memo.isPinned
+                                  ? Icons.push_pin
+                                  : Icons.push_pin_outlined,
+                              color: memo.isPinned
+                                  ? Colors.orange
+                                  : themeSettings.todoColor,
+                            ),
+                            onPressed: _canEditMemos
+                                ? () => _togglePinMemo(memo)
+                                : null,
+                            tooltip: memo.isPinned ? 'ピン留め解除' : 'ピン留め',
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: _canEditMemos
+                                ? () => _deleteMemo(memo)
+                                : null,
+                            tooltip: '削除',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if (memo.content.isNotEmpty) ...[
+                    SizedBox(height: 12),
+                    Text(
+                      memo.content,
+                      style: TextStyle(
+                        fontSize: 14 * themeSettings.fontSizeScale,
+                        color: themeSettings.fontColor1.withValues(alpha: 0.8),
+                        fontFamily: themeSettings.fontFamily,
+                      ),
+                    ),
+                  ],
+                  SizedBox(height: 12),
                   Text(
-                    memo.content,
+                    '更新: ${_formatDate(memo.updatedAt)}',
                     style: TextStyle(
-                      fontSize: 14 * themeSettings.fontSizeScale,
-                      color: themeSettings.fontColor1.withValues(alpha: 0.8),
+                      fontSize: 12 * themeSettings.fontSizeScale,
+                      color: themeSettings.fontColor1.withValues(alpha: 0.6),
                       fontFamily: themeSettings.fontFamily,
                     ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-                SizedBox(height: 8),
-                Text(
-                  '更新: ${_formatDate(memo.updatedAt)}',
-                  style: TextStyle(
-                    fontSize: 12 * themeSettings.fontSizeScale,
-                    color: themeSettings.fontColor1.withValues(alpha: 0.6),
-                    fontFamily: themeSettings.fontFamily,
-                  ),
-                ),
-              ],
+              ),
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    memo.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                    color: memo.isPinned
-                        ? Colors.orange
-                        : themeSettings.todoColor,
-                  ),
-                  onPressed: _canEditMemos ? () => _togglePinMemo(memo) : null,
-                ),
-                IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red),
-                  onPressed: _canEditMemos ? () => _deleteMemo(memo) : null,
-                ),
-              ],
-            ),
-            onTap: _canEditMemos
-                ? () => _editMemo(memo, memo.title, memo.content)
-                : null,
           ),
         );
       },

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +14,7 @@ import '../../services/work_progress_firestore_service.dart';
 import '../../services/roast_schedule_memo_service.dart';
 import '../../models/roast_schedule_models.dart';
 import '../../models/group_provider.dart';
+import '../../services/group_data_sync_service.dart';
 import '../../widgets/bean_name_with_sticker.dart';
 import '../../widgets/lottie_animation_widget.dart';
 
@@ -38,6 +40,9 @@ class _CalendarPageState extends State<CalendarPage> {
 
   bool _isLoading = false;
 
+  // グループデータ監視用
+  StreamSubscription<Map<String, dynamic>?>? _groupScheduleSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -48,8 +53,51 @@ class _CalendarPageState extends State<CalendarPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadSelectedDateData();
+        _setupGroupScheduleListener();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _groupScheduleSubscription?.cancel();
+    super.dispose();
+  }
+
+  // グループスケジュールの変更を監視
+  void _setupGroupScheduleListener() {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+        debugPrint('CalendarPage: グループスケジュールリスナーを設定: ${group.id}');
+
+        _groupScheduleSubscription =
+            GroupDataSyncService.watchGroupTodaySchedule(group.id).listen((
+              scheduleData,
+            ) {
+              if (!mounted) return;
+
+              debugPrint('CalendarPage: グループスケジュール変更を検知: $scheduleData');
+
+              // 今日の日付の場合のみ更新
+              final today = DateTime.now();
+              final todayKey = DateFormat('yyyy-MM-dd').format(today);
+              final selectedKey = DateFormat(
+                'yyyy-MM-dd',
+              ).format(_selectedDate);
+
+              if (selectedKey == todayKey) {
+                setState(() {
+                  _todaySchedule = scheduleData;
+                });
+                debugPrint('CalendarPage: 本日のスケジュールを更新しました');
+              }
+            });
+      }
+    } catch (e) {
+      debugPrint('CalendarPage: グループスケジュールリスナー設定エラー: $e');
+    }
   }
 
   Future<void> _loadSelectedDateData() async {
@@ -233,6 +281,27 @@ class _CalendarPageState extends State<CalendarPage> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return null;
 
+      // グループ参加時はグループデータを優先的に読み込み
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+        debugPrint('CalendarPage: グループ参加中 - グループデータを優先読み込み: $dateKey');
+
+        try {
+          // グループデータから本日のスケジュールを取得
+          final groupScheduleData =
+              await GroupDataSyncService.getGroupTodaySchedule(group.id);
+          if (groupScheduleData != null) {
+            debugPrint('CalendarPage: グループからスケジュールデータを取得: $groupScheduleData');
+            return groupScheduleData;
+          }
+        } catch (e) {
+          debugPrint('CalendarPage: グループデータ読み込みエラー: $e');
+        }
+      }
+
+      // グループデータが読み込めない場合は個人データを読み込み
+      debugPrint('CalendarPage: 個人データからスケジュールを読み込み: $dateKey');
       final doc = await firestore
           .collection('users')
           .doc(user.uid)
@@ -242,7 +311,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
       return doc.exists ? doc.data() : null;
     } catch (e) {
-      // 指定日付のスケジュール読み込みエラー
+      debugPrint('CalendarPage: スケジュール読み込みエラー: $e');
       return null;
     }
   }
@@ -259,6 +328,18 @@ class _CalendarPageState extends State<CalendarPage> {
     Future.delayed(Duration(milliseconds: 100), () {
       if (mounted) {
         _loadSelectedDateData();
+        // 日付変更時にリスナーを再設定（今日の日付の場合のみ）
+        final today = DateTime.now();
+        final todayKey = DateFormat('yyyy-MM-dd').format(today);
+        final selectedKey = DateFormat('yyyy-MM-dd').format(selectedDate);
+
+        if (selectedKey == todayKey) {
+          _setupGroupScheduleListener();
+        } else {
+          // 今日以外の日付の場合はリスナーを停止
+          _groupScheduleSubscription?.cancel();
+          _groupScheduleSubscription = null;
+        }
       }
     });
   }
