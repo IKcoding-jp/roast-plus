@@ -275,71 +275,71 @@ class GroupGamificationProfile {
     return badges.where((badge) => badge.category == category).toList();
   }
 
-  /// レベルに必要な経験値を計算（大幅に増加）
+  /// レベルに必要な経験値を計算（新しい経験値システム対応）
   static int _calculateRequiredXP(int level) {
     if (level <= 1) return 0; // レベル1は0XPから開始
 
-    // グループレベル9999に必要な総経験値: 約226,000XP
-    // 3年間で獲得可能な経験値: 約226,000XP
-    // 出勤: 780日 × 50XP = 39,000XP
-    // 焙煎: 468回 × 200XP = 93,600XP
-    // ドリップパック: 46,800個 × 2XP = 93,600XP（週300個 × 3年）
-    // 合計: 226,200XP
+    // 新しいシステムでの3年間獲得可能経験値: 約2,434,000XP
+    // 出勤: 780日 × 1000XP = 780,000XP
+    // 焙煎: 468回 × 2000XP = 936,000XP
+    // ドリップパック: 46,800個 × 10XP = 468,000XP
+    // テイスティング: 約200回 × 500XP = 100,000XP
+    // 作業進捗: 約1,000回 × 150XP = 150,000XP
+    // 合計: 約2,434,000XP
 
-    // 150パック1回（300XP）で適切なレベルアップになるよう調整
     if (level <= 1) return 0;
 
-    // レベル1-5: 非常に簡単（50XP/レベル）
+    // レベル1-5: 非常に簡単（500XP/レベル）
     if (level <= 5) {
-      return (level - 1) * 50;
+      return (level - 1) * 500;
     }
-    // レベル6-15: 簡単（80XP/レベル）
+    // レベル6-15: 簡単（800XP/レベル）
     else if (level <= 15) {
-      return 200 + (level - 5) * 80;
+      return 2000 + (level - 5) * 800;
     }
-    // レベル16-30: 普通（120XP/レベル）
+    // レベル16-30: 普通（1,200XP/レベル）
     else if (level <= 30) {
-      return 1000 + (level - 15) * 120;
+      return 10000 + (level - 15) * 1200;
     }
-    // レベル31-50: 少し難しい（180XP/レベル）
+    // レベル31-50: 少し難しい（1,800XP/レベル）
     else if (level <= 50) {
-      return 2800 + (level - 30) * 180;
+      return 28000 + (level - 30) * 1800;
     }
-    // レベル51-100: 難しい（250XP/レベル）
+    // レベル51-100: 難しい（2,500XP/レベル）
     else if (level <= 100) {
-      return 6400 + (level - 50) * 250;
+      return 64000 + (level - 50) * 2500;
     }
-    // レベル101-200: とても難しい（350XP/レベル）
+    // レベル101-200: とても難しい（3,500XP/レベル）
     else if (level <= 200) {
-      return 18900 + (level - 100) * 350;
+      return 189000 + (level - 100) * 3500;
     }
-    // レベル201-500: 非常に難しい（500XP/レベル）
+    // レベル201-500: 非常に難しい（5,000XP/レベル）
     else if (level <= 500) {
-      return 53900 + (level - 200) * 500;
+      return 539000 + (level - 200) * 5000;
     }
-    // レベル501-1000: 超難しい（750XP/レベル）
+    // レベル501-1000: 超難しい（7,500XP/レベル）
     else if (level <= 1000) {
-      return 203900 + (level - 500) * 750;
+      return 2039000 + (level - 500) * 7500;
     }
-    // レベル1001-2000: 極めて難しい（1200XP/レベル）
+    // レベル1001-2000: 極めて難しい（12,000XP/レベル）
     else if (level <= 2000) {
-      return 579900 + (level - 1000) * 1200;
+      return 5799000 + (level - 1000) * 12000;
     }
-    // レベル2001-4000: 伝説級（2000XP/レベル）
+    // レベル2001-4000: 伝説級（20,000XP/レベル）
     else if (level <= 4000) {
-      return 1779900 + (level - 2000) * 2000;
+      return 17799000 + (level - 2000) * 20000;
     }
-    // レベル4001-7000: 神級（3500XP/レベル）
+    // レベル4001-7000: 神級（35,000XP/レベル）
     else if (level <= 7000) {
-      return 5779900 + (level - 4000) * 3500;
+      return 57799000 + (level - 4000) * 35000;
     }
-    // レベル7001-9999: 超越級（6000XP/レベル）
+    // レベル7001-9999: 超越級（60,000XP/レベル）
     else if (level <= 9999) {
-      return 16279900 + (level - 7000) * 6000;
+      return 162799000 + (level - 7000) * 60000;
     }
     // レベル9999以上
     else {
-      return 34279900 + (level - 9999) * 10000;
+      return 342799000 + (level - 9999) * 100000;
     }
   }
 
@@ -503,13 +503,13 @@ class GroupActivityReward {
 
   factory GroupActivityReward.attendance() {
     return const GroupActivityReward(
-      experiencePoints: 50,
-      description: '出勤記録で+50XP獲得！',
+      experiencePoints: 1000,
+      description: '出勤記録で+1000XP獲得！',
     );
   }
 
   factory GroupActivityReward.roasting(double minutes) {
-    final xp = (minutes * 2).round(); // 1分あたり2XP
+    final xp = (minutes * 20).round(); // 1分あたり20XP
     return GroupActivityReward(
       experiencePoints: xp,
       description: '焙煎記録で+${xp}XP獲得！',
@@ -517,7 +517,7 @@ class GroupActivityReward {
   }
 
   factory GroupActivityReward.dripPack(int count) {
-    final xp = (count * 2).round(); // 1個あたり2XP（週300個 × 3年 = 93,600XP）
+    final xp = (count * 10).round(); // 1個あたり10XP（週300個 × 3年 = 468,000XP）
     return GroupActivityReward(
       experiencePoints: xp,
       description: 'ドリップパック記録で+${xp}XP獲得！',
@@ -526,15 +526,15 @@ class GroupActivityReward {
 
   factory GroupActivityReward.tasting() {
     return const GroupActivityReward(
-      experiencePoints: 25,
-      description: 'テイスティング記録で+25XP獲得！',
+      experiencePoints: 500,
+      description: 'テイスティング記録で+500XP獲得！',
     );
   }
 
   factory GroupActivityReward.workProgress() {
     return const GroupActivityReward(
-      experiencePoints: 15,
-      description: '作業進捗更新で+15XP獲得！',
+      experiencePoints: 150,
+      description: '作業進捗更新で+150XP獲得！',
     );
   }
 }
