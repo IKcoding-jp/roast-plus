@@ -61,4 +61,9 @@
     <meta-data
         android:name="com.google.android.gms.version"
         android:value="@integer/google_play_services_version" />
+    
+    <!-- Google Sign-In 設定 -->
+    <meta-data
+        android:name="com.google.android.gms.auth.GOOGLE_SIGN_IN"
+        android:value="330871937318-ua3q3aikt2vkd6p30288mm1d62df53pl.apps.googleusercontent.com" />
 </manifest>

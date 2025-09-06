@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+// 'google_sign_in' は現在未使用のためインポートはコメントアウト（将来的に必要なら復活）
+// import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:developer' as developer;
 import 'secure_storage_service.dart';
 
@@ -413,6 +415,7 @@ class SecureAuthService {
           userCredential = await _auth.signInWithPopup(provider);
         }
       } else {
+        // Mobile: FirebaseAuth のプロバイダ経由でサインイン
         userCredential = await _auth.signInWithProvider(provider);
       }
 

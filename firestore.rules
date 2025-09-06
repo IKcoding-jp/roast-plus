@@ -20,8 +20,12 @@ service cloud.firestore {
     // グループ管理者かどうかチェック（userGroups の role またはグループ作成者）
     function isGroupAdmin(groupId) {
       return isAuthenticated() && (
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)).data.role in ['admin', 'leader']) ||
-        (get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid)
+        // userGroupsドキュメントが存在する場合のチェック
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)).data.role in ['admin', 'leader']) ||
+        // グループドキュメントが存在する場合の作成者チェック
+        (exists(/databases/$(database)/documents/groups/$(groupId)) &&
+         get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid)
       );
     }
 
@@ -45,11 +49,14 @@ service cloud.firestore {
         // 招待コードによるグループ参加のための読み取り権限
         (isAuthenticated() && 
          resource.data.inviteCode != null);
+      // グループ作成は認証済みユーザーなら誰でも可能
       allow create: if isAuthenticated();
+      // グループ更新は管理者のみ、または招待コードによる参加時
       allow update: if isGroupAdmin(groupId) || 
         // 招待コードによるグループ参加のための更新権限
         (isAuthenticated() && 
          resource.data.inviteCode != null);
+      // グループ削除は管理者のみ
       allow delete: if isGroupAdmin(groupId);
       
       // グループのサブコレクションへのアクセス

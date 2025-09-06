@@ -685,14 +685,6 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Text(
-                            'ログイン後、表示名の設定画面が表示されます',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
                         ],
                       ),
               ],

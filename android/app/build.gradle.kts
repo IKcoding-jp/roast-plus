@@ -28,14 +28,6 @@ android {
         checkReleaseBuilds = false
     }
 
-    // Java 8の警告を抑制
-    tasks.withType<JavaCompile> {
-        options.compilerArgs.addAll(listOf(
-            "-Xlint:-options",
-            "-Xlint:-deprecation",
-            "-Xlint:-unchecked"
-        ))
-    }
 
     // 署名設定
     signingConfigs {
@@ -89,14 +81,16 @@ dependencies {
     // Add core library desugaring dependency
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     
-    // implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
+    // Firebase BOM
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     
-    // implementation("com.google.firebase:firebase-analytics")
+    // Firebase Analytics
+    implementation("com.google.firebase:firebase-analytics")
     
     // Google Play Services
-    // implementation("com.google.android.gms:play-services-auth:20.7.0")
-    // implementation("com.google.android.gms:play-services-base:18.3.0")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("com.google.android.gms:play-services-base:18.5.0")
     
     // Google Sign-In
-    // implementation("com.google.android.gms:play-services-identity:18.0.1")
+    implementation("com.google.android.gms:play-services-identity:18.0.1")
 }

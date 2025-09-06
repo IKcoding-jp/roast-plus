@@ -14,16 +14,14 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
-    
-    // すべてのサブプロジェクトでJava警告を抑制
-    afterEvaluate {
-        tasks.withType<JavaCompile> {
-            options.compilerArgs.addAll(listOf(
-                "-Xlint:-options",
-                "-Xlint:-deprecation", 
-                "-Xlint:-unchecked"
-            ))
-        }
+
+    // Javaコンパイルタスクの設定
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.addAll(listOf(
+            "-Xlint:-options",
+            "-Xlint:-deprecation",
+            "-Xlint:-unchecked"
+        ))
     }
 }
 
@@ -33,8 +31,5 @@ tasks.register<Delete>("clean") {
 
 plugins {
   // ...
-
-  // Add the dependency for the Google services Gradle plugin
-  id("com.google.gms.google-services") version "4.3.15" apply false
 
 }

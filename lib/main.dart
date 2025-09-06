@@ -30,6 +30,7 @@ import 'utils/web_compatibility.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -242,6 +243,15 @@ Future<void> _initializeFirebase() async {
           developer.log('Web版: FirebaseAuth永続化をLOCALに設定', name: 'Main');
         } catch (persistError) {
           developer.log('Web版: 永続化設定に失敗: $persistError', name: 'Main');
+        }
+
+        // Web版でFirestoreの初期化を確実に行う
+        try {
+          final firestore = FirebaseFirestore.instance;
+          await firestore.enableNetwork();
+          developer.log('Web版: Firestoreネットワーク有効化完了', name: 'Main');
+        } catch (firestoreError) {
+          developer.log('Web版: Firestore初期化エラー: $firestoreError', name: 'Main');
         }
       } catch (e) {
         developer.log('Web版: Firebaseアプリチェックエラー: $e', name: 'Main');

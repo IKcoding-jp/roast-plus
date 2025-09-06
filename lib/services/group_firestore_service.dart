@@ -7,6 +7,7 @@ import 'first_login_service.dart';
 import 'dart:math';
 import 'dart:developer' as developer;
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 class GroupFirestoreService {
   static final _firestore = FirebaseFirestore.instance;
@@ -107,6 +108,22 @@ class GroupFirestoreService {
       try {
         developer.log('グループ作成開始', name: 'GroupFirestoreService');
 
+        // Web版ではFirestoreの初期化を確実に行う
+        if (kIsWeb) {
+          try {
+            await _firestore.enableNetwork();
+            developer.log(
+              'Web版: Firestoreネットワーク有効化完了',
+              name: 'GroupFirestoreService',
+            );
+          } catch (e) {
+            developer.log(
+              'Web版: Firestoreネットワーク有効化エラー: $e',
+              name: 'GroupFirestoreService',
+            );
+          }
+        }
+
         if (_uid == null) throw Exception('未ログイン');
         if (_email == null) throw Exception('メールアドレスが取得できません');
 
@@ -156,12 +173,71 @@ class GroupFirestoreService {
         );
 
         developer.log('グループドキュメント保存開始', name: 'GroupFirestoreService');
-        await _firestore
-            .collection('groups')
-            .doc(groupId)
-            .set(group.toJson())
-            .timeout(_timeout);
-        developer.log('グループドキュメント保存完了', name: 'GroupFirestoreService');
+        try {
+          // Web版ではより安全なデータ構造で保存
+          final groupData = group.toJson();
+
+          // Web版でのFirestore内部エラー対策：データを検証してから保存
+          if (kIsWeb) {
+            // null値を除去し、文字列の長さを制限
+            final sanitizedData = <String, dynamic>{};
+            for (final entry in groupData.entries) {
+              if (entry.value != null) {
+                if (entry.value is String) {
+                  // 文字列の長さを制限（Firestoreの制限対策）
+                  final stringValue = entry.value as String;
+                  if (stringValue.length > 1000000) {
+                    // 1MB制限
+                    developer.log(
+                      'Web版: 文字列が長すぎるため切り詰めます: ${entry.key}',
+                      name: 'GroupFirestoreService',
+                    );
+                    sanitizedData[entry.key] = stringValue.substring(
+                      0,
+                      1000000,
+                    );
+                  } else {
+                    sanitizedData[entry.key] = stringValue;
+                  }
+                } else {
+                  sanitizedData[entry.key] = entry.value;
+                }
+              }
+            }
+
+            await _firestore
+                .collection('groups')
+                .doc(groupId)
+                .set(sanitizedData)
+                .timeout(_timeout);
+          } else {
+            await _firestore
+                .collection('groups')
+                .doc(groupId)
+                .set(groupData)
+                .timeout(_timeout);
+          }
+
+          developer.log('グループドキュメント保存完了', name: 'GroupFirestoreService');
+        } catch (e) {
+          developer.log(
+            'グループドキュメント保存エラー: $e',
+            name: 'GroupFirestoreService',
+            error: e,
+          );
+          // Web版でのFirestore内部エラーの場合、より詳細な情報をログ出力
+          if (kIsWeb && e.toString().contains('INTERNAL ASSERTION FAILED')) {
+            developer.log(
+              'Web版: Firestore内部アサーションエラーが発生しました',
+              name: 'GroupFirestoreService',
+            );
+            developer.log(
+              'Web版: グループデータ: ${group.toJson()}',
+              name: 'GroupFirestoreService',
+            );
+          }
+          rethrow;
+        }
 
         // ユーザーのグループ参加情報も保存
         developer.log('ユーザーグループ情報保存開始', name: 'GroupFirestoreService');

@@ -51,8 +51,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8',
-    appId: '1:330871937318:android:92967163c2b52892d0c9e7',
+    apiKey: 'AIzaSyCvEoRO0iUbKLtaBhqUxJG7vic6CNjU-R4',
+    appId: '1:330871937318:android:f9f18c41f7aa541ad0c9e7',
     messagingSenderId: '330871937318',
     projectId: 'roastplus-app',
     storageBucket: 'roastplus-app.firebasestorage.app',
