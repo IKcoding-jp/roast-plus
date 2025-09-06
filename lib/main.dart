@@ -55,8 +55,14 @@ void main() async {
     // デバッグ情報を出力
     developer.log('アプリ起動開始', name: 'Main');
 
-    // Firebase初期化を最初に実行（他の初期化処理が依存しているため）
-    await PerformanceMonitor.measureAsync('Firebase初期化', _initializeFirebase);
+    // Firebase初期化は起動体感に影響するため、runApp後に非同期で実行する
+    // ただしWeb向けのリダイレクト処理等で事前初期化が必要な場合はスキップしない
+    if (kIsWeb) {
+      // Webでは既にindex.htmlで初期化されていることが多いため、従来通り同期的に処理
+      await PerformanceMonitor.measureAsync('Firebase初期化', _initializeFirebase);
+    } else {
+      developer.log('ネイティブ版: Firebase初期化をrunApp後に非同期で実行します', name: 'Main');
+    }
 
     // Web版ではリダイレクト結果をチェック
     if (kIsWeb) {
@@ -115,6 +121,17 @@ void main() async {
 
     // 非必須の初期化処理をバックグラウンドで実行
     _initializeBackgroundServices();
+
+    // ネイティブ向けFirebase初期化をバックグラウンドで実行（UI表示をブロックしない）
+    if (!kIsWeb) {
+      // unawaited を使わずに非同期で実行して警告を避ける
+      PerformanceMonitor.measureAsync(
+        'Firebase初期化',
+        _initializeFirebase,
+      ).catchError((e) {
+        developer.log('バックグラウンドFirebase初期化エラー: $e', name: 'Main');
+      });
+    }
 
     // パフォーマンス監視終了
     PerformanceMonitor.endTimer('アプリ起動全体');
