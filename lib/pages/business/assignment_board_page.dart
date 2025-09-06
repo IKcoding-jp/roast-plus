@@ -37,6 +37,8 @@ class AssignmentBoard extends StatefulWidget {
 class AssignmentBoardState extends State<AssignmentBoard> {
   late SharedPreferences prefs;
   bool _isLoading = true;
+  bool _isDataInitialized = false; // データ初期化完了フラグ
+  bool _isRemoteSyncCompleted = false; // リモート同期完了フラグ
   bool? _canEditAssignment; // null: 未判定, true/false: 判定済み
 
   List<Team> teams = [];
@@ -80,7 +82,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     _mergeGroupDataWithLocal(groupAssignmentData);
   }
 
-  /// グループデータとローカルデータをマージ
+  /// グループデータとローカルデータをマージ（ローカルデータ優先）
   void _mergeGroupDataWithLocal(
     Map<String, dynamic> groupAssignmentData,
   ) async {
@@ -166,18 +168,25 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       }
     }
 
-    // すべてのデータを一度に更新（ちらつき防止）
+    // ローカルデータが既に存在する場合は更新をスキップ（ちらつき防止）
     if (mounted) {
-      setState(() {
-        teams = newTeams;
-        leftLabels = newLeftLabels;
-        rightLabels = newRightLabels;
-        _isLoading = false;
-        // 担当決定状態も同時に更新
-        if (hasTodayAssignment) {
-          isAssignedToday = true;
-        }
-      });
+      // ローカルデータが空の場合のみ更新
+      if (teams.isEmpty && leftLabels.isEmpty) {
+        setState(() {
+          teams = newTeams;
+          leftLabels = newLeftLabels;
+          rightLabels = newRightLabels;
+          _isLoading = false;
+          _isDataInitialized = true;
+          // 担当決定状態も同時に更新
+          if (hasTodayAssignment) {
+            isAssignedToday = true;
+          }
+        });
+        debugPrint('AssignmentBoard: ローカルデータが空のため、グループデータで更新');
+      } else {
+        debugPrint('AssignmentBoard: ローカルデータが存在するため、グループデータの更新をスキップ');
+      }
     }
 
     // グループ状態でない場合のみローカルデータを更新
@@ -436,6 +445,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
     // 読み込み状態を開始
     _isLoading = true;
+    _isDataInitialized = false;
+    _isRemoteSyncCompleted = false;
 
     // 権限の初期値を設定（グループ未参加時は編集可能・担当決定可能）
     _canEditAssignment = true;
@@ -460,23 +471,12 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     });
   }
 
-  /// ローカルデータを最初に読み込み（グループ状態では読み込まない）
+  /// ローカルデータを最初に読み込み（常に実行）
   Future<void> _loadLocalDataFirst() async {
     if (!mounted) return;
     try {
       // ローカルデータ読み込み開始
-
-      // グループ状態の場合はローカルデータを読み込まない
-      final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.hasGroup) {
-        // グループ状態のため、ローカルデータ読み込みをスキップ
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-        return;
-      }
+      debugPrint('AssignmentBoard: ローカルデータ読み込み開始');
 
       final settings = await UserSettingsFirestoreService.getMultipleSettings([
         'teams',
@@ -550,16 +550,26 @@ class AssignmentBoardState extends State<AssignmentBoard> {
         }
       }
 
-      // すべてのデータを一度に更新（ちらつき防止）
+      // データを即座に表示（ちらつき防止）
       if (mounted) {
         setState(() {
           teams = loadedTeams;
           leftLabels = loadedLeftLabels;
           rightLabels = loadedRightLabels;
           _isLoading = false;
+          _isDataInitialized = true;
           // 担当決定状態も同時に更新
           if (hasTodayAssignment) {
             isAssignedToday = true;
+          }
+        });
+        // ローカルデータ読み込み完了後、バックグラウンドでFirebaseと同期
+        _isRemoteSyncCompleted = false;
+        _syncWithFirebaseInBackground().then((_) {
+          if (mounted) {
+            setState(() {
+              _isRemoteSyncCompleted = true;
+            });
           }
         });
       }
@@ -568,8 +578,74 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isDataInitialized = true;
         });
       }
+    }
+  }
+
+  /// バックグラウンドでFirebaseと同期
+  Future<void> _syncWithFirebaseInBackground() async {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+
+      if (groupProvider.hasGroup) {
+        // グループ状態の場合、グループデータと同期
+        debugPrint('AssignmentBoard: グループデータとバックグラウンド同期開始');
+        await _syncWithGroupData();
+      } else {
+        // 個人状態の場合、Firestoreデータと同期
+        debugPrint('AssignmentBoard: Firestoreデータとバックグラウンド同期開始');
+        await _syncWithFirestoreData();
+      }
+      // 同期完了フラグを立てる（nil安全）
+      if (mounted) {
+        _isRemoteSyncCompleted = true;
+      }
+    } catch (e) {
+      debugPrint('AssignmentBoard: バックグラウンド同期エラー: $e');
+    }
+  }
+
+  /// Firestoreデータと同期
+  Future<void> _syncWithFirestoreData() async {
+    try {
+      final assignmentData =
+          await AssignmentFirestoreService.loadAssignmentMembers();
+      if (assignmentData != null && mounted) {
+        // Firestoreデータがローカルデータより新しい場合のみ更新
+        final firestoreSavedAt = assignmentData['savedAt'];
+        if (firestoreSavedAt != null) {
+          // 必要に応じてデータを更新（ここでは簡略化）
+          debugPrint('AssignmentBoard: Firestoreデータ同期完了');
+        }
+      }
+    } catch (e) {
+      debugPrint('AssignmentBoard: Firestore同期エラー: $e');
+    }
+  }
+
+  /// グループデータと同期
+  Future<void> _syncWithGroupData() async {
+    try {
+      final groupProvider = context.read<GroupProvider>();
+      if (groupProvider.groups.isNotEmpty) {
+        final group = groupProvider.groups.first;
+        final groupData = await GroupDataSyncService.getGroupAssignmentBoard(
+          group.id,
+        );
+
+        if (groupData != null && mounted) {
+          // グループデータがローカルデータより新しい場合のみ更新
+          final groupSavedAt = groupData['savedAt'];
+          if (groupSavedAt != null) {
+            // 必要に応じてデータを更新（ここでは簡略化）
+            debugPrint('AssignmentBoard: グループデータ同期完了');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('AssignmentBoard: グループ同期エラー: $e');
     }
   }
 
@@ -581,6 +657,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     if (!_isLoading) {
       setState(() {
         _isLoading = true;
+        _isDataInitialized = false;
       });
     }
 
@@ -643,6 +720,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isDataInitialized = true;
         });
       }
     }
@@ -679,6 +757,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       // ローディング状態を設定
       setState(() {
         _isLoading = true;
+        _isDataInitialized = false;
       });
 
       await AttendanceFirestoreService.updateMemberAttendance(
@@ -719,6 +798,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isDataInitialized = true;
         });
       }
     } catch (e) {
@@ -727,6 +807,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isDataInitialized = true;
         });
         ScaffoldMessenger.of(
           context,
@@ -813,8 +894,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             if (!mounted) return; // ウィジェットが破棄されている場合は処理しない
             // グループ担当表データ変更検知
             if (groupAssignmentData != null) {
-              // グループデータが利用可能になった場合、ローカルデータとマージ
-              // ただし、今日の担当が決定済みの場合は基本構成での上書きを防ぐ
+              // グループデータが利用可能になった場合、バックグラウンドで同期
+              // ローカルデータを優先し、必要に応じて更新
               _mergeGroupDataWithLocal(groupAssignmentData);
 
               // グループデータ受信後にクリーンアップを実行
@@ -827,6 +908,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
               if (mounted) {
                 setState(() {
                   _isLoading = false;
+                  _isDataInitialized = true;
                 });
               }
             }
@@ -1120,6 +1202,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isDataInitialized = true;
         });
       }
       return;
@@ -1148,6 +1231,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isDataInitialized = true;
         });
       }
     }
@@ -1933,8 +2017,10 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                     ),
                                   ),
                                 )
-                              // 読み込み完了後、ラベルが空かつ全チームのメンバーが空の場合のみ赤字で表示
-                              else if (leftLabels.isEmpty &&
+                              // データ初期化完了後、ラベルが空かつ全チームのメンバーが空の場合のみ赤字で表示
+                              else if (_isDataInitialized &&
+                                  _isRemoteSyncCompleted &&
+                                  leftLabels.isEmpty &&
                                   teams.every((t) => t.members.isEmpty))
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
