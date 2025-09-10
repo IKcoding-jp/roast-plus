@@ -281,11 +281,11 @@ class GroupGamificationProfile {
 
     // 新しいシステムでの3年間獲得可能経験値: 約2,434,000XP
     // 出勤: 780日 × 1000XP = 780,000XP
-    // 焙煎: 468回 × 2000XP = 936,000XP
-    // ドリップパック: 46,800個 × 10XP = 468,000XP
+    // 焙煎: 468回 × 1000XP = 468,000XP
+    // ドリップパック: 46,800個 × 2XP = 93,600XP
     // テイスティング: 約200回 × 500XP = 100,000XP
     // 作業進捗: 約1,000回 × 150XP = 150,000XP
-    // 合計: 約2,434,000XP
+    // 合計: 約1,591,600XP
 
     if (level <= 1) return 0;
 
@@ -509,7 +509,7 @@ class GroupActivityReward {
   }
 
   factory GroupActivityReward.roasting(double minutes) {
-    final xp = (minutes * 20).round(); // 1分あたり20XP
+    final xp = (minutes * 10).round(); // 1分あたり10XP
     return GroupActivityReward(
       experiencePoints: xp,
       description: '焙煎記録で+${xp}XP獲得！',
@@ -517,7 +517,7 @@ class GroupActivityReward {
   }
 
   factory GroupActivityReward.dripPack(int count) {
-    final xp = (count * 10).round(); // 1個あたり10XP（週300個 × 3年 = 468,000XP）
+    final xp = (count * 2).round(); // 1個あたり2XP（週300個 × 3年 = 93,600XP）
     return GroupActivityReward(
       experiencePoints: xp,
       description: 'ドリップパック記録で+${xp}XP獲得！',

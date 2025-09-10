@@ -31,44 +31,95 @@ class _DetailPage extends StatelessWidget {
       ),
       body: Container(
         color: themeSettings.backgroundColor,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Card(
-            elevation: 4,
-            color: themeSettings.cardBackgroundColor,
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: content.map((item) {
-                  if (item.isEmpty) {
-                    return SizedBox(height: 16);
-                  } else if (item.startsWith('【') && item.endsWith('】')) {
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+        child: WebUIUtils.isWeb
+            ? Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 800),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(24),
+                    child: Card(
+                      elevation: 4,
+                      color: themeSettings.cardBackgroundColor,
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: content.map((item) {
+                            if (item.isEmpty) {
+                              return SizedBox(height: 16);
+                            } else if (item.startsWith('【') &&
+                                item.endsWith('】')) {
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: 12),
+                                child: Text(
+                                  item,
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: 6),
+                                child: Text(
+                                  item,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              );
+                            }
+                          }).toList(),
                         ),
                       ),
-                    );
-                  } else {
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: 6),
-                      child: Text(
-                        item,
-                        style: TextStyle(fontSize: 18, color: Colors.black87),
-                      ),
-                    );
-                  }
-                }).toList(),
+                    ),
+                  ),
+                ),
+              )
+            : SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Card(
+                  elevation: 4,
+                  color: themeSettings.cardBackgroundColor,
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: content.map((item) {
+                        if (item.isEmpty) {
+                          return SizedBox(height: 16);
+                        } else if (item.startsWith('【') && item.endsWith('】')) {
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              item,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          );
+                        } else {
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 6),
+                            child: Text(
+                              item,
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          );
+                        }
+                      }).toList(),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -81,7 +132,7 @@ class _UsageGuidePageState extends State<UsageGuidePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -113,6 +164,7 @@ class _UsageGuidePageState extends State<UsageGuidePage>
                   Tab(text: '焙煎'),
                   Tab(text: '管理'),
                   Tab(text: 'グループ'),
+                  Tab(text: 'ゲーム'),
                   Tab(text: '設定'),
                 ],
               ),
@@ -126,6 +178,7 @@ class _UsageGuidePageState extends State<UsageGuidePage>
                 _buildRoastingTab(themeSettings),
                 _buildManagementTab(themeSettings),
                 _buildGroupTab(themeSettings),
+                _buildGamificationTab(themeSettings),
                 _buildSettingsTab(themeSettings),
               ],
             ),
@@ -195,9 +248,15 @@ class _UsageGuidePageState extends State<UsageGuidePage>
                           ),
                           _buildWebCategoryItem(
                             themeSettings,
+                            'ゲーム',
+                            Icons.emoji_events,
+                            4,
+                          ),
+                          _buildWebCategoryItem(
+                            themeSettings,
                             '設定',
                             Icons.settings,
-                            4,
+                            5,
                           ),
                         ],
                       ),
@@ -216,6 +275,7 @@ class _UsageGuidePageState extends State<UsageGuidePage>
                       _buildRoastingTab(themeSettings),
                       _buildManagementTab(themeSettings),
                       _buildGroupTab(themeSettings),
+                      _buildGamificationTab(themeSettings),
                       _buildSettingsTab(themeSettings),
                     ],
                   ),
@@ -430,150 +490,372 @@ class _UsageGuidePageState extends State<UsageGuidePage>
   Widget _buildManagementTab(ThemeSettings themeSettings) {
     return Container(
       color: themeSettings.backgroundColor,
-      child: ListView(
-        padding: EdgeInsets.all(16),
-        children: [
-          _buildListItem(
-            themeSettings,
-            'スケジュールの作成',
-            '作業スケジュールの管理と自動作成',
-            Icons.schedule,
-            () => _showScheduleDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            'TODOリストの使い方',
-            'タスク管理と通知機能',
-            Icons.checklist,
-            () => _showTodoDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            'ドリップカウンターの使い方',
-            'ドリップパックのカウントと記録',
-            Icons.filter_list,
-            () => _showDripCounterDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            'テイスティング記録の作成',
-            'コーヒーの試飲評価と記録',
-            Icons.local_cafe,
-            () => _showTastingDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            '作業状況記録の使い方',
-            '作業の進捗管理と記録',
-            Icons.work,
-            () => _showWorkProgressDetail(context, themeSettings),
-          ),
-        ],
-      ),
+      child: WebUIUtils.isWeb
+          ? _buildWebTabContent(
+              themeSettings,
+              [
+                _buildListItem(
+                  themeSettings,
+                  'スケジュールの作成',
+                  '作業スケジュールの管理と自動作成',
+                  Icons.schedule,
+                  () => _showScheduleDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'TODOリストの使い方',
+                  'タスク管理と通知機能',
+                  Icons.checklist,
+                  () => _showTodoDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'ドリップカウンターの使い方',
+                  'ドリップパックのカウントと記録',
+                  Icons.filter_list,
+                  () => _showDripCounterDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'テイスティング記録の作成',
+                  'コーヒーの試飲評価と記録',
+                  Icons.local_cafe,
+                  () => _showTastingDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  '作業状況記録の使い方',
+                  '作業の進捗管理と記録',
+                  Icons.work,
+                  () => _showWorkProgressDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'カレンダー機能の使い方',
+                  '日付別のデータ表示と管理',
+                  Icons.calendar_today,
+                  () => _showCalendarDetail(context, themeSettings),
+                ),
+              ],
+              '管理',
+              'スケジュール、TODO、記録などの管理機能について説明します',
+            )
+          : ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                _buildListItem(
+                  themeSettings,
+                  'スケジュールの作成',
+                  '作業スケジュールの管理と自動作成',
+                  Icons.schedule,
+                  () => _showScheduleDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'TODOリストの使い方',
+                  'タスク管理と通知機能',
+                  Icons.checklist,
+                  () => _showTodoDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'ドリップカウンターの使い方',
+                  'ドリップパックのカウントと記録',
+                  Icons.filter_list,
+                  () => _showDripCounterDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'テイスティング記録の作成',
+                  'コーヒーの試飲評価と記録',
+                  Icons.local_cafe,
+                  () => _showTastingDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  '作業状況記録の使い方',
+                  '作業の進捗管理と記録',
+                  Icons.work,
+                  () => _showWorkProgressDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'カレンダー機能の使い方',
+                  '日付別のデータ表示と管理',
+                  Icons.calendar_today,
+                  () => _showCalendarDetail(context, themeSettings),
+                ),
+              ],
+            ),
     );
   }
 
   Widget _buildGroupTab(ThemeSettings themeSettings) {
     return Container(
       color: themeSettings.backgroundColor,
-      child: ListView(
-        padding: EdgeInsets.all(16),
-        children: [
-          _buildListItem(
-            themeSettings,
-            'グループの作成',
-            '新しいグループを作成する方法',
-            Icons.group_add,
-            () => _showGroupCreateDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            'メンバーの招待',
-            'グループにメンバーを招待する方法',
-            Icons.person_add,
-            () => _showMemberInviteDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            'グループ内での共有',
-            'データをグループ内で共有する方法',
-            Icons.share,
-            () => _showGroupShareDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            '出勤退勤機能の使い方',
-            'メンバーの出勤退勤状態を管理',
-            Icons.access_time,
-            () => _showAttendanceDetail(context, themeSettings),
-          ),
-        ],
-      ),
+      child: WebUIUtils.isWeb
+          ? _buildWebTabContent(
+              themeSettings,
+              [
+                _buildListItem(
+                  themeSettings,
+                  'グループの作成',
+                  '新しいグループを作成する方法',
+                  Icons.group_add,
+                  () => _showGroupCreateDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'メンバーの招待',
+                  'グループにメンバーを招待する方法',
+                  Icons.person_add,
+                  () => _showMemberInviteDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'グループ内での共有',
+                  'データをグループ内で共有する方法',
+                  Icons.share,
+                  () => _showGroupShareDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  '出勤退勤機能の使い方',
+                  'メンバーの出勤退勤状態を管理',
+                  Icons.access_time,
+                  () => _showAttendanceDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  '担当表の使い方',
+                  'チームの担当を自動で決める機能',
+                  Icons.assignment,
+                  () => _showAssignmentDetail(context, themeSettings),
+                ),
+              ],
+              'グループ',
+              'チームでの協力作業とデータ共有について説明します',
+            )
+          : ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                _buildListItem(
+                  themeSettings,
+                  'グループの作成',
+                  '新しいグループを作成する方法',
+                  Icons.group_add,
+                  () => _showGroupCreateDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'メンバーの招待',
+                  'グループにメンバーを招待する方法',
+                  Icons.person_add,
+                  () => _showMemberInviteDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'グループ内での共有',
+                  'データをグループ内で共有する方法',
+                  Icons.share,
+                  () => _showGroupShareDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  '出勤退勤機能の使い方',
+                  'メンバーの出勤退勤状態を管理',
+                  Icons.access_time,
+                  () => _showAttendanceDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  '担当表の使い方',
+                  'チームの担当を自動で決める機能',
+                  Icons.assignment,
+                  () => _showAssignmentDetail(context, themeSettings),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildGamificationTab(ThemeSettings themeSettings) {
+    return Container(
+      color: themeSettings.backgroundColor,
+      child: WebUIUtils.isWeb
+          ? _buildWebTabContent(
+              themeSettings,
+              [
+                _buildListItem(
+                  themeSettings,
+                  'バッジシステムとは',
+                  'バッジの獲得条件と種類について',
+                  Icons.emoji_events,
+                  () => _showBadgeSystemDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'レベルアップシステム',
+                  '経験値とレベルアップの仕組み',
+                  Icons.trending_up,
+                  () => _showLevelSystemDetail(context, themeSettings),
+                ),
+              ],
+              'ゲーミフィケーション',
+              'バッジシステムとレベルアップ機能について説明します',
+            )
+          : ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                _buildListItem(
+                  themeSettings,
+                  'バッジシステムとは',
+                  'バッジの獲得条件と種類について',
+                  Icons.emoji_events,
+                  () => _showBadgeSystemDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'レベルアップシステム',
+                  '経験値とレベルアップの仕組み',
+                  Icons.trending_up,
+                  () => _showLevelSystemDetail(context, themeSettings),
+                ),
+              ],
+            ),
     );
   }
 
   Widget _buildSettingsTab(ThemeSettings themeSettings) {
     return Container(
       color: themeSettings.backgroundColor,
-      child: ListView(
-        padding: EdgeInsets.all(16),
-        children: [
-          _buildListItem(
-            themeSettings,
-            'テーマ設定の変更',
-            'アプリの見た目をカスタマイズ',
-            Icons.palette,
-            () => _showThemeSettingsDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            '音声通知の設定',
-            'アラーム音と音量の調整',
-            Icons.volume_up,
-            () => _showSoundSettingsDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            '通知設定の調整',
-            'アラームと通知の設定',
-            Icons.notifications,
-            () => _showNotificationSettingsDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            'セキュリティ設定',
-            'パスコードロックと生体認証',
-            Icons.security,
-            () => _showSecuritySettingsDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            'データ管理とバックアップ',
-            'データのエクスポート・インポート',
-            Icons.storage,
-            () => _showDataManagementDetail(context, themeSettings),
-          ),
-          SizedBox(height: 12),
-          _buildListItem(
-            themeSettings,
-            '便利な使い方のコツ',
-            'アプリを効率的に使うためのヒント',
-            Icons.lightbulb,
-            () => _showUsageTipsDetail(context, themeSettings),
-          ),
-        ],
-      ),
+      child: WebUIUtils.isWeb
+          ? _buildWebTabContent(
+              themeSettings,
+              [
+                _buildListItem(
+                  themeSettings,
+                  'テーマ設定の変更',
+                  'アプリの見た目をカスタマイズ',
+                  Icons.palette,
+                  () => _showThemeSettingsDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  '音声通知の設定',
+                  'アラーム音と音量の調整',
+                  Icons.volume_up,
+                  () => _showSoundSettingsDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  '通知設定の調整',
+                  'アラームと通知の設定',
+                  Icons.notifications,
+                  () => _showNotificationSettingsDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'セキュリティ設定',
+                  'パスコードロックと生体認証',
+                  Icons.security,
+                  () => _showSecuritySettingsDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'データ管理とバックアップ',
+                  'データのエクスポート・インポート',
+                  Icons.storage,
+                  () => _showDataManagementDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  'フィードバック送信',
+                  '要望やバグ報告を送信',
+                  Icons.feedback,
+                  () => _showFeedbackDetail(context, themeSettings),
+                ),
+                _buildListItem(
+                  themeSettings,
+                  '便利な使い方のコツ',
+                  'アプリを効率的に使うためのヒント',
+                  Icons.lightbulb,
+                  () => _showUsageTipsDetail(context, themeSettings),
+                ),
+              ],
+              '設定',
+              'アプリの設定とカスタマイズについて説明します',
+            )
+          : ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                _buildListItem(
+                  themeSettings,
+                  'テーマ設定の変更',
+                  'アプリの見た目をカスタマイズ',
+                  Icons.palette,
+                  () => _showThemeSettingsDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  '音声通知の設定',
+                  'アラーム音と音量の調整',
+                  Icons.volume_up,
+                  () => _showSoundSettingsDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  '通知設定の調整',
+                  'アラームと通知の設定',
+                  Icons.notifications,
+                  () => _showNotificationSettingsDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'セキュリティ設定',
+                  'パスコードロックと生体認証',
+                  Icons.security,
+                  () => _showSecuritySettingsDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'データ管理とバックアップ',
+                  'データのエクスポート・インポート',
+                  Icons.storage,
+                  () => _showDataManagementDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  'フィードバック送信',
+                  '要望やバグ報告を送信',
+                  Icons.feedback,
+                  () => _showFeedbackDetail(context, themeSettings),
+                ),
+                SizedBox(height: 12),
+                _buildListItem(
+                  themeSettings,
+                  '便利な使い方のコツ',
+                  'アプリを効率的に使うためのヒント',
+                  Icons.lightbulb,
+                  () => _showUsageTipsDetail(context, themeSettings),
+                ),
+              ],
+            ),
     );
   }
 
@@ -763,12 +1045,16 @@ class _UsageGuidePageState extends State<UsageGuidePage>
             '• 「管理」：スケジュールやTODO',
             '• 「記録」：焙煎記録やテイスティング',
             '• 「ドリップ」：ドリップパックのカウント',
+            '• 「カレンダー」：日付別のデータ表示',
+            '• 「グループ」：チームでの協力作業',
+            '• 「ゲーム」：バッジとレベルアップ',
             '• 「設定」：アプリの設定',
             '',
             '【最初にやってみること】',
             '• 焙煎タイマーを試してみる（実際に焙煎しなくても大丈夫）',
             '• 各タブをタップして、どんな機能があるか見てみる',
             '• 左上のメニューボタン（≡）をタップして、設定画面も確認',
+            '• ゲームタブでバッジシステムを確認',
             '',
             '【安心してください】',
             '• 間違った操作をしても、データは簡単に修正できます',
@@ -805,6 +1091,7 @@ class _UsageGuidePageState extends State<UsageGuidePage>
             '• 「作業状況記録」：作業の進捗を記録',
             '• 「試飲感想記録」：コーヒーの試飲評価を記録',
             '• 「グループ管理」：他の人と一緒に使いたい時に',
+            '• 「バッジ一覧」：獲得したバッジを確認',
             '• 「使い方」：今見ているこのページです',
             '• 「設定」：アプリの見た目や通知の設定',
             '',
@@ -815,6 +1102,7 @@ class _UsageGuidePageState extends State<UsageGuidePage>
             '• コーヒーの試飲評価を記録したい時',
             '• アプリの設定を変えたい時',
             '• グループ機能を使いたい時',
+            '• バッジの獲得状況を確認したい時',
             '• 使い方が分からなくなった時',
             '',
             '【メニューの閉じ方】',
@@ -1413,10 +1701,254 @@ class _UsageGuidePageState extends State<UsageGuidePage>
             '• グループ統計でチーム全体の傾向を把握',
             '• リアルタイム同期で常に最新情報を共有',
             '',
+            '【ゲーミフィケーションの活用】',
+            '• バッジ獲得を目標に作業のモチベーションを向上',
+            '• グループで協力してレベルアップを目指す',
+            '• 出勤記録や作業記録で経験値を効率的に獲得',
+            '',
             '【設定のカスタマイズ】',
             '• よく使う設定はお気に入りに登録',
             '• テーマ設定で長時間の作業でも目に優しい環境を作る',
             '• 通知設定で重要なタイミングを見逃さない',
+          ],
+          themeSettings: themeSettings,
+        ),
+      ),
+    );
+  }
+
+  void _showCalendarDetail(BuildContext context, ThemeSettings themeSettings) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _DetailPage(
+          title: 'カレンダー機能の使い方',
+          content: [
+            '【カレンダー機能とは】',
+            '• 日付別にスケジュール、記録、担当を一覧表示',
+            '• 過去のデータを簡単に確認・検索可能',
+            '• グループ参加時はチーム全体のデータも表示',
+            '',
+            '【カレンダーの基本操作】',
+            '1. カレンダータブを開く',
+            '2. 日付をタップして詳細を表示',
+            '3. 左右の矢印で月を移動',
+            '4. 今日の日付はハイライト表示',
+            '',
+            '【表示されるデータ】',
+            '• 本日のスケジュール：作業予定と時間',
+            '• ローストスケジュール：焙煎予定とメモ',
+            '• 担当履歴：その日の担当者と作業内容',
+            '• ドリップパック記録：使用した豆の種類と数量',
+            '• 作業進捗：作業の完了状況と進捗率',
+            '',
+            '【データの確認方法】',
+            '• 日付をタップして詳細データを表示',
+            '• 各セクションをタップして詳細画面に移動',
+            '• グループ参加時は他のメンバーのデータも確認可能',
+            '',
+            '【活用のコツ】',
+            '• 過去の記録を参考に作業計画を立てる',
+            '• 担当履歴で公平な作業分担を確認',
+            '• ドリップパック使用量で在庫管理を効率化',
+          ],
+          themeSettings: themeSettings,
+        ),
+      ),
+    );
+  }
+
+  void _showAssignmentDetail(
+    BuildContext context,
+    ThemeSettings themeSettings,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _DetailPage(
+          title: '担当表の使い方',
+          content: [
+            '【担当表機能とは】',
+            '• チームメンバーの担当を自動で決める機能',
+            '• 公平な担当分担で作業効率を向上',
+            '• 出勤退勤状態に応じて担当を調整',
+            '',
+            '【担当表の基本設定】',
+            '1. 担当表タブを開く',
+            '2. 「メンバー設定」でチームメンバーを登録',
+            '3. 「ラベル設定」で作業内容を設定',
+            '4. 「担当を決める」ボタンで自動割り当て',
+            '',
+            '【担当の決め方】',
+            '• 出勤しているメンバーから自動選択',
+            '• 前回の担当履歴を考慮して公平に割り当て',
+            '• 手動で担当を変更することも可能',
+            '',
+            '【出勤退勤機能】',
+            '• 各メンバーが自分の出勤退勤状態を設定',
+            '• 白いカード：出勤状態',
+            '• 赤いカード：退勤状態',
+            '• 出勤状態のメンバーのみが担当対象',
+            '',
+            '【担当表の管理】',
+            '• 担当履歴で過去の担当を確認',
+            '• グループ参加時はチーム全体で共有',
+            '• 担当のリセット機能で翌日から新しく開始',
+            '',
+            '【活用のコツ】',
+            '• 朝の出勤時に担当を決める',
+            '• 出勤退勤状態を正確に設定',
+            '• 担当履歴で公平性を確認',
+          ],
+          themeSettings: themeSettings,
+        ),
+      ),
+    );
+  }
+
+  void _showBadgeSystemDetail(
+    BuildContext context,
+    ThemeSettings themeSettings,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _DetailPage(
+          title: 'バッジシステムとは',
+          content: [
+            '【バッジシステムの概要】',
+            '• 作業や活動に応じてバッジを獲得できる機能',
+            '• モチベーション向上と達成感の向上をサポート',
+            '• グループ参加時はチーム全体でバッジを共有',
+            '',
+            '【バッジの種類】',
+            '• 出勤バッジ：出勤日数に応じて獲得',
+            '• 焙煎バッジ：焙煎時間に応じて獲得',
+            '• ドリップパックバッジ：使用数量に応じて獲得',
+            '• レベルバッジ：グループレベルに応じて獲得',
+            '• 特別バッジ：特別な条件を満たすと獲得',
+            '',
+            '【バッジの獲得条件】',
+            '• 出勤バッジ：10日、25日、50日、100日...',
+            '• 焙煎バッジ：10分、30分、1時間、3時間...',
+            '• ドリップパックバッジ：50袋、150袋、500袋...',
+            '• レベルバッジ：レベル1、5、10、20...',
+            '',
+            '【バッジの確認方法】',
+            '1. ゲームタブを開く',
+            '2. 「バッジ一覧」をタップ',
+            '3. カテゴリ別にバッジを確認',
+            '4. 獲得済みバッジと進捗状況を表示',
+            '',
+            '【進捗の確認】',
+            '• 未獲得バッジは進捗率を表示',
+            '• 獲得済みバッジは獲得日時を表示',
+            '• レベルバッジは現在レベルと必要レベルを表示',
+            '',
+            '【活用のコツ】',
+            '• バッジ獲得を目標に作業のモチベーションを向上',
+            '• グループで協力してバッジを効率的に獲得',
+            '• 進捗状況を確認して次の目標を設定',
+          ],
+          themeSettings: themeSettings,
+        ),
+      ),
+    );
+  }
+
+  void _showLevelSystemDetail(
+    BuildContext context,
+    ThemeSettings themeSettings,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _DetailPage(
+          title: 'レベルアップシステム',
+          content: [
+            '【レベルアップシステムの概要】',
+            '• グループの活動に応じてレベルが上昇',
+            '• 経験値を獲得してレベルアップを目指す',
+            '• レベルが上がると新しいバッジが解放',
+            '',
+            '【経験値の獲得方法】',
+            '• 出勤：1日につき1000経験値',
+            '• 焙煎：1分につき10経験値',
+            '• ドリップパック：1袋につき2経験値',
+            '• テイスティング記録：1回につき500経験値',
+            '• 作業進捗更新：1回につき150経験値',
+            '',
+            '【レベルアップの仕組み】',
+            '• レベル1-20：10経験値ずつ増加',
+            '• レベル21-100：15経験値ずつ増加',
+            '• レベル101-1000：20経験値ずつ増加',
+            '• レベル1001以上：25経験値ずつ増加',
+            '',
+            '【レベルバッジの解放】',
+            '• レベル1：初心者バッジ',
+            '• レベル5：見習いバッジ',
+            '• レベル10：中級者バッジ',
+            '• レベル20：上級者バッジ',
+            '• レベル50：エキスパートバッジ',
+            '• レベル100：マスターバッジ',
+            '',
+            '【レベル確認方法】',
+            '1. ゲームタブを開く',
+            '2. 現在のレベルと経験値を確認',
+            '3. 次のレベルまでの必要経験値を表示',
+            '4. バッジ一覧でレベルバッジを確認',
+            '',
+            '【効率的なレベルアップ】',
+            '• 毎日の出勤で安定した経験値を獲得',
+            '• 焙煎作業で大量の経験値を獲得',
+            '• テイスティング記録で高経験値を獲得',
+            '• グループで協力して効率的にレベルアップ',
+          ],
+          themeSettings: themeSettings,
+        ),
+      ),
+    );
+  }
+
+  void _showFeedbackDetail(BuildContext context, ThemeSettings themeSettings) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _DetailPage(
+          title: 'フィードバック送信',
+          content: [
+            '【フィードバック機能とは】',
+            '• アプリの改善要望やバグ報告を送信',
+            '• 開発者に直接意見を伝えることが可能',
+            '• アプリの品質向上に貢献',
+            '',
+            '【フィードバックの種類】',
+            '• 要望・改善案：新機能や機能改善の提案',
+            '• バグ報告：不具合やエラーの報告',
+            '• その他：その他の意見や感想',
+            '',
+            '【フィードバックの送信方法】',
+            '1. 設定画面を開く',
+            '2. 「フィードバック送信」をタップ',
+            '3. カテゴリを選択',
+            '4. 件名とメッセージを入力',
+            '5. 「送信」ボタンをタップ',
+            '',
+            '【効果的なフィードバックの書き方】',
+            '• 具体的な状況や問題を説明',
+            '• 再現手順を詳しく記載',
+            '• 期待する動作を明確に記述',
+            '• スクリーンショットがあるとより効果的',
+            '',
+            '【フィードバックの活用】',
+            '• 開発チームが優先的に改善を検討',
+            '• ユーザーの声を反映した機能追加',
+            '• バグの早期発見と修正',
+            '',
+            '【注意事項】',
+            '• 個人情報は含めないでください',
+            '• 建設的な意見をお願いします',
+            '• 返信は保証されませんが、全て確認しています',
           ],
           themeSettings: themeSettings,
         ),
