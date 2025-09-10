@@ -333,36 +333,43 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
                                             // バッジ類をログイン済みの下に配置
                                             Row(
                                               children: [
-                                                if (AppConfig.isDeveloperEmail(
-                                                  _userEmail ?? '',
-                                                ))
-                                                  Container(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                          vertical: 2,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.blue,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      '開発者',
-                                                      style: TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 12,
+                                                FutureBuilder<bool>(
+                                                  future:
+                                                      AppConfig.isDeveloperEmail(
+                                                        _userEmail ?? '',
                                                       ),
-                                                    ),
-                                                  ),
-                                                if (AppConfig.isDeveloperEmail(
-                                                  _userEmail ?? '',
-                                                ))
-                                                  SizedBox(width: 8),
+                                                  builder: (context, snapshot) {
+                                                    if (snapshot.connectionState !=
+                                                            ConnectionState
+                                                                .done ||
+                                                        snapshot.data != true) {
+                                                      return SizedBox.shrink();
+                                                    }
+                                                    return Container(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 2,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.blue,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              12,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        '開発者',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
                                                 FutureBuilder<bool>(
                                                   future: isDonorUser(),
                                                   builder: (context, snapshot) {

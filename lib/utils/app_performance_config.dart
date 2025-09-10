@@ -111,7 +111,7 @@ Future<bool> isDonorUser() async {
   if (user == null) return false;
 
   // 寄付者として登録されたメールアドレス（環境変数から取得）
-  final donorEmails = AppConfig.donorEmails;
+  final donorEmails = await AppConfig.donorEmails;
 
   if (donorEmails.contains(user.email)) return true;
 

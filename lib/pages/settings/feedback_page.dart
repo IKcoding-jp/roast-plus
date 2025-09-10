@@ -59,9 +59,10 @@ ${_messageController.text.trim()}
 このメッセージはBysnLogアプリのフィードバック機能から送信されました。
 ''';
 
+      final feedbackEmail = await AppConfig.feedbackRecipientEmail;
       final Uri emailUri = Uri(
         scheme: 'mailto',
-        path: AppConfig.feedbackRecipientEmail,
+        path: feedbackEmail,
         queryParameters: {'subject': subject, 'body': body},
       );
 
