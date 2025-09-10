@@ -32,7 +32,7 @@ android {
     // 署名設定
     signingConfigs {
         create("release") {
-            storeFile = file("roastplus-release-key.keystore")
+            storeFile = file("roastplus-new-key.keystore")
             storePassword = System.getenv("KEYSTORE_PASSWORD") ?: throw GradleException("KEYSTORE_PASSWORD環境変数が設定されていません")
             keyAlias = "roastplus-key-alias"
             keyPassword = System.getenv("KEY_PASSWORD") ?: throw GradleException("KEY_PASSWORD環境変数が設定されていません")
