@@ -166,7 +166,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
                 rightLabels = List<String>.from(data['rightLabels']);
               }
               if (teams.isEmpty) {
-                teams = [Team(id: 'team_default', name: '新しい班', members: [])];
+                teams = [
+                  Team(id: 'team_a', name: 'A班', members: []),
+                  Team(id: 'team_b', name: 'B班', members: []),
+                ];
               }
 
               // コントローラーを初期化
@@ -306,10 +309,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
       });
     }
 
-    // Firestoreにも保存（ラベルは既存のデータを保持）
-    await AssignmentFirestoreService.saveAssignmentMembers(
-      aMembers: teams.isNotEmpty ? teams[0].members : [],
-      bMembers: teams.length > 1 ? teams[1].members : [],
+    // Firestoreにも保存（新しい形式でteamsデータを保存）
+    await AssignmentFirestoreService.saveAssignmentTeams(
+      teams: teams.map((team) => team.toMap()).toList(),
       leftLabels: leftLabels, // 現在のラベルデータを使用
       rightLabels: rightLabels, // 現在のラベルデータを使用
     );
@@ -346,9 +348,27 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   void _addTeam() {
     final newId = 'team_${DateTime.now().millisecondsSinceEpoch}';
-    // 既存の班数に応じてアルファベットを決定
-    final alphabet = String.fromCharCode('A'.codeUnitAt(0) + teams.length);
-    final newName = '$alphabet班';
+
+    // 既存の班名からアルファベットを抽出して次のアルファベットを決定
+    final existingAlphabets = <String>[];
+    for (final team in teams) {
+      final match = RegExp(r'^([A-Z])班$').firstMatch(team.name);
+      if (match != null) {
+        existingAlphabets.add(match.group(1)!);
+      }
+    }
+
+    // 使用されていない最初のアルファベットを見つける
+    String nextAlphabet = 'A';
+    for (int i = 0; i < 26; i++) {
+      final alphabet = String.fromCharCode('A'.codeUnitAt(0) + i);
+      if (!existingAlphabets.contains(alphabet)) {
+        nextAlphabet = alphabet;
+        break;
+      }
+    }
+
+    final newName = '$nextAlphabet班';
     setState(() {
       teams.add(Team(id: newId, name: newName, members: []));
     });

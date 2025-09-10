@@ -29,6 +29,26 @@ class AssignmentFirestoreService {
         });
   }
 
+  /// 担当表の班データ（新しい形式）を保存
+  static Future<void> saveAssignmentTeams({
+    required List<Map<String, dynamic>> teams,
+    required List<String> leftLabels,
+    required List<String> rightLabels,
+  }) async {
+    if (_uid == null) throw Exception('未ログイン');
+    await _firestore
+        .collection('users')
+        .doc(_uid)
+        .collection('assignmentMembers')
+        .doc('assignment')
+        .set({
+          'teams': teams,
+          'leftLabels': leftLabels,
+          'rightLabels': rightLabels,
+          'savedAt': FieldValue.serverTimestamp(),
+        });
+  }
+
   /// 担当表のメンバー・ラベルを取得
   static Future<Map<String, dynamic>?> loadAssignmentMembers() async {
     if (_uid == null) throw Exception('未ログイン');
