@@ -93,7 +93,7 @@ firebase_security_report.json
 .env
 .env.local
 .env.production
-config.env
+app_config.env
 
 # Security sensitive files
 android/app/roastplus-release-key.keystore
