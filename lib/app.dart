@@ -42,7 +42,6 @@ import 'utils/web_ui_utils.dart';
 import 'utils/web_compatibility.dart';
 import 'widgets/lottie_animation_widget.dart';
 import 'utils/font_optimizer.dart';
-import 'services/first_login_service.dart';
 import 'pages/auth/display_name_setup_page.dart';
 // navigatorKeyが定義されているファイルをimport
 
@@ -428,7 +427,6 @@ class FirstLoginWrapper extends StatefulWidget {
 class _FirstLoginWrapperState extends State<FirstLoginWrapper> {
   bool _isChecking = true;
   bool _isFirstLogin = false;
-  bool _hasCheckedOnce = false;
 
   @override
   void initState() {
@@ -447,7 +445,6 @@ class _FirstLoginWrapperState extends State<FirstLoginWrapper> {
         setState(() {
           _isFirstLogin = false; // 初回ログインではないとみなす
           _isChecking = false;
-          _hasCheckedOnce = true;
         });
       }
     } catch (e) {
@@ -457,7 +454,6 @@ class _FirstLoginWrapperState extends State<FirstLoginWrapper> {
         setState(() {
           _isFirstLogin = false; // エラーの場合は初回ログインではないと判定
           _isChecking = false;
-          _hasCheckedOnce = true;
         });
       }
     }
@@ -569,7 +565,6 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
   bool _loading = false;
   String? _error;
 
-  // ignore: use_build_context_synchronously
   Future<void> _signInWithGoogle() async {
     if (!mounted) return;
     setState(() {

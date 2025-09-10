@@ -153,8 +153,8 @@ void main() async {
     // Web版では詳細なエラー情報をコンソールに出力
     if (kIsWeb) {
       developer.log('Web版: ブラウザのコンソールでエラー詳細を確認してください', name: 'Main');
-      print('Flutter Web Error: $e');
-      print('Stack Trace: $stackTrace');
+      developer.log('Flutter Web Error: $e', name: 'Main');
+      developer.log('Stack Trace: $stackTrace', name: 'Main');
     }
 
     // エラーが発生してもアプリを起動
@@ -189,7 +189,7 @@ void main() async {
       developer.log('エラー画面表示も失敗: $finalError', name: 'Main');
       // 最後の手段として最小限のアプリを起動
       if (kIsWeb) {
-        print('Critical Error: $finalError');
+        developer.log('Critical Error: $finalError', name: 'Main');
       }
     }
   }

@@ -115,6 +115,8 @@ class FirstLoginService {
       }
 
       // 2. 同意取得フローを実行
+      if (!context.mounted) return false;
+
       final consentGranted = await ConsentFlowService.handleFirstLoginConsent(
         context,
       );

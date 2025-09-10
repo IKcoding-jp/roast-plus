@@ -134,12 +134,14 @@ class _GroupQRScannerPageState extends State<GroupQRScannerPage> {
         if (mounted) {
           // 少し待ってからホームページに自動遷移（状態更新の確実性のため）
           await Future.delayed(Duration(milliseconds: 500));
-          
+
           // ホームページに自動遷移
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            '/',
-            (route) => false, // すべてのページをクリア
-          );
+          if (mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/',
+              (route) => false, // すべてのページをクリア
+            );
+          }
         }
       }
     } catch (e) {

@@ -205,8 +205,8 @@ class _ConsentManagementPageState extends State<ConsentManagementPage> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: (_statistics['requiredConsentsGranted'] ?? false)
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.red.withOpacity(0.1),
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(

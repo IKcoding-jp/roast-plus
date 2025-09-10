@@ -221,7 +221,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          color: Colors.orange.withOpacity(0.1),
+                          color: Colors.orange.withValues(alpha: 0.1),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Row(
@@ -270,7 +270,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                     decoration: BoxDecoration(
                                       color: Provider.of<ThemeSettings>(
                                         context,
-                                      ).iconColor.withOpacity(0.12),
+                                      ).iconColor.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(
@@ -321,7 +321,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                       hintStyle: TextStyle(
                                         color: Provider.of<ThemeSettings>(
                                           context,
-                                        ).fontColor1.withOpacity(0.6),
+                                        ).fontColor1.withValues(alpha: 0.6),
                                         fontSize: 13,
                                       ),
                                     ),
@@ -355,7 +355,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                       hintStyle: TextStyle(
                                         color: Provider.of<ThemeSettings>(
                                           context,
-                                        ).fontColor1.withOpacity(0.6),
+                                        ).fontColor1.withValues(alpha: 0.6),
                                         fontSize: 13,
                                       ),
                                     ),
@@ -413,9 +413,12 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                                 ),
                                             hintText: '分',
                                             hintStyle: TextStyle(
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor1.withOpacity(0.6),
+                                              color:
+                                                  Provider.of<ThemeSettings>(
+                                                    context,
+                                                  ).fontColor1.withValues(
+                                                    alpha: 0.6,
+                                                  ),
                                               fontSize: 13,
                                             ),
                                           ),
@@ -463,9 +466,12 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                                 ),
                                             hintText: '秒',
                                             hintStyle: TextStyle(
-                                              color: Provider.of<ThemeSettings>(
-                                                context,
-                                              ).fontColor1.withOpacity(0.6),
+                                              color:
+                                                  Provider.of<ThemeSettings>(
+                                                    context,
+                                                  ).fontColor1.withValues(
+                                                    alpha: 0.6,
+                                                  ),
                                               fontSize: 13,
                                             ),
                                           ),
@@ -502,7 +508,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                       hintStyle: TextStyle(
                                         color: Provider.of<ThemeSettings>(
                                           context,
-                                        ).fontColor1.withOpacity(0.6),
+                                        ).fontColor1.withValues(alpha: 0.6),
                                         fontSize: 13,
                                       ),
                                     ),
@@ -551,7 +557,7 @@ class _RoastEditPageState extends State<RoastEditPage> {
                                       hintStyle: TextStyle(
                                         color: Provider.of<ThemeSettings>(
                                           context,
-                                        ).fontColor1.withOpacity(0.6),
+                                        ).fontColor1.withValues(alpha: 0.6),
                                         fontSize: 13,
                                       ),
                                     ),

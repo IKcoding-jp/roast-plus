@@ -781,6 +781,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       }
 
       // 状態更新後にUIを更新
+      if (!mounted) return;
       final groupProvider = context.read<GroupProvider>();
       if (!groupProvider.hasGroup) {
         // グループ状態でない場合はローカル状態を更新

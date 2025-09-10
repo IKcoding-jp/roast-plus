@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:developer' as developer;
 import '../../models/bean_sticker_models.dart';
 import '../../models/theme_settings.dart';
 import '../../models/group_provider.dart';
@@ -275,18 +276,23 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                         navigator.pop();
                         // データを再読み込み
                         if (!mounted) return;
-                        print(
+                        developer.log(
                           '再読み込み開始 - グループ数: ${groupProvider.groups.length}',
+                          name: 'BeanStickerSettings',
                         );
                         if (groupProvider.groups.isNotEmpty) {
-                          print(
+                          developer.log(
                             'グループモードで再読み込み: ${groupProvider.groups.first.id}',
+                            name: 'BeanStickerSettings',
                           );
                           await _loadBeanStickers(
                             groupId: groupProvider.groups.first.id,
                           );
                         } else {
-                          print('個人モードで再読み込み');
+                          developer.log(
+                            '個人モードで再読み込み',
+                            name: 'BeanStickerSettings',
+                          );
                           await _loadBeanStickers();
                         }
                       } catch (e) {
@@ -357,14 +363,20 @@ class _BeanStickerSettingsPageState extends State<BeanStickerSettingsPage> {
                 navigator.pop();
                 // データを再読み込み
                 if (!mounted) return;
-                print('削除後再読み込み開始 - グループ数: ${groupProvider.groups.length}');
+                developer.log(
+                  '削除後再読み込み開始 - グループ数: ${groupProvider.groups.length}',
+                  name: 'BeanStickerSettings',
+                );
                 if (groupProvider.groups.isNotEmpty) {
-                  print('グループモードで再読み込み: ${groupProvider.groups.first.id}');
+                  developer.log(
+                    'グループモードで再読み込み: ${groupProvider.groups.first.id}',
+                    name: 'BeanStickerSettings',
+                  );
                   await _loadBeanStickers(
                     groupId: groupProvider.groups.first.id,
                   );
                 } else {
-                  print('個人モードで再読み込み');
+                  developer.log('個人モードで再読み込み', name: 'BeanStickerSettings');
                   await _loadBeanStickers();
                 }
               } catch (e) {

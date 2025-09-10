@@ -2446,8 +2446,6 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       // 複数のプロフィール画像ソースを試す
       final gravatarUrl =
           'https://www.gravatar.com/avatar/${emailHash.hashCode.toRadixString(16)}?d=404&s=200';
-      final googleUrl =
-          'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
       profileImageUrl = gravatarUrl; // まずGravatarを試す
     }
     showDialog(
@@ -3032,8 +3030,6 @@ class _GroupInfoPageState extends State<GroupInfoPage>
       // 複数のプロフィール画像ソースを試す
       final gravatarUrl =
           'https://www.gravatar.com/avatar/${emailHash.hashCode.toRadixString(16)}?d=404&s=200';
-      final googleUrl =
-          'https://lh3.googleusercontent.com/-${emailHash.hashCode.toRadixString(16)}/photo?sz=200';
       profileImageUrl = gravatarUrl; // まずGravatarを試す
     }
 

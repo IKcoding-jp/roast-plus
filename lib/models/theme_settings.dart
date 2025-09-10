@@ -307,7 +307,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF8B4513), // 設定機能のアクセント色
       'calculatorColor': Color(0xFFD2691E), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFD2691E), // TODO機能のアクセント色
+      'todoColor': Color(0xFFD2691E), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ダーク': {
@@ -333,7 +333,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF424242), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF2E7D32), // 設定機能のアクセント色
       'calculatorColor': Color(0xFF81C784), // 計算機機能のアクセント色
-      'todoColor': Color(0xFF81C784), // TODO機能のアクセント色
+      'todoColor': Color(0xFF81C784), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ライト': {
@@ -359,7 +359,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF757575), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF1976D2), // 設定機能のアクセント色
       'calculatorColor': Color(0xFF2196F3), // 計算機機能のアクセント色
-      'todoColor': Color(0xFF2196F3), // TODO機能のアクセント色
+      'todoColor': Color(0xFF2196F3), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
 
@@ -387,7 +387,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF5D4037), // 設定機能のアクセント色
       'calculatorColor': Color(0xFFBCAAA4), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFBCAAA4), // TODO機能のアクセント色
+      'todoColor': Color(0xFFBCAAA4), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ベージュ': {
@@ -413,7 +413,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF8D6E63), // 設定機能のアクセント色
       'calculatorColor': Color(0xFFE4C441), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFE4C441), // TODO機能のアクセント色
+      'todoColor': Color(0xFFE4C441), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'エスプレッソ': {
@@ -439,7 +439,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFFFFFFF), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF3E2723), // 設定機能のアクセント色
       'calculatorColor': Color(0xFFD4AF37), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFD4AF37), // TODO機能のアクセント色
+      'todoColor': Color(0xFFD4AF37), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'カプチーノ': {
@@ -465,7 +465,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF6D4C41), // 設定機能のアクセント色
       'calculatorColor': Color(0xFFCD853F), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFCD853F), // TODO機能のアクセント色
+      'todoColor': Color(0xFFCD853F), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // 赤・ピンク系（より洗練された色調）
@@ -492,7 +492,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFE1BEE7), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFFC2185B), // 設定機能のアクセント色
       'calculatorColor': Color(0xFFFF80AB), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFFF80AB), // TODO機能のアクセント色
+      'todoColor': Color(0xFFFF80AB), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // グリーン系（自然で現代的）
@@ -519,7 +519,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF8B7355), // ボトムナビゲーション非選択時の色
       'settingsColor': Color(0xFF2E7D32), // 設定機能のアクセント色
       'calculatorColor': Color(0xFF81C784), // 計算機機能のアクセント色
-      'todoColor': Color(0xFF81C784), // TODO機能のアクセント色
+      'todoColor': Color(0xFF81C784), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ティール': {
@@ -545,7 +545,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFB2DFDB), // 薄いティール（深い背景に対して）
       'settingsColor': Color(0xFF00695C), // ダークティール
       'calculatorColor': Color(0xFF80CBC4), // 計算機機能のアクセント色
-      'todoColor': Color(0xFF80CBC4), // TODO機能のアクセント色
+      'todoColor': Color(0xFF80CBC4), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ミントグリーン': {
@@ -573,7 +573,7 @@ class ThemeSettings extends ChangeNotifier {
       ), // 薄いミントグリーン（深い背景に対して）
       'settingsColor': Color(0xFF00796B), // ダークミントグリーン
       'calculatorColor': Color(0xFF4DB6AC), // 計算機機能のアクセント色
-      'todoColor': Color(0xFF4DB6AC), // TODO機能のアクセント色
+      'todoColor': Color(0xFF4DB6AC), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // ブルー系（クリーンで現代的）
@@ -600,7 +600,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFFFFFFF), // 白
       'settingsColor': Color(0xFF0277BD), // ダークオーシャン
       'calculatorColor': Color(0xFF4FC3F7), // 計算機機能のアクセント色
-      'todoColor': Color(0xFF4FC3F7), // TODO機能のアクセント色
+      'todoColor': Color(0xFF4FC3F7), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ネイビー': {
@@ -625,7 +625,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFC5CAE9), // 薄いネイビー（深い背景に対して）
       'settingsColor': Color(0xFF1A237E), // ダークネイビー
       'calculatorColor': Color(0xFF7986CB), // 計算機機能のアクセント色
-      'todoColor': Color(0xFF7986CB), // TODO機能のアクセント色
+      'todoColor': Color(0xFF7986CB), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // パープル系（エレガント）
@@ -652,7 +652,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFE1BEE7), // 薄いラベンダー（深い背景に対して）
       'settingsColor': Color(0xFF7B1FA2), // ダークラベンダー
       'calculatorColor': Color(0xFFCE93D8), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFCE93D8), // TODO機能のアクセント色
+      'todoColor': Color(0xFFCE93D8), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // ゴールド系（エレガント）
@@ -678,7 +678,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFFFF8DC), // 薄いゴールド（深い背景に対して）
       'settingsColor': Color(0xFFB8860B), // ダークゴールド
       'calculatorColor': Color(0xFFFFD700), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFFFD700), // TODO機能のアクセント色
+      'todoColor': Color(0xFFFFD700), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // シルバー系（エレガント）
@@ -704,7 +704,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFD3D3D3), // 薄いシルバー（深い背景に対して）
       'settingsColor': Color(0xFF696969), // ダークグレー
       'calculatorColor': Color(0xFFC0C0C0), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFC0C0C0), // TODO機能のアクセント色
+      'todoColor': Color(0xFFC0C0C0), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // レッド・オレンジ系テーマ
@@ -730,7 +730,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFFFCDD2), // 薄いレッド（深い背景に対して）
       'settingsColor': Color(0xFFC62828), // ダークレッド
       'calculatorColor': Color(0xFFEF5350), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFEF5350), // TODO機能のアクセント色
+      'todoColor': Color(0xFFEF5350), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'オレンジ': {
@@ -756,7 +756,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFFFE0B2), // 薄いオレンジ（深い背景に対して）
       'settingsColor': Color(0xFFE65100), // ダークオレンジ
       'calculatorColor': Color(0xFFFFB74D), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFFFB74D), // TODO機能のアクセント色
+      'todoColor': Color(0xFFFFB74D), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'タンジェリン': {
@@ -782,7 +782,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFFFE0B2), // 薄いオレンジ（深い背景に対して）
       'settingsColor': Color(0xFFFF6F00), // ダークタンジェリン
       'calculatorColor': Color(0xFFFFCC02), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFFFCC02), // TODO機能のアクセント色
+      'todoColor': Color(0xFFFFCC02), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'アンバー': {
@@ -808,7 +808,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFFFECB3), // 薄いアンバー（深い背景に対して）
       'settingsColor': Color(0xFFFF8F00), // ダークアンバー
       'calculatorColor': Color(0xFFFDD835), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFFDD835), // TODO機能のアクセント色
+      'todoColor': Color(0xFFFDD835), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'キャラメル': {
@@ -834,7 +834,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFF3E5AB), // 薄いキャラメル（深い背景に対して）
       'settingsColor': Color(0xFFB8860B), // ダークキャラメル
       'calculatorColor': Color(0xFFDAA520), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFDAA520), // TODO機能のアクセント色
+      'todoColor': Color(0xFFDAA520), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'パンプキン': {
@@ -860,7 +860,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFFFD8B1), // 薄いパンプキン（深い背景に対して）
       'settingsColor': Color(0xFFCD853F), // ダークパンプキン
       'calculatorColor': Color(0xFFFFB347), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFFFB347), // TODO機能のアクセント色
+      'todoColor': Color(0xFFFFB347), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // 新しいトレンドカラー
@@ -887,7 +887,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFFFFCCBC), // 薄いサンセット（深い背景に対して）
       'settingsColor': Color(0xFFD84315), // ダークオレンジ
       'calculatorColor': Color(0xFFFFAB91), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFFFAB91), // TODO機能のアクセント色
+      'todoColor': Color(0xFFFFAB91), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     // パステル系テーマ
@@ -913,7 +913,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFFE91E63), // ダークピンク
       'calculatorColor': Color(0xFFF48FB1), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFF48FB1), // TODO機能のアクセント色
+      'todoColor': Color(0xFFF48FB1), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ブルー': {
@@ -938,7 +938,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF0277BD), // ダークブルー
       'calculatorColor': Color(0xFF4FC3F7), // 計算機機能のアクセント色
-      'todoColor': Color(0xFF4FC3F7), // TODO機能のアクセント色
+      'todoColor': Color(0xFF4FC3F7), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'グリーン': {
@@ -963,7 +963,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF388E3C), // ダークグリーン
       'calculatorColor': Color(0xFF81C784), // 計算機機能のアクセント色
-      'todoColor': Color(0xFF81C784), // TODO機能のアクセント色
+      'todoColor': Color(0xFF81C784), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'イエロー': {
@@ -988,7 +988,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFFF57F17), // ダークイエロー
       'calculatorColor': Color(0xFFFFF176), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFFFF176), // TODO機能のアクセント色
+      'todoColor': Color(0xFFFFF176), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'パープル': {
@@ -1013,7 +1013,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFF8E24AA), // ダークパープル
       'calculatorColor': Color(0xFFBA68C8), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFBA68C8), // TODO機能のアクセント色
+      'todoColor': Color(0xFFBA68C8), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
     'ピーチ': {
@@ -1038,7 +1038,7 @@ class ThemeSettings extends ChangeNotifier {
       'bottomNavigationUnselectedColor': Color(0xFF757575), // グレー（明るい背景に対して）
       'settingsColor': Color(0xFFD84315), // ダークピーチ
       'calculatorColor': Color(0xFFFF8A65), // 計算機機能のアクセント色
-      'todoColor': Color(0xFFFF8A65), // TODO機能のアクセント色
+      'todoColor': Color(0xFFFF8A65), // タスク機能のアクセント色
       'tastingColor': Color(0xFFD84315), // テイスティング機能のアクセント色
     },
 

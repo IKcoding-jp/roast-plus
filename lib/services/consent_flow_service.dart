@@ -35,7 +35,9 @@ class ConsentFlowService {
       }
 
       // オプション同意を取得（非同期で実行）
-      _requestOptionalConsent(context);
+      if (context.mounted) {
+        _requestOptionalConsent(context);
+      }
 
       _logInfo('初回ログイン時の同意取得フローが完了');
       return true;
@@ -53,22 +55,24 @@ class ConsentFlowService {
 
     bool consentGranted = false;
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => ConsentDialog(
-        consentRequests: requiredRequests,
-        isRequired: true,
-        onComplete: () {
-          consentGranted = true;
-          _logInfo('必須同意が取得されました');
-        },
-        onCancel: () {
-          consentGranted = false;
-          _logInfo('必須同意が拒否されました');
-        },
-      ),
-    );
+    if (context.mounted) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => ConsentDialog(
+          consentRequests: requiredRequests,
+          isRequired: true,
+          onComplete: () {
+            consentGranted = true;
+            _logInfo('必須同意が取得されました');
+          },
+          onCancel: () {
+            consentGranted = false;
+            _logInfo('必須同意が拒否されました');
+          },
+        ),
+      );
+    }
 
     return consentGranted;
   }
@@ -186,11 +190,15 @@ class ConsentFlowService {
 
       if (!hasRequiredConsents) {
         // 必須同意が不足している場合は再取得
-        await _requestRequiredConsent(context);
+        if (context.mounted) {
+          await _requestRequiredConsent(context);
+        }
       }
 
       // オプション同意の再取得
-      await _requestOptionalConsent(context);
+      if (context.mounted) {
+        await _requestOptionalConsent(context);
+      }
 
       _logInfo('同意の再取得フローが完了');
     } catch (e, st) {
@@ -223,22 +231,24 @@ class ConsentFlowService {
       // 同意を要求
       bool consentGranted = false;
 
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: !request.isRequired,
-        builder: (context) => ConsentDialog(
-          consentRequests: [request],
-          isRequired: request.isRequired,
-          onComplete: () {
-            consentGranted = true;
-            _logInfo('機能の同意が取得されました: ${featureType.displayName}');
-          },
-          onCancel: () {
-            consentGranted = false;
-            _logInfo('機能の同意が拒否されました: ${featureType.displayName}');
-          },
-        ),
-      );
+      if (context.mounted) {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: !request.isRequired,
+          builder: (context) => ConsentDialog(
+            consentRequests: [request],
+            isRequired: request.isRequired,
+            onComplete: () {
+              consentGranted = true;
+              _logInfo('機能の同意が取得されました: ${featureType.displayName}');
+            },
+            onCancel: () {
+              consentGranted = false;
+              _logInfo('機能の同意が拒否されました: ${featureType.displayName}');
+            },
+          ),
+        );
+      }
 
       return consentGranted;
     } catch (e, st) {

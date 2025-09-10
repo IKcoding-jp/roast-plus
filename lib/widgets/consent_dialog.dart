@@ -65,7 +65,7 @@ class _ConsentDialogState extends State<ConsentDialog> {
                   color: themeSettings.cardBackgroundColor,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: themeSettings.fontColor2.withOpacity(0.2),
+                    color: themeSettings.fontColor2.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Text(
@@ -148,8 +148,8 @@ class _ConsentDialogState extends State<ConsentDialog> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isRequired
-              ? Colors.orange.withOpacity(0.3)
-              : themeSettings.fontColor2.withOpacity(0.2),
+              ? Colors.orange.withValues(alpha: 0.3)
+              : themeSettings.fontColor2.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -256,7 +256,7 @@ class _ConsentDialogState extends State<ConsentDialog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: themeSettings.cardBackgroundColor.withOpacity(0.5),
+        color: themeSettings.cardBackgroundColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

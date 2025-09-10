@@ -1,7 +1,5 @@
 import 'dart:io';
-import 'dart:convert';
 import 'dart:developer' as developer;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// 環境変数ファイルを読み込むユーティリティ
