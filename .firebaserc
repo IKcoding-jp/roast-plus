@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "roastplus-app"
+  },
+  "targets": {
+    "roastplus-app": {
+      "hosting": {
+        "roastplus-site": [
+          "roastplus-site"
+        ]
+      }
+    }
+  }
+}

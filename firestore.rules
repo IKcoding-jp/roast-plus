@@ -1,0 +1,203 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ユーザー認証チェック関数
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // ユーザーが自分のデータにアクセスしているかチェック
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // グループメンバーかどうかチェック（ユーザーの userGroups ドキュメントで判定）
+    function isGroupMember(groupId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId));
+    }
+
+    // グループ管理者かどうかチェック（userGroups の role またはグループ作成者）
+    function isGroupAdmin(groupId) {
+      return isAuthenticated() && (
+        // userGroupsドキュメントが存在する場合のチェック
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)).data.role in ['admin', 'leader']) ||
+        // グループドキュメントが存在する場合の作成者チェック
+        (exists(/databases/$(database)/documents/groups/$(groupId)) &&
+         get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid)
+      );
+    }
+
+    // ユーザーコレクションのルール
+    match /users/{userId} {
+      // ユーザードキュメント自体へのアクセス
+      // 初回ログイン時の表示名設定も許可（create, update, set操作）
+      allow read, write: if isOwner(userId);
+      
+      // 初回ログイン時の表示名設定を確実に許可
+      // ユーザーが自分のドキュメントを作成・更新する場合
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Web版でのタイムアウト問題を解決するため、より具体的な権限を設定
+      // 表示名設定に必要なフィールドの書き込みを明示的に許可
+      allow create: if isAuthenticated() && 
+        request.auth.uid == userId &&
+        request.resource.data.keys().hasAll(['displayName', 'email']) &&
+        request.resource.data.displayName is string &&
+        request.resource.data.email is string;
+      
+      allow update: if isAuthenticated() && 
+        request.auth.uid == userId &&
+        // 表示名の更新を許可
+        (request.resource.data.displayName is string || 
+         resource.data.displayName is string);
+      
+      // ユーザーのサブコレクションへのアクセス
+      match /{collection}/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // 試飲記録コレクションの明示的なルール
+      match /tasting_records/{recordId} {
+        allow read, write: if isOwner(userId);
+        allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      }
+      
+      // ユーザーグループコレクションの明示的なルール
+      match /userGroups/{groupId} {
+        allow read, write: if isOwner(userId);
+        allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      }
+    }
+
+    // グループコレクションのルール
+    match /groups/{groupId} {
+      // グループドキュメントへのアクセス
+      allow read: if isGroupMember(groupId) || 
+        (isAuthenticated() && 
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId))) ||
+        // 招待コードによるグループ参加のための読み取り権限
+        (isAuthenticated() && 
+         resource.data.inviteCode != null);
+      // グループ作成は認証済みユーザーなら誰でも可能
+      allow create: if isAuthenticated();
+      // グループ更新は管理者のみ、または招待コードによる参加時
+      allow update: if isGroupAdmin(groupId) || 
+        // 招待コードによるグループ参加のための更新権限
+        (isAuthenticated() && 
+         resource.data.inviteCode != null);
+      // グループ削除は管理者のみ
+      allow delete: if isGroupAdmin(groupId);
+      
+      // グループのサブコレクションへのアクセス
+      match /{collection}/{document=**} {
+        allow read: if isGroupMember(groupId) || 
+          (isAuthenticated() && 
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+        allow write: if isGroupMember(groupId) || 
+          (isAuthenticated() && 
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+      }
+
+      // 試飲セッション: groups/{groupId}/tasting_sessions/{sessionId}
+      match /tasting_sessions/{sessionId} {
+        allow read: if isGroupMember(groupId);
+        // セッション作成はメンバーのみ。更新はトランザクション内で実施される平均・件数の更新等を許可
+        allow create, update: if isGroupMember(groupId);
+        allow delete: if false; // セッション削除は管理タスクからのみ（必要時に別途定義）
+
+        // エントリ: entries/{uid}
+        match /entries/{uid} {
+          allow read: if isGroupMember(groupId);
+          // 自分のエントリのみ書込可（upsert）
+          allow create, update, delete: if isAuthenticated() && request.auth.uid == uid && isGroupMember(groupId);
+        }
+      }
+      
+      // グループメンバーコレクションの特別ルール
+      match /members/{memberId} {
+        allow read: if isGroupMember(groupId);
+        allow write: if isGroupAdmin(groupId) || request.auth.uid == memberId;
+      }
+      
+      // グループ招待コレクションの特別ルール
+      match /invitations/{invitationId} {
+        allow read: if isGroupMember(groupId) || isGroupAdmin(groupId);
+        allow create: if isGroupAdmin(groupId);
+        allow update, delete: if isGroupAdmin(groupId) || 
+          (isAuthenticated() && resource.data.invitedUserId == request.auth.uid) ||
+          // メール宛て招待で本人が操作するケース
+          (isAuthenticated() && resource.data.invitedEmail == request.auth.token.email);
+      }
+      
+      // 共有データコレクションの特別ルール
+      match /sharedData/{document=**} {
+        allow read, write: if isGroupMember(groupId) || 
+          (isAuthenticated() && 
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+      }
+      
+      // 設定コレクションの特別ルール
+      match /settings/{document=**} {
+        allow read, write: if isGroupMember(groupId) || 
+          (isAuthenticated() && 
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)/userGroups/$(groupId)));
+      }
+      
+      // グループ試飲記録コレクションの特別ルール
+      match /tasting_records/{recordId} {
+        allow read: if isGroupMember(groupId);
+        allow create, update, delete: if isAuthenticated() && 
+          request.auth.uid == resource.data.userId && 
+          isGroupMember(groupId);
+      }
+    }
+
+    // グループ招待コレクションのルール
+    match /group_invitations/{invitationCode} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+        (
+          resource.data.createdBy == request.auth.uid || 
+          // usedBy は array なので hasAny は使えない。array_contains 判定相当の条件
+          (!resource.data.usedBy.hasAny([request.auth.uid]))
+        );
+      // グループ管理者も削除可能（グループ削除フローで必要）
+      allow delete: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        isGroupAdmin(resource.data.groupId)
+      );
+    }
+
+    // 招待コレクションのルール
+    match /invitations/{invitationId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.invitedUserId == request.auth.uid || 
+         resource.data.invitedEmail == request.auth.token.email ||
+         // グループ管理者は監督権限
+         isGroupAdmin(resource.data.groupId));
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+        (resource.data.invitedUserId == request.auth.uid || 
+         resource.data.invitedEmail == request.auth.token.email ||
+         isGroupAdmin(resource.data.groupId));
+      allow delete: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        isGroupAdmin(resource.data.groupId)
+      );
+    }
+
+    // システム設定コレクション（必要に応じて）
+    match /system/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if false; // システム設定は読み取り専用
+    }
+
+    // その他のコレクションはデフォルトで拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

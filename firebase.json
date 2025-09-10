@@ -1,0 +1,82 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "site": "roastplus-site",
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "/index.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+          { "key": "Pragma", "value": "no-cache" },
+          { "key": "Expires", "value": "0" },
+          { "key": "Cross-Origin-Opener-Policy", "value": "unsafe-none" },
+          { "key": "Cross-Origin-Embedder-Policy", "value": "unsafe-none" },
+          { "key": "Content-Security-Policy", "value": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://*.firebaseio.com https://*.google.com https://accounts.google.com https://www.gstatic.com https://fonts.gstatic.com ws: wss:; frame-src 'self' https://accounts.google.com https://*.google.com https://roastplus-app.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com; worker-src 'self' blob:;" }
+        ]
+      },
+      {
+        "source": "/flutter_bootstrap.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/manifest.json",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/version.json",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          { "key": "Cross-Origin-Opener-Policy", "value": "unsafe-none" },
+          { "key": "Cross-Origin-Embedder-Policy", "value": "unsafe-none" }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "roastplus-app",
+          "appId": "1:330871937318:android:92967163c2b52892d0c9e7",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "roastplus-app",
+          "configurations": {
+            "android": "1:330871937318:android:92967163c2b52892d0c9e7",
+            "ios": "1:330871937318:ios:92967163c2b52892d0c9e7",
+            "macos": "1:330871937318:ios:92967163c2b52892d0c9e7",
+            "web": "1:330871937318:web:d4f31865d8c0e924d0c9e7",
+            "windows": "1:330871937318:web:d4f31865d8c0e924d0c9e7"
+          }
+        }
+      }
+    }
+  }
+}

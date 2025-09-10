@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="ローストプラス - コーヒー焙煎業務管理アプリ。焙煎スケジュール管理、ドリップカウンター、テイスティング記録、グループ機能で効率的なコーヒー焙煎業務をサポートします。">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- Content Security Policy for Google Login / Flutter Web -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://www.gstatic.com https://apis.google.com https://accounts.google.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' data: https://fonts.gstatic.com;
+    img-src 'self' data: https: blob:;
+    connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://*.firebaseio.com https://*.google.com https://accounts.google.com https://www.gstatic.com https://fonts.gstatic.com ws: wss: http: https:;
+    frame-src 'self' https://accounts.google.com https://*.google.com https://roastplus-app.firebaseapp.com http://localhost:* https://localhost:*;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self' https://accounts.google.com;
+    worker-src 'self' blob:;
+  ">
+  
+  <!-- SEO最適化 -->
+  <meta name="keywords" content="コーヒー,焙煎,業務管理,ローストプラス,ドリップカウンター,テイスティング,スケジュール管理,グループ機能">
+  <meta name="author" content="ローストプラス">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <meta name="google-site-verification" content="7jcWni746nO_k7llFutDVGmbBOgfONuUxRQhACVhC0Q" />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://roastplus.web.app/">
+  <meta property="og:title" content="RoastPlus - コーヒー焙煎業務管理アプリ">
+  <meta property="og:description" content="焙煎スケジュール管理、ドリップカウンター、テイスティング記録、グループ機能で効率的なコーヒー焙煎業務をサポートします。">
+  <meta property="og:image" content="https://roastplus.web.app/icons/Icon-512.png">
+  <meta property="og:site_name" content="RoastPlus">
+  <meta property="og:locale" content="ja_JP">
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://roastplus.web.app/">
+  <meta property="twitter:title" content="RoastPlus - コーヒー焙煎業務管理アプリ">
+  <meta property="twitter:description" content="焙煎スケジュール管理、ドリップカウンター、テイスティング記録、グループ機能で効率的なコーヒー焙煎業務をサポートします。">
+  <meta property="twitter:image" content="https://roastplus.web.app/icons/Icon-512.png">
+  
+  <!-- 構造化データ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "RoastPlus",
+    "description": "コーヒー焙煎業務管理アプリ",
+    "url": "https://roastplus.web.app",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "JPY"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "RoastPlus"
+    }
+  }
+  </script>
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="ローストプラス">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>ローストプラス</title>
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- FirebaseはFlutterFire（Dart）側で初期化します。ここでの手動初期化は行いません。 -->
+
+  <!-- カスタムフォント読み込み -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Flutter Web 最適化 -->
+  <style>
+    /* カスタムフォントの定義 */
+    @font-face {
+      font-family: 'ZenMaruGothic';
+      src: url('fonts/ZenMaruGothic-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'utsukushiFONT';
+      src: url('fonts/UtsukushiFONT.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'KiwiMaru';
+      src: url('fonts/KiwiMaru-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'HannariMincho';
+      src: url('fonts/HannariMincho-Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'Harenosora';
+      src: url('fonts/Harenosora.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    /* レスポンシブデザインのためのスタイル */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #f5f5f5;
+    }
+
+    /* スクロールバーのカスタマイズ */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #8B4513;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #D2691E;
+    }
+  </style>
+</head>
+<body>
+  <!-- Flutter Web スクリプト -->
+  <script src="flutter.js" defer></script>
+  <script src="flutter_bootstrap.js" defer></script>
+  
+  <!-- デバッグ用スクリプト -->
+  <script>
+    console.log('index.html: スクリプト読み込み開始');
+    
+    // Flutter初期化の監視
+    window.addEventListener('flutter-first-frame', function () {
+      console.log('Flutter: 最初のフレームが描画されました');
+    });
+    
+    // Flutter初期化エラーの監視
+    window.addEventListener('flutter-error', function (event) {
+      console.error('Flutter: エラーが発生しました', event.detail);
+    });
+    
+    // ページ読み込み完了の監視
+    window.addEventListener('load', function () {
+      console.log('index.html: ページ読み込み完了');
+      
+      // Flutterアプリの状態をチェック
+      setTimeout(function() {
+        const flutterApp = document.querySelector('flt-glass-pane');
+        if (flutterApp) {
+          console.log('Flutter: アプリ要素が見つかりました', flutterApp);
+        } else {
+          console.error('Flutter: アプリ要素が見つかりません');
+        }
+      }, 2000);
+    });
+    
+    // エラーハンドリング
+    window.addEventListener('error', function (event) {
+      console.error('JavaScript: エラーが発生しました', event.error);
+    });
+    
+    window.addEventListener('unhandledrejection', function (event) {
+      console.error('JavaScript: 未処理のPromise拒否', event.reason);
+    });
+  </script>
+</body>
+</html>
