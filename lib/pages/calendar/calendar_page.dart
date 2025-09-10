@@ -901,16 +901,52 @@ class _CalendarPageState extends State<CalendarPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              memo.isAfterPurge
-                                  ? _getTaskDescription(memo)
-                                  : '${memo.time} - ${_getTaskDescription(memo)}',
-                              style: TextStyle(
-                                color: themeSettings.fontColor1,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            memo.isAfterPurge
+                                ? Text(
+                                    _getTaskDescription(memo),
+                                    style: TextStyle(
+                                      color: themeSettings.fontColor1,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : Row(
+                                    children: [
+                                      Text(
+                                        '${memo.time} - ',
+                                        style: TextStyle(
+                                          color: themeSettings.fontColor1,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(width: 6),
+                                      Expanded(
+                                        child:
+                                            memo.beanName != null &&
+                                                memo.beanName!.isNotEmpty
+                                            ? BeanNameWithSticker(
+                                                beanName: memo.beanName!,
+                                                textStyle: TextStyle(
+                                                  color:
+                                                      themeSettings.fontColor1,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                stickerSize: 14,
+                                              )
+                                            : Text(
+                                                _getTaskDescription(memo),
+                                                style: TextStyle(
+                                                  color:
+                                                      themeSettings.fontColor1,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                      ),
+                                    ],
+                                  ),
                             if (!memo.isRoasterOn &&
                                 !memo.isAfterPurge &&
                                 memo.weight != null &&

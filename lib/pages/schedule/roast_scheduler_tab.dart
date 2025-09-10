@@ -10,6 +10,7 @@ import 'package:roastplus/services/roast_schedule_memo_service.dart';
 import 'package:roastplus/widgets/roast_schedule_memo_dialog.dart';
 import 'package:roastplus/utils/permission_utils.dart';
 import 'dart:developer' as developer;
+import 'package:roastplus/widgets/bean_name_with_sticker.dart';
 
 class RoastSchedulerTab extends StatefulWidget {
   final List<dynamic> breakTimes;
@@ -372,26 +373,14 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
                             if (memo.beanName != null) ...[
                               Expanded(
                                 flex: 3,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.coffee,
-                                      color: Colors.brown,
-                                      size: 16,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        memo.beanName!,
-                                        style: TextStyle(
-                                          color: Colors.brown,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
+                                child: BeanNameWithSticker(
+                                  beanName: memo.beanName!,
+                                  textStyle: TextStyle(
+                                    color: Colors.brown,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  stickerSize: 14,
                                 ),
                               ),
                               SizedBox(width: 12),
