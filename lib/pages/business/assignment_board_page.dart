@@ -661,13 +661,10 @@ class AssignmentBoardState extends State<AssignmentBoard> {
       });
     }
 
-    // グループ状態でない場合のみローカルデータを再読み込み
-    final groupProvider = context.read<GroupProvider>();
-    if (!groupProvider.hasGroup) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadState();
-      });
-    }
+    // ラベルデータを再読み込み
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _reloadLabelsOnly();
+    });
   }
 
   /// 今日の出勤退勤記録を読み込み
@@ -1053,9 +1050,8 @@ class AssignmentBoardState extends State<AssignmentBoard> {
 
       debugPrint('AssignmentBoard: 権限チェック開始 - groups: ${groups.length}');
 
-      // 参加しているグループがあるかチェック
+      // グループが存在することを前提とする
       if (groups.isNotEmpty) {
-        // 最初のグループの権限をチェック（複数グループの場合は要改善）
         final group = groups.first;
         debugPrint('AssignmentBoard: グループ権限チェック - groupId: ${group.id}');
 
@@ -1094,28 +1090,23 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           dataType: 'assignment_board',
         );
 
-        // フォールバック時はメンバー以上に担当決定権限を付与
-        final canAssignToday = true;
-
-        debugPrint(
-          'AssignmentBoard: フォールバック権限チェック結果 - canEdit: $canEdit, canAssignToday: $canAssignToday',
-        );
+        debugPrint('AssignmentBoard: フォールバック権限チェック結果 - canEdit: $canEdit');
 
         setState(() {
           _canEditAssignment = canEdit;
         });
       } else {
-        // グループ未参加時も編集可・担当決定可
-        debugPrint('AssignmentBoard: グループ未参加 - 編集可能・担当決定可能に設定');
+        // グループ未参加の場合は編集不可
+        debugPrint('AssignmentBoard: グループ未参加 - 編集不可に設定');
         setState(() {
-          _canEditAssignment = true;
+          _canEditAssignment = false;
         });
       }
     } catch (e) {
-      // エラーの場合は編集可能・担当決定可能として扱う（グループに参加していない場合など）
-      debugPrint('AssignmentBoard: 権限チェックエラー - $e, 編集可能・担当決定可能に設定');
+      // エラーの場合は編集不可として扱う
+      debugPrint('AssignmentBoard: 権限チェックエラー - $e, 編集不可に設定');
       setState(() {
-        _canEditAssignment = true;
+        _canEditAssignment = false;
       });
     }
   }
@@ -1158,14 +1149,21 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             }
           })
           .catchError((e) {
-            // エラーの場合は編集可能・担当決定可能として扱う
+            // エラーの場合は編集不可として扱う
             debugPrint('AssignmentBoard: リアルタイム権限チェックエラー - $e');
-            if (mounted && (_canEditAssignment != true)) {
+            if (mounted && (_canEditAssignment != false)) {
               setState(() {
-                _canEditAssignment = true;
+                _canEditAssignment = false;
               });
             }
           });
+    } else {
+      // グループ未参加の場合は編集不可
+      if (mounted && (_canEditAssignment != false)) {
+        setState(() {
+          _canEditAssignment = false;
+        });
+      }
     }
   }
 
@@ -1241,16 +1239,23 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   /// ラベルのみを再読み込み（メンバーデータは保持）
   Future<void> _reloadLabelsOnly() async {
     try {
+      debugPrint('AssignmentBoard: ラベル再読み込み開始');
+
       final settings = await UserSettingsFirestoreService.getMultipleSettings([
         'leftLabels',
         'rightLabels',
       ]);
 
+      debugPrint('AssignmentBoard: 取得したラベル設定: $settings');
+
       if (mounted) {
         setState(() {
-          leftLabels = settings['leftLabels'] ?? [];
-          rightLabels = settings['rightLabels'] ?? [];
+          leftLabels = List<String>.from(settings['leftLabels'] ?? []);
+          rightLabels = List<String>.from(settings['rightLabels'] ?? []);
         });
+        debugPrint(
+          'AssignmentBoard: ラベル再読み込み完了 - leftLabels: $leftLabels, rightLabels: $rightLabels',
+        );
       }
     } catch (e) {
       debugPrint('AssignmentBoard: ラベル再読み込みエラー: $e');
@@ -1260,12 +1265,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
   /// メンバーのみを再読み込み（ラベルデータは保持）
   Future<void> _reloadMembersOnly() async {
     try {
-      // グループ状態の場合はローカルデータを読み込まない
-      final groupProvider = context.read<GroupProvider>();
-      if (groupProvider.hasGroup) {
-        debugPrint('AssignmentBoard: グループ状態のため、メンバー再読み込みをスキップ');
-        return;
-      }
+      debugPrint('AssignmentBoard: メンバー再読み込み開始');
 
       final settings = await UserSettingsFirestoreService.getMultipleSettings([
         'teams',
@@ -1289,6 +1289,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           ];
         }
         setState(() {});
+        debugPrint('AssignmentBoard: メンバー再読み込み完了');
       }
     } catch (e) {
       debugPrint('AssignmentBoard: メンバー再読み込みエラー: $e');
@@ -1793,67 +1794,44 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                   icon: Icon(Icons.person_add),
                   tooltip: 'メンバー編集',
                   onPressed: () async {
-                    final groupProvider = context.read<GroupProvider>();
-
-                    // グループ状態の場合はラベルデータを保存
-                    List<String>? currentLeftLabels;
-                    List<String>? currentRightLabels;
-                    if (groupProvider.hasGroup) {
-                      currentLeftLabels = List<String>.from(leftLabels);
-                      currentRightLabels = List<String>.from(rightLabels);
-                    }
+                    // ラベルデータを保存
+                    final currentLeftLabels = List<String>.from(leftLabels);
+                    final currentRightLabels = List<String>.from(rightLabels);
 
                     await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => MemberEditPage()),
                     );
 
-                    // グループ状態の場合は手動での再読み込みは不要（監視が自動更新）
-                    if (!groupProvider.hasGroup) {
-                      // メンバー編集ページから戻った時にメンバーのみ再読み込み
-                      await _reloadMembersOnly();
-                    }
+                    // メンバー編集ページから戻った時はメンバーを再読み込み
+                    await _reloadMembersOnly();
 
-                    // グループ状態の場合はラベルデータを復元
-                    if (groupProvider.hasGroup &&
-                        currentLeftLabels != null &&
-                        currentRightLabels != null) {
-                      setState(() {
-                        leftLabels = currentLeftLabels!;
-                        rightLabels = currentRightLabels!;
-                      });
-                    }
+                    // ラベルデータを復元
+                    setState(() {
+                      leftLabels = currentLeftLabels;
+                      rightLabels = currentRightLabels;
+                    });
                   },
                 ),
                 IconButton(
                   icon: Icon(Icons.label),
                   tooltip: 'ラベル編集',
                   onPressed: () async {
-                    final groupProvider = context.read<GroupProvider>();
-
-                    // グループ状態の場合はメンバーデータを保存
-                    List<Team>? currentTeams;
-                    if (groupProvider.hasGroup) {
-                      currentTeams = List<Team>.from(teams);
-                    }
+                    // メンバーデータを保存
+                    final currentTeams = List<Team>.from(teams);
 
                     await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => LabelEditPage()),
                     );
 
-                    // グループ状態の場合は手動での再読み込みは不要（監視が自動更新）
-                    if (!groupProvider.hasGroup) {
-                      // ラベル編集ページから戻った時にラベルのみ再読み込み
-                      await _reloadLabelsOnly();
-                    }
+                    // ラベル編集ページから戻った時はラベルを再読み込み
+                    await _reloadLabelsOnly();
 
-                    // グループ状態の場合はメンバーデータを復元
-                    if (groupProvider.hasGroup && currentTeams != null) {
-                      setState(() {
-                        teams = currentTeams!;
-                      });
-                    }
+                    // メンバーデータを復元
+                    setState(() {
+                      teams = currentTeams;
+                    });
                   },
                 ),
               ],

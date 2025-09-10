@@ -414,6 +414,9 @@ class LabelEditPageState extends State<LabelEditPage> {
 
       if (!mounted) return;
       messenger.showSnackBar(const SnackBar(content: Text('ラベル保存しました')));
+
+      // 保存完了後に少し待ってからページを閉じる（データ同期のため）
+      await Future.delayed(Duration(milliseconds: 500));
     } catch (e, stackTrace) {
       developer.log(
         'ラベル保存エラー: $e',
