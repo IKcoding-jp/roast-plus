@@ -285,9 +285,9 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
 
     return Card(
       margin: EdgeInsets.only(bottom: 8),
-      elevation: 2,
+      elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      color: themeSettings.cardBackgroundColor,
+      color: Colors.white,
       child: InkWell(
         onTap: _canEditRoastSchedule ? () => _editMemo(memo) : null,
         borderRadius: BorderRadius.circular(8),
@@ -529,7 +529,7 @@ class RoastSchedulerTabState extends State<RoastSchedulerTab>
     final themeSettings = Provider.of<ThemeSettings>(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.white,
       floatingActionButton: FloatingActionButton(
         onPressed: _canEditRoastSchedule ? _addMemo : null,
         backgroundColor: themeSettings.appButtonColor,

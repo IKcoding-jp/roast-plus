@@ -274,7 +274,7 @@ class _RoastScheduleMemoDialogState extends State<RoastScheduleMemoDialog> {
                         ),
                         SizedBox(height: 16),
 
-                        // 重さと個数
+                        // 重さと袋数
                         Row(
                           children: [
                             Expanded(
@@ -309,7 +309,7 @@ class _RoastScheduleMemoDialogState extends State<RoastScheduleMemoDialog> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '個数',
+                                    '袋数',
                                     style: TextStyle(
                                       color: themeSettings.fontColor1,
                                       fontSize: 16,
@@ -323,7 +323,7 @@ class _RoastScheduleMemoDialogState extends State<RoastScheduleMemoDialog> {
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
-                                      labelText: '個数',
+                                      labelText: '袋数',
                                     ),
                                     keyboardType: TextInputType.number,
                                   ),

@@ -570,7 +570,7 @@ class _CalendarPageState extends State<CalendarPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: themeSettings.cardBackgroundColor,
+      color: Colors.white,
       child: Padding(
         padding: EdgeInsets.all(24),
         child: Column(
@@ -1355,7 +1355,7 @@ class _CalendarPageState extends State<CalendarPage> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: themeSettings.cardBackgroundColor,
+      color: Colors.white,
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(

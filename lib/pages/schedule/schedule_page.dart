@@ -231,7 +231,7 @@ class _SchedulePageState extends State<SchedulePage>
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              color: themeSettings.cardBackgroundColor,
+                              color: Colors.white,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -299,7 +299,7 @@ class _SchedulePageState extends State<SchedulePage>
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              color: themeSettings.cardBackgroundColor,
+                              color: Colors.white,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
