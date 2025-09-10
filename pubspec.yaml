@@ -64,7 +64,7 @@ flutter:
     - assets/animations/
     - assets/launcher_icon/icon.jpeg
     - assets/google_logo.png
-    - config.env
+    - app_config.env
   fonts:
     - family: ZenMaruGothic
       fonts:

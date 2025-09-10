@@ -7,7 +7,7 @@ class EnvLoader {
   static const String _logName = 'EnvLoader';
   static Map<String, String>? _cachedEnvVars;
 
-  /// config.envファイルから環境変数を読み込み
+  /// app_config.envファイルから環境変数を読み込み
   static Future<Map<String, String>> loadEnvFile() async {
     if (_cachedEnvVars != null) {
       return _cachedEnvVars!;
@@ -18,10 +18,10 @@ class EnvLoader {
 
       // まずアセットから読み込みを試行
       try {
-        content = await rootBundle.loadString('config.env');
-        developer.log('config.envファイルをアセットから読み込みました', name: _logName);
+        content = await rootBundle.loadString('app_config.env');
+        developer.log('app_config.envファイルをアセットから読み込みました', name: _logName);
       } catch (e) {
-        developer.log('アセットからconfig.envファイルの読み込みに失敗: $e', name: _logName);
+        developer.log('アセットからapp_config.envファイルの読み込みに失敗: $e', name: _logName);
 
         // アセットから読み込めない場合は、ファイルシステムから読み込みを試行
         final currentDir = Directory.current.path;
@@ -29,14 +29,14 @@ class EnvLoader {
 
         // 複数のパスを試行
         final possiblePaths = [
-          'config.env',
-          '../config.env',
-          '../../config.env',
-          '../../../config.env',
-          'assets/config.env',
-          '$currentDir/config.env',
-          '$currentDir/../config.env',
-          '$currentDir/../../config.env',
+          'app_config.env',
+          '../app_config.env',
+          '../../app_config.env',
+          '../../../app_config.env',
+          'assets/app_config.env',
+          '$currentDir/app_config.env',
+          '$currentDir/../app_config.env',
+          '$currentDir/../../app_config.env',
         ];
 
         File? envFile;
@@ -44,14 +44,14 @@ class EnvLoader {
           final file = File(path);
           if (await file.exists()) {
             envFile = file;
-            developer.log('config.envファイルを発見: $path', name: _logName);
+            developer.log('app_config.envファイルを発見: $path', name: _logName);
             break;
           }
         }
 
         if (envFile == null) {
           developer.log(
-            'config.envファイルが見つかりません。試行したパス: $possiblePaths',
+            'app_config.envファイルが見つかりません。試行したパス: $possiblePaths',
             name: _logName,
           );
           return {};
@@ -77,12 +77,12 @@ class EnvLoader {
 
       _cachedEnvVars = envVars;
       developer.log(
-        'config.envから${envVars.length}個の環境変数を読み込みました',
+        'app_config.envから${envVars.length}個の環境変数を読み込みました',
         name: _logName,
       );
       return envVars;
     } catch (e) {
-      developer.log('config.envファイルの読み込みに失敗: $e', name: _logName);
+      developer.log('app_config.envファイルの読み込みに失敗: $e', name: _logName);
       return {};
     }
   }

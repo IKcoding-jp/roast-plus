@@ -383,12 +383,15 @@ class EncryptedFirebaseConfigService {
       name: _logName,
     );
     developer.log('  - その他の暗号化されたFirebase設定項目', name: _logName);
-    developer.log('🔧 解決方法: config.envファイルに暗号化された値を設定してください', name: _logName);
+    developer.log(
+      '🔧 解決方法: app_config.envファイルに暗号化された値を設定してください',
+      name: _logName,
+    );
 
     // セキュリティ強化: ハードコードされたAPIキーは一切使用しない
     throw Exception(
       'Firebase設定が環境変数から取得できません。'
-      'config.envファイルに適切なFirebase設定を追加してください。'
+      'app_config.envファイルに適切なFirebase設定を追加してください。'
       'ハードコードされたAPIキーはセキュリティ上の理由により使用禁止です。',
     );
   }
@@ -474,7 +477,7 @@ class EncryptedFirebaseConfigService {
     developer.log('    - ENCRYPTION_KEY', name: _logName);
     developer.log('', name: _logName);
     developer.log('🔧 設定方法:', name: _logName);
-    developer.log('  1. config.envファイルを開く', name: _logName);
+    developer.log('  1. app_config.envファイルを開く', name: _logName);
     developer.log('  2. 平文のAPIキーをBase64エンコードする', name: _logName);
     developer.log('  3. 暗号化された値を*_ENCRYPTED変数に設定', name: _logName);
     developer.log('  4. アプリを再起動', name: _logName);
