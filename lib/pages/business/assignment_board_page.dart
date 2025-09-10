@@ -1904,66 +1904,64 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                   mainAxisAlignment: kIsWeb
                                       ? MainAxisAlignment.center
                                       : MainAxisAlignment.spaceBetween,
-                                  children: kIsWeb
-                                      ? [
-                                          for (
-                                            int i = 0;
-                                            i < teams.length;
-                                            i++
-                                          ) ...[
-                                            SizedBox(
-                                              width: 120,
-                                              child: Center(
-                                                child: Text(
-                                                  teams[i].name,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:
-                                                        20 *
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontSizeScale,
-                                                    color:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontColor1,
+                                  children: [
+                                    SizedBox(width: 80),
+                                    ...(teams.length < 4
+                                        ? teams
+                                              .map<Widget>(
+                                                (team) => SizedBox(
+                                                  width: 120,
+                                                  child: Center(
+                                                    child: Text(
+                                                      team.name,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize:
+                                                            20 *
+                                                            Provider.of<
+                                                                  ThemeSettings
+                                                                >(context)
+                                                                .fontSizeScale,
+                                                        color:
+                                                            Provider.of<
+                                                                  ThemeSettings
+                                                                >(context)
+                                                                .fontColor1,
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ),
-                                            if (i < teams.length - 1)
-                                              SizedBox(width: 8),
-                                          ],
-                                        ]
-                                      : [
-                                          SizedBox(width: 80),
-                                          ...teams.map(
-                                            (team) => Expanded(
-                                              child: Center(
-                                                child: Text(
-                                                  team.name,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:
-                                                        20 *
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontSizeScale,
-                                                    color:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontColor1,
+                                              )
+                                              .toList()
+                                        : teams
+                                              .map<Widget>(
+                                                (team) => Expanded(
+                                                  child: Center(
+                                                    child: Text(
+                                                      team.name,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize:
+                                                            20 *
+                                                            Provider.of<
+                                                                  ThemeSettings
+                                                                >(context)
+                                                                .fontSizeScale,
+                                                        color:
+                                                            Provider.of<
+                                                                  ThemeSettings
+                                                                >(context)
+                                                                .fontColor1,
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(width: 80),
-                                        ],
+                                              )
+                                              .toList()),
+                                    SizedBox(width: 80),
+                                  ],
                                 ),
                               ),
                               // 読み込み中の場合はローディングアニメーションを表示
@@ -2037,10 +2035,18 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                         mainAxisAlignment: kIsWeb
                                             ? MainAxisAlignment.center
                                             : MainAxisAlignment.spaceBetween,
-                                        children: kIsWeb
-                                            ? [
-                                                SizedBox(
-                                                  width: 80,
+                                        children: [
+                                          // 左ラベル — 少ない班数なら広い領域で折返し表示、そうでなければ固定幅
+                                          if (teams.length < 4)
+                                            Expanded(
+                                              flex: 2,
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(
+                                                  left: 60.0,
+                                                ),
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.centerLeft,
                                                   child: Text(
                                                     leftLabels.isNotEmpty &&
                                                             i <
@@ -2048,6 +2054,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                                                     .length
                                                         ? leftLabels[i]
                                                         : '',
+                                                    softWrap: true,
                                                     style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold,
@@ -2065,20 +2072,56 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                                     ),
                                                   ),
                                                 ),
-                                                ...teams
-                                                    .asMap()
-                                                    .entries
-                                                    .map((entry) {
-                                                      final teamIndex =
-                                                          entry.key;
-                                                      final team = entry.value;
-                                                      return [
-                                                        SizedBox(
-                                                          width: 120,
-                                                          child: Center(
-                                                            child: MemberCard(
-                                                              name:
-                                                                  i <
+                                              ),
+                                            )
+                                          else
+                                            SizedBox(
+                                              width: 80,
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(
+                                                  left: 24.0,
+                                                ),
+                                                child: Text(
+                                                  leftLabels.isNotEmpty &&
+                                                          i < leftLabels.length
+                                                      ? leftLabels[i]
+                                                      : '',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        14 *
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontSizeScale,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ...(teams.length < 4
+                                              ? teams
+                                                    .map<Widget>(
+                                                      (team) => SizedBox(
+                                                        width: 120,
+                                                        child: Center(
+                                                          child: MemberCard(
+                                                            name:
+                                                                i <
+                                                                        team
+                                                                            .members
+                                                                            .length &&
+                                                                    team
+                                                                        .members[i]
+                                                                        .isNotEmpty
+                                                                ? team.members[i]
+                                                                : '未設定',
+                                                            attendanceStatus: _getMemberAttendanceStatus(
+                                                              i <
                                                                           team
                                                                               .members
                                                                               .length &&
@@ -2087,138 +2130,80 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                                                           .isNotEmpty
                                                                   ? team.members[i]
                                                                   : '未設定',
-                                                              attendanceStatus: _getMemberAttendanceStatus(
-                                                                i <
-                                                                            team.members.length &&
-                                                                        team
-                                                                            .members[i]
-                                                                            .isNotEmpty
-                                                                    ? team.members[i]
-                                                                    : '未設定',
-                                                              ),
-                                                              onTap: () {
-                                                                if (i <
-                                                                        team
-                                                                            .members
-                                                                            .length &&
-                                                                    team
-                                                                        .members[i]
-                                                                        .isNotEmpty) {
-                                                                  _showAttendanceDialog(
-                                                                    team.members[i],
-                                                                  );
-                                                                }
-                                                              },
                                                             ),
-                                                          ),
-                                                        ),
-                                                        if (teamIndex <
-                                                            teams.length - 1)
-                                                          SizedBox(width: 8),
-                                                      ];
-                                                    })
-                                                    .expand(
-                                                      (widgets) => widgets,
-                                                    ),
-                                                SizedBox(
-                                                  width: 80,
-                                                  child: Text(
-                                                    rightLabels.isNotEmpty &&
-                                                            i <
-                                                                rightLabels
-                                                                    .length
-                                                        ? rightLabels[i]
-                                                        : '',
-                                                    textAlign: TextAlign.right,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize:
-                                                          14 *
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontSizeScale,
-                                                      color:
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontColor1,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ]
-                                            : [
-                                                SizedBox(
-                                                  width: 80,
-                                                  child: Text(
-                                                    leftLabels.isNotEmpty &&
-                                                            i <
-                                                                leftLabels
-                                                                    .length
-                                                        ? leftLabels[i]
-                                                        : '',
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize:
-                                                          14 *
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontSizeScale,
-                                                      color:
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontColor1,
-                                                    ),
-                                                  ),
-                                                ),
-                                                ...teams.map(
-                                                  (team) => Expanded(
-                                                    child: Center(
-                                                      child: MemberCard(
-                                                        name:
-                                                            i <
-                                                                    team
-                                                                        .members
-                                                                        .length &&
-                                                                team
-                                                                    .members[i]
-                                                                    .isNotEmpty
-                                                            ? team.members[i]
-                                                            : '未設定',
-                                                        attendanceStatus: _getMemberAttendanceStatus(
-                                                          i <
+                                                            onTap: () {
+                                                              if (i <
                                                                       team
                                                                           .members
                                                                           .length &&
                                                                   team
                                                                       .members[i]
-                                                                      .isNotEmpty
-                                                              ? team.members[i]
-                                                              : '未設定',
+                                                                      .isNotEmpty) {
+                                                                _showAttendanceDialog(
+                                                                  team.members[i],
+                                                                );
+                                                              }
+                                                            },
+                                                          ),
                                                         ),
-                                                        onTap: () {
-                                                          if (i <
-                                                                  team
-                                                                      .members
-                                                                      .length &&
-                                                              team
-                                                                  .members[i]
-                                                                  .isNotEmpty) {
-                                                            _showAttendanceDialog(
-                                                              team.members[i],
-                                                            );
-                                                          }
-                                                        },
                                                       ),
-                                                    ),
-                                                  ),
+                                                    )
+                                                    .toList()
+                                              : teams
+                                                    .map<Widget>(
+                                                      (team) => Expanded(
+                                                        child: Center(
+                                                          child: MemberCard(
+                                                            name:
+                                                                i <
+                                                                        team
+                                                                            .members
+                                                                            .length &&
+                                                                    team
+                                                                        .members[i]
+                                                                        .isNotEmpty
+                                                                ? team.members[i]
+                                                                : '未設定',
+                                                            attendanceStatus: _getMemberAttendanceStatus(
+                                                              i <
+                                                                          team
+                                                                              .members
+                                                                              .length &&
+                                                                      team
+                                                                          .members[i]
+                                                                          .isNotEmpty
+                                                                  ? team.members[i]
+                                                                  : '未設定',
+                                                            ),
+                                                            onTap: () {
+                                                              if (i <
+                                                                      team
+                                                                          .members
+                                                                          .length &&
+                                                                  team
+                                                                      .members[i]
+                                                                      .isNotEmpty) {
+                                                                _showAttendanceDialog(
+                                                                  team.members[i],
+                                                                );
+                                                              }
+                                                            },
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    )
+                                                    .toList()),
+                                          // 右ラベル — 少ない班数なら広い領域で折返し表示、そうでなければ固定幅
+                                          if (teams.length < 4)
+                                            Expanded(
+                                              flex: 2,
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: 60.0,
                                                 ),
-                                                SizedBox(
-                                                  width: 80,
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.centerRight,
                                                   child: Text(
                                                     rightLabels.isNotEmpty &&
                                                             i <
@@ -2226,6 +2211,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                                                     .length
                                                         ? rightLabels[i]
                                                         : '',
+                                                    softWrap: true,
                                                     textAlign: TextAlign.right,
                                                     style: TextStyle(
                                                       fontWeight:
@@ -2244,7 +2230,39 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                                                     ),
                                                   ),
                                                 ),
-                                              ],
+                                              ),
+                                            )
+                                          else
+                                            SizedBox(
+                                              width: 80,
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: 24.0,
+                                                ),
+                                                child: Text(
+                                                  rightLabels.isNotEmpty &&
+                                                          i < rightLabels.length
+                                                      ? rightLabels[i]
+                                                      : '',
+                                                  textAlign: TextAlign.right,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize:
+                                                        14 *
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontSizeScale,
+                                                    color:
+                                                        Provider.of<
+                                                              ThemeSettings
+                                                            >(context)
+                                                            .fontColor1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     );
                                   },

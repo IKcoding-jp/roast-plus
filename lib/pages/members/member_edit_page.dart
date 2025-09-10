@@ -352,7 +352,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
     // 既存の班名からアルファベットを抽出して次のアルファベットを決定
     final existingAlphabets = <String>[];
     for (final team in teams) {
-      final match = RegExp(r'^([A-Z])班$').firstMatch(team.name);
+      // より柔軟な正規表現でアルファベットを抽出
+      final match = RegExp(r'([A-Z])班').firstMatch(team.name);
       if (match != null) {
         existingAlphabets.add(match.group(1)!);
       }
@@ -368,14 +369,33 @@ class _MemberEditPageState extends State<MemberEditPage> {
       }
     }
 
+    // 最大班数は4（A〜D）まで
+    const maxAlphabet = 'D';
+    if (nextAlphabet.codeUnitAt(0) > maxAlphabet.codeUnitAt(0)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('班は最大4つまでです（A〜D班）')));
+      return;
+    }
+
     final newName = '$nextAlphabet班';
+
+    // 新規チーム名用のコントローラーを作成して登録
+    _teamNameControllers[newId] = TextEditingController(text: newName);
+
     setState(() {
       teams.add(Team(id: newId, name: newName, members: []));
     });
+
     _adjustLabelsToTeams();
   }
 
   void _deleteTeam(int index) {
+    // コントローラーを破棄してからチームを削除
+    final team = teams[index];
+    _teamNameControllers[team.id]?.dispose();
+    _teamNameControllers.remove(team.id);
+
     setState(() {
       teams.removeAt(index);
     });
