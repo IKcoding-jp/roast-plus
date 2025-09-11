@@ -6,6 +6,8 @@ import '../firebase_options.dart';
 // 'google_sign_in' は現在未使用のためインポートはコメントアウト（将来的に必要なら復活）
 // import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:developer' as developer;
+import '../utils/common_utils.dart';
+import '../utils/app_logger.dart';
 import 'secure_storage_service.dart';
 
 /// セキュアな認証サービス
@@ -221,24 +223,49 @@ class SecureAuthService {
   /// 保存されたトークンを使用して認証を復元
   static Future<UserCredential?> restoreAuthFromSecureStorage() async {
     try {
-      developer.log('セキュアストレージから認証を復元中', name: _logName);
+      AppLogger.debug('セキュアストレージから認証を復元中', name: _logName);
 
       final idToken = await SecureStorageService.getIdToken();
 
       if (idToken == null) {
-        developer.log('保存されたトークンが見つかりません', name: _logName);
+        AppLogger.debug('保存されたトークンが見つかりません', name: _logName);
         return null;
       }
 
-      // トークンの有効性を確認
-      final credential = GoogleAuthProvider.credential(idToken: idToken);
+      // トークンの期限を簡易チェック
+      final payload = CommonUtils.decodeJwtPayload(idToken);
+      final exp = payload['exp'];
+      if (exp == null) {
+        AppLogger.warn('保存トークンに exp が含まれていません - トークンを破棄します', name: _logName);
+        await _clearInvalidTokens();
+        return null;
+      }
 
-      final userCredential = await _auth.signInWithCredential(credential);
-      developer.log('認証の復元が完了しました', name: _logName);
+      final expiry = DateTime.fromMillisecondsSinceEpoch((exp as int) * 1000);
+      if (DateTime.now().isAfter(expiry)) {
+        AppLogger.warn('保存トークンが期限切れのため復元を中止します', name: _logName);
+        await _clearInvalidTokens();
+        return null;
+      }
 
-      return userCredential;
+      // 有効期限内であれば再認証を試みる
+      try {
+        final credential = GoogleAuthProvider.credential(idToken: idToken);
+        final userCredential = await _auth.signInWithCredential(credential);
+        AppLogger.info('認証の復元が完了しました', name: _logName);
+        return userCredential;
+      } catch (e, st) {
+        AppLogger.error(
+          '保存トークンでの再認証に失敗しました',
+          name: _logName,
+          error: e,
+          stackTrace: st,
+        );
+        await _clearInvalidTokens();
+        return null;
+      }
     } catch (e) {
-      developer.log('認証の復元に失敗: $e', name: _logName);
+      AppLogger.error('認証の復元に失敗しました', name: _logName, error: e);
       // トークンが無効な場合は削除
       await _clearInvalidTokens();
       return null;

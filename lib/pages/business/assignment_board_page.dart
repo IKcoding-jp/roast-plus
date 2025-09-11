@@ -1438,28 +1438,36 @@ class AssignmentBoardState extends State<AssignmentBoard> {
     setState(() => isShuffling = true);
     int cnt = 0;
     const dur = Duration(milliseconds: 100);
+    // ローカルでシャッフルを行い、UI更新は間引いて行う
+    List<List<String>> shuffledMembers = List.generate(
+      teams.length,
+      (i) => List.from(teams[i].members),
+    );
     shuffleTimer = Timer.periodic(dur, (_) async {
       try {
-        // 各チームのメンバーをシャッフル
-        List<List<String>> shuffledMembers = [];
-        for (int i = 0; i < teams.length; i++) {
-          final teamMembers = List<String>.from(teams[i].members);
-          teamMembers.shuffle(Random());
-          shuffledMembers.add(teamMembers);
+        // 各チームのメンバーをシャッフル（ローカル配列）
+        for (int i = 0; i < shuffledMembers.length; i++) {
+          shuffledMembers[i].shuffle(Random());
         }
 
-        setState(() {
-          for (int i = 0; i < teams.length; i++) {
-            teams[i] = teams[i].copyWith(members: shuffledMembers[i]);
-          }
-        });
+        // UI更新は間引いて行う（5回に1回）
+        if (cnt % 5 == 0) {
+          if (!mounted) return;
+          setState(() {
+            for (int i = 0; i < teams.length; i++) {
+              teams[i] = teams[i].copyWith(
+                members: List.from(shuffledMembers[i]),
+              );
+            }
+          });
+        }
 
         if (++cnt >= 50) {
           shuffleTimer?.cancel();
 
           final today = _todayKey();
           final y1 = _dayKeyAgo(1), y2 = _dayKeyAgo(2);
-          final pairs = _makePairs();
+          List<String> pairs = _makePairs();
           final p1Data = await UserSettingsFirestoreService.getSetting(
             'assignment_$y1',
           );
@@ -1471,22 +1479,25 @@ class AssignmentBoardState extends State<AssignmentBoard> {
           final p2 = _safeStringListFromDynamic(p2Data);
 
           int retry = 0;
+          // 重い同期ループを避けるため、再シャッフルは非同期に行い、UI更新は最小化する
           while ((_isDuplicate(pairs, p1) || _isDuplicate(pairs, p2)) &&
               retry < 100) {
-            // 再シャッフル
-            for (int i = 0; i < teams.length; i++) {
+            // 再シャッフル（ローカル配列のみ）
+            for (int i = 0; i < shuffledMembers.length; i++) {
               shuffledMembers[i].shuffle(Random());
             }
-            setState(() {
-              for (int i = 0; i < teams.length; i++) {
-                teams[i] = teams[i].copyWith(members: shuffledMembers[i]);
-              }
-            });
+
+            // 最終結果のみUIに反映
             final newPairs = _makePairs();
             if (!_isDuplicate(newPairs, p1) && !_isDuplicate(newPairs, p2)) {
+              // pairs を更新してループを抜ける
+              pairs = newPairs;
               break;
             }
+
             retry++;
+            // 小さく待機してUIスレッドへの負担を分散
+            await Future.delayed(Duration(milliseconds: 5));
           }
 
           await UserSettingsFirestoreService.saveMultipleSettings({
