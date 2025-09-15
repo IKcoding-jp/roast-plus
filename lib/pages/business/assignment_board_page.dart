@@ -1761,570 +1761,675 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             isShuffling;
 
         final themeSettings = Provider.of<ThemeSettings>(context);
-        return Scaffold(
-          appBar: AppBar(
-            title: Row(
-              children: [
-                Icon(Icons.group, color: themeSettings.iconColor),
-                SizedBox(width: 8),
-                Flexible(child: Text('担当表', overflow: TextOverflow.ellipsis)),
-                // グループ状態バッジを追加
-                Consumer<GroupProvider>(
-                  builder: (context, groupProvider, _) {
-                    if (groupProvider.groups.isNotEmpty) {
-                      // グループ名のテキストを削除し、アイコンのみ表示
-                      return Container(
-                        margin: EdgeInsets.only(left: 12),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue.shade400),
-                        ),
-                        child: Icon(
-                          Icons.groups,
-                          size: 18,
-                          color: Colors.blue.shade700,
-                        ),
-                      );
-                    } else {
-                      return SizedBox.shrink();
-                    }
-                  },
+
+        // Web版とスマホ版でUIを分岐
+        if (kIsWeb) {
+          return _buildWebUI(
+            context,
+            groupProvider,
+            themeSettings,
+            isButtonDisabled,
+            todayIsWeekend,
+          );
+        } else {
+          return _buildMobileUI(
+            context,
+            groupProvider,
+            themeSettings,
+            isButtonDisabled,
+            todayIsWeekend,
+          );
+        }
+      },
+    );
+  }
+
+  /// Web版専用のUIを構築
+  Widget _buildWebUI(
+    BuildContext context,
+    GroupProvider groupProvider,
+    ThemeSettings themeSettings,
+    bool isButtonDisabled,
+    bool todayIsWeekend,
+  ) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Icon(Icons.group, color: themeSettings.iconColor),
+            SizedBox(width: 8),
+            Flexible(child: Text('担当表', overflow: TextOverflow.ellipsis)),
+            // グループ状態バッジを追加
+            if (groupProvider.groups.isNotEmpty)
+              Container(
+                margin: EdgeInsets.only(left: 12),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade400),
                 ),
-              ],
-            ),
-            backgroundColor: themeSettings.appBarColor,
-            foregroundColor: themeSettings.appBarTextColor,
-            actions: [
-              if (_canEditAssignment == true) ...[
-                IconButton(
-                  icon: Icon(Icons.person_add),
-                  tooltip: 'メンバー編集',
-                  onPressed: () async {
-                    // ラベルデータを保存
-                    final currentLeftLabels = List<String>.from(leftLabels);
-                    final currentRightLabels = List<String>.from(rightLabels);
-
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => MemberEditPage()),
-                    );
-
-                    // メンバー編集ページから戻った時はメンバーを再読み込み
-                    await _reloadMembersOnly();
-
-                    // ラベルデータを復元
-                    setState(() {
-                      leftLabels = currentLeftLabels;
-                      rightLabels = currentRightLabels;
-                    });
-                  },
+                child: Icon(
+                  Icons.groups,
+                  size: 18,
+                  color: Colors.blue.shade700,
                 ),
-                IconButton(
-                  icon: Icon(Icons.label),
-                  tooltip: 'ラベル編集',
-                  onPressed: () async {
-                    // メンバーデータを保存
-                    final currentTeams = List<Team>.from(teams);
-
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => LabelEditPage()),
-                    );
-
-                    // ラベル編集ページから戻った時はラベルを再読み込み
-                    await _reloadLabelsOnly();
-
-                    // メンバーデータを復元
-                    setState(() {
-                      teams = currentTeams;
-                    });
-                  },
-                ),
-              ],
-              IconButton(
-                icon: Icon(Icons.list),
-                tooltip: '担当履歴',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => AssignmentHistoryPage()),
-                  );
-                },
               ),
+          ],
+        ),
+        backgroundColor: themeSettings.appBarColor,
+        foregroundColor: themeSettings.appBarTextColor,
+        actions: [
+          if (_canEditAssignment == true) ...[
+            IconButton(
+              icon: Icon(Icons.person_add),
+              tooltip: 'メンバー編集',
+              onPressed: () async {
+                final currentLeftLabels = List<String>.from(leftLabels);
+                final currentRightLabels = List<String>.from(rightLabels);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => MemberEditPage()),
+                );
+                await _reloadMembersOnly();
+                setState(() {
+                  leftLabels = currentLeftLabels;
+                  rightLabels = currentRightLabels;
+                });
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.label),
+              tooltip: 'ラベル編集',
+              onPressed: () async {
+                final currentTeams = List<Team>.from(teams);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => LabelEditPage()),
+                );
+                await _reloadLabelsOnly();
+                setState(() {
+                  teams = currentTeams;
+                });
+              },
+            ),
+          ],
+          IconButton(
+            icon: Icon(Icons.list),
+            tooltip: '担当履歴',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AssignmentHistoryPage()),
+              );
+            },
+          ),
+          if (_canEditAssignment == true)
+            IconButton(
+              icon: Icon(Icons.settings),
+              tooltip: '設定',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        SettingsPage(onReset: _resetTodayAssignment),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+      body: Container(
+        color: themeSettings.backgroundColor,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 1200), // Web版はより広い幅
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              child: Column(
+                children: [
+                  SizedBox(height: 24),
+                  // Web版専用の担当表レイアウト
+                  _buildWebAssignmentTable(themeSettings),
+                  SizedBox(height: 40),
+                  // Web版専用のボタンレイアウト
+                  _buildWebButtonLayout(isButtonDisabled, todayIsWeekend),
+                  SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-              if (_canEditAssignment == true)
-                IconButton(
-                  icon: Icon(Icons.settings),
-                  tooltip: '設定',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            SettingsPage(onReset: _resetTodayAssignment),
-                      ),
-                    );
-                  },
+  /// スマホ版専用のUIを構築
+  Widget _buildMobileUI(
+    BuildContext context,
+    GroupProvider groupProvider,
+    ThemeSettings themeSettings,
+    bool isButtonDisabled,
+    bool todayIsWeekend,
+  ) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Icon(Icons.group, color: themeSettings.iconColor),
+            SizedBox(width: 8),
+            Flexible(child: Text('担当表', overflow: TextOverflow.ellipsis)),
+            // グループ状態バッジを追加
+            if (groupProvider.groups.isNotEmpty)
+              Container(
+                margin: EdgeInsets.only(left: 12),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade400),
                 ),
+                child: Icon(
+                  Icons.groups,
+                  size: 18,
+                  color: Colors.blue.shade700,
+                ),
+              ),
+          ],
+        ),
+        backgroundColor: themeSettings.appBarColor,
+        foregroundColor: themeSettings.appBarTextColor,
+        actions: [
+          if (_canEditAssignment == true) ...[
+            IconButton(
+              icon: Icon(Icons.person_add),
+              tooltip: 'メンバー編集',
+              onPressed: () async {
+                final currentLeftLabels = List<String>.from(leftLabels);
+                final currentRightLabels = List<String>.from(rightLabels);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => MemberEditPage()),
+                );
+                await _reloadMembersOnly();
+                setState(() {
+                  leftLabels = currentLeftLabels;
+                  rightLabels = currentRightLabels;
+                });
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.label),
+              tooltip: 'ラベル編集',
+              onPressed: () async {
+                final currentTeams = List<Team>.from(teams);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => LabelEditPage()),
+                );
+                await _reloadLabelsOnly();
+                setState(() {
+                  teams = currentTeams;
+                });
+              },
+            ),
+          ],
+          IconButton(
+            icon: Icon(Icons.list),
+            tooltip: '担当履歴',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AssignmentHistoryPage()),
+              );
+            },
+          ),
+          if (_canEditAssignment == true)
+            IconButton(
+              icon: Icon(Icons.settings),
+              tooltip: '設定',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        SettingsPage(onReset: _resetTodayAssignment),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+      body: Container(
+        color: themeSettings.backgroundColor,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              SizedBox(height: 40), // 上部の余白を増加
+              // スマホ版専用の担当表レイアウト
+              _buildMobileAssignmentTable(themeSettings),
+              SizedBox(height: 40), // 担当表とボタンの間の余白を増加
+              // スマホ版専用のボタンレイアウト
+              _buildMobileButtonLayout(isButtonDisabled, todayIsWeekend),
+              SizedBox(height: 40), // 下部の余白を増加
             ],
           ),
-          body: Container(
-            color: Provider.of<ThemeSettings>(context).backgroundColor,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: kIsWeb ? 800 : double.infinity,
-                ),
-                child: SingleChildScrollView(
-                  padding: kIsWeb
-                      ? EdgeInsets.symmetric(vertical: 16, horizontal: 4)
-                      : EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 16),
-                      // 担当表の表示
-                      Center(
-                        child: Container(
-                          padding: kIsWeb
-                              ? EdgeInsets.symmetric(
-                                  vertical: 20,
-                                  horizontal: 16,
-                                )
-                              : EdgeInsets.all(20),
-                          constraints: kIsWeb
-                              ? BoxConstraints(maxWidth: 600)
-                              : null,
-                          decoration: BoxDecoration(
-                            color: Provider.of<ThemeSettings>(
-                              context,
-                            ).cardBackgroundColor,
-                            border: Border.all(color: Colors.black26),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            children: [
-                              // ヘッダー行
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12.0),
-                                child: Row(
-                                  mainAxisAlignment: kIsWeb
-                                      ? MainAxisAlignment.center
-                                      : MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    SizedBox(width: 80),
-                                    ...(teams.length < 4
-                                        ? teams
-                                              .map<Widget>(
-                                                (team) => SizedBox(
-                                                  width: 120,
-                                                  child: Center(
-                                                    child: Text(
-                                                      team.name,
-                                                      style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize:
-                                                            20 *
-                                                            Provider.of<
-                                                                  ThemeSettings
-                                                                >(context)
-                                                                .fontSizeScale,
-                                                        color:
-                                                            Provider.of<
-                                                                  ThemeSettings
-                                                                >(context)
-                                                                .fontColor1,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              )
-                                              .toList()
-                                        : teams
-                                              .map<Widget>(
-                                                (team) => Expanded(
-                                                  child: Center(
-                                                    child: Text(
-                                                      team.name,
-                                                      style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize:
-                                                            20 *
-                                                            Provider.of<
-                                                                  ThemeSettings
-                                                                >(context)
-                                                                .fontSizeScale,
-                                                        color:
-                                                            Provider.of<
-                                                                  ThemeSettings
-                                                                >(context)
-                                                                .fontColor1,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              )
-                                              .toList()),
-                                    SizedBox(width: 80),
-                                  ],
-                                ),
-                              ),
-                              // 読み込み中の場合はローディングアニメーションを表示
-                              if (_isLoading)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 40.0,
-                                  ),
-                                  child: Center(
-                                    child: Column(
-                                      children: [
-                                        Lottie.asset(
-                                          'assets/animations/Loading coffee bean.json',
-                                          width: 120,
-                                          height: 120,
-                                          fit: BoxFit.contain,
-                                        ),
-                                        SizedBox(height: 16),
-                                        Text(
-                                          '担当表を読み込み中...',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Provider.of<ThemeSettings>(
-                                              context,
-                                            ).fontColor1,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              // データ初期化完了後、ラベルが空かつ全チームのメンバーが空の場合のみ赤字で表示
-                              else if (_isDataInitialized &&
-                                  _isRemoteSyncCompleted &&
-                                  leftLabels.isEmpty &&
-                                  teams.every((t) => t.members.isEmpty))
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 24.0,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      'メンバーとラベルを追加してください',
-                                      style: TextStyle(
-                                        color: Colors.red,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              else
-                                // 柔軟な行数で表示（ラベル数または最大メンバー数分）
-                                ...List.generate(
-                                  leftLabels.isNotEmpty
-                                      ? leftLabels.length
-                                      : teams.fold<int>(
-                                          0,
-                                          (max, team) =>
-                                              team.members.length > max
-                                              ? team.members.length
-                                              : max,
-                                        ),
-                                  (i) {
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8.0,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment: kIsWeb
-                                            ? MainAxisAlignment.center
-                                            : MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          // 左ラベル — 少ない班数なら広い領域で折返し表示、そうでなければ固定幅
-                                          if (teams.length < 4)
-                                            Expanded(
-                                              flex: 2,
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                  left: 60.0,
-                                                ),
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  child: Text(
-                                                    leftLabels.isNotEmpty &&
-                                                            i <
-                                                                leftLabels
-                                                                    .length
-                                                        ? leftLabels[i]
-                                                        : '',
-                                                    softWrap: true,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize:
-                                                          14 *
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontSizeScale,
-                                                      color:
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontColor1,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            )
-                                          else
-                                            SizedBox(
-                                              width: 80,
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                  left: 24.0,
-                                                ),
-                                                child: Text(
-                                                  leftLabels.isNotEmpty &&
-                                                          i < leftLabels.length
-                                                      ? leftLabels[i]
-                                                      : '',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:
-                                                        14 *
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontSizeScale,
-                                                    color:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontColor1,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ...(teams.length < 4
-                                              ? teams
-                                                    .map<Widget>(
-                                                      (team) => SizedBox(
-                                                        width: 120,
-                                                        child: Center(
-                                                          child: MemberCard(
-                                                            name:
-                                                                i <
-                                                                        team
-                                                                            .members
-                                                                            .length &&
-                                                                    team
-                                                                        .members[i]
-                                                                        .isNotEmpty
-                                                                ? team.members[i]
-                                                                : '未設定',
-                                                            attendanceStatus: _getMemberAttendanceStatus(
-                                                              i <
-                                                                          team
-                                                                              .members
-                                                                              .length &&
-                                                                      team
-                                                                          .members[i]
-                                                                          .isNotEmpty
-                                                                  ? team.members[i]
-                                                                  : '未設定',
-                                                            ),
-                                                            onTap: () {
-                                                              if (i <
-                                                                      team
-                                                                          .members
-                                                                          .length &&
-                                                                  team
-                                                                      .members[i]
-                                                                      .isNotEmpty) {
-                                                                _showAttendanceDialog(
-                                                                  team.members[i],
-                                                                );
-                                                              }
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    )
-                                                    .toList()
-                                              : teams
-                                                    .map<Widget>(
-                                                      (team) => Expanded(
-                                                        child: Center(
-                                                          child: MemberCard(
-                                                            name:
-                                                                i <
-                                                                        team
-                                                                            .members
-                                                                            .length &&
-                                                                    team
-                                                                        .members[i]
-                                                                        .isNotEmpty
-                                                                ? team.members[i]
-                                                                : '未設定',
-                                                            attendanceStatus: _getMemberAttendanceStatus(
-                                                              i <
-                                                                          team
-                                                                              .members
-                                                                              .length &&
-                                                                      team
-                                                                          .members[i]
-                                                                          .isNotEmpty
-                                                                  ? team.members[i]
-                                                                  : '未設定',
-                                                            ),
-                                                            onTap: () {
-                                                              if (i <
-                                                                      team
-                                                                          .members
-                                                                          .length &&
-                                                                  team
-                                                                      .members[i]
-                                                                      .isNotEmpty) {
-                                                                _showAttendanceDialog(
-                                                                  team.members[i],
-                                                                );
-                                                              }
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    )
-                                                    .toList()),
-                                          // 右ラベル — 少ない班数なら広い領域で折返し表示、そうでなければ固定幅
-                                          if (teams.length < 4)
-                                            Expanded(
-                                              flex: 2,
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                  right: 60.0,
-                                                ),
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment.centerRight,
-                                                  child: Text(
-                                                    rightLabels.isNotEmpty &&
-                                                            i <
-                                                                rightLabels
-                                                                    .length
-                                                        ? rightLabels[i]
-                                                        : '',
-                                                    softWrap: true,
-                                                    textAlign: TextAlign.right,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize:
-                                                          14 *
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontSizeScale,
-                                                      color:
-                                                          Provider.of<
-                                                                ThemeSettings
-                                                              >(context)
-                                                              .fontColor1,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            )
-                                          else
-                                            SizedBox(
-                                              width: 80,
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                  right: 24.0,
-                                                ),
-                                                child: Text(
-                                                  rightLabels.isNotEmpty &&
-                                                          i < rightLabels.length
-                                                      ? rightLabels[i]
-                                                      : '',
-                                                  textAlign: TextAlign.right,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize:
-                                                        14 *
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontSizeScale,
-                                                    color:
-                                                        Provider.of<
-                                                              ThemeSettings
-                                                            >(context)
-                                                            .fontColor1,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                            ],
+        ),
+      ),
+    );
+  }
+
+  /// Web版専用の担当表テーブル
+  Widget _buildWebAssignmentTable(ThemeSettings themeSettings) {
+    return Container(
+      padding: EdgeInsets.all(32),
+      constraints: BoxConstraints(maxWidth: 1000),
+      decoration: BoxDecoration(
+        color: themeSettings.cardBackgroundColor,
+        border: Border.all(color: Colors.black26),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Web版ヘッダー行
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: themeSettings.backgroundColor.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                SizedBox(width: 120), // 左ラベル用スペース
+                ...teams
+                    .map<Widget>(
+                      (team) => Container(
+                        width: 160,
+                        child: Center(
+                          child: Text(
+                            team.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24 * themeSettings.fontSizeScale,
+                              color: themeSettings.fontColor1,
+                            ),
                           ),
                         ),
                       ),
-                      SizedBox(height: 32),
-                      // 担当決定ボタン（編集権限がある場合のみ表示）
-                      if (_canEditAssignment == true) ...[
-                        // デバッグ情報を表示（開発時のみ）
-                        if (isDeveloperMode)
-                          Padding(
-                            padding: EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              'デバッグ: 編集権限=$_canEditAssignment',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
+                    )
+                    .toList(),
+                SizedBox(width: 120), // 右ラベル用スペース
+              ],
+            ),
+          ),
+          SizedBox(height: 16),
+          // データ表示部分
+          if (_isLoading)
+            _buildLoadingWidget(themeSettings)
+          else if (_isDataInitialized &&
+              _isRemoteSyncCompleted &&
+              leftLabels.isEmpty &&
+              teams.every((t) => t.members.isEmpty))
+            _buildEmptyStateWidget()
+          else
+            _buildWebDataRows(themeSettings),
+        ],
+      ),
+    );
+  }
+
+  /// スマホ版専用の担当表テーブル
+  Widget _buildMobileAssignmentTable(ThemeSettings themeSettings) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      decoration: BoxDecoration(
+        color: themeSettings.cardBackgroundColor,
+        border: Border.all(color: Colors.black26),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          // スマホ版ヘッダー行（班名をカードの上に配置）
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(width: 60), // 左ラベル用スペース
+                SizedBox(width: 4), // スペーサー
+                ...teams
+                    .map<Widget>(
+                      (team) => Container(
+                        width: 85, // カードと同じ幅に調整
+                        margin: EdgeInsets.symmetric(horizontal: 2),
+                        child: Text(
+                          team.name,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16 * themeSettings.fontSizeScale,
+                            color: themeSettings.fontColor1,
                           ),
-                        ElevatedButton(
-                          onPressed: isButtonDisabled
-                              ? null
-                              : _shuffleAssignments,
-                          child: Text(() {
-                            if (todayIsWeekend && !isDeveloperMode) {
-                              return '土日は休み';
-                            }
-                            if (isAssignedToday) {
-                              return '今日はすでに決定済み';
-                            }
-                            if (isShuffling) {
-                              return 'シャッフル中...';
-                            }
-                            return '今日の担当を決める';
-                          }()),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ] else
-                        SizedBox.shrink(),
-                      SizedBox(height: 20), // 下部に余白を追加
-                    ],
+                      ),
+                    )
+                    .toList(),
+                SizedBox(width: 4), // スペーサー
+                SizedBox(width: 60), // 右ラベル用スペース
+              ],
+            ),
+          ),
+          // データ表示部分
+          if (_isLoading)
+            _buildLoadingWidget(themeSettings)
+          else if (_isDataInitialized &&
+              _isRemoteSyncCompleted &&
+              leftLabels.isEmpty &&
+              teams.every((t) => t.members.isEmpty))
+            _buildEmptyStateWidget()
+          else
+            _buildMobileDataRows(themeSettings),
+        ],
+      ),
+    );
+  }
+
+  /// Web版データ行
+  Widget _buildWebDataRows(ThemeSettings themeSettings) {
+    return Column(
+      children: List.generate(
+        leftLabels.isNotEmpty
+            ? leftLabels.length
+            : teams.fold<int>(
+                0,
+                (max, team) =>
+                    team.members.length > max ? team.members.length : max,
+              ),
+        (i) => Container(
+          margin: EdgeInsets.symmetric(vertical: 8),
+          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: i % 2 == 0
+                ? themeSettings.backgroundColor.withOpacity(0.3)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // 左ラベル
+              Container(
+                width: 120,
+                child: Text(
+                  leftLabels.isNotEmpty && i < leftLabels.length
+                      ? leftLabels[i]
+                      : '',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18 * themeSettings.fontSizeScale,
+                    color: themeSettings.fontColor1,
                   ),
                 ),
               ),
-            ),
+              // メンバーカード
+              ...teams
+                  .map<Widget>(
+                    (team) => Container(
+                      width: 160,
+                      child: Center(
+                        child: MemberCard(
+                          name:
+                              i < team.members.length &&
+                                  team.members[i].isNotEmpty
+                              ? team.members[i]
+                              : '未設定',
+                          attendanceStatus: _getMemberAttendanceStatus(
+                            i < team.members.length &&
+                                    team.members[i].isNotEmpty
+                                ? team.members[i]
+                                : '未設定',
+                          ),
+                          onTap: () {
+                            if (i < team.members.length &&
+                                team.members[i].isNotEmpty) {
+                              _showAttendanceDialog(team.members[i]);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+              // 右ラベル
+              Container(
+                width: 120,
+                child: Text(
+                  rightLabels.isNotEmpty && i < rightLabels.length
+                      ? rightLabels[i]
+                      : '',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18 * themeSettings.fontSizeScale,
+                    color: themeSettings.fontColor1,
+                  ),
+                ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  /// スマホ版データ行
+  Widget _buildMobileDataRows(ThemeSettings themeSettings) {
+    return Column(
+      children: List.generate(
+        leftLabels.isNotEmpty
+            ? leftLabels.length
+            : teams.fold<int>(
+                0,
+                (max, team) =>
+                    team.members.length > max ? team.members.length : max,
+              ),
+        (i) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 左ラベル
+              SizedBox(
+                width: 60,
+                child: Text(
+                  leftLabels.isNotEmpty && i < leftLabels.length
+                      ? leftLabels[i]
+                      : '',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13 * themeSettings.fontSizeScale,
+                    color: themeSettings.fontColor1,
+                  ),
+                  overflow: TextOverflow.visible,
+                  maxLines: 2,
+                ),
+              ),
+              SizedBox(width: 4), // ラベルとカードの間の小さなスペース
+              // メンバーカード
+              ...teams
+                  .map<Widget>(
+                    (team) => Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: 2,
+                      ), // カード間の小さなスペース
+                      child: MemberCard(
+                        name:
+                            i < team.members.length &&
+                                team.members[i].isNotEmpty
+                            ? team.members[i]
+                            : '未設定',
+                        attendanceStatus: _getMemberAttendanceStatus(
+                          i < team.members.length && team.members[i].isNotEmpty
+                              ? team.members[i]
+                              : '未設定',
+                        ),
+                        onTap: () {
+                          if (i < team.members.length &&
+                              team.members[i].isNotEmpty) {
+                            _showAttendanceDialog(team.members[i]);
+                          }
+                        },
+                      ),
+                    ),
+                  )
+                  .toList(),
+              SizedBox(width: 4), // カードとラベルの間の小さなスペース
+              // 右ラベル
+              SizedBox(
+                width: 60,
+                child: Text(
+                  rightLabels.isNotEmpty && i < rightLabels.length
+                      ? rightLabels[i]
+                      : '',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13 * themeSettings.fontSizeScale,
+                    color: themeSettings.fontColor1,
+                  ),
+                  overflow: TextOverflow.visible,
+                  maxLines: 2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Web版ボタンレイアウト
+  Widget _buildWebButtonLayout(bool isButtonDisabled, bool todayIsWeekend) {
+    return Container(
+      constraints: BoxConstraints(maxWidth: 600),
+      child: Column(
+        children: [
+          if (_canEditAssignment == true) ...[
+            if (isDeveloperMode)
+              Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'デバッグ: 編集権限=$_canEditAssignment',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ),
+            SizedBox(
+              width: 300,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: isButtonDisabled ? null : _shuffleAssignments,
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: Text(
+                  () {
+                    if (todayIsWeekend && !isDeveloperMode) return '土日は休み';
+                    if (isAssignedToday) return '今日はすでに決定済み';
+                    if (isShuffling) return 'シャッフル中...';
+                    return '今日の担当を決める';
+                  }(),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// スマホ版ボタンレイアウト
+  Widget _buildMobileButtonLayout(bool isButtonDisabled, bool todayIsWeekend) {
+    return Column(
+      children: [
+        if (_canEditAssignment == true) ...[
+          if (isDeveloperMode)
+            Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                'デバッグ: 編集権限=$_canEditAssignment',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ),
+          ElevatedButton(
+            onPressed: isButtonDisabled ? null : _shuffleAssignments,
+            child: Text(() {
+              if (todayIsWeekend && !isDeveloperMode) return '土日は休み';
+              if (isAssignedToday) return '今日はすでに決定済み';
+              if (isShuffling) return 'シャッフル中...';
+              return '今日の担当を決める';
+            }()),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// ローディングウィジェット
+  Widget _buildLoadingWidget(ThemeSettings themeSettings) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40.0),
+      child: Center(
+        child: Column(
+          children: [
+            Lottie.asset(
+              'assets/animations/Loading coffee bean.json',
+              width: 120,
+              height: 120,
+              fit: BoxFit.contain,
+            ),
+            SizedBox(height: 16),
+            Text(
+              '担当表を読み込み中...',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: themeSettings.fontColor1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 空状態ウィジェット
+  Widget _buildEmptyStateWidget() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24.0),
+      child: Center(
+        child: Text(
+          'メンバーとラベルを追加してください',
+          style: TextStyle(
+            color: Colors.red,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 
@@ -2578,12 +2683,13 @@ class _MemberCardState extends State<MemberCard> {
     return GestureDetector(
       onTap: isUnset ? null : widget.onTap,
       child: Container(
-        width: kIsWeb ? 80 : 100,
-        padding: EdgeInsets.symmetric(vertical: kIsWeb ? 8 : 10),
-        margin: EdgeInsets.symmetric(horizontal: kIsWeb ? 1 : 4),
+        width: kIsWeb ? 120 : 85,
+        height: kIsWeb ? 60 : 50, // Web版は高さを固定
+        padding: EdgeInsets.symmetric(vertical: kIsWeb ? 12 : 10),
+        margin: EdgeInsets.symmetric(horizontal: kIsWeb ? 2 : 2),
         decoration: BoxDecoration(
           color: cardColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: borderColor,
             width: isMyCard ? 3 : 2, // 自分のカードは太い枠線
@@ -2592,12 +2698,13 @@ class _MemberCardState extends State<MemberCard> {
         alignment: Alignment.center,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               displayName,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: kIsWeb ? 16 : 12,
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),
