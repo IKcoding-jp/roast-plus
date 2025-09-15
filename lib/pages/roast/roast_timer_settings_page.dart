@@ -279,13 +279,20 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
             )
           : Center(
               child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isWeb ? 40.0 : 20.0,
-                  vertical: 24.0,
+                padding: EdgeInsets.only(
+                  left: isWeb ? 40.0 : 20.0,
+                  right: isWeb ? 40.0 : 20.0,
+                  top: 24.0,
+                  bottom: isWeb ? 24.0 : 60.0, // モバイル版の下部余白を増加
                 ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: isWeb ? 600 : double.infinity,
+                    minHeight:
+                        MediaQuery.of(context).size.height -
+                        MediaQuery.of(context).padding.top -
+                        kToolbarHeight -
+                        48.0, // 適切な最小高さを設定
                   ),
                   child: Card(
                     elevation: isWeb ? 2 : 6,
@@ -716,7 +723,7 @@ class RoastTimerSettingsPageState extends State<RoastTimerSettingsPage> {
                               ],
                             ),
                           ),
-                          SizedBox(height: isWeb ? 32 : 32),
+                          SizedBox(height: isWeb ? 10 : 10), // 下部の余白を増加
                         ],
                       ),
                     ),
