@@ -1,16 +1,16 @@
 @echo off
 REM 環境変数読み込みスクリプト（Windows用）
 
-echo config.envから環境変数を読み込み中...
+echo app_config.envから環境変数を読み込み中...
 
-REM config.envファイルが存在するかチェック
-if not exist "config.env" (
-    echo エラー: config.envファイルが見つかりません
+REM app_config.envファイルが存在するかチェック
+if not exist "app_config.env" (
+    echo エラー: app_config.envファイルが見つかりません
     exit /b 1
 )
 
-REM config.envファイルから環境変数を読み込み
-for /f "usebackq tokens=1,2 delims==" %%a in ("config.env") do (
+REM app_config.envファイルから環境変数を読み込み
+for /f "usebackq tokens=1,2 delims==" %%a in ("app_config.env") do (
     if not "%%a"=="" if not "%%a:~0,1%"=="#" (
         set "%%a=%%b"
         echo 環境変数設定: %%a=%%b
