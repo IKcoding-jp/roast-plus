@@ -1,0 +1,48 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Load Environment Variables",
+            "type": "shell",
+            "command": "${workspaceFolder}/load_env.bat",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Flutter Build APK Release",
+            "type": "shell",
+            "command": "flutter",
+            "args": ["build", "apk", "--release"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": "Load Environment Variables",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Flutter Build App Bundle Release",
+            "type": "shell",
+            "command": "flutter",
+            "args": ["build", "appbundle", "--release"],
+            "group": "build",
+            "dependsOn": "Load Environment Variables",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        }
+    ]
+}

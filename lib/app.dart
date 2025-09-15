@@ -20,7 +20,6 @@ import 'services/data_sync_service.dart';
 import 'services/assignment_firestore_service.dart';
 import 'services/user_settings_firestore_service.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'pages/group/group_required_page.dart';
 import 'pages/tasting/tasting_record_page.dart';
 import 'pages/calendar/calendar_page.dart';

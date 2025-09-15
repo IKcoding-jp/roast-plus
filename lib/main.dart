@@ -5,7 +5,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'models/roast_schedule_form_provider.dart';
-
 import 'services/encrypted_firebase_config_service.dart';
 import 'services/secure_auth_service.dart';
 import 'models/theme_settings.dart';

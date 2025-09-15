@@ -2,7 +2,7 @@ name: roastplus
 description: "ローストプラス"
 publish_to: 'none'
 
-version: 0.7.0+13
+version: 0.7.1+14
 
 environment:
   sdk: ^3.8.1
