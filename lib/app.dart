@@ -371,6 +371,18 @@ class _AuthGateState extends State<AuthGate> {
             name: 'AuthGate',
           );
 
+          // Play Store版での認証状態を詳細に記録
+          if (snapshot.hasError) {
+            developer.log(
+              'AuthGate: 認証エラー検出: ${snapshot.error}',
+              name: 'AuthGate',
+            );
+            developer.log(
+              'AuthGate: エラータイプ: ${snapshot.error.runtimeType}',
+              name: 'AuthGate',
+            );
+          }
+
           // Web版でリダイレクト結果チェック中はローディング表示
           if (_isCheckingRedirect) {
             return const LoadingScreen(title: '認証を確認中...');

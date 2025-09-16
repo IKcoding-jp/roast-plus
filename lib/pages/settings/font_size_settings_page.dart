@@ -93,6 +93,72 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
     }
   }
 
+  Widget _buildFontOptionCard({
+    required String font,
+    required bool isSelected,
+    required ThemeSettings themeSettings,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? themeSettings.buttonColor.withValues(alpha: 0.08)
+              : themeSettings.inputBackgroundColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? themeSettings.buttonColor
+                : themeSettings.fontColor1.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    font,
+                    style: TextStyle(
+                      fontFamily: font,
+                      fontWeight: FontWeight.w600,
+                      color: themeSettings.fontColor1,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isSelected)
+                  Icon(
+                    Icons.check_circle,
+                    size: 20,
+                    color: themeSettings.buttonColor,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '焙煎サンプル Aa123',
+              style: TextStyle(
+                fontFamily: font,
+                fontSize: 16,
+                color: themeSettings.fontColor1,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeSettings = Provider.of<ThemeSettings>(context);
@@ -177,45 +243,51 @@ class _FontSizeSettingsPageState extends State<FontSizeSettingsPage> {
                                   ),
                                 ),
                                 SizedBox(height: 16),
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 12),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: themeSettings.buttonColor,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: _selectedFontFamily,
-                                      isExpanded: true,
-                                      dropdownColor:
-                                          themeSettings.cardBackgroundColor,
-                                      style: TextStyle(
-                                        color: themeSettings.fontColor1,
-                                        fontSize: 16,
-                                      ),
-                                      items: ThemeSettings.availableFonts.map((
-                                        String font,
-                                      ) {
-                                        return DropdownMenuItem<String>(
-                                          value: font,
-                                          child: Text(
-                                            font,
-                                            style: TextStyle(
-                                              fontFamily: font,
-                                              color: themeSettings.fontColor1,
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                      onChanged: (String? newValue) {
-                                        if (newValue != null) {
-                                          _onFontFamilyChanged(newValue);
-                                        }
-                                      },
-                                    ),
-                                  ),
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    const spacing = 12.0;
+                                    final availableWidth =
+                                        constraints.maxWidth.isFinite
+                                        ? constraints.maxWidth
+                                        : 360.0;
+                                    final columns = availableWidth >= 540
+                                        ? 3
+                                        : availableWidth >= 360
+                                        ? 2
+                                        : 1;
+                                    final totalSpacing =
+                                        spacing * (columns - 1);
+                                    final widthForItems =
+                                        (availableWidth - totalSpacing)
+                                            .clamp(0, double.infinity)
+                                            .toDouble();
+                                    final itemWidth = columns > 0
+                                        ? widthForItems / columns
+                                        : availableWidth;
+                                    return Wrap(
+                                      spacing: spacing,
+                                      runSpacing: spacing,
+                                      children: ThemeSettings.availableFonts
+                                          .map((font) {
+                                            final isSelected =
+                                                font == _selectedFontFamily;
+                                            final cardWidth = columns == 1
+                                                ? availableWidth
+                                                : itemWidth;
+                                            return SizedBox(
+                                              width: cardWidth,
+                                              child: _buildFontOptionCard(
+                                                font: font,
+                                                isSelected: isSelected,
+                                                themeSettings: themeSettings,
+                                                onTap: () =>
+                                                    _onFontFamilyChanged(font),
+                                              ),
+                                            );
+                                          })
+                                          .toList(),
+                                    );
+                                  },
                                 ),
                                 SizedBox(height: 16),
                                 Container(

@@ -78,6 +78,24 @@ class SecureAuthService {
         } catch (e) {
           developer.log('ネイティブ版: signInWithProviderでエラー: $e', name: _logName);
           developer.log('ネイティブ版: エラータイプ: ${e.runtimeType}', name: _logName);
+
+          // Play Store版での詳細エラー情報を記録
+          if (e.toString().contains('sign_in_failed') ||
+              e.toString().contains('network_error') ||
+              e.toString().contains('invalid_client')) {
+            developer.log(
+              'Play Store版: Google Sign-In認証エラーを検出',
+              name: _logName,
+            );
+            developer.log(
+              'Play Store版: エラー詳細: ${e.toString()}',
+              name: _logName,
+            );
+
+            // エラーログをFirestoreに記録
+            await _logDetailedError('google_sign_in_error', e.toString());
+          }
+
           rethrow;
         }
       }
