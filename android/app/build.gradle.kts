@@ -6,6 +6,52 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+
+val signingEnvVars: Map<String, String> by lazy {
+    val map = mutableMapOf<String, String>()
+    val candidateFiles = listOf(
+        rootProject.file("../app_config.env"),
+        rootProject.file("app_config.env"),
+        file("../../app_config.env"),
+        file("../app_config.env")
+    ).distinct()
+
+    val envFile = candidateFiles.firstOrNull { it.exists() && it.isFile }
+    envFile?.forEachLine { line ->
+        val trimmed = line.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("#")) return@forEachLine
+        val separatorIndex = trimmed.indexOf('=')
+        if (separatorIndex <= 0) return@forEachLine
+
+        val key = trimmed.substring(0, separatorIndex).trim()
+        var value = trimmed.substring(separatorIndex + 1).trim()
+        val commentIndex = value.indexOf('#')
+        if (commentIndex >= 0) {
+            value = value.substring(0, commentIndex).trim()
+        }
+        if (key.isNotEmpty() && value.isNotEmpty()) {
+            map[key] = value
+        }
+    }
+
+    map.toMap()
+}
+
+fun loadSigningCredential(name: String): String {
+    val envValue = System.getenv(name)?.trim()
+    if (!envValue.isNullOrEmpty()) {
+        return envValue
+    }
+
+    val fileValue = signingEnvVars[name]?.trim()
+    if (!fileValue.isNullOrEmpty()) {
+        println("Using $name from app_config.env")
+        return fileValue
+    }
+
+    throw GradleException("${name} must be provided either as an environment variable or in app_config.env")
+}
+
 android {
     namespace = "com.ikcoding.roastplus"
     compileSdk = flutter.compileSdkVersion
@@ -32,10 +78,12 @@ android {
     // 署名設定
     signingConfigs {
         create("release") {
+            val keystorePassword = loadSigningCredential("KEYSTORE_PASSWORD")
+            val keyPasswordValue = loadSigningCredential("KEY_PASSWORD")
             storeFile = file("roastplus-new-key.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: throw GradleException("KEYSTORE_PASSWORD環境変数が設定されていません")
+            storePassword = keystorePassword
             keyAlias = "roastplus-key-alias"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: throw GradleException("KEY_PASSWORD環境変数が設定されていません")
+            keyPassword = keyPasswordValue
         }
     }
 
