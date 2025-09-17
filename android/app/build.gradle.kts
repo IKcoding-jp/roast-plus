@@ -6,6 +6,12 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+import java.io.File
+import java.io.FileInputStream
+import java.security.KeyStore
+
+
+
 
 val signingEnvVars: Map<String, String> by lazy {
     val map = mutableMapOf<String, String>()
@@ -37,20 +43,60 @@ val signingEnvVars: Map<String, String> by lazy {
     map.toMap()
 }
 
-fun loadSigningCredential(name: String): String {
-    val envValue = System.getenv(name)?.trim()
-    if (!envValue.isNullOrEmpty()) {
-        return envValue
+data class SigningCredentials(
+    val storePassword: String,
+    val keyPassword: String,
+    val source: String
+)
+
+fun resolveSigningCredentials(keystoreFile: File, keyAlias: String): SigningCredentials {
+    val candidates = mutableListOf<SigningCredentials>()
+
+    val fileStore = signingEnvVars["KEYSTORE_PASSWORD"]?.trim()?.takeIf { it.isNotEmpty() }
+    val fileKey = signingEnvVars["KEY_PASSWORD"]?.trim()?.takeIf { it.isNotEmpty() }
+    if (fileStore != null && fileKey != null) {
+        candidates += SigningCredentials(fileStore, fileKey, "app_config.env")
     }
 
-    val fileValue = signingEnvVars[name]?.trim()
-    if (!fileValue.isNullOrEmpty()) {
-        println("Using $name from app_config.env")
-        return fileValue
+    val envStore = System.getenv("KEYSTORE_PASSWORD")?.trim()?.takeIf { it.isNotEmpty() }
+    val envKey = System.getenv("KEY_PASSWORD")?.trim()?.takeIf { it.isNotEmpty() }
+    if (envStore != null && envKey != null) {
+        candidates += SigningCredentials(envStore, envKey, "environment variables")
     }
 
-    throw GradleException("${name} must be provided either as an environment variable or in app_config.env")
+    if (candidates.isEmpty()) {
+        throw GradleException("Signing credentials not found. Provide KEYSTORE_PASSWORD and KEY_PASSWORD via environment variables or app_config.env")
+    }
+
+    val errors = mutableListOf<String>()
+    val keystoreType = "PKCS12"
+
+    candidates.forEach { candidate ->
+        try {
+            FileInputStream(keystoreFile).use { input ->
+                val keyStore = KeyStore.getInstance(keystoreType)
+                keyStore.load(input, candidate.storePassword.toCharArray())
+                val key = keyStore.getKey(keyAlias, candidate.keyPassword.toCharArray())
+                if (key == null) {
+                    throw IllegalStateException("Alias $keyAlias not found in keystore")
+                }
+            }
+            println("Using signing credentials from ${candidate.source}")
+            return candidate
+        } catch (e: Exception) {
+            val message = e.message ?: e::class.java.simpleName
+            println("Could not use signing credentials from ${candidate.source}: $message")
+            errors += "- ${candidate.source}: $message"
+        }
+    }
+
+    throw GradleException(
+        "Failed to open keystore with provided credentials.\n" + errors.joinToString("\n")
+    )
 }
+
+
+
 
 android {
     namespace = "com.ikcoding.roastplus"
@@ -78,12 +124,15 @@ android {
     // 署名設定
     signingConfigs {
         create("release") {
-            val keystorePassword = loadSigningCredential("KEYSTORE_PASSWORD")
-            val keyPasswordValue = loadSigningCredential("KEY_PASSWORD")
-            storeFile = file("roastplus-new-key.keystore")
-            storePassword = keystorePassword
+            val keystoreFile = file("roastplus-new-key.keystore")
+            if (!keystoreFile.exists()) {
+                throw GradleException("Keystore file ${keystoreFile.absolutePath} was not found")
+            }
+            val credentials = resolveSigningCredentials(keystoreFile, "roastplus-key-alias")
+            storeFile = keystoreFile
+            storePassword = credentials.storePassword
             keyAlias = "roastplus-key-alias"
-            keyPassword = keyPasswordValue
+            keyPassword = credentials.keyPassword
         }
     }
 
