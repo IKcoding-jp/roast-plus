@@ -2053,7 +2053,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                 SizedBox(width: 120), // 左ラベル用スペース
                 ...teams
                     .map<Widget>(
-                      (team) => Container(
+                      (team) => SizedBox(
                         width: 160,
                         child: Center(
                           child: Text(
@@ -2067,7 +2067,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                         ),
                       ),
                     )
-                    .toList(),
+                    ,
                 SizedBox(width: 120), // 右ラベル用スペース
               ],
             ),
@@ -2124,7 +2124,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                         ),
                       ),
                     )
-                    .toList(),
+                    ,
                 SizedBox(width: 4), // スペーサー
                 SizedBox(width: 60), // 右ラベル用スペース
               ],
@@ -2169,7 +2169,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               // 左ラベル
-              Container(
+              SizedBox(
                 width: 120,
                 child: Text(
                   leftLabels.isNotEmpty && i < leftLabels.length
@@ -2185,7 +2185,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
               // メンバーカード
               ...teams
                   .map<Widget>(
-                    (team) => Container(
+                    (team) => SizedBox(
                       width: 160,
                       child: Center(
                         child: MemberCard(
@@ -2210,9 +2210,9 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                       ),
                     ),
                   )
-                  .toList(),
+                  ,
               // 右ラベル
-              Container(
+              SizedBox(
                 width: 120,
                 child: Text(
                   rightLabels.isNotEmpty && i < rightLabels.length
@@ -2293,7 +2293,7 @@ class AssignmentBoardState extends State<AssignmentBoard> {
                       ),
                     ),
                   )
-                  .toList(),
+                  ,
               SizedBox(width: 4), // カードとラベルの間の小さなスペース
               // 右ラベル
               SizedBox(
