@@ -54,19 +54,13 @@ RoastPlusは、コーヒー焙煎業務に従事する従業員のモチベー�
 
 ### 1. 環境変数の設定
 
-プロジェクトのAPIキーとシークレットは`config.env`ファイルで管理されています。
+プロジェクトのAPIキーとシークレットは`app_config.env`ファイルで管理されています。
 
-```bash
-# Windows
-load_env.bat
-
-# Linux/macOS
-source load_env.sh
-```
+`app_config.env` ファイルに必要な環境変数を設定すると、アプリ起動時に自動で読み込まれます。
 
 ### 2. 必要な環境変数
 
-`config.env`ファイルに以下の設定が必要です：
+`app_config.env`ファイルに以下の設定が必要です：
 
 - `FIREBASE_PROJECT_ID`: FirebaseプロジェクトID
 - `FIREBASE_WEB_API_KEY`: Firebase Web APIキー

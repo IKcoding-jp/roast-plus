@@ -24,6 +24,7 @@ import 'services/network_security_service.dart';
 import 'services/session_management_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'dart:developer' as developer;
+import 'utils/env_loader.dart';
 import 'utils/performance_monitor.dart';
 import 'utils/web_compatibility.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -36,6 +37,22 @@ void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
     developer.log('WidgetsFlutterBinding初期化完了', name: 'Main');
+
+    final envVars = await PerformanceMonitor.measureAsync(
+      '環境変数読み込み',
+      () => EnvLoader.loadEnvFile(),
+    );
+    if (envVars.isEmpty) {
+      developer.log(
+        'app_config.envの読み込み結果が空です。Firebase設定を確認してください。',
+        name: 'Main',
+      );
+    } else {
+      developer.log(
+        'app_config.envから${envVars.length}件の環境変数を読み込みました',
+        name: 'Main',
+      );
+    }
 
     // Web版でのデバッグサービスエラーを防ぐための保護
     if (kIsWeb) {
