@@ -551,10 +551,7 @@ class SecureAuthService {
 
         // プロバイダ設定の詳細ログ
         developer.log('GoogleAuthProvider設定:', name: _logName);
-        developer.log(
-          '  - Custom Parameters: $customParams',
-          name: _logName,
-        );
+        developer.log('  - Custom Parameters: $customParams', name: _logName);
 
         try {
           userCredential = await _auth.signInWithProvider(provider);
