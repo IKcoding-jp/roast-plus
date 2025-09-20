@@ -170,7 +170,11 @@ class SecureAuthService {
         );
         developer.log('現在のアプリID: com.ikcoding.roastplus', name: _logName);
         developer.log(
-          'リリース用SHA1ハッシュ: DF:B6:AE:56:F6:B9:D0:6D:69:19:35:F2:75:63:10:CC:56:19:8A:1D',
+          'Play署名SHA1ハッシュ: 33:8C:63:9F:67:3B:FD:43:DE:07:61:2F:2D:FD:0E:33:8B:D3:4B:AF',
+          name: _logName,
+        );
+        developer.log(
+          'Play署名SHA256ハッシュ: D4:A7:A8:2D:86:52:F5:F1:F5:BA:AD:21:CA:38:E5:F1:38:16:C0:B6:FD:F9:86:2D:AA:BC:D1:80:C1:36:BE:BE',
           name: _logName,
         );
         await _logDetailedError('invalid_cert_hash_error', e.toString());

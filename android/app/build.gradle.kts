@@ -9,9 +9,19 @@ plugins {
 import java.io.File
 import java.io.FileInputStream
 import java.security.KeyStore
+import java.util.Properties
 
 
 
+
+val keyPropertiesFile = rootProject.file("key.properties")
+val keyProperties: Properties by lazy {
+    Properties().apply {
+        if (keyPropertiesFile.exists()) {
+            FileInputStream(keyPropertiesFile).use { load(it) }
+        }
+    }
+}
 
 val signingEnvVars: Map<String, String> by lazy {
     val map = mutableMapOf<String, String>()
@@ -51,6 +61,12 @@ data class SigningCredentials(
 
 fun resolveSigningCredentials(keystoreFile: File, keyAlias: String): SigningCredentials {
     val candidates = mutableListOf<SigningCredentials>()
+
+    val propertiesStore = keyProperties.getProperty("storePassword")?.trim()?.takeIf { it.isNotEmpty() }
+    val propertiesKey = keyProperties.getProperty("keyPassword")?.trim()?.takeIf { it.isNotEmpty() }
+    if (propertiesStore != null && propertiesKey != null) {
+        candidates += SigningCredentials(propertiesStore, propertiesKey, "key.properties")
+    }
 
     val fileStore = signingEnvVars["KEYSTORE_PASSWORD"]?.trim()?.takeIf { it.isNotEmpty() }
     val fileKey = signingEnvVars["KEY_PASSWORD"]?.trim()?.takeIf { it.isNotEmpty() }
@@ -124,14 +140,21 @@ android {
     // 署名設定
     signingConfigs {
         create("release") {
-            val keystoreFile = file("roastplus-new-key.keystore")
+            val keystorePathOverride = keyProperties.getProperty("storeFile")?.trim()
+            val keystoreFile = keystorePathOverride?.takeIf { it.isNotEmpty() }?.let { path ->
+                val candidate = file(path)
+                if (candidate.exists()) candidate else File(path)
+            } ?: file("roastplus-new-key.keystore")
             if (!keystoreFile.exists()) {
                 throw GradleException("Keystore file ${keystoreFile.absolutePath} was not found")
             }
-            val credentials = resolveSigningCredentials(keystoreFile, "roastplus-key-alias")
+            val keyAliasOverride = keyProperties.getProperty("keyAlias")?.trim()?.takeIf { it.isNotEmpty() }
+                ?: "roastplus-key-alias"
+            val credentials = resolveSigningCredentials(keystoreFile, keyAliasOverride)
+            println("Using keystore from ${keystoreFile.absolutePath} with alias ${keyAliasOverride}")
             storeFile = keystoreFile
             storePassword = credentials.storePassword
-            keyAlias = "roastplus-key-alias"
+            keyAlias = keyAliasOverride
             keyPassword = credentials.keyPassword
         }
     }
@@ -150,7 +173,15 @@ android {
         manifestPlaceholders["networkSecurityConfig"] = "@xml/network_security_config"
         
         // 環境変数からAPIキーを取得
-        manifestPlaceholders["googleSignInClientId"] = System.getenv("GOOGLE_SIGN_IN_CLIENT_ID") ?: "330871937318-ua3q3aikt2vkd6p30288mm1d62df53pl.apps.googleusercontent.com"
+        // Google Sign-In クライアントIDは環境設定を優先し、無ければPlay署名用のフォールバックを使用
+        val fallbackPlayGoogleSignInClientId = "330871937318-tofmig3lifv78brac91eucdfmfucs4nc.apps.googleusercontent.com"
+        val googleSignInClientId = System.getenv("GOOGLE_SIGN_IN_CLIENT_ID")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: signingEnvVars["GOOGLE_SIGN_IN_CLIENT_ID"]?.trim()?.takeIf { it.isNotEmpty() }
+            ?: fallbackPlayGoogleSignInClientId
+        if (googleSignInClientId == fallbackPlayGoogleSignInClientId) {
+            println("Using fallback Google Play signing client ID for Google Sign-In")
+        }
+        manifestPlaceholders["googleSignInClientId"] = googleSignInClientId
         manifestPlaceholders["admobAppId"] = System.getenv("ADMOB_ANDROID_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
     }
 
@@ -196,4 +227,3 @@ dependencies {
     // Google Play Services の追加依存関係
     implementation("com.google.android.gms:play-services-gcm:17.0.0")
 }
-
