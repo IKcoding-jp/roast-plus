@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
+import 'encrypted_firebase_config_service.dart';
 // 'google_sign_in' は現在未使用のためインポートはコメントアウト（将来的に必要なら復活）
 // import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:developer' as developer;
@@ -496,17 +497,43 @@ class SecureAuthService {
     try {
       developer.log('アカウント選択を強制したGoogleサインインを開始', name: _logName);
 
+      // Firebase初期化状態を確認
+      final isFirebaseInitialized =
+          await EncryptedFirebaseConfigService.validateConfiguration();
+      if (!isFirebaseInitialized) {
+        developer.log('Firebase設定が無効です', name: _logName);
+        throw Exception('Firebase設定が無効です');
+      }
+
       // 毎回アカウント選択を強制するため、既存セッションをクリア
       developer.log('既存セッションをクリアしてアカウント選択を強制', name: _logName);
       await _auth.signOut();
       await SecureStorageService.clearAllSecureData();
 
       final provider = GoogleAuthProvider();
-      provider.setCustomParameters({
+
+      // カスタムパラメータを設定
+      final customParams = {
         'prompt': 'select_account',
         'hd': '', // ドメイン制限を無効化
         'include_granted_scopes': 'true',
-      });
+      };
+      provider.setCustomParameters(customParams);
+
+      // デバッグ: プロバイダ設定前に現在のFirebase Auth状態を確認
+      developer.log('FirebaseAuthインスタンス状態:', name: _logName);
+      developer.log(
+        '  - Current User: ${_auth.currentUser?.email}',
+        name: _logName,
+      );
+      developer.log(
+        '  - Is Initialized: ${Firebase.apps.isNotEmpty}',
+        name: _logName,
+      );
+
+      // デバッグ: プロバイダ設定の詳細ログ
+      developer.log('GoogleAuthProvider設定:', name: _logName);
+      developer.log('  - Custom Parameters: $customParams', name: _logName);
 
       late final UserCredential userCredential;
       if (kIsWeb) {
@@ -520,7 +547,42 @@ class SecureAuthService {
         }
       } else {
         // Mobile: FirebaseAuth のプロバイダ経由でサインイン
-        userCredential = await _auth.signInWithProvider(provider);
+        developer.log('FirebaseAuth でプロバイダ認証を実行', name: _logName);
+
+        // プロバイダ設定の詳細ログ
+        developer.log('GoogleAuthProvider設定:', name: _logName);
+        developer.log(
+          '  - Custom Parameters: $customParams',
+          name: _logName,
+        );
+
+        try {
+          userCredential = await _auth.signInWithProvider(provider);
+          developer.log('FirebaseAuth プロバイダ認証成功', name: _logName);
+        } catch (e) {
+          developer.log(
+            'FirebaseAuth プロバイダ認証エラー: $e',
+            name: _logName,
+            error: e,
+          );
+
+          // 詳細なエラー情報
+          if (e.toString().contains('invalid_client')) {
+            developer.log(
+              '❌ OAuthクライアント設定エラー - Firebase ConsoleでGoogle認証を確認してください',
+              name: _logName,
+            );
+          } else if (e.toString().contains('access_denied')) {
+            developer.log(
+              '❌ OAuth同意画面設定エラー - Google Cloud Consoleで本番環境設定を確認してください',
+              name: _logName,
+            );
+          } else if (e.toString().contains('invalid_grant')) {
+            developer.log('❌ トークンエラー - アプリを再インストールしてください', name: _logName);
+          }
+
+          rethrow;
+        }
       }
 
       final user = userCredential.user;

@@ -172,6 +172,31 @@ android {
         // ネットワークセキュリティ設定ファイルを指定
         manifestPlaceholders["networkSecurityConfig"] = "@xml/network_security_config"
         
+        // Firebase設定をBuildConfigに追加
+        val firebaseApiKey = System.getenv("FIREBASE_WEB_API_KEY")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: signingEnvVars["FIREBASE_WEB_API_KEY"]?.trim()?.takeIf { it.isNotEmpty() }
+            ?: project.findProperty("FIREBASE_WEB_API_KEY")?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: "AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8"
+        val firebaseAppId = System.getenv("FIREBASE_ANDROID_APP_ID")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: signingEnvVars["FIREBASE_ANDROID_APP_ID"]?.trim()?.takeIf { it.isNotEmpty() }
+            ?: project.findProperty("FIREBASE_ANDROID_APP_ID")?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: "1:330871937318:android:f9f18c41f7aa541ad0c9e7"
+        val firebaseProjectId = System.getenv("FIREBASE_PROJECT_ID")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: signingEnvVars["FIREBASE_PROJECT_ID"]?.trim()?.takeIf { it.isNotEmpty() }
+            ?: project.findProperty("FIREBASE_PROJECT_ID")?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: "roastplus-app"
+        val firebaseStorageBucket = System.getenv("FIREBASE_STORAGE_BUCKET")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: signingEnvVars["FIREBASE_STORAGE_BUCKET"]?.trim()?.takeIf { it.isNotEmpty() }
+            ?: project.findProperty("FIREBASE_STORAGE_BUCKET")?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: "${firebaseProjectId}.firebasestorage.app"
+
+        // BuildConfigフィールドを追加（dart-defineから取得）
+        buildConfigField("String", "FIREBASE_API_KEY", "\"$firebaseApiKey\"")
+        buildConfigField("String", "FIREBASE_APP_ID", "\"$firebaseAppId\"")
+        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"$firebaseProjectId\"")
+        buildConfigField("String", "FIREBASE_STORAGE_BUCKET", "\"$firebaseStorageBucket\"")
+        buildConfigField("String", "MESSAGING_SENDER_ID", "\"330871937318\"")
+
         // 環境変数からAPIキーを取得
         // Google Sign-In クライアントIDは環境設定を優先し、無ければPlay署名用のフォールバックを使用
         val fallbackPlayGoogleSignInClientId = "330871937318-tofmig3lifv78brac91eucdfmfucs4nc.apps.googleusercontent.com"
@@ -181,6 +206,7 @@ android {
         if (googleSignInClientId == fallbackPlayGoogleSignInClientId) {
             println("Using fallback Google Play signing client ID for Google Sign-In")
         }
+        buildConfigField("String", "GOOGLE_SIGN_IN_CLIENT_ID", "\"$googleSignInClientId\"")
         manifestPlaceholders["googleSignInClientId"] = googleSignInClientId
         manifestPlaceholders["admobAppId"] = System.getenv("ADMOB_ANDROID_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
     }

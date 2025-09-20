@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import '../utils/security_config.dart';
@@ -287,8 +288,39 @@ class EncryptedFirebaseConfigService {
     }
   }
 
+  /// MethodChannelからFirebase設定を取得
+  static Future<Map<String, String>> _getConfigFromNative() async {
+    try {
+      if (kIsWeb) return {};
+
+      const platform = MethodChannel('com.ikcoding.roastplus/firebase_config');
+      final Map<Object?, Object?>? config = await platform.invokeMethod(
+        'getFirebaseConfig',
+      );
+
+      if (config != null) {
+        developer.log('✅ MethodChannelからFirebase設定を取得しました', name: _logName);
+        return config.map(
+          (key, value) => MapEntry(key.toString(), value.toString()),
+        );
+      }
+    } catch (e) {
+      developer.log('❌ MethodChannelからの設定取得に失敗: $e', name: _logName);
+    }
+    return {};
+  }
+
   /// 環境変数から平文の設定を取得
   static Future<Map<String, String>> _getPlainConfigFromEnvironment() async {
+    // まずMethodChannelから設定を取得
+    final nativeConfig = await _getConfigFromNative();
+    if (nativeConfig.isNotEmpty) {
+      developer.log('MethodChannelから設定を使用', name: _logName);
+      return nativeConfig;
+    }
+
+    developer.log('MethodChannelから設定が取得できなかったため、環境変数を使用', name: _logName);
+
     if (kIsWeb) {
       return {
         'apiKey': await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY'),
@@ -307,6 +339,12 @@ class EncryptedFirebaseConfigService {
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
+        // AndroidではMethodChannelから設定を取得
+        final nativeConfig = await _getConfigFromNative();
+        if (nativeConfig.isNotEmpty) {
+          return nativeConfig;
+        }
+        // フォールバックとして環境変数を使用
         return {
           'apiKey': await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY'),
           'appId': await EnvLoader.getEnvVar('FIREBASE_ANDROID_APP_ID'),

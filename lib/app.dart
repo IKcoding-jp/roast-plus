@@ -12,6 +12,7 @@ import 'services/sync_firestore_all.dart';
 import 'services/todo_notification_service.dart';
 import 'services/secure_auth_service.dart';
 import 'services/session_management_service.dart';
+import 'services/encrypted_firebase_config_service.dart';
 import 'package:provider/provider.dart';
 import 'models/theme_settings.dart';
 import 'models/group_provider.dart';
@@ -292,6 +293,18 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
+
+    // Firebase設定の検証
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final isValid =
+          await EncryptedFirebaseConfigService.validateConfiguration();
+      if (!isValid) {
+        developer.log('❌ AuthGate: Firebase設定が無効です', name: 'AuthGate');
+      } else {
+        developer.log('✅ AuthGate: Firebase設定が有効です', name: 'AuthGate');
+      }
+    });
+
     _checkRedirectResult();
     _checkCurrentUser();
 
@@ -597,8 +610,23 @@ class _GoogleSignInScreenState extends State<GoogleSignInScreen> {
         userCredential = await SecureAuthService.signInWithGoogle();
         developer.log('Web版: ポップアップ方式でログイン成功', name: 'GoogleSignInScreen');
       } else {
-        userCredential =
-            await SecureAuthService.signInWithGoogleForceAccountSelection();
+        try {
+          userCredential =
+              await SecureAuthService.signInWithGoogleForceAccountSelection();
+          developer.log('Google Sign-In 成功', name: 'GoogleSignInScreen');
+        } catch (e) {
+          developer.log(
+            'Google Sign-In エラー: $e',
+            name: 'GoogleSignInScreen',
+            error: e,
+          );
+          if (!mounted) return;
+          setState(() {
+            _loading = false;
+            _error = 'Googleログインエラー: $e';
+          });
+          return;
+        }
       }
 
       if (userCredential == null) {
