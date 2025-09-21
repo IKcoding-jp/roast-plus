@@ -24,22 +24,22 @@ class SecurityConfig {
   }
 
   /// Firebase設定を暗号化して取得
-  static Map<String, String> getFirebaseConfig() {
+  static Future<Map<String, String>> getFirebaseConfig() async {
     if (kDebugMode) {
       // デバッグモードでは平文で返す（開発用）
       return {
-        'apiKey': _decryptApiKey(getEncryptedApiKey()),
-        'appId': _decryptAppId(getEncryptedAppId()),
-        'projectId': _decryptProjectId(getEncryptedProjectId()),
-        'messagingSenderId': _decryptSenderId(getEncryptedSenderId()),
+        'apiKey': _decryptApiKey(await getEncryptedApiKey()),
+        'appId': _decryptAppId(await getEncryptedAppId()),
+        'projectId': _decryptProjectId(await getEncryptedProjectId()),
+        'messagingSenderId': _decryptSenderId(await getEncryptedSenderId()),
       };
     } else {
       // リリースモードでは暗号化された値を返す
       return {
-        'apiKey': _decryptApiKey(getEncryptedApiKey()),
-        'appId': _decryptAppId(getEncryptedAppId()),
-        'projectId': _decryptProjectId(getEncryptedProjectId()),
-        'messagingSenderId': _decryptSenderId(getEncryptedSenderId()),
+        'apiKey': _decryptApiKey(await getEncryptedApiKey()),
+        'appId': _decryptAppId(await getEncryptedAppId()),
+        'projectId': _decryptProjectId(await getEncryptedProjectId()),
+        'messagingSenderId': _decryptSenderId(await getEncryptedSenderId()),
       };
     }
   }
@@ -118,140 +118,110 @@ class SecurityConfig {
   }
 
   // 暗号化された設定値（環境変数から取得）
-  static String getEncryptedApiKey() {
+  static Future<String> getEncryptedApiKey() async {
     if (kIsWeb) {
-      return const String.fromEnvironment('FIREBASE_WEB_API_KEY_ENCRYPTED');
+      return await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY_ENCRYPTED');
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return const String.fromEnvironment(
-          'FIREBASE_ANDROID_API_KEY_ENCRYPTED',
-        );
+        return await EnvLoader.getEnvVar('FIREBASE_ANDROID_API_KEY_ENCRYPTED');
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:
-        return const String.fromEnvironment('FIREBASE_IOS_API_KEY_ENCRYPTED');
+        return await EnvLoader.getEnvVar('FIREBASE_IOS_API_KEY_ENCRYPTED');
       case TargetPlatform.windows:
-        return const String.fromEnvironment('FIREBASE_WEB_API_KEY_ENCRYPTED');
+        return await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY_ENCRYPTED');
       default:
-        return const String.fromEnvironment('FIREBASE_WEB_API_KEY_ENCRYPTED');
+        return await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY_ENCRYPTED');
     }
   }
 
   /// 実行時環境変数から暗号化されたAPIキーを取得
   static Future<String> getEncryptedApiKeyRuntime() async {
     if (kIsWeb) {
-      const compileTimeKey = String.fromEnvironment(
-        'FIREBASE_WEB_API_KEY_ENCRYPTED',
-      );
-      if (compileTimeKey.isNotEmpty) return compileTimeKey;
       return await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY_ENCRYPTED');
     }
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        const compileTimeKey = String.fromEnvironment(
-          'FIREBASE_ANDROID_API_KEY_ENCRYPTED',
-        );
-        if (compileTimeKey.isNotEmpty) return compileTimeKey;
         return await EnvLoader.getEnvVar('FIREBASE_ANDROID_API_KEY_ENCRYPTED');
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:
-        const compileTimeKey = String.fromEnvironment(
-          'FIREBASE_IOS_API_KEY_ENCRYPTED',
-        );
-        if (compileTimeKey.isNotEmpty) return compileTimeKey;
         return await EnvLoader.getEnvVar('FIREBASE_IOS_API_KEY_ENCRYPTED');
       case TargetPlatform.windows:
-        const compileTimeKey = String.fromEnvironment(
-          'FIREBASE_WEB_API_KEY_ENCRYPTED',
-        );
-        if (compileTimeKey.isNotEmpty) return compileTimeKey;
         return await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY_ENCRYPTED');
       default:
-        const compileTimeKey = String.fromEnvironment(
-          'FIREBASE_WEB_API_KEY_ENCRYPTED',
-        );
-        if (compileTimeKey.isNotEmpty) return compileTimeKey;
         return await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY_ENCRYPTED');
     }
   }
 
-  static String getEncryptedAppId() {
+  static Future<String> getEncryptedAppId() async {
     if (kIsWeb) {
-      return const String.fromEnvironment('FIREBASE_WEB_APP_ID_ENCRYPTED');
+      return await EnvLoader.getEnvVar('FIREBASE_WEB_APP_ID_ENCRYPTED');
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return const String.fromEnvironment(
-          'FIREBASE_ANDROID_APP_ID_ENCRYPTED',
-        );
+        return await EnvLoader.getEnvVar('FIREBASE_ANDROID_APP_ID_ENCRYPTED');
       case TargetPlatform.iOS:
       case TargetPlatform.macOS:
-        return const String.fromEnvironment('FIREBASE_IOS_APP_ID_ENCRYPTED');
+        return await EnvLoader.getEnvVar('FIREBASE_IOS_APP_ID_ENCRYPTED');
       case TargetPlatform.windows:
-        return const String.fromEnvironment(
-          'FIREBASE_WINDOWS_APP_ID_ENCRYPTED',
-        );
+        return await EnvLoader.getEnvVar('FIREBASE_WINDOWS_APP_ID_ENCRYPTED');
       default:
-        return const String.fromEnvironment('FIREBASE_WEB_APP_ID_ENCRYPTED');
+        return await EnvLoader.getEnvVar('FIREBASE_WEB_APP_ID_ENCRYPTED');
     }
   }
 
-  static String getEncryptedProjectId() {
-    return const String.fromEnvironment('FIREBASE_PROJECT_ID_ENCRYPTED');
+  static Future<String> getEncryptedProjectId() async {
+    return await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID_ENCRYPTED');
   }
 
-  static String getEncryptedSenderId() {
-    return const String.fromEnvironment(
-      'FIREBASE_MESSAGING_SENDER_ID_ENCRYPTED',
-    );
+  static Future<String> getEncryptedSenderId() async {
+    return await EnvLoader.getEnvVar('FIREBASE_MESSAGING_SENDER_ID_ENCRYPTED');
   }
 
-  static String getEncryptedAuthDomain() {
+  static Future<String> getEncryptedAuthDomain() async {
     if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
-      return const String.fromEnvironment('FIREBASE_AUTH_DOMAIN_ENCRYPTED');
+      return await EnvLoader.getEnvVar('FIREBASE_AUTH_DOMAIN_ENCRYPTED');
     }
     return '';
   }
 
-  static String getEncryptedStorageBucket() {
-    return const String.fromEnvironment('FIREBASE_STORAGE_BUCKET_ENCRYPTED');
+  static Future<String> getEncryptedStorageBucket() async {
+    return await EnvLoader.getEnvVar('FIREBASE_STORAGE_BUCKET_ENCRYPTED');
   }
 
-  static String getEncryptedMeasurementId() {
+  static Future<String> getEncryptedMeasurementId() async {
     if (kIsWeb) {
-      return const String.fromEnvironment('FIREBASE_MEASUREMENT_ID_ENCRYPTED');
+      return await EnvLoader.getEnvVar('FIREBASE_MEASUREMENT_ID_ENCRYPTED');
     }
     if (defaultTargetPlatform == TargetPlatform.windows) {
-      return const String.fromEnvironment(
+      return await EnvLoader.getEnvVar(
         'FIREBASE_WINDOWS_MEASUREMENT_ID_ENCRYPTED',
       );
     }
     return '';
   }
 
-  static String getEncryptedAndroidClientId() {
+  static Future<String> getEncryptedAndroidClientId() async {
     if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
-      return const String.fromEnvironment(
-        'FIREBASE_ANDROID_CLIENT_ID_ENCRYPTED',
-      );
+      return await EnvLoader.getEnvVar('FIREBASE_ANDROID_CLIENT_ID_ENCRYPTED');
     }
     return '';
   }
 
-  static String getEncryptedIosClientId() {
+  static Future<String> getEncryptedIosClientId() async {
     if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
-      return const String.fromEnvironment('FIREBASE_IOS_CLIENT_ID_ENCRYPTED');
+      return await EnvLoader.getEnvVar('FIREBASE_IOS_CLIENT_ID_ENCRYPTED');
     }
     return '';
   }
 
-  static String getEncryptedIosBundleId() {
+  static Future<String> getEncryptedIosBundleId() async {
     if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
-      return const String.fromEnvironment('FIREBASE_IOS_BUNDLE_ID_ENCRYPTED');
+      return await EnvLoader.getEnvVar('FIREBASE_IOS_BUNDLE_ID_ENCRYPTED');
     }
     return '';
   }

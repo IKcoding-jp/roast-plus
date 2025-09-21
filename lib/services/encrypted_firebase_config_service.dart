@@ -1,6 +1,5 @@
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import '../utils/security_config.dart';
@@ -14,42 +13,58 @@ class EncryptedFirebaseConfigService {
 
   /// 暗号化されたFirebase設定を生成するメソッド
   /// 環境変数から設定を取得し、暗号化して返す
-  static Map<String, String> generateEncryptedConfig() {
+  static Future<Map<String, String>> generateEncryptedConfig() async {
     // 環境変数から設定を取得（フォールバック用のデフォルト値）
+    final projectId = await EnvLoader.getEnvVar(
+      'FIREBASE_PROJECT_ID',
+      defaultValue: 'roastplus-app',
+    );
+    final projectNumber = await EnvLoader.getEnvVar(
+      'FIREBASE_PROJECT_NUMBER',
+      defaultValue: '330871937318',
+    );
+
     final configs = {
       'web': {
-        'apiKey': const String.fromEnvironment('FIREBASE_WEB_API_KEY'),
-        'appId': const String.fromEnvironment('FIREBASE_WEB_APP_ID'),
-        'messagingSenderId': const String.fromEnvironment(
-          'FIREBASE_PROJECT_NUMBER',
+        'apiKey': await EnvLoader.getEnvVar(
+          'FIREBASE_WEB_API_KEY',
+          defaultValue: 'AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8',
         ),
-        'projectId': const String.fromEnvironment('FIREBASE_PROJECT_ID'),
-        'authDomain':
-            '${const String.fromEnvironment('FIREBASE_PROJECT_ID')}.firebaseapp.com',
-        'storageBucket':
-            '${const String.fromEnvironment('FIREBASE_PROJECT_ID')}.firebasestorage.app',
+        'appId': await EnvLoader.getEnvVar(
+          'FIREBASE_WEB_APP_ID',
+          defaultValue: '1:330871937318:web:d4f31865d8c0e924d0c9e7',
+        ),
+        'messagingSenderId': projectNumber,
+        'projectId': projectId,
+        'authDomain': '$projectId.firebaseapp.com',
+        'storageBucket': '$projectId.firebasestorage.app',
         'measurementId': 'G-XXXXXXXXXX',
       },
       'android': {
-        'apiKey': const String.fromEnvironment('FIREBASE_WEB_API_KEY'),
-        'appId': const String.fromEnvironment('FIREBASE_ANDROID_APP_ID'),
-        'messagingSenderId': const String.fromEnvironment(
-          'FIREBASE_PROJECT_NUMBER',
+        'apiKey': await EnvLoader.getEnvVar(
+          'FIREBASE_WEB_API_KEY',
+          defaultValue: 'AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8',
         ),
-        'projectId': const String.fromEnvironment('FIREBASE_PROJECT_ID'),
-        'storageBucket':
-            '${const String.fromEnvironment('FIREBASE_PROJECT_ID')}.firebasestorage.app',
+        'appId': await EnvLoader.getEnvVar(
+          'FIREBASE_ANDROID_APP_ID',
+          defaultValue: '1:330871937318:android:f9f18c41f7aa541ad0c9e7',
+        ),
+        'messagingSenderId': projectNumber,
+        'projectId': projectId,
+        'storageBucket': '$projectId.firebasestorage.app',
       },
       'ios': {
-        'apiKey': const String.fromEnvironment('FIREBASE_WEB_API_KEY'),
-        'appId': const String.fromEnvironment('FIREBASE_ANDROID_APP_ID'),
-        'messagingSenderId': const String.fromEnvironment(
-          'FIREBASE_PROJECT_NUMBER',
+        'apiKey': await EnvLoader.getEnvVar(
+          'FIREBASE_WEB_API_KEY',
+          defaultValue: 'AIzaSyBGNXDM8_bX1lztoD70BFyZ2qlk4PvziU8',
         ),
-        'projectId': const String.fromEnvironment('FIREBASE_PROJECT_ID'),
-        'storageBucket': const String.fromEnvironment(
-          'FIREBASE_STORAGE_BUCKET',
+        'appId': await EnvLoader.getEnvVar(
+          'FIREBASE_ANDROID_APP_ID',
+          defaultValue: '1:330871937318:android:f9f18c41f7aa541ad0c9e7',
         ),
+        'messagingSenderId': projectNumber,
+        'projectId': projectId,
+        'storageBucket': await EnvLoader.getEnvVar('FIREBASE_STORAGE_BUCKET'),
         'androidClientId': const String.fromEnvironment(
           'FIREBASE_ANDROID_CLIENT_ID',
         ),
@@ -193,38 +208,39 @@ class EncryptedFirebaseConfigService {
   }
 
   /// SecurityConfigから暗号化されたFirebase設定を取得
-  static Map<String, String> _getEncryptedConfigFromSecurityConfig() {
+  static Future<Map<String, String>>
+  _getEncryptedConfigFromSecurityConfig() async {
     final config = <String, String>{};
 
     // 基本設定
-    config['apiKey'] = SecurityConfig.getEncryptedApiKey();
-    config['appId'] = SecurityConfig.getEncryptedAppId();
-    config['messagingSenderId'] = SecurityConfig.getEncryptedSenderId();
-    config['projectId'] = SecurityConfig.getEncryptedProjectId();
-    config['storageBucket'] = SecurityConfig.getEncryptedStorageBucket();
+    config['apiKey'] = await SecurityConfig.getEncryptedApiKey();
+    config['appId'] = await SecurityConfig.getEncryptedAppId();
+    config['messagingSenderId'] = await SecurityConfig.getEncryptedSenderId();
+    config['projectId'] = await SecurityConfig.getEncryptedProjectId();
+    config['storageBucket'] = await SecurityConfig.getEncryptedStorageBucket();
 
     // プラットフォーム固有の設定
-    final authDomain = SecurityConfig.getEncryptedAuthDomain();
+    final authDomain = await SecurityConfig.getEncryptedAuthDomain();
     if (authDomain.isNotEmpty) {
       config['authDomain'] = authDomain;
     }
 
-    final measurementId = SecurityConfig.getEncryptedMeasurementId();
+    final measurementId = await SecurityConfig.getEncryptedMeasurementId();
     if (measurementId.isNotEmpty) {
       config['measurementId'] = measurementId;
     }
 
-    final androidClientId = SecurityConfig.getEncryptedAndroidClientId();
+    final androidClientId = await SecurityConfig.getEncryptedAndroidClientId();
     if (androidClientId.isNotEmpty) {
       config['androidClientId'] = androidClientId;
     }
 
-    final iosClientId = SecurityConfig.getEncryptedIosClientId();
+    final iosClientId = await SecurityConfig.getEncryptedIosClientId();
     if (iosClientId.isNotEmpty) {
       config['iosClientId'] = iosClientId;
     }
 
-    final iosBundleId = SecurityConfig.getEncryptedIosBundleId();
+    final iosBundleId = await SecurityConfig.getEncryptedIosBundleId();
     if (iosBundleId.isNotEmpty) {
       config['iosBundleId'] = iosBundleId;
     }
@@ -252,15 +268,26 @@ class EncryptedFirebaseConfigService {
     return decryptedConfig;
   }
 
-  /// Firebase設定を取得（平文設定を使用）
+  /// Firebase設定を取得（暗号化設定を使用）
   static Future<FirebaseOptions> getFirebaseOptions() async {
     try {
-      // 環境変数から平文の設定を直接取得
-      final config = await _getPlainConfigFromEnvironment();
+      // 暗号化された設定を取得
+      final encryptedConfig = await _getEncryptedConfigFromSecurityConfig();
+
+      // 設定が空の場合は、詳細なエラー情報を提供
+      if (encryptedConfig.isEmpty ||
+          encryptedConfig.values.every((v) => v.isEmpty)) {
+        developer.log('❌ 暗号化設定から設定を取得できません', name: _logName);
+        _logMissingEnvironmentVariables();
+        return _getDefaultFirebaseOptions();
+      }
+
+      // 復号化
+      final config = _decryptConfig(encryptedConfig);
 
       // 設定が空の場合は、詳細なエラー情報を提供
       if (config.isEmpty || config.values.every((v) => v.isEmpty)) {
-        developer.log('❌ 環境変数から設定を取得できません', name: _logName);
+        developer.log('❌ 復号化された設定が空です', name: _logName);
         _logMissingEnvironmentVariables();
         return _getDefaultFirebaseOptions();
       }
@@ -285,123 +312,6 @@ class EncryptedFirebaseConfigService {
       developer.log('Firebase設定の取得に失敗: $e', name: _logName);
       // エラーが発生した場合は、詳細なエラー情報を提供
       return _getDefaultFirebaseOptions();
-    }
-  }
-
-  /// MethodChannelからFirebase設定を取得
-  static Future<Map<String, String>> _getConfigFromNative() async {
-    try {
-      if (kIsWeb) return {};
-
-      const platform = MethodChannel('com.ikcoding.roastplus/firebase_config');
-      final Map<Object?, Object?>? config = await platform.invokeMethod(
-        'getFirebaseConfig',
-      );
-
-      if (config != null) {
-        developer.log('✅ MethodChannelからFirebase設定を取得しました', name: _logName);
-        return config.map(
-          (key, value) => MapEntry(key.toString(), value.toString()),
-        );
-      }
-    } catch (e) {
-      developer.log('❌ MethodChannelからの設定取得に失敗: $e', name: _logName);
-    }
-    return {};
-  }
-
-  /// 環境変数から平文の設定を取得
-  static Future<Map<String, String>> _getPlainConfigFromEnvironment() async {
-    // まずMethodChannelから設定を取得
-    final nativeConfig = await _getConfigFromNative();
-    if (nativeConfig.isNotEmpty) {
-      developer.log('MethodChannelから設定を使用', name: _logName);
-      return nativeConfig;
-    }
-
-    developer.log('MethodChannelから設定が取得できなかったため、環境変数を使用', name: _logName);
-
-    if (kIsWeb) {
-      return {
-        'apiKey': await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY'),
-        'appId': await EnvLoader.getEnvVar('FIREBASE_WEB_APP_ID'),
-        'messagingSenderId': await EnvLoader.getEnvVar(
-          'FIREBASE_MESSAGING_SENDER_ID',
-        ),
-        'projectId': await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID'),
-        'authDomain':
-            '${await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID')}.firebaseapp.com',
-        'storageBucket':
-            '${await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID')}.firebasestorage.app',
-        'measurementId': 'G-XXXXXXXXXX',
-      };
-    }
-
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        // AndroidではMethodChannelから設定を取得
-        final nativeConfig = await _getConfigFromNative();
-        if (nativeConfig.isNotEmpty) {
-          return nativeConfig;
-        }
-        // フォールバックとして環境変数を使用
-        return {
-          'apiKey': await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY'),
-          'appId': await EnvLoader.getEnvVar('FIREBASE_ANDROID_APP_ID'),
-          'messagingSenderId': await EnvLoader.getEnvVar(
-            'FIREBASE_MESSAGING_SENDER_ID',
-          ),
-          'projectId': await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID'),
-          'storageBucket':
-              '${await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID')}.firebasestorage.app',
-        };
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-        return {
-          'apiKey': await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY'),
-          'appId': await EnvLoader.getEnvVar('FIREBASE_ANDROID_APP_ID'),
-          'messagingSenderId': await EnvLoader.getEnvVar(
-            'FIREBASE_MESSAGING_SENDER_ID',
-          ),
-          'projectId': await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID'),
-          'storageBucket':
-              '${await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID')}.firebasestorage.app',
-          'androidClientId': await EnvLoader.getEnvVar(
-            'GOOGLE_SIGN_IN_CLIENT_ID',
-          ),
-          'iosClientId': await EnvLoader.getEnvVar('GOOGLE_SIGN_IN_CLIENT_ID'),
-          'iosBundleId': await EnvLoader.getEnvVar(
-            'FIREBASE_ANDROID_PACKAGE_NAME',
-          ),
-        };
-      case TargetPlatform.windows:
-        return {
-          'apiKey': await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY'),
-          'appId': await EnvLoader.getEnvVar('FIREBASE_WEB_APP_ID'),
-          'messagingSenderId': await EnvLoader.getEnvVar(
-            'FIREBASE_MESSAGING_SENDER_ID',
-          ),
-          'projectId': await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID'),
-          'authDomain':
-              '${await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID')}.firebaseapp.com',
-          'storageBucket':
-              '${await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID')}.firebasestorage.app',
-          'measurementId': 'G-XXXXXXXXXX',
-        };
-      default:
-        return {
-          'apiKey': await EnvLoader.getEnvVar('FIREBASE_WEB_API_KEY'),
-          'appId': await EnvLoader.getEnvVar('FIREBASE_WEB_APP_ID'),
-          'messagingSenderId': await EnvLoader.getEnvVar(
-            'FIREBASE_MESSAGING_SENDER_ID',
-          ),
-          'projectId': await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID'),
-          'authDomain':
-              '${await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID')}.firebaseapp.com',
-          'storageBucket':
-              '${await EnvLoader.getEnvVar('FIREBASE_PROJECT_ID')}.firebasestorage.app',
-          'measurementId': 'G-XXXXXXXXXX',
-        };
     }
   }
 
@@ -553,7 +463,7 @@ class EncryptedFirebaseConfigService {
     try {
       developer.log('🔍 Firebase設定の検証を開始...', name: _logName);
 
-      final config = _getEncryptedConfigFromSecurityConfig();
+      final config = await _getEncryptedConfigFromSecurityConfig();
       if (config.isEmpty) {
         developer.log('❌ 暗号化された設定が空です', name: _logName);
         _logMissingEnvironmentVariables();

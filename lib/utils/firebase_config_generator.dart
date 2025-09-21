@@ -12,8 +12,8 @@ class FirebaseConfigGenerator {
       developer.log('Firebase設定の暗号化を開始...', name: 'FirebaseConfigGenerator');
 
       // 暗号化された設定を生成
-      final encryptedConfigs =
-          EncryptedFirebaseConfigService.generateEncryptedConfig();
+      final Map<String, String> encryptedConfigs =
+          await EncryptedFirebaseConfigService.generateEncryptedConfig();
 
       // .envファイルの内容を生成
       final envContent = StringBuffer();
@@ -42,7 +42,7 @@ class FirebaseConfigGenerator {
       );
 
       // 生成された設定の概要を表示
-      _printConfigSummary(encryptedConfigs);
+      await _printConfigSummary(encryptedConfigs);
     } catch (e) {
       developer.log('❌ 環境変数ファイルの生成に失敗: $e', name: 'FirebaseConfigGenerator');
       rethrow;
@@ -50,7 +50,7 @@ class FirebaseConfigGenerator {
   }
 
   /// 設定の概要を表示
-  static void _printConfigSummary(Map<String, String> configs) {
+  static Future<void> _printConfigSummary(Map<String, String> configs) async {
     developer.log('\n📋 生成された設定の概要:', name: 'FirebaseConfigGenerator');
 
     final platforms = <String, int>{};
@@ -121,14 +121,15 @@ class FirebaseConfigGenerator {
       };
 
       final encryptedConfig = <String, String>{};
+      final Map<String, String> actualEncryptedConfig =
+          await EncryptedFirebaseConfigService.generateEncryptedConfig();
       testConfig.forEach((key, value) {
-        encryptedConfig[key] =
-            EncryptedFirebaseConfigService.generateEncryptedConfig()[key] ?? '';
+        encryptedConfig[key] = actualEncryptedConfig[key] ?? '';
       });
 
       // 復号化テスト
-      final decryptedConfig =
-          EncryptedFirebaseConfigService.generateEncryptedConfig();
+      final Map<String, String> decryptedConfig =
+          await EncryptedFirebaseConfigService.generateEncryptedConfig();
 
       bool allValid = true;
       testConfig.forEach((key, originalValue) {
